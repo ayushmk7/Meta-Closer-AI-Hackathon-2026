@@ -57,8 +57,12 @@ def activity_type(t: str) -> str:
 
 
 def render_state(key: str, **fields) -> str:
-    """Render questions[key].state. Users are passed as users={"A": user, ...} (with optional
-    activities={"A": [...]}) and the activity type as activityType; other fields fill {placeholders}."""
+    """Render questions[key].state: the exact string the backend's LAYA_FAKE hashes and sends to Laya
+    (byte-exact with contracts/laya_golden.json). Fake p = fake_p(key, render_state(key, ...)).
+
+    Users go in as users={"A": user, ...} (persona or export user dicts; optional activities={"A": [...]}
+    else user["activity"]), the activity type as activityType; other fields fill {placeholders}.
+    e.g. render_state("show_up", users={"A": u}, activities={"A": acts}, activityType="hike")."""
     tpl = questions()["questions"][key]["state"]
     users = fields.pop("users", {})
     acts = fields.pop("activities", {})

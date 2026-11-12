@@ -41,3 +41,12 @@ def test_score_answer_expected_value():
                                       ({"probabilities": {"yes": 0.3, "no": 0.7}}, 0.3)])
 def test_noul_answer_shapes(ans, want):
     assert laya._answer_p(ans, "noul", None) == want
+
+
+def test_render_state_is_what_fake_hashes():
+    import hashlib
+
+    case = next(c for c in GOLDEN["cases"] if c["name"] == "show_up_state")
+    s = laya.render_state("show_up", users=case["users"], activityType=case["activityType"])
+    want = int(hashlib.sha256(f"2|show_up|{case['render']}".encode()).hexdigest()[:8], 16) / 0xFFFFFFFF
+    assert laya.fake_p("show_up", s) == want
