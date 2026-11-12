@@ -27,7 +27,11 @@ jest.mock('../../src/platform/scopedStorage', () => ({
 const fixtures = require('../../src/features/common-ground/fixtures.json');
 const { api } = require('../../src/features/common-ground/api');
 const store = require('../../src/features/common-ground/store');
-const { default: Rewards, SameTimeNextWeek } = require('../../src/features/common-ground/Rewards');
+const {
+  default: Rewards,
+  SameTimeNextWeek,
+  nextWeek,
+} = require('../../src/features/common-ground/Rewards');
 
 const mounted = [];
 afterEach(async () => {
@@ -96,6 +100,15 @@ test('Same time next week? creates the same plan 7 days later, only once feedbac
   await setMe({ capabilities: { ...can, canCreatePlans: false } });
   expect((await render(React.createElement(SameTimeNextWeek, { m }))).tree.toJSON()).toBeNull();
   await setMe({ capabilities: can });
+  const flag = (userPlans) =>
+    renderer.act(async () =>
+      store.setState({
+        config: { ...fixtures.getConfig, features: { ...fixtures.getConfig.features, userPlans } },
+      }),
+    );
+  await flag(false);
+  expect((await render(React.createElement(SameTimeNextWeek, { m }))).tree.toJSON()).toBeNull();
+  await flag(true);
   const due = { ...m, feedbackDue: true };
   expect(
     (await render(React.createElement(SameTimeNextWeek, { m: due }))).tree.toJSON(),
@@ -112,4 +125,10 @@ test('Same time next week? creates the same plan 7 days later, only once feedbac
     `${m.title} at ${m.venue.name}, Sat, Nov 21 · 10:00 AM`,
     undefined,
   );
+});
+
+test('nextWeek keeps the LA wall-clock time across DST', () => {
+  expect(nextWeek('2026-10-31T17:00:00Z')).toBe('2026-11-07T18:00:00.000Z'); // 10 AM PDT -> 10 AM PST
+  expect(nextWeek('2027-03-13T18:30:00Z')).toBe('2027-03-20T17:30:00.000Z'); // 10:30 AM PST -> PDT
+  expect(nextWeek('2026-11-14T18:00:00Z')).toBe('2026-11-21T18:00:00.000Z');
 });
