@@ -69,7 +69,7 @@ export default function ApprovalSheet({ approval: a }: { approval: Approval }) {
             style={{ backgroundColor: c.input, borderRadius: 8, padding: 12, gap: 2 }}
           >
             <Label style={{ fontSize: 28, lineHeight: 34, fontWeight: '800' }}>{amountOf(a)}</Label>
-            {!!a.payee && <Muted>To {a.payee}</Muted>}
+            {!!a.payee && <Muted>{`To ${a.payee}`}</Muted>}
             {a.simulated && (
               <Label style={{ fontWeight: '600' }}>Demo payment · no real money moves</Label>
             )}

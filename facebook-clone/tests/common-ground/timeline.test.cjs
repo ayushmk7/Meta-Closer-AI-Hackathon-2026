@@ -1,0 +1,134 @@
+/* eslint-disable @typescript-eslint/no-require-imports -- Jest native mocks require synchronous module loading. */
+const React = require('react');
+const renderer = require('react-test-renderer');
+
+global.IS_REACT_ACT_ENVIRONMENT = true;
+const mockParams = {};
+jest.mock('../../src/core/store', () => ({
+  useDemo: () => ({ state: { settings: { theme: 'light' } } }),
+}));
+jest.mock('../../src/data/media', () => ({ imageSource: () => 1 }));
+jest.mock('expo-router', () => ({
+  router: { push: jest.fn(), replace: jest.fn() },
+  useLocalSearchParams: () => mockParams,
+  useFocusEffect: (cb) => require('react').useEffect(cb, [cb]),
+}));
+jest.mock('@expo/vector-icons/Ionicons', () => 'Icon');
+jest.mock('react-native-safe-area-context', () => ({
+  SafeAreaView: require('react-native').View,
+  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
+}));
+jest.mock('expo-image', () => ({ Image: 'Image' }));
+jest.mock('expo-blur', () => ({ BlurView: 'BlurView' }));
+jest.mock('expo-haptics', () => ({
+  notificationAsync: jest.fn(async () => {}),
+  NotificationFeedbackType: { Success: 'success' },
+}));
+jest.mock('react-native-reanimated', () => ({
+  __esModule: true,
+  default: { View: require('react-native').View },
+  FadeInDown: {},
+}));
+jest.mock('react-native-maps', () => ({ __esModule: true, default: 'MapView', Marker: 'Marker' }));
+jest.mock('../../src/platform/scopedStorage', () => {
+  let saved = null;
+  return {
+    createScopedStorage: () => ({
+      read: async () => saved,
+      write: async (v) => void (saved = v),
+      remove: async () => void (saved = null),
+    }),
+  };
+});
+
+const F = require('../../src/features/common-ground/fixtures.json');
+const store = require('../../src/features/common-ground/store');
+const clone = (x) => JSON.parse(JSON.stringify(x));
+
+beforeAll(async () => {
+  await store.reset();
+  await store.start();
+});
+const mounted = [];
+afterEach(async () => {
+  await renderer.act(async () => mounted.splice(0).forEach((t) => t.unmount()));
+  jest.restoreAllMocks();
+  store.setState({ error: null });
+});
+
+async function render(element) {
+  let tree;
+  await renderer.act(async () => {
+    tree = renderer.create(element);
+  });
+  mounted.push(tree);
+  const text = () => JSON.stringify(tree.toJSON());
+  const byLabel = (label) =>
+    tree.root.findAll((n) => n.props.accessibilityLabel === label && typeof n.type !== 'string')[0];
+  const press = async (label) => {
+    const node = tree.root.find(
+      (n) => n.props.accessibilityLabel === label && typeof n.props.onPress === 'function',
+    );
+    await renderer.act(async () => node.props.onPress());
+  };
+  return { tree, text, byLabel, press };
+}
+
+const StepTimeline = require('../../src/features/common-ground/StepTimeline').default;
+const step = (stepId, status, kind = 'book', extra = {}) => ({
+  stepId,
+  kind,
+  status,
+  label: `Step ${stepId}`,
+  detail: null,
+  approvalId: null,
+  at: '2026-11-12T18:12:00Z',
+  ...extra,
+});
+
+test('every status reads label + status; unknown kind and status still render', async () => {
+  const steps = [
+    step('a', 'queued'),
+    step('b', 'running'),
+    step('c', 'done', 'group_chat', { detail: 'Checked 3 calendars' }),
+    step('d', 'needs_you', 'payment'),
+    step('e', 'failed'),
+    step('f', 'skipped'),
+    step('g', 'teleporting', 'quantum_tunnel'),
+  ];
+  const { byLabel, text } = await render(
+    React.createElement(StepTimeline, { meetupId: 'mt_none', steps }),
+  );
+  for (const [id, word] of [
+    ['a', 'queued'],
+    ['b', 'in progress'],
+    ['c', 'done'],
+    ['d', 'needs you'],
+    ['e', 'failed'],
+    ['f', 'skipped'],
+    ['g', 'teleporting'],
+  ])
+    expect(byLabel(`Step ${id}, ${word}`)).toBeTruthy();
+  expect(text()).toContain('Checked 3 calendars');
+  expect(text()).toContain('Needs you');
+});
+
+test('a needs_you step with my pending approval shows the approval inline', async () => {
+  const m = clone(F.getMeetup);
+  store.setState({ meetups: { [m.meetupId]: m } });
+  const { byLabel, text } = await render(
+    React.createElement(StepTimeline, { meetupId: m.meetupId, steps: m.museSteps }),
+  );
+  expect(byLabel('Review: OK $35 for your wheel?')).toBeTruthy();
+  expect(text()).toContain('Hayes Clay Studio');
+});
+
+test('an approval that is no longer pending is not shown inline', async () => {
+  const m = clone(F.getMeetup);
+  m.approvals[0].status = 'approved';
+  store.setState({ meetups: { [m.meetupId]: m } });
+  const { byLabel } = await render(
+    React.createElement(StepTimeline, { meetupId: m.meetupId, steps: m.museSteps }),
+  );
+  expect(byLabel('Review: OK $35 for your wheel?')).toBeUndefined();
+});

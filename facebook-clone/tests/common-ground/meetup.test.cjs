@@ -1,0 +1,193 @@
+/* eslint-disable @typescript-eslint/no-require-imports -- Jest native mocks require synchronous module loading. */
+const React = require('react');
+const renderer = require('react-test-renderer');
+
+global.IS_REACT_ACT_ENVIRONMENT = true;
+const mockParams = { meetupId: 'mt_0001' };
+jest.mock('expo-location', () => ({
+  requestForegroundPermissionsAsync: jest.fn(async () => ({ granted: true })),
+  getCurrentPositionAsync: jest.fn(async () => ({ coords: { latitude: 1, longitude: 2 } })),
+}));
+jest.mock('../../src/core/store', () => ({
+  useDemo: () => ({ state: { settings: { theme: 'light' } } }),
+}));
+jest.mock('../../src/data/media', () => ({ imageSource: () => 1 }));
+jest.mock('expo-router', () => ({
+  router: { push: jest.fn(), replace: jest.fn() },
+  useLocalSearchParams: () => mockParams,
+  useFocusEffect: (cb) => require('react').useEffect(cb, [cb]),
+}));
+jest.mock('@expo/vector-icons/Ionicons', () => 'Icon');
+jest.mock('react-native-safe-area-context', () => ({
+  SafeAreaView: require('react-native').View,
+  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
+}));
+jest.mock('expo-image', () => ({ Image: 'Image' }));
+jest.mock('expo-blur', () => ({ BlurView: 'BlurView' }));
+jest.mock('expo-haptics', () => ({
+  notificationAsync: jest.fn(async () => {}),
+  NotificationFeedbackType: { Success: 'success' },
+}));
+jest.mock('react-native-reanimated', () => ({
+  __esModule: true,
+  default: { View: require('react-native').View },
+  FadeInDown: {},
+}));
+jest.mock('react-native-maps', () => ({ __esModule: true, default: 'MapView', Marker: 'Marker' }));
+jest.mock('../../src/platform/scopedStorage', () => {
+  let saved = null;
+  return {
+    createScopedStorage: () => ({
+      read: async () => saved,
+      write: async (v) => void (saved = v),
+      remove: async () => void (saved = null),
+    }),
+  };
+});
+
+const F = require('../../src/features/common-ground/fixtures.json');
+const { api } = require('../../src/features/common-ground/api');
+const store = require('../../src/features/common-ground/store');
+const clone = (x) => JSON.parse(JSON.stringify(x));
+
+beforeAll(async () => {
+  await store.reset();
+  await store.start();
+});
+const mounted = [];
+afterEach(async () => {
+  await renderer.act(async () => mounted.splice(0).forEach((t) => t.unmount()));
+  jest.restoreAllMocks();
+  store.setState({ error: null });
+});
+
+async function render(element) {
+  let tree;
+  await renderer.act(async () => {
+    tree = renderer.create(element);
+  });
+  mounted.push(tree);
+  const text = () => JSON.stringify(tree.toJSON());
+  const byLabel = (label) =>
+    tree.root.findAll((n) => n.props.accessibilityLabel === label && typeof n.type !== 'string')[0];
+  const press = async (label) => {
+    const node = tree.root.find(
+      (n) => n.props.accessibilityLabel === label && typeof n.props.onPress === 'function',
+    );
+    await renderer.act(async () => node.props.onPress());
+  };
+  return { tree, text, byLabel, press };
+}
+
+const { Alert, Linking } = require('react-native');
+const Location = require('expo-location');
+const Meetup = require('../../src/features/common-ground/Meetup').default;
+
+// Confirmed and happening now, so day-of and check-in show (mock config: relaxCheckin).
+function confirmedNow() {
+  const m = clone(F.getMeetup);
+  m.status = 'confirmed';
+  m.startsAt = new Date(Date.now() - 10 * 60_000).toISOString();
+  m.endsAt = new Date(Date.now() + 60 * 60_000).toISOString();
+  return m;
+}
+function show(m) {
+  jest.spyOn(api, 'getMeetup').mockResolvedValue(m);
+  store.setState({ meetups: { [m.meetupId]: m } });
+  return render(React.createElement(Meetup));
+}
+
+test('header, steps with the inline approval, attendees and details render', async () => {
+  const { text, byLabel } = await show(clone(F.getMeetup));
+  expect(text()).toContain('Wheel-throwing drop-in');
+  expect(text()).toContain('Muse is setting this up');
+  expect(byLabel('Opened your group chat, done')).toBeTruthy();
+  expect(byLabel('Waiting for you to OK $35, needs you')).toBeTruthy();
+  expect(byLabel('Review: OK $35 for your wheel?')).toBeTruthy();
+  expect(text()).toContain('Wheel throwing');
+  expect(text()).toContain('22 min by transit');
+  expect(text()).toContain('Simulated booking');
+  // Not day of: no status buttons, no check-in.
+  expect(byLabel('On my way')).toBeUndefined();
+  expect(byLabel('Check in')).toBeUndefined();
+});
+
+test('C2: rendering never reads location; check-in sends the demo fake location', async () => {
+  const check = jest.spyOn(api, 'checkIn').mockResolvedValue({ accepted: true });
+  const { press } = await show(confirmedNow());
+  expect(Location.requestForegroundPermissionsAsync).not.toHaveBeenCalled();
+  await press('Check in');
+  expect(check).toHaveBeenCalledWith('mt_0001', F.getConfig.demo.fakeLocation);
+  expect(Location.requestForegroundPermissionsAsync).not.toHaveBeenCalled();
+});
+
+test('C2: without a fake location, the only reading happens on the Check in tap', async () => {
+  const config = store.getState().config;
+  store.setState({ config: { ...config, demo: { ...config.demo, fakeLocation: null } } });
+  const check = jest
+    .spyOn(api, 'checkIn')
+    .mockResolvedValue({ accepted: false, reason: 'outside_geofence' });
+  const { press, text } = await show(confirmedNow());
+  expect(Location.getCurrentPositionAsync).not.toHaveBeenCalled();
+  await press('Check in');
+  expect(Location.getCurrentPositionAsync).toHaveBeenCalledTimes(1);
+  expect(check).toHaveBeenCalledWith('mt_0001', { lat: 1, lng: 2 });
+  expect(text()).toContain("You don't seem to be at the venue yet.");
+  await renderer.act(async () => store.setState({ config }));
+});
+
+test('Directions opens the server URL with Linking', async () => {
+  const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+  const open = jest.spyOn(Linking, 'openURL').mockResolvedValue(true);
+  const { press } = await show(clone(F.getMeetup));
+  await press('Directions');
+  const buttons = alert.mock.calls[0][2];
+  buttons.find((b) => b.text === 'Apple Maps').onPress();
+  expect(open).toHaveBeenCalledWith(F.getMeetup.travel.directions.apple);
+  buttons.find((b) => b.text === 'Google Maps').onPress();
+  expect(open).toHaveBeenCalledWith(F.getMeetup.travel.directions.google);
+});
+
+test('day of: On my way calls setMeetupStatus', async () => {
+  const m = confirmedNow();
+  const set = jest.spyOn(api, 'setMeetupStatus').mockResolvedValue(m);
+  const { press, text } = await show(m);
+  expect(text()).toContain('Muse set this up');
+  await press('On my way');
+  expect(set).toHaveBeenCalledWith('mt_0001', 'on_my_way');
+});
+
+test("Ask Muse prefills 'Muse, ' and Can't make it confirms before leaving", async () => {
+  const { router } = require('expo-router');
+  const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+  const leave = jest.spyOn(api, 'leaveMeetup').mockResolvedValue(clone(F.getMeetup));
+  const { press } = await show(clone(F.getMeetup));
+  await press('Ask Muse to change something');
+  expect(store.getState().drafts.th_0001).toBe('Muse, ');
+  expect(router.push).toHaveBeenCalledWith('/common-ground/chat/th_0001');
+  await press("Can't make it");
+  expect(leave).not.toHaveBeenCalled();
+  await renderer.act(async () =>
+    alert.mock.calls[0][2].find((b) => b.style === 'destructive').onPress(),
+  );
+  expect(leave).toHaveBeenCalledWith('mt_0001');
+});
+
+test('feedback needs every answer before Send', async () => {
+  const m = clone(F.getMeetup);
+  m.feedbackDue = true;
+  const send = jest.spyOn(api, 'sendFeedback').mockResolvedValue(undefined);
+  const { press, byLabel } = await show(m);
+  expect(byLabel('Send').props.accessibilityState.disabled).toBe(true);
+  for (const name of ['Daniel Okafor', 'Rosa']) {
+    await press(`Did ${name} show up? Yes`);
+    await press(`Would you meet ${name} again? No`);
+  }
+  await press('Send');
+  expect(send).toHaveBeenCalledWith('mt_0001', {
+    answers: [
+      { userId: 'u_0042', showedUp: true, meetAgain: false },
+      { userId: 'u_0117', showedUp: true, meetAgain: false },
+    ],
+  });
+});
