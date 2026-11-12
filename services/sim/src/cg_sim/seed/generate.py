@@ -459,7 +459,7 @@ def generate(pool_id: str, seed: int, root: Path | None = None) -> dict:
     export = ground_truth_export(pool_id, personas, truth, records)
     plan_rows, demo = plans.build(
         pool_id, mode, _rng(pool_id, seed, "plans"), export, venue_rows, people, personas,
-        {t["userId"]: t["scene"] for t in truth if t["scene"]}, pdef, _iso,
+        _leiden_scenes(export, seed), pdef, _iso,
     )
     _dump_json(seed_dir / "pool.json", pool_json)
     _dump_jsonl(seed_dir / "personas.jsonl", personas)
@@ -526,3 +526,11 @@ def ground_truth_export(pool_id: str, personas: list[dict], truth: list[dict], r
         "questionsVersion": params()["laya"]["questionsVersion"],
         "users": users,
     }
+
+
+def _leiden_scenes(export: dict, seed: int) -> dict[str, str]:
+    """cg_matching Leiden scenes on the ground-truth export (PRD-3: plans from propose_plans with Leiden scenes)."""
+    from cg_sim import matching_adapter as ma
+
+    p = params()
+    return ma.scenes(export, ma.candidates(export, ma.build_vectors(export, p), p), p, seed)

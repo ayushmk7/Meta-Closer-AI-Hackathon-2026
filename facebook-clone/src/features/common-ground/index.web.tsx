@@ -1,8 +1,10 @@
 import type { ComponentType } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import Map from './Map';
-import Chat from './Chat';
+import Plans from './Plans';
+import Plan from './Plan';
+import Setup from './Setup';
 import Meetup from './Meetup';
+import Chat from './Chat';
 import Person from './Person';
 import Settings from './Settings';
 import Demo from './Demo';
@@ -19,9 +21,11 @@ const page = (Screen: ComponentType) =>
       </div>
     );
   };
-export const MapScreen = page(Map);
-export const ChatScreen = page(Chat);
+export const PlansScreen = page(Plans);
+export const PlanScreen = page(Plan);
+export const SetupScreen = page(Setup);
 export const MeetupScreen = page(Meetup);
+export const ChatScreen = page(Chat);
 export const PersonScreen = page(Person);
 export const SettingsScreen = page(Settings);
 export const DemoScreen = page(Demo);

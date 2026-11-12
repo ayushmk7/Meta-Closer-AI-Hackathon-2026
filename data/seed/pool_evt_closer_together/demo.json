@@ -5,8 +5,8 @@
     "pl_evt_hero_lunch_walk",
     "pl_evt_bayfront_walk",
     "pl_evt_wed_game_night",
-    "pl_explorers_031",
-    "pl_explorers_032"
+    "pl_building_startups_20261113_01",
+    "pl_ceramics_visual_art_20261113_00"
   ],
   "heroPlanId": "pl_evt_hero_lunch_walk",
   "nudgePlanId": "pl_evt_bayfront_walk",
@@ -20,7 +20,7 @@
   ],
   "privateCounterpartId": "u_e028",
   "fakeLocation": {
-    "lat": 37.48391,
-    "lng": -122.14923
+    "lat": 37.48545,
+    "lng": -122.14912
   }
 }

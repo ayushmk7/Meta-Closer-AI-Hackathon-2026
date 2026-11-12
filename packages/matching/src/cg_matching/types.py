@@ -33,9 +33,15 @@ class Params(dict):
     @staticmethod
     @functools.cache
     def default() -> Params:
-        """$CG_CONTRACTS_DIR/params.yaml, else the repo's contracts/ (read once)."""
-        d = os.environ.get("CG_CONTRACTS_DIR") or Path(__file__).resolve().parents[4] / "contracts"
-        return Params.from_yaml(Path(d) / "params.yaml")
+        """The package's only I/O path, read once: $CG_CONTRACTS_DIR/params.yaml, else the first contracts/params.yaml
+        above this file or the working directory (covers editable and in-repo .venv installs)."""
+        if d := os.environ.get("CG_CONTRACTS_DIR"):
+            return Params.from_yaml(Path(d) / "params.yaml")
+        for root in (Path(__file__).resolve(), Path.cwd().resolve()):
+            for parent in (root, *root.parents):
+                if (f := parent / "contracts" / "params.yaml").is_file():
+                    return Params.from_yaml(f)
+        raise FileNotFoundError("contracts/params.yaml not found; set CG_CONTRACTS_DIR or pass params=")
 
 
 @dataclass(frozen=True)
