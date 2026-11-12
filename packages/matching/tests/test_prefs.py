@@ -51,7 +51,6 @@ def world(prefs=None):
     plans = [p | {"sceneId": f"sc_{k}"} for k, p in enumerate(plans)]
     pool = cgm.PoolSnapshot.from_export(export(users))
     params = cgm.Params.from_yaml(PARAMS)
-    params["matching"] = {"prefBoost": 0.3} | params["matching"]  # contract value wins once it lands
     out = cgm.rank_plans(
         pool,
         [cgm.Plan.from_record(p) for p in plans],
@@ -76,6 +75,10 @@ def test_update_prefs_math():
     assert p0 == {"act:coffee": 0.5, "vn:vn_old": 0.2}  # pure
     assert p1 == {"act:coffee": 0.65, "vn:vn_cafe": 0.3, "vn:vn_old": 0.2}
     assert cgm.update_prefs(p1, ["act:coffee"], -5.0, 1.0)["act:coffee"] == -1.0  # clamped to [-1, 1]
+    assert cgm.update_prefs(p1, ["act:coffee"], 1.0, 7.0)["act:coffee"] == 1.0  # alpha clamped to [0, 1]
+    for bad in (float("nan"), float("inf")):
+        assert cgm.update_prefs(p1, ["act:coffee"], bad, 0.3) == p1  # missing rating counts for nothing
+        assert cgm.update_prefs(p1, ["act:coffee"], 1.0, bad) == p1
 
 
 def test_five_star_bouldering_moves_bouldering_up():
@@ -101,7 +104,13 @@ def test_five_star_bouldering_moves_bouldering_up():
     assert all("pref_keys" not in s["debug"] for ss in before.values() for s in ss)  # empty prefs: no field
 
 
-def test_pref_keys_positive_only_and_skip_sensitive():
+def test_pref_keys_lists_negative_keys_that_applied():
+    prefs = {u: {"act:climbing_session": -0.6, "vn:vn_wall": 0.2} for u in world()}
+    s = next(s for ss in world(prefs).values() for s in ss if s["plan_id"] == "pl_wall_a")
+    assert s["debug"]["pref_keys"] == ["vn:vn_wall", "act:climbing_session"]
+
+
+def test_pref_keys_skip_sensitive():
     v = cgm.Venue.from_record(venue("vn_x", sensitive=True))
     p = cgm.Plan.from_record(plan(vid="vn_x"))
     assert cgm.core.plan_pref_keys(p, v) == ["act:ceramics_studio", "int:arts_crafts.ceramics"]

@@ -440,8 +440,10 @@ def plan_pref_keys(plan: Plan, venue: Venue) -> list[str]:
 
 def update_prefs(prefs: dict[str, float], keys: list[str], r: float, alpha: float) -> dict[str, float]:
     """One user's prefs after a reward r in [-1, 1] on `keys`: EMA w = (1 - alpha) * w + alpha * r, clamped.
-    Pure: returns a new dict."""
-    r = max(-1.0, min(1.0, r))
+    Pure: returns a new dict. A NaN/inf r or alpha (missing or bad rating) changes nothing; alpha is clamped to [0, 1]."""
+    if not (math.isfinite(r) and math.isfinite(alpha)):
+        return dict(prefs)
+    r, alpha = max(-1.0, min(1.0, r)), max(0.0, min(1.0, alpha))
     out = dict(prefs)
     for k in dict.fromkeys(keys):
         out[k] = round(max(-1.0, min(1.0, (1 - alpha) * out.get(k, 0.0) + alpha * r)), 6)
@@ -519,7 +521,7 @@ def rank_plans(
             liked: list[str] = []
             if (up := state.prefs.get(uid)) and (ws := [(up[k], k) for k in plan_pref_keys(p, v) if k in up]):
                 base *= 1 + pref_boost * sum(w for w, _ in ws) / len(ws)
-                liked = [k for w, k in sorted(ws, key=lambda x: (-x[0], x[1])) if w > 0]
+                liked = [k for _, k in sorted(ws, key=lambda x: (-x[0], x[1]))]
             shared = list(
                 dict.fromkeys(l2 for t in p.target_interest_ids if (l2 := _prefix(t, 2)) and vec.get(l2))
             )
@@ -578,7 +580,9 @@ def rank_plans(
             "isolated": isolated,
             "signal_ids": r["signal_ids"],
         }
-        if r["pref_keys"]:  # positive learned keys, strongest first: "Because you liked X" (owner-only, P7)
+        # Every pref key that applied, strongest first. "Because you liked X" uses the first one only when its
+        # weight is > 0 (owner-only, P7).
+        if r["pref_keys"]:
             debug["pref_keys"] = r["pref_keys"]
         out[uid].append(PlanScore(uid, p.plan_id, round(score, 6), r["shared"], r["minutes"], debug))
     return out
