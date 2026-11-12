@@ -204,7 +204,7 @@ def build(pool_id, mode, rng: random.Random, export, venues, people, personas, s
         k = min(rng.choice([0, 0, 1, 1, 2]), size["min"] - 1, len(cands))
         joins = sorted(rng.sample(cands, k)) if k else []
         proposed.append(_plan(raw["planId"], pool_id, raw["activityType"], v, starts, ends, size, targets,
-                              raw.get("sceneId"), "seed", joins))
+                              raw.get("sceneId"), raw.get("origin") or "seed", joins))
 
     if mode == "city":
         _, lat, lng, _, spread = neighborhood(maya.MAYA_HOOD)
