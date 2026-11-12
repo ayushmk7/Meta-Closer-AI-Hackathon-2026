@@ -35,3 +35,9 @@ def test_fake_p_rule():
 def test_score_answer_expected_value():
     p = laya._answer_p({"probabilities": [0, 0, 1, 0]}, "score", ["a", "b", "c", "d"])
     assert p == pytest.approx(2 / 3)
+
+
+@pytest.mark.parametrize("ans,want", [(0.3, 0.3), ({"p": 0.3}, 0.3), ({"probability": 0.3}, 0.3),
+                                      ({"probabilities": {"yes": 0.3, "no": 0.7}}, 0.3)])
+def test_noul_answer_shapes(ans, want):
+    assert laya._answer_p(ans, "noul", None) == want

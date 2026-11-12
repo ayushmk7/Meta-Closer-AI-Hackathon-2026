@@ -76,14 +76,20 @@ def fake_p(key: str, state: str, version: int | None = None) -> float:
     return int(hashlib.sha256(f"{v}|{key}|{state}".encode()).hexdigest()[:8], 16) / 0xFFFFFFFF
 
 
+# Laya answer field mapping: the ONLY place that knows laya-serve's answer shape. UNVERIFIED (no laya-serve
+# available); fix these names once confirmed against the installed docs.
+ANSWER_SCALAR_FIELDS = ("p", "probability", "yes", "value", "expected")  # first numeric one wins
+ANSWER_DIST_FIELDS = ("probabilities", "distribution")  # list over criteria, or {label: p}
+
+
 def _answer_p(ans: dict | float, qtype: str, criteria: list | None) -> float:
-    """ponytail: laya-serve answer fields unverified (not installed here); accepts the plausible shapes."""
+    """Tolerant parse of one answer into p (noul) or expected value over criteria (score)."""
     if isinstance(ans, (int, float)):
         return float(ans)
-    for k in ("p", "probability", "yes", "value", "expected"):
+    for k in ANSWER_SCALAR_FIELDS:
         if isinstance(ans.get(k), (int, float)):
             return float(ans[k])
-    probs = ans.get("probabilities") or ans.get("distribution")
+    probs = next((ans[k] for k in ANSWER_DIST_FIELDS if ans.get(k)), None)
     if qtype == "score" and probs:
         vals = probs if isinstance(probs, list) else [probs.get(c, 0.0) for c in criteria]
         return sum(p * i / (len(vals) - 1) for i, p in enumerate(vals))
