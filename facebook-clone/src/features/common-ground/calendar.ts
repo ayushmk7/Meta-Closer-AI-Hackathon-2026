@@ -32,8 +32,8 @@ function expoCalendar(): DeviceCalendar | null {
     return {
       permission: async () => (await C.requestCalendarPermissionsAsync()).granted,
       ensure: async (id) => {
-        const all = await C.getCalendarsAsync(C.EntityTypes.EVENT);
-        if (id && all.some((c) => c.id === id)) return id;
+        const found = pickCalendar(await C.getCalendarsAsync(C.EntityTypes.EVENT), id);
+        if (found) return found;
         const { source } = await C.getDefaultCalendarAsync();
         return C.createCalendarAsync({
           title: 'Common Ground',
@@ -72,6 +72,15 @@ function expoCalendar(): DeviceCalendar | null {
     return null; // Node tests, or the module is missing
   }
 }
+// Our calendar: the remembered ID, else one we made earlier (a reset forgets the ID), so the
+// app creates "Common Ground" once per phone.
+export const pickCalendar = (
+  all: { id: string; title: string; allowsModifications?: boolean }[],
+  id: string | null,
+): string | null =>
+  all.find((c) => c.id === id)?.id ??
+  all.find((c) => c.title === 'Common Ground' && c.allowsModifications !== false)?.id ??
+  null;
 let device: DeviceCalendar | null | undefined;
 export const setDevice = (next: DeviceCalendar | null): void => void (device = next);
 const dev = () => (device === undefined ? (device = expoCalendar()) : device);

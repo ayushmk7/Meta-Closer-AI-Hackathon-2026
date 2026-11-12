@@ -3,6 +3,7 @@ import test from 'node:test';
 import { api } from '../../src/features/common-ground/api';
 import {
   mergeBusy,
+  pickCalendar,
   reconcile,
   setDevice,
   syncCalendar,
@@ -92,4 +93,15 @@ test('syncCalendar sends only start/end busy blocks plus applied, then reconcile
   assert.deepEqual(getState().calendar.applied, []);
   await wipeCalendar();
   assert.equal(ops.at(-1), 'remove:ev_2');
+});
+
+test('pickCalendar reuses our calendar after a reset forgot its ID', () => {
+  const all = [
+    { id: 'home', title: 'Home' },
+    { id: 'cg_1', title: 'Common Ground' },
+  ];
+  assert.equal(pickCalendar(all, 'cg_1'), 'cg_1');
+  assert.equal(pickCalendar(all, null), 'cg_1');
+  assert.equal(pickCalendar(all, 'gone'), 'cg_1');
+  assert.equal(pickCalendar([{ id: 'home', title: 'Home' }], null), null);
 });

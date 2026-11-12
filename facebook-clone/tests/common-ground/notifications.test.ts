@@ -50,3 +50,36 @@ test('leave-by: scheduled on confirm, moved on reschedule, cancelled on leave', 
   assert.equal(ops[3], 'cancel:n2');
   assert.deepEqual(getState().reminders, {});
 });
+
+test('a failed schedule does not lose the ones already scheduled (no duplicates)', async () => {
+  const scheduled: string[] = [];
+  let failB = true;
+  setNotifier({
+    permission: async () => true,
+    schedule: async (_at, _t, _b, meetupId) => {
+      if (meetupId === 'mt_b' && failB) throw new Error('nope');
+      scheduled.push(meetupId);
+      return `n_${meetupId}`;
+    },
+    cancel: async () => {},
+  });
+  const leaveBy = new Date(Date.now() + 3_600_000).toISOString();
+  const m = (meetupId: string) =>
+    ({
+      meetupId,
+      title: 'x',
+      status: 'confirmed',
+      venue: { name: 'v' },
+      attendees: [{ isMe: true, rsvp: 'going' }],
+      travel: { leaveBy, label: 'l' },
+    }) as unknown as Meetup;
+  setState({
+    me: { museSettings: { leaveByReminders: true } } as never,
+    reminders: {},
+    meetups: { mt_a: m('mt_a'), mt_b: m('mt_b') },
+  });
+  await reconcileReminders();
+  failB = false;
+  await reconcileReminders();
+  assert.deepEqual(scheduled, ['mt_a', 'mt_b']);
+});

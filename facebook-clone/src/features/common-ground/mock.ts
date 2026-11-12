@@ -316,7 +316,7 @@ on('POST', '/v1/plans/{id}/join', ([id], b) => {
         };
   if (j.calendar && !j.calendar.key) j.calendar.key = j.joinId;
   w.joins[id] = j;
-  if (id === F.joinPlan.planId) w.stage.formAt = Date.now() + FORM_MS;
+  if (id === F.joinPlan.planId) w.stage.formAt = Date.now() + 2 * D; // group forms after two steps
   return j;
 });
 on('DELETE', '/v1/plans/{id}/join', ([id]) => {
@@ -430,10 +430,10 @@ on('POST', '/v1/threads/{id}/read', ([id]) => {
 on('POST', '/v1/reports', () => ({ reportId: nextId('rp_') }));
 on('POST', '/v1/blocks', () => undefined);
 
-// ponytail: params.demo.stepDelayS is not in /v1/config yet, so a named constant (its upper bound).
+// Fallback when /v1/config has no demo.stepDelayS.
 export const STEP_DELAY_S = 2;
-const D = STEP_DELAY_S * 1000;
-const FORM_MS = 2 * D; // I'm in on pl_0001 -> group forms
+// Step delay: the top of config.demo.stepDelayS (contracts #15), else the fallback. Set per tick.
+let D = STEP_DELAY_S * 1000;
 const NOT_FILLED_MS = 30_000; // the seeded join (pl_0002) doesn't fill, with alternatives
 const SEEDED = F.getFeed.plans.find((p) => p.myJoin)?.planId;
 const HOUR = 3_600_000;
@@ -453,6 +453,7 @@ const muse = (stepId: string, kind: string, status: string, label: string, at: n
 // Recompute the staged demo from timestamps: forming, steps ticking, approval -> booked,
 // reschedule after a toMuse message, the seeded join not filling.
 export function tick(t = Date.now()): void {
+  D = (w.config.demo.stepDelayS?.at(-1) ?? STEP_DELAY_S) * 1000;
   const s = w.stage;
   const j = w.joins[F.joinPlan.planId];
   if (j?.status === 'interested' && s.formAt != null && t >= s.formAt) {

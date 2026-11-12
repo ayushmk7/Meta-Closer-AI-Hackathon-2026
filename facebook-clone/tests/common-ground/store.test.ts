@@ -27,7 +27,12 @@ import {
   withdraw,
 } from '../../src/features/common-ground/store';
 import { STEP_DELAY_S, mockRequest, resetMock } from '../../src/features/common-ground/mock';
-import { handleEvent } from '../../src/features/common-ground/realtime';
+import {
+  handleEvent,
+  hooks,
+  startRealtime,
+  stopRealtime,
+} from '../../src/features/common-ground/realtime';
 import type { MuseStep } from '../../src/features/common-ground/types';
 
 let saved: string | null = null;
@@ -381,4 +386,50 @@ test('event rows show times in America/Los_Angeles whatever the device zone', ()
     true,
   );
   assert.equal(rows[0]!.time, 'Sat 10:00 AM');
+});
+
+test('realtime: a socket that opens then drops backs off, refetches at most once, polls never overlap', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout', 'setInterval', 'Date'], now: 0 });
+  const sockets: { onopen?: () => void; onclose?: () => void; close(): void }[] = [];
+  const RealWs = globalThis.WebSocket;
+  globalThis.WebSocket = class {
+    onopen?: () => void;
+    onclose?: () => void;
+    constructor() {
+      sockets.push(this);
+      setTimeout(() => {
+        this.onopen?.();
+        setTimeout(() => this.onclose?.(), 5);
+      }, 0);
+    }
+    close() {}
+  } as never;
+  const realUrl = hooks.url;
+  hooks.url = () => 'ws://test/v1/ws?user=u_maya';
+  const real = { ...load };
+  let feeds = 0;
+  let approvalsInFlight = 0;
+  let maxInFlight = 0;
+  (load as Record<string, unknown>).feed = async () => void feeds++;
+  (load as Record<string, unknown>).approvals = () => {
+    maxInFlight = Math.max(maxInFlight, ++approvalsInFlight);
+    return new Promise<void>((r) => setTimeout(() => (approvalsInFlight--, r()), 3500));
+  };
+  setState({
+    me: { optedIn: true } as never,
+    config: {
+      features: { realtime: true },
+      limits: { pollIntervalS: 5, feedRefreshS: 60 },
+    } as never,
+    meetups: {},
+  });
+  startRealtime();
+  for (let i = 0; i < 1000; i++) t.mock.timers.tick(10); // 10 s
+  stopRealtime();
+  globalThis.WebSocket = RealWs;
+  hooks.url = realUrl;
+  Object.assign(load, real);
+  assert.ok(sockets.length <= 5, `${sockets.length} sockets in 10 s`);
+  assert.ok(feeds <= 1, `${feeds} refetches`);
+  assert.equal(maxInFlight, 1);
 });

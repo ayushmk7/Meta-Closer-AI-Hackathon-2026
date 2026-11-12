@@ -85,7 +85,11 @@ export function reconcileReminders(): Promise<void> {
     const todo = Object.entries(want).filter(([id]) => !have[id]);
     if (todo.length && (await n.permission().catch(() => false)))
       for (const [id, w] of todo)
-        have[id] = { id: await n.schedule(new Date(w.at), w.title, w.body, id), at: w.at };
+        try {
+          have[id] = { id: await n.schedule(new Date(w.at), w.title, w.body, id), at: w.at };
+        } catch {
+          // left out of `have`, so the next reconcile retries just this one (no duplicates)
+        }
     setState({ reminders: have });
   });
   chain = run.catch(() => {});
