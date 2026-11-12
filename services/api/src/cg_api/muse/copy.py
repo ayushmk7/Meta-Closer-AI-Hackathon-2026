@@ -13,6 +13,7 @@ from zoneinfo import ZoneInfo
 
 from cg_api.muse import Unavailable
 from cg_api.muse.extract import taxonomy
+from cg_api.ports import CopyInterest
 
 log = logging.getLogger("cg_api.muse.copy")
 TZ = ZoneInfo("America/Los_Angeles")  # ponytail: pool timezone fixed to SF until a second-city pool exists
@@ -52,7 +53,7 @@ def public_plan(plan: dict) -> dict:
     return {
         "title": plan.get("title", ""),
         "activityType": plan.get("activityType", ""),
-        "venue": v.get("name", ""),
+        "venue": v.get("name") or plan.get("venueName", ""),
         "neighborhood": v.get("neighborhood", ""),
         "startsAt": plan.get("startsAt", ""),
         "endsAt": plan.get("endsAt", ""),
@@ -229,7 +230,7 @@ class MuseCopy:
             "copy.title", "Write a plan title, at most 60 characters.", public_plan(plan), plan_title(plan), 60
         )
 
-    async def plan_reason(self, plan: dict, shared_labels: list[dict]) -> str:
+    async def plan_reason(self, plan: dict, shared_labels: list[CopyInterest]) -> str:
         shared_labels = safe_labels(shared_labels, self.sensitive)
         facts = {"plan": public_plan(plan), "sharedInterests": shared_labels}
         return await self._text(
@@ -240,7 +241,7 @@ class MuseCopy:
             160,
         )
 
-    async def setup_review(self, user_id: str, interest_labels: list[dict]) -> str:
+    async def setup_review(self, user_id: str, interest_labels: list[CopyInterest]) -> str:
         # user_id is deliberately not sent; items are MyInterest/shared-interest dicts with visibility + sensitive
         labels = safe_labels(interest_labels, self.sensitive)
         return await self._text(
@@ -251,7 +252,7 @@ class MuseCopy:
             280,
         )
 
-    async def intro(self, first_names, shared_labels, plan) -> tuple[str, list[str]]:
+    async def intro(self, first_names, shared_labels: list[CopyInterest], plan) -> tuple[str, list[str]]:
         shared_labels = safe_labels(shared_labels, self.sensitive)
         facts = {"firstNames": first_names, "sharedInterests": shared_labels, "plan": public_plan(plan)}
         j = await self._ask(

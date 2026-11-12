@@ -75,53 +75,34 @@ def _extractor(muse=FAKE):
     return Extractor(muse, LayaClient(CONTRACTS, fake=True), CONTRACTS, venue=VENUES.get)
 
 
-def test_fallback_extraction_rules_and_gates():
+def test_fallback_extraction_and_signal_gate():
     activity = [
         {"kind": "group_membership", "at": "2026-10-19T15:04:00Z", "groupName": "SF Wheel Throwing Club"},
         {"kind": "post", "at": "2026-10-21T11:38:00Z", "photoCaption": "Handbuilding, again. Happy place."},
     ]
-    visits = [
-        {
-            "recordId": f"cr_x_{i}",
-            "userId": "u_x",
-            "provider": "google_maps",
-            "kind": "place_visit",
-            "at": f"2026-11-0{i}T17:00:00Z",
-            "venueId": "vn_lands_end",
-        }
-        for i in range(1, 5)
-    ]
-    temple = [
-        {
-            "recordId": f"cr_t_{i}",
-            "userId": "u_x",
-            "provider": "google_maps",
-            "kind": "place_visit",
-            "at": f"2026-11-0{i}T17:00:00Z",
-            "venueId": "vn_temple",
-        }
-        for i in range(1, 4)
-    ]
-    busy = [
-        {
-            "recordId": "cr_b",
-            "userId": "u_x",
-            "provider": "google_calendar",
-            "kind": "busy",
-            "at": "2026-11-13T17:00:00Z",
-            "end": "2026-11-13T18:00:00Z",
-        }
-    ]
-    out = asyncio.run(_extractor().extract("u_x", activity, visits + temple + busy))
+    busy = {
+        "recordId": "cr_b",
+        "userId": "u_x",
+        "provider": "google_calendar",
+        "kind": "busy",
+        "at": "2026-11-13T17:00:00Z",
+        "end": "2026-11-13T18:00:00Z",
+    }
+    ex = _extractor()
+    out = asyncio.run(ex.extract("u_x", activity, [busy]))
     ids = {i["id"] for i in out["interests"]}
     assert {"arts_crafts.ceramics.wheel_throwing", "arts_crafts.ceramics.handbuilding"} <= ids
-    assert all(taxonomy(CONTRACTS)[i]["leaf"] for i in ids)
-    sig = {s["venueId"]: s for s in out["signals"]}
-    assert sig["vn_lands_end"]["kind"] == "frequent_place" and sig["vn_lands_end"]["strength"] == 0.9
-    assert sig["vn_temple"]["sensitive"] and sig["vn_temple"]["visibility"] == "hidden"  # venue flag (P4)
-    assert not any("cr_b" in s["recordIds"] for s in out["signals"])
-    again = asyncio.run(_extractor().extract("u_x", activity, visits))
-    assert again == asyncio.run(_extractor().extract("u_x", activity, visits))  # deterministic
+    assert all(taxonomy(CONTRACTS)[i]["leaf"] for i in ids) and out["signals"] == []  # rule kinds: seed loader
+    assert out == asyncio.run(_extractor().extract("u_x", activity, [busy]))  # deterministic
+    temple = {
+        "signalId": "si_1",
+        "kind": "frequent_place",
+        "venueId": "vn_temple",
+        "label": "3 visits to Quiet Temple this month",
+    }
+    g = asyncio.run(ex.gate_signal(temple))
+    assert g["sensitive"] and g["visibility"] == "hidden" and g["signalId"] == "si_1"
+    assert "Quiet Temple" not in g["label"]  # a sensitive signal names no place
 
 
 def test_live_extraction_rejects_unknown_ids_and_kinds():
@@ -225,30 +206,7 @@ def test_bar_reply_and_sunday_weekend():
     assert bar.reply([card], f) == "I found one that fits: Saturday wheel-throwing drop-in."
 
 
-def test_extraction_fails_closed_on_unknown_venue_and_gates_named_places():
-    visits = [
-        {
-            "recordId": f"cr_m_{i}",
-            "userId": "u_x",
-            "provider": "google_maps",
-            "kind": "place_visit",
-            "at": f"2026-11-0{i}T17:00:00Z",
-            "venueId": "vn_unknown",
-        }
-        for i in range(1, 5)
-    ]
-    named = [
-        {
-            "recordId": "cr_n",
-            "userId": "u_x",
-            "provider": "google_maps",
-            "kind": "saved_place",
-            "at": "2026-11-04T05:12:00Z",
-            "placeName": "Eastside Clinic",
-            "placeKind": "clinic",
-        }
-    ]
-
+def test_gate_fails_closed_on_unknown_venue_and_gates_named_places():
     class Laya:
         def __init__(self):
             self.asked = []
@@ -258,12 +216,17 @@ def test_extraction_fails_closed_on_unknown_venue_and_gates_named_places():
             return (0.99, True) if q == "sensitive_place" else (0.5, False)
 
     laya = Laya()
-    out = asyncio.run(Extractor(FAKE, laya, CONTRACTS).extract("u_x", [], visits + named))
-    assert all(s["sensitive"] and s["visibility"] == "hidden" for s in out["signals"])
-    assert (
-        "sensitive_place",
-        {"place": {"placeName": "Eastside Clinic", "placeKind": "clinic", "pattern": "Saved place"}},
-    ) in laya.asked
+    ex = Extractor(FAKE, laya, CONTRACTS)
+    unknown = asyncio.run(ex.gate_signal({"kind": "frequent_place", "venueId": "vn_unknown", "label": "x"}))
+    assert unknown["sensitive"] and unknown["visibility"] == "hidden" and laya.asked == []
+    named = {"kind": "saved_place", "placeName": "Eastside Clinic", "placeKind": "clinic", "label": "Saved place"}
+    assert asyncio.run(ex.gate_signal(named))["sensitive"]
+    assert laya.asked == [
+        (
+            "sensitive_place",
+            {"place": {"placeName": "Eastside Clinic", "placeKind": "clinic", "pattern": "Saved place"}},
+        )
+    ]
 
 
 def test_log_models_never_raises(monkeypatch):

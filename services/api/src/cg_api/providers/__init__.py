@@ -64,7 +64,6 @@ def install(ports) -> None:
         ports.laya,
         s.contracts_dir,
         venue=seed_venue,
-        visits_30d=p["nudges"]["frequentPlaceVisits30d"],
         threshold=p["laya"]["decisiveThreshold"],
         batch_timeout_s=p["muse"]["batchTimeoutS"],
     )

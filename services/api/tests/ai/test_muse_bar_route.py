@@ -25,10 +25,10 @@ def test_conversations_are_owner_scoped_and_unguessable(public):
     muse_bar.clear()
     cid = public.post("/v1/muse/ask", json={"text": "something near my therapist"}).json()["conversationId"]
     assert len(cid) > 10
-    other = public.post("/v1/muse/ask", json={"text": "coffee", "conversationId": cid}, headers={"X-CG-User": "u_0042"})
+    other = public.post("/v1/muse/ask", json={"text": "coffee", "conversationId": cid}, headers={"X-CG-User": "u_0098"})
     assert other.json()["conversationId"] != cid
     assert all(
-        "therapist" not in m["content"] for m in muse_bar._conversations[("u_0042", other.json()["conversationId"])]
+        "therapist" not in m["content"] for m in muse_bar._conversations[("u_0098", other.json()["conversationId"])]
     )
     assert (
         public.post("/v1/muse/ask", json={"text": "  "}).json()["error"]["message"] == "Tell me what you'd like to do."

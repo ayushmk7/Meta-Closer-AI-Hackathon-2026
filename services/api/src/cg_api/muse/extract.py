@@ -12,7 +12,6 @@ import logging
 import re
 from collections import Counter
 from collections.abc import Callable
-from datetime import datetime, timedelta
 from functools import cache
 from pathlib import Path
 
@@ -23,7 +22,7 @@ from cg_api.muse import Unavailable
 
 log = logging.getLogger("cg_api.muse.extract")
 MAX_INTERESTS = 12
-RULE_KINDS = {"frequent_place", "saved_place", "routine", "ticket"}
+RULE_KINDS = {"frequent_place", "saved_place", "routine", "ticket"}  # built by cg_api.seed.rule_signals (slice A)
 _TEXT = ("text", "photoCaption", "groupName", "eventName", "pageName", "listingTitle")
 
 # fallback only: words people use that are not the taxonomy label
@@ -119,72 +118,6 @@ def keyword_interests(activity: list[dict], extra_texts: list[str], tax: dict) -
     return out
 
 
-def rule_signals(records: list[dict], venue: Callable[[str], dict | None], visits_30d: int) -> list[dict]:
-    """frequent_place / saved_place / routine / ticket, no model needed (PRD-2 §3.1)."""
-    out = []
-    visits = [r for r in records if r["kind"] == "place_visit" and r.get("venueId")]
-    if visits:
-        # ponytail: "last 30 days" anchored on the newest record, so the result never depends on the clock
-        end = max(datetime.fromisoformat(r["at"]) for r in visits)
-        recent = [r for r in visits if datetime.fromisoformat(r["at"]) > end - timedelta(30)]
-        by_venue: dict[str, list[dict]] = {}
-        for r in recent:
-            by_venue.setdefault(r["venueId"], []).append(r)
-        for vid, rs in sorted(by_venue.items()):
-            if len(rs) >= visits_30d:
-                name = (venue(vid) or {}).get("name", "A place you like")
-                out.append(
-                    {
-                        "kind": "frequent_place",
-                        "provider": rs[0]["provider"],
-                        "venueId": vid,
-                        "recordIds": [r["recordId"] for r in rs],
-                        "label": f"You've been to {name} {len(rs)} times this month",
-                        "pattern": f"{len(rs)} visits in 30 days",
-                        "strength": round(min(1.0, 0.5 + 0.1 * len(rs)), 2),
-                        "observedAt": max(r["at"] for r in rs),
-                    }
-                )
-    for r in records:
-        base = {
-            "provider": r["provider"],
-            "recordIds": [r["recordId"]],
-            "observedAt": r["at"],
-            "venueId": r.get("venueId"),
-            "placeName": r.get("placeName"),
-            "placeKind": r.get("placeKind"),
-        }
-        name = (venue(r["venueId"]) or {}).get("name") if r.get("venueId") else r.get("placeName")
-        if r["kind"] == "saved_place" and name:
-            out.append(
-                {**base, "kind": "saved_place", "label": f"You saved {name}", "pattern": "Saved place", "strength": 0.5}
-            )
-        elif r["kind"] == "routine" and r.get("routine"):
-            ro = r["routine"]
-            area = f" around {ro['area']}" if ro.get("area") else ""
-            out.append(
-                {
-                    **base,
-                    "kind": "routine",
-                    "label": f"Your {ro['day']} {ro['part']} {ro['activity']}{area}",
-                    "pattern": f"Weekly {ro['activity']} on {ro['day']} {ro['part']}s",
-                    "strength": 0.7,
-                    "routineActivity": ro["activity"],
-                }
-            )
-        elif r["kind"] == "ticket" and r.get("eventName"):
-            out.append(
-                {
-                    **base,
-                    "kind": "ticket",
-                    "label": f"You have a ticket to {r['eventName']}",
-                    "pattern": "Ticket for an upcoming event",
-                    "strength": 0.8,
-                }
-            )
-    return out
-
-
 # ---------- Muse structured output ----------
 def _schema(signal_kinds: list[str]) -> dict:
     nullable = {"type": ["string", "null"]}
@@ -234,12 +167,11 @@ class Extractor:
         contracts_dir: Path,
         *,
         venue: Callable[[str], dict | None] = lambda _: None,
-        visits_30d: int = 3,
         threshold: float = 0.85,
         batch_timeout_s: float = 60,
     ):
         self.muse, self.laya, self.dir, self.venue = muse, laya, Path(contracts_dir), venue
-        self.visits_30d, self.threshold, self.batch_timeout_s = visits_30d, threshold, batch_timeout_s
+        self.threshold, self.batch_timeout_s = threshold, batch_timeout_s
         self.tax = taxonomy(self.dir)
         self.kinds = list(yaml.safe_load((self.dir / "connectors.yaml").read_text())["signalKinds"])
         # ponytail: in-process cache by content hash; add a .cache/ file when real-Muse seed load passes 60 s
@@ -315,7 +247,7 @@ class Extractor:
         place_texts = [(self.venue(r["venueId"]) or {}).get("name", "") for r in records if r.get("venueId")]
         place_texts += [r.get("eventName") or r.get("placeName") or "" for r in records]
         place_texts += [(r.get("routine") or {}).get("activity", "") for r in records]
-        signals = rule_signals(records, self.venue, self.visits_30d)
+        signals: list[dict] = []  # rule kinds come from the seed loader; only Muse-derived kinds here
         m = await self._muse(activity, records)
         try:
             interests, extra = self._accept(m, activity, records) if m else (None, [])
@@ -328,7 +260,7 @@ class Extractor:
         for s in signals:
             s.setdefault("interestIds", [i["id"] for i in keyword_interests([], [s["label"]], self.tax)][:3])
         gated = [await self._gate_interest(i) for i in interests]
-        return {"interests": gated, "signals": [await self._gate_signal(s, gated) for s in signals]}
+        return {"interests": gated, "signals": [await self.gate_signal(s, gated) for s in signals]}
 
     async def _yes(self, question: str, state: dict) -> bool:
         """Laya decisive answer, else Muse escalation; unknown counts as no (taxonomy/venue flags still apply)."""
@@ -371,7 +303,11 @@ class Extractor:
             "visibility": "hidden" if sensitive else "shown",
         }
 
-    async def _gate_signal(self, s: dict, interests: list[dict]) -> dict:
+    async def gate_signal(self, s: dict, interests: list[dict] | None = None) -> dict:
+        """P4 gate for one signal (also for slice A's rule signals): venue flag, unresolved venue (fail closed),
+        sensitive interests, then Laya sensitive_place / Muse escalation. A sensitive signal's label names no place."""
+        interests = interests if interests is not None else []
+        s = {"interestIds": [], "pattern": s.get("label", ""), **s}
         v = self.venue(s["venueId"]) if s.get("venueId") else None
         unresolved = bool(s.get("venueId")) and v is None  # unknown venue: can't check its flag, so fail closed (P4)
         sensitive = (
@@ -386,9 +322,7 @@ class Extractor:
             for i in interests:
                 if i["id"] in s["interestIds"]:
                     i.update(sensitive=True, visibility="hidden")
-        out = {
-            k: s[k]
-            for k in ("kind", "provider", "label", "interestIds", "venueId", "recordIds", "strength", "observedAt")
-            if k in s
-        }
+        out = {k: v for k, v in s.items() if k not in ("pattern", "placeName", "placeKind")}
+        if sensitive:
+            out["label"] = "A place you visit" if s["kind"] != "saved_place" else "A place you saved"
         return {**out, "sensitive": sensitive, "visibility": "hidden" if sensitive else "shown"}

@@ -52,6 +52,7 @@ class ScriptedRun:
     steps: list[dict] = field(default_factory=list)
     pending: dict[str, str] = field(default_factory=dict)  # approvalId -> userId
     decided: dict[str, str] = field(default_factory=dict)  # userId -> paid | pay_at_venue | declined
+    booking_started: bool = False
 
     # ---------- helpers ----------
     def _step(self, kind: str, status: str, label: str, detail=None, approval_id=None, for_user=None) -> dict:
@@ -178,8 +179,9 @@ class ScriptedRun:
         yield from self._maybe_book()
 
     def _maybe_book(self) -> Iterator[dict]:
-        if self.pending:  # P11: never book while a prepaid attendee is undecided
+        if self.pending or self.booking_started:  # P11: never book while undecided; book at most once
             return
+        self.booking_started = True  # set before the first yield: interleaved decide() generators can't both book
         p, v = self.plan, self.venue
         party = self._party()
         if not self.needs_booking:
@@ -249,6 +251,7 @@ class ScriptedRun:
         for uid, how in self.decided.items():
             if how == "paid":
                 yield self._step("refund", "done", f"Refunded your {amount}", for_user=uid)
+                yield {"type": "payment", "userId": uid, "myPayment": "not_needed"}  # nothing owed after the refund
         reason = f"I couldn't find a time that works at {self.venue['name']}, so I cancelled this one."
         yield self._step("cancel", "done", f"{reason} Similar plans are in the chat.")
         yield {"type": "cancelled", "reason": reason}

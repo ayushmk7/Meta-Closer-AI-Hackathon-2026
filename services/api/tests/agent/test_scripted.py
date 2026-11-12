@@ -116,3 +116,24 @@ def test_auto_spend_and_free_plans_and_private_payment_steps():
         "reminder",
     ]
     assert next(e["booking"] for e in ev if e["type"] == "booking")["status"] == "not_needed"
+
+
+def test_interleaved_decisions_book_once_and_refunds_update_payment():
+    r = run()
+    aps = [e["approval"]["approvalId"] for e in list(r.start()) if e["type"] == "approval"]
+    list(r.decide(aps[0], "approved"))
+    g1, g2 = r.decide(aps[1], "approved"), r.decide(aps[2], "approved")
+    next(g1), next(g2)  # both decisions land before either generator reaches booking
+    out = list(g1) + list(g2)
+    assert sum(e["type"] == "booking" for e in out) == 1 and sum(e["type"] == "confirmed" for e in out) == 1
+
+    small = {**VENUE, "booking": {**VENUE["booking"], "capacityPerSlot": 3}}
+    ids = count(1)
+    r = ScriptedRun(
+        "mt_3", HERO, small, PEOPLE, "2026-11-12T18:12:00Z", lambda p: f"{p}_{next(ids)}", fail_next_booking=True
+    )
+    aps = [e["approval"]["approvalId"] for e in list(r.start()) if e["type"] == "approval"]
+    r.reschedule_window_min = 30  # the 1 h retry is out of bounds -> cancel
+    out = [e for a in aps for e in r.decide(a, "approved")]
+    assert [e["myPayment"] for e in out if e["type"] == "payment"].count("not_needed") == 3
+    assert out[-1]["type"] == "cancelled"
