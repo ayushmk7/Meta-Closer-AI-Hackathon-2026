@@ -17,18 +17,14 @@ from pathlib import Path
 import httpx
 import yaml
 
+from cg_api.ports import Unavailable
+
 log = logging.getLogger("cg_api.laya")
 
 _DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
 _PARTS = ["morning", "afternoon", "evening"]
 _TEXT_FIELDS = ("text", "photoCaption", "groupName", "eventName", "pageName", "listingTitle")
 _SLOT = re.compile(r"\{(\w+)(?::([A-Z]))?\}")
-
-
-try:
-    from cg_api.ports import Unavailable
-except ImportError:  # ponytail: pre-scaffold; drop once ports.py is on the base branch
-    Unavailable = Exception
 
 
 class LayaUnavailable(Unavailable):
@@ -50,9 +46,7 @@ def _activity_text(a: dict) -> str:
 
 
 def user_summary(user: dict, alias: str, tpl: str) -> str:
-    slots = sorted(
-        user.get("availability", []), key=lambda s: (_DAYS.index(s["day"]), _PARTS.index(s["part"]))
-    )
+    slots = sorted(user.get("availability", []), key=lambda s: (_DAYS.index(s["day"]), _PARTS.index(s["part"])))
     shown = [i for i in user.get("interests", []) if i.get("visibility", "shown") == "shown" and not i.get("sensitive")]
     shown.sort(key=lambda i: (-i["weight"], i["id"]))
     recent = sorted(user.get("activity", []), key=lambda a: a["at"], reverse=True)[:5]
@@ -107,8 +101,16 @@ def _parse_answer(ans) -> float:
 class LayaClient:
     """Implements ports.Laya. Caches by (questionsVersion, question, sha256(state))."""
 
-    def __init__(self, contracts_dir: Path, *, fake: bool, url: str = "", model: str = "laya",
-                 threshold: float = 0.85, timeout_s: float = 5.0):
+    def __init__(
+        self,
+        contracts_dir: Path,
+        *,
+        fake: bool,
+        url: str = "",
+        model: str = "laya",
+        threshold: float = 0.85,
+        timeout_s: float = 5.0,
+    ):
         self.dir, self.fake, self.url, self.model = Path(contracts_dir), fake, url.rstrip("/"), model
         self.threshold, self.timeout_s = threshold, timeout_s
         self.version = load_questions(self.dir)["questionsVersion"]

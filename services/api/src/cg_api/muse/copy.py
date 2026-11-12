@@ -17,9 +17,18 @@ log = logging.getLogger("cg_api.muse.copy")
 TZ = ZoneInfo("America/Los_Angeles")  # ponytail: pool timezone fixed to SF until a second-city pool exists
 
 # what a seat is called in approvals; default "spot"
-SEAT = {"ceramics_studio": "wheel", "climbing_session": "day pass", "yoga_class": "mat", "dance_class": "spot",
-        "concert": "ticket", "comedy_show": "ticket", "film_screening": "ticket", "museum_visit": "ticket",
-        "cooking_together": "station", "craft_session": "seat"}
+SEAT = {
+    "ceramics_studio": "wheel",
+    "climbing_session": "day pass",
+    "yoga_class": "mat",
+    "dance_class": "spot",
+    "concert": "ticket",
+    "comedy_show": "ticket",
+    "film_screening": "ticket",
+    "museum_visit": "ticket",
+    "cooking_together": "station",
+    "craft_session": "seat",
+}
 
 STARTERS = {
     "ceramics_studio": ["What was the first thing you ever made on a wheel?", "Mugs or bowls?"],
@@ -52,7 +61,7 @@ def public_plan(plan: dict) -> dict:
 
 # ---------- formatting ----------
 def local(iso: str) -> datetime:
-    return datetime.fromisoformat(iso.replace("Z", "+00:00")).astimezone(TZ)
+    return datetime.fromisoformat(iso).astimezone(TZ)
 
 
 def day(iso: str) -> str:
@@ -132,17 +141,23 @@ def nudge(signal_label: str, plan: dict) -> str:
 
 
 # ---------- live Copy (ports.Copy) ----------
-_TEXT = {"type": "object", "properties": {"text": {"type": "string"}}, "required": ["text"],
-         "additionalProperties": False}
+_TEXT = {
+    "type": "object",
+    "properties": {"text": {"type": "string"}},
+    "required": ["text"],
+    "additionalProperties": False,
+}
 _INTRO = {
     "type": "object",
     "properties": {"text": {"type": "string"}, "starters": {"type": "array", "items": {"type": "string"}}},
     "required": ["text", "starters"],
     "additionalProperties": False,
 }
-VOICE = ("You are Muse, the planning assistant in Common Ground. Warm, short, plain. First person, never pretend "
-         "to be a person. No emoji, no percentages or scores. Talk about the activity, never about loneliness. "
-         "Use only the facts given.")
+VOICE = (
+    "You are Muse, the planning assistant in Common Ground. Warm, short, plain. First person, never pretend "
+    "to be a person. No emoji, no percentages or scores. Talk about the activity, never about loneliness. "
+    "Use only the facts given."
+)
 
 
 class MuseCopy:
@@ -155,8 +170,10 @@ class MuseCopy:
         try:
             r = await self.muse.respond(
                 purpose,
-                [{"role": "system", "content": VOICE},
-                 {"role": "user", "content": f"{task}\nFacts: {json.dumps(facts, ensure_ascii=False)}"}],
+                [
+                    {"role": "system", "content": VOICE},
+                    {"role": "user", "content": f"{task}\nFacts: {json.dumps(facts, ensure_ascii=False)}"},
+                ],
                 schema=schema,
             )
             return r["json"]
@@ -169,29 +186,49 @@ class MuseCopy:
         return t if 0 < len(t) <= limit else fallback
 
     async def plan_title(self, plan: dict) -> str:
-        return await self._text("copy.title", "Write a plan title, at most 60 characters.", public_plan(plan),
-                                plan_title(plan), 60)
+        return await self._text(
+            "copy.title", "Write a plan title, at most 60 characters.", public_plan(plan), plan_title(plan), 60
+        )
 
     async def plan_reason(self, plan: dict, shared_labels: list[str]) -> str:
         facts = {"plan": public_plan(plan), "sharedInterests": shared_labels}
-        return await self._text("copy.reason", "One sentence, at most 160 characters: why this plan fits me.",
-                                facts, plan_reason(plan, shared_labels), 160)
+        return await self._text(
+            "copy.reason",
+            "One sentence, at most 160 characters: why this plan fits me.",
+            facts,
+            plan_reason(plan, shared_labels),
+            160,
+        )
 
     async def setup_review(self, user_id: str, interest_labels: list[str]) -> str:
         # user_id is deliberately not sent
-        return await self._text("copy.setup", "At most 2 sentences reviewing what you noticed I like.",
-                                {"interests": interest_labels}, setup_review(interest_labels), 280)
+        return await self._text(
+            "copy.setup",
+            "At most 2 sentences reviewing what you noticed I like.",
+            {"interests": interest_labels},
+            setup_review(interest_labels),
+            280,
+        )
 
     async def intro(self, first_names, shared_labels, plan) -> tuple[str, list[str]]:
         facts = {"firstNames": first_names, "sharedInterests": shared_labels, "plan": public_plan(plan)}
-        j = await self._ask("copy.intro", "Introduce the group in 2 sentences and end with \"I'm handling the "
-                            "booking and the calendar.\" Give 3 conversation starters under 90 characters.",
-                            facts, _INTRO)
+        j = await self._ask(
+            "copy.intro",
+            "Introduce the group in 2 sentences and end with \"I'm handling the "
+            'booking and the calendar." Give 3 conversation starters under 90 characters.',
+            facts,
+            _INTRO,
+        )
         st = [s for s in (j or {}).get("starters", []) if 0 < len(s) < 90][:3]
         if j and j.get("text") and len(st) == 3:
             return j["text"], st
         return intro_text(first_names, shared_labels, plan), starters(plan, shared_labels)
 
     async def nudge(self, signal_label: str, plan: dict) -> str:
-        return await self._text("copy.nudge", "One short nudge about the activity and the place.",
-                                {"signal": signal_label, "plan": public_plan(plan)}, nudge(signal_label, plan), 160)
+        return await self._text(
+            "copy.nudge",
+            "One short nudge about the activity and the place.",
+            {"signal": signal_label, "plan": public_plan(plan)},
+            nudge(signal_label, plan),
+            160,
+        )

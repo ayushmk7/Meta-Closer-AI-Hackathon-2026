@@ -10,21 +10,23 @@ import json
 import logging
 import time
 
+from cg_api.ports import Unavailable
+
 log = logging.getLogger("cg_api.muse")
-
-try:
-    from cg_api.ports import Unavailable
-except ImportError:  # ponytail: pre-scaffold; drop once ports.py is on the base branch
-
-    class Unavailable(Exception):
-        pass
 
 
 class MuseClient:
     """Implements ports.Muse."""
 
-    def __init__(self, *, fake: bool, base_url: str = "", api_key: str = "", model: str = "muse-spark-1.3",
-                 timeout_s: float = 8.0):
+    def __init__(
+        self,
+        *,
+        fake: bool,
+        base_url: str = "",
+        api_key: str = "",
+        model: str = "muse-spark-1.3",
+        timeout_s: float = 8.0,
+    ):
         self.fake, self.model, self.timeout_s = fake, model, timeout_s
         self.calls: dict[str, int] = {}
         self._client = None
@@ -49,8 +51,9 @@ class MuseClient:
             raise Unavailable("MUSE_FAKE=1")
         kw: dict = {"model": self.model, "input": input, "reasoning": {"effort": effort or "low"}}
         if schema:
-            kw["text"] = {"format": {"type": "json_schema", "name": purpose.replace(".", "_"), "schema": schema,
-                                     "strict": True}}
+            kw["text"] = {
+                "format": {"type": "json_schema", "name": purpose.replace(".", "_"), "schema": schema, "strict": True}
+            }
         if tools:
             kw["tools"] = tools
         t0 = time.monotonic()
