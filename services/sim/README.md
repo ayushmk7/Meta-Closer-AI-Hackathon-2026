@@ -15,7 +15,7 @@ uv run pytest -q
 precompute -> `precompute`, run -> `mc`, report -> `report`. Each module parses its own args.
 
 Shared (read-only for other slices): `contracts.py` (paths, params, modes, taxonomy, schemas),
-`matching_adapter.py` (cg_matching if installed, naive fallback otherwise; dict in / dict out).
+`matching_adapter.py` (thin dict in / dict out shim over cg_matching, path dep on `packages/matching`).
 
 Paths come from `CG_DATA_DIR` and `CG_CONTRACTS_DIR` (default: the repo's `data/` and `contracts/`).
 Dependencies are declared once here; ask the sim lead to add more.

@@ -10,7 +10,11 @@ dependencies = [
     "pyarrow>=17.0",
     "httpx>=0.27",
     "matplotlib>=3.9",
+    "cg-matching",
 ]
+
+[tool.uv.sources]
+cg-matching = { path = "../../packages/matching", editable = true }
 
 [project.scripts]
 cg-sim = "cg_sim.cli:main"
