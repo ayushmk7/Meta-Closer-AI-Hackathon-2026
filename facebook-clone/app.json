@@ -29,8 +29,7 @@
         {
           "calendarPermission": "Common Ground reads when you're busy (never what your events are) and adds plans you join to a Common Ground calendar."
         }
-      ],
-      "expo-notifications"
+      ]
     ],
     "experiments": {
       "typedRoutes": true

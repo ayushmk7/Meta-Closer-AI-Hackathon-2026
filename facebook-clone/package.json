@@ -57,5 +57,12 @@
     "tsx": "^4.21.0",
     "typescript": "~6.0.3",
     "typescript-eslint": "^8.48.0"
+  },
+  "expo": {
+    "autolinking": {
+      "exclude": [
+        "expo-notifications"
+      ]
+    }
   }
 }
