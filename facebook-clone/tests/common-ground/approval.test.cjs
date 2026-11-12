@@ -106,12 +106,10 @@ test('C8: Approve stays disabled until the amount renders; nothing approves with
 
 test('Approve sends approve and buzzes; Not now sends decline', async () => {
   const Haptics = require('expo-haptics');
-  const decide = jest
-    .spyOn(api, 'decideApproval')
-    .mockImplementation(async (id, d) => ({
-      ...approval(),
-      status: d === 'approve' ? 'approved' : 'declined',
-    }));
+  const decide = jest.spyOn(api, 'decideApproval').mockImplementation(async (id, d) => ({
+    ...approval(),
+    status: d === 'approve' ? 'approved' : 'declined',
+  }));
   const a = await render(React.createElement(ApprovalSheet, { approval: approval() }));
   await a.press('Review: OK $35 for your wheel?');
   await layout(a.tree);
