@@ -150,17 +150,17 @@ def test_cancelled_event_cancels_and_posts_alternatives(world):
     assert meetups.list_meetups(world, "u_maya") == []
 
 
-def _synthetic_hero(world):
-    for u in ("u_dan", "u_rosa"):
-        world.users[u]["synthetic"] = True
-    world.on_formed, world.on_decided = runner.start, runner.decided
-    return formed(world)
-
-
-def test_join_approve_confirmed_with_synthetic_counterparts(world):
+def test_join_approve_confirmed_with_synthetic_counterparts(world, monkeypatch):
     """Checkpoint A: Maya joins the hero plan, OKs her $35, and the meetup reaches confirmed."""
     pytest.importorskip("cg_api.agent")
-    mt = _synthetic_hero(world)
+    from cg_api import synthetic
+    from cg_api.store import store
+
+    monkeypatch.setattr(store, "demo_state", {"forcedYes": True, "counterpart": "synthetic"})
+    for u in ("u_dan", "u_rosa"):
+        world.users[u]["synthetic"] = True
+    world.on_formed, world.on_decided, world.on_approval = runner.start, runner.decided, synthetic.on_approval
+    mt = formed(world)
     mine = approvals.pending(world, "u_maya")
     assert len(mine) == 1 and approvals.pending(world, "u_dan") == []  # counterparts answered themselves
     assert meetups.view(world, "u_maya", mt)["status"] == "setting_up"  # never books before Maya decides (P11)
@@ -170,16 +170,9 @@ def test_join_approve_confirmed_with_synthetic_counterparts(world):
     assert [s["kind"] for s in m["museSteps"]].count("book") == 1
 
 
-def test_live_counterpart_decides_for_themselves(world):
-    pytest.importorskip("cg_api.agent")
-    world.demo.update(counterpart="live", liveUserId="u_dan")
-    mt = _synthetic_hero(world)
-    assert len(approvals.pending(world, "u_dan")) == 1 and approvals.pending(world, "u_rosa") == []
-    assert meetups.view(world, "u_maya", mt)["status"] == "setting_up"
+def test_fail_next_booking_comes_from_live_demo_state(world, monkeypatch):
+    from cg_api.store import store
 
-
-def test_forced_yes_off_waits_for_everyone(world):
-    pytest.importorskip("cg_api.agent")
-    world.demo["forcedYes"] = False
-    _synthetic_hero(world)
-    assert len(approvals.pending(world, "u_rosa")) == 1
+    monkeypatch.setattr(store, "world", world)
+    monkeypatch.setattr(store, "demo_state", {"failNextBooking": True})
+    assert runner._take_fail_next_booking(world) is True and store.demo_state["failNextBooking"] is False

@@ -39,28 +39,6 @@ def demo_state(w: World) -> dict:
     return w.demo
 
 
-def synthetic_answer(w: World, a: dict) -> None:
-    """PRD-2 §3.9: with forcedYes, synthetic counterparts approve their payments after demo.syntheticDelayS.
-    The live second phone (liveUserId in `live` mode) and real users always decide for themselves (C8)."""
-    ds, uid = demo_state(w), a["userId"]
-    if not w.users[uid].get("synthetic") or not ds.get("forcedYes"):
-        return
-    if ds.get("counterpart") == "live" and uid == ds.get("liveUserId"):
-        return
-
-    def go() -> None:
-        if a["status"] == "pending":
-            approvals.decide(w, uid, a["approvalId"], "approve")
-
-    try:
-        loop = asyncio.get_running_loop()
-    except RuntimeError:  # pure tests: answer at once
-        go()
-        return
-    lo, hi = w.params["demo"]["syntheticDelayS"]
-    loop.call_later(random.uniform(lo, hi) if w.demo_mode else 0, go)
-
-
 def _delay(w: World) -> float:
     if not w.demo_mode:
         return 0.0
@@ -75,7 +53,7 @@ def apply(w: World, meetup_id: str, ev: dict) -> None:
     if t == "step":
         meetups.upsert_step(w, meetup_id, ev["step"])
     elif t == "approval":
-        synthetic_answer(w, approvals.add(w, dict(ev["approval"])))
+        approvals.add(w, dict(ev["approval"]))
     elif t == "payment":
         uid, state = ev["userId"], ev["myPayment"]
         if state == "paid":

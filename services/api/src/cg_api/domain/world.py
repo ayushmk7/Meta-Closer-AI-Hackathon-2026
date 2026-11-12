@@ -28,6 +28,12 @@ def _spawn(coro) -> None:
         coro.close()
 
 
+def _synthetic():
+    from cg_api import synthetic  # D's synthetic counterparts
+
+    return synthetic
+
+
 def _runner():
     from cg_api.domain import runner  # cycle: runner -> world
 
@@ -104,6 +110,7 @@ class World:
     on_to_muse: Callable[["World", dict], None] = lambda w, m: _spawn(
         ports.ports.agent.on_message(m["threadId"], m["messageId"])
     )
+    on_approval: Callable[["World", dict], None] = lambda w, a: _synthetic().on_approval(w, a)  # D: counterparts
     on_left: Callable[["World", str, str], None] = lambda w, mt, uid: None  # M2: backfill, continue or cancel
 
     users: dict[str, dict] = field(default_factory=dict)

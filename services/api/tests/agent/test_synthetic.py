@@ -11,10 +11,8 @@ from cg_api.domain import approvals, joins, runner
 def hooked(world, monkeypatch):  # noqa: F811
     state = {"counterpart": "synthetic", "liveUserId": "u_dan", "forcedYes": True}
     monkeypatch.setattr(synthetic, "_demo_state", lambda: state)
-    if not hasattr(world, "on_approval"):  # ponytail: until C's approvals.add calls world.on_approval
-        add = approvals.add
-        monkeypatch.setattr(approvals, "add", lambda w, a: (add(w, a), synthetic.on_approval(w, a))[0])
-    world.on_formed, world.on_decided = runner.start, runner.decided  # the fixture stubs the agent out
+    # the fixture stubs the agent and the counterparts out
+    world.on_formed, world.on_decided, world.on_approval = runner.start, runner.decided, synthetic.on_approval
     for u in ("u_dan", "u_rosa"):
         world.users[u]["synthetic"] = True
     world.params = {**world.params, "demo": {**world.params["demo"], "stepDelayS": [0, 0], "syntheticDelayS": [0, 0]}}
