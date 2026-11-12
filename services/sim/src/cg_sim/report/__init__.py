@@ -103,11 +103,11 @@ def render(run_dir) -> str:
     c = ci95([r[key] for r in base if at("common_ground", center)(r)])
     verdicts = [_verdict(*paired(base, key, at("common_ground", ci), at("greedy", ci))[1:], hb) for ci in cells_run]
     wins, losses = verdicts.count(1), verdicts.count(-1)
-    # The policy ranks on the same p_join/p_show that the `tables` world draws outcomes from; with fake (hash)
-    # Laya that is reading the dice, so no claim from such a run counts as evidence.
-    evidence = not (cfg["fakeLaya"] and cfg["world"] == "tables")
-    caveat = "" if evidence else (" Not evidence: fake Laya with world model `tables` (Common Ground ranks on the "
-                                  "same p_show/p_join the world draws from); back it with a `--world truth` run.")
+    # The policy ranks on the same p_join/p_show the world draws outcomes from (both world models), so with fake
+    # (hash) Laya it is reading the dice: no claim counts as evidence without real Laya tables.
+    evidence = not cfg["fakeLaya"]
+    caveat = "" if evidence else (" Not evidence: fake Laya tables (Common Ground ranks on the same hashed "
+                                  "p_show/p_join the world draws outcomes from); needs real Laya tables.")
     L += ["## Headline", ""]
     if wins == len(cells_run):
         L += [f"**Common Ground leaves {c[0]:.0%} of low-outgoing people isolated at week 8 versus {g[0]:.0%} for "

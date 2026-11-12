@@ -32,7 +32,7 @@ Shaded bands: 95% interval over seeds at flake x join = 1.0 x 1.0.
 
 ## Robustness: Common Ground vs greedy across sweep cells
 
-Seed-paired 95% interval of the difference per cell. A claim needs better in every cell. Not evidence: fake Laya with world model `tables` (Common Ground ranks on the same p_show/p_join the world draws from); back it with a `--world truth` run.
+Seed-paired 95% interval of the difference per cell. A claim needs better in every cell. Not evidence: fake Laya tables (Common Ground ranks on the same hashed p_show/p_join the world draws outcomes from); needs real Laya tables.
 
 | Metric | CG better | unclear | CG worse | claim |
 | --- | --- | --- | --- | --- |
