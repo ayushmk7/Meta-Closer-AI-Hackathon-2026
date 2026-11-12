@@ -61,4 +61,33 @@ def sync_calendar(body: CalendarSync, uid: User):
         if a.ok:
             applied[a.key] = a.desired
     bridge.sync(uid)
-    return {"acceptedBusy": len(blocks), "directives": list(store.directives.get(uid, {}).values())}
+    return {"acceptedBusy": len(blocks), "directives": directives_for(uid)}
+
+
+def directives_for(uid: str) -> list[dict]:
+    """The calendar state this device should have now (CONTRACTS §5 Calendar directive), derived live from the
+    domain's joins and meetups (slice C builds each one; P7: own only, no other names). A `none` is sent only for
+    keys the device still holds, until it reports that it applied it."""
+    applied = store.applied.get(uid, {})
+    out: dict[str, dict] = {}
+    if store.world is not None:
+        from cg_api.domain import joins, meetups
+
+        w = store.world
+        for j in w.joins.values():
+            if j["userId"] != uid:
+                continue
+            d = joins.hold(w, j)
+            if (
+                d is None and applied.get(j["joinId"], "none") != "none"
+            ):  # matched: the meetup's event replaces the hold
+                p = w.plans[j["planId"]]
+                d = {"key": j["joinId"], "desired": "none", "title": p["title"][:120], "startsAt": p["startsAt"],
+                     "endsAt": p["endsAt"]}  # fmt: skip
+            if d is not None:
+                out[d["key"]] = d
+        for m in w.meetups.values():
+            if uid in m.get("members", {}):
+                out[m["meetupId"]] = meetups.directive(w, uid, m)
+    out.update(store.directives.get(uid, {}))  # explicit writes win
+    return [d for d in out.values() if d["desired"] != "none" or applied.get(d["key"], "none") != "none"]

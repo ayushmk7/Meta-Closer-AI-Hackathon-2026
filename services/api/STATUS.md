@@ -29,7 +29,7 @@ Milestone: slice A M2 (platform) done
 - 2026-11-12 Every seeded pool loads side by side (`seed.load(primary)`): one world, users carry `poolId`, and plans carry `poolId` from the seed. `loadSeed(poolId)` sets the primary pool, whose demo.json drives demo state; per-pool demo.json lives in `store.demos[poolId]`. `optIn` switches Maya between pools live (city ↔ event, demo 4:15) and keeps people met and threads. `config.modes` marks a built pool without a loaded seed `available: false`.
 - 2026-11-12 The seeds reuse 13 venue IDs and 12 plan IDs across pools, with different places. The loader renames the second pool's colliding IDs to `<id>_<pool suffix>` and rewrites every reference (plans, connector records, demo.json), with a warning in the log.
 - 2026-11-12 Profile updates are validated completely (pydantic, including group size min ≤ max) before any field is written, so a rejected `updateMe` or `completeSetup` changes nothing. Validators raise `errors.UserMessage("...")` to set the 400 message as final copy (otherwise it's generic).
-- 2026-11-12 Directives: other slices write `store.directives[uid][key]`; `syncCalendar` returns them all and records `store.applied[uid][key]` for ok reports.
+- 2026-11-12 Directives: `syncCalendar` derives them live from the domain (`domain.joins.hold` for each of the user's joins, `domain.meetups.directive` for each meetup they're in), plus any explicit `store.directives[uid][key]` write. `none` is sent only while the device still reports that key applied as hold or event. Applied state is in `store.applied[uid][key]`.
 - 2026-11-12 Branch tracks origin/main (v2 contracts #12, Decisions #15 merged in).
 - 2026-11-12 `/v1/ws` applies the REST identity rule to `?user=` (close 1008 otherwise) and ignores non-object frames.
 
@@ -41,6 +41,7 @@ Milestone: slice A M2 (platform) done
 - 2026-11-12 Producer-only metric counts: increment `cg_api.store.counters` with `muse_fallbacks`, `laya_calls`, `laya_decisive` and `booking_fallbacks`.
 
 ## Needs
+- needs: slice C/D (optional) — mark Muse's `calendar` step done per attendee from `store.applied[uid][meetupId] == "event"` (CONTRACTS §5) instead of marking it done right away.
 - needs: slice C — set `meetups[mt]["members"][uid]["counted"] = True` when the trust rule passes (`params.checkin.meetupCountsWhen`); `Me.rewards` reads it.
 - needs: bplans — clean `ruff check` errors in domain/joins.py, plans.py, runner.py, world.py and routes/approvals.py.
 - needs: sim — make venue and plan IDs unique across pools (e.g. `vn_crux_collective` is in both seeds at different locations). The backend renames them for now.
