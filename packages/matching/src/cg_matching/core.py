@@ -1,7 +1,4 @@
-"""cg_matching functions (CONTRACTS §10).
-
-ponytail: M0 skeleton. Naive bodies ported from services/sim matching_adapter.py; M1/M2 replace them.
-"""
+"""cg_matching functions (CONTRACTS §10, PRD-2 §3.3). Pure and deterministic for the given rng/seed."""
 
 from __future__ import annotations
 
@@ -132,17 +129,44 @@ def candidates(pool: PoolSnapshot, vectors: Vectors, params: Params) -> dict[str
 def scenes(
     pool: PoolSnapshot, cands: dict[str, list[tuple[str, float]]], params: Params, seed: int
 ) -> dict[str, str]:
-    """ponytail: M0 naive, scene = the user's strongest usable level-2 interest. Leiden in M2."""
-    out = {}
-    for uid, u in sorted(pool.users.items()):
-        l2 = Counter()
-        for i in u["interests"]:
-            if _usable(i) and (p := _prefix(i["id"], 2)):
-                l2[p] += i["weight"]
-        if l2:
-            top = min(l2.items(), key=lambda kv: (-kv[1], kv[0]))[0]
-            out[uid] = "sc_" + top.split(".")[1]
-    return out
+    """Leiden communities on the kNN graph (edge weight = cosine), deterministic for `seed`.
+    Scene ID = sc_ + the community's top two shared level-2 interests (leaf names). Users with no candidate edge
+    (or alone in their community) get no scene."""
+    import igraph as ig
+    import leidenalg
+
+    ids = sorted(set(cands) | {b for lst in cands.values() for b, _ in lst})
+    idx = {u: i for i, u in enumerate(ids)}
+    edges: dict[tuple[int, int], float] = {}
+    for a, lst in sorted(cands.items()):
+        for b, w in lst:
+            e = (min(idx[a], idx[b]), max(idx[a], idx[b]))
+            edges[e] = max(edges.get(e, 0.0), w)
+    if not edges:
+        return {}
+    keys = sorted(edges)
+    g = ig.Graph(n=len(ids), edges=keys)
+    part = leidenalg.find_partition(
+        g,
+        leidenalg.RBConfigurationVertexPartition,
+        weights=[edges[e] for e in keys],
+        resolution_parameter=params["matching"]["leidenResolution"],
+        seed=seed,
+    )
+    comms = sorted(([ids[i] for i in c] for c in part if len(c) > 1), key=lambda c: (-len(c), min(c)))
+    out: dict[str, str] = {}
+    used: Counter[str] = Counter()
+    for members in comms:
+        w: Counter[str] = Counter()
+        for m in members:
+            if m in pool.users:
+                w.update(_level_weights(pool.users[m], 2))
+        top = [k for k, _ in sorted(w.items(), key=lambda kv: (-kv[1], kv[0]))[:2]]
+        base = "sc_" + ("_".join(k.split(".")[1] for k in top) or "mixed")
+        used[base] += 1
+        sid = base if used[base] == 1 else f"{base}_{used[base]}"
+        out |= {m: sid for m in members}
+    return dict(sorted(out.items()))
 
 
 def shared_interests(pool: PoolSnapshot, a: str, b: str, level: int, limit: int) -> list[str]:
@@ -191,13 +215,44 @@ def travel_minutes(origin: tuple[float, float], dest: tuple[float, float], mode:
     return math.ceil(km / t["speedsKmh"][mode] * 60 + t["overheadMin"][mode])
 
 
-def _next_slot(after: datetime, day: str, part: str) -> datetime:
-    local = after.astimezone(TZ)
-    delta = (_DAYS.index(day) - local.weekday()) % 7
-    cand = (local + timedelta(days=delta)).replace(hour=_PARTS[part], minute=0, second=0, microsecond=0)
-    if cand < local:
-        cand += timedelta(days=7)
-    return cand.astimezone(after.tzinfo)
+def _open_at(v: Venue, starts: datetime, ends: datetime) -> bool:
+    if not v.hours:
+        return True  # parks, trails
+    ls, le = starts.astimezone(TZ), ends.astimezone(TZ)
+    day = _DAYS[ls.weekday()]
+    return (
+        any(
+            h["day"] == day and h["open"] <= ls.strftime("%H:%M") and le.strftime("%H:%M") <= h["close"]
+            for h in v.hours
+        )
+        and ls.date() == le.date()
+    )
+
+
+def _free(u: dict, starts: datetime, ends: datetime, buffer_min: int) -> bool:
+    if u["busy"]:
+        return not _busy_conflict(u["busy"], starts, ends, buffer_min)
+    return _slot(starts) in {(s["day"], s["part"]) for s in u["availability"]}
+
+
+def _windows(horizon_start: datetime, params: Params) -> list[datetime]:
+    """Local morning/afternoon/evening starts in [start + minLeadHours, start + horizonDays]."""
+    p = params["plans"]
+    lo, hi = (
+        horizon_start + timedelta(hours=p["minLeadHours"]),
+        horizon_start + timedelta(days=p["horizonDays"]),
+    )
+    day0 = lo.astimezone(TZ).replace(hour=0, minute=0, second=0, microsecond=0)
+    out = []
+    for d in range(p["horizonDays"] + 1):
+        for h in _PARTS.values():
+            local = (day0 + timedelta(days=d)).replace(hour=h)  # wall-clock arithmetic, DST-safe
+            if lo <= local <= hi:
+                out.append(local.astimezone(horizon_start.tzinfo))
+    return out
+
+
+PLAN_HOURS = 2  # ponytail: every proposed plan runs 2 h; per-activity durations if Muse copy needs them
 
 
 def propose_plans(
@@ -208,54 +263,121 @@ def propose_plans(
     rng: random.Random,
     horizon_start: datetime,
 ) -> list[Plan]:
-    """ponytail: M0 naive. Per scene: venues whose activity types target members' interests, at a common slot."""
-    p = params["plans"]
+    """Per scene: its top activity types (ACTIVITY_INTERESTS x members' level-2 weights) x the nearest open public
+    venues for them x the window most members are free, up to plans.proposalsPerSceneWeek. Plus one origin=signal
+    plan per strong visible frequent_place/routine signal at a known venue. IDs carry the horizon date so nightly
+    runs never reuse one."""
+    pp = params["plans"]
+    buffer_min = params["calendar"]["minFreeBufferMin"]
+    strong = params["nudges"]["minSignalStrength"]
+    stamp = horizon_start.astimezone(TZ).strftime("%Y%m%d")
+    usable = sorted((v for v in venues if not v.sensitive), key=lambda v: v.venue_id)
+    by_id = {v.venue_id: v for v in usable}
+    windows = _windows(horizon_start, params)
     members: dict[str, list[str]] = {}
     for uid, sc in sorted(scene_of.items()):
         if uid in pool.users:
             members.setdefault(sc, []).append(uid)
-    earliest = horizon_start + timedelta(hours=p["minLeadHours"])
-    out: list[Plan] = []
-    for sc in sorted(members):
-        l2: Counter[str] = Counter()
-        slots: Counter[tuple[str, str]] = Counter()
-        for uid in members[sc]:
-            u = pool.users[uid]
-            l2.update(_level_weights(u, 2))
-            slots.update((s["day"], s["part"]) for s in u["availability"])
-        options = sorted(
-            (
-                (sum(l2[i] for i in ACTIVITY_INTERESTS.get(at, [])), v.venue_id, at, v)
-                for v in venues
-                if not v.sensitive
-                for at in v.activity_types
-            ),
-            key=lambda o: (-o[0], o[1], o[2]),
+
+    def make(
+        pid: str, at: str, v: Venue, starts: datetime, targets: list[str], sc: str | None, origin: str
+    ) -> Plan:
+        return Plan(
+            plan_id=pid,
+            activity_type=at,
+            venue_id=v.venue_id,
+            starts_at=starts,
+            ends_at=starts + timedelta(hours=PLAN_HOURS),
+            size_min=pp["defaultSize"]["min"],
+            size_max=pp["defaultSize"]["max"],
+            cost=dict(v.cost),
+            target_interest_ids=tuple(targets),
+            scene_id=sc,
+            origin=origin,
         )
-        top_slots = [s for s, _ in sorted(slots.items(), key=lambda kv: (-kv[1], kv[0]))][:4] or [
-            ("sat", "afternoon")
-        ]
-        n = 0
-        for score, vid, at, v in options:
-            if score <= 0 or n >= p["proposalsPerSceneWeek"]:
+
+    def best_window(v: Venue, people: list[str], taken: set[datetime]) -> datetime | None:
+        scored = []
+        for w in windows:
+            if w in taken or not _open_at(v, w, w + timedelta(hours=PLAN_HOURS)):
+                continue
+            free = sum(_free(pool.users[u], w, w + timedelta(hours=PLAN_HOURS), buffer_min) for u in people)
+            if free:
+                scored.append((free, w))
+        if not scored:
+            return None
+        top = max(f for f, _ in scored)
+        # rng breaks ties among the best windows so scenes don't all pile onto the same slot.
+        return rng.choice(sorted(w for f, w in scored if f == top))
+
+    out: list[Plan] = []
+    seen_venue_at: set[tuple[str, datetime]] = set()
+    for sc in sorted(members):
+        people = members[sc]
+        l2: Counter[str] = Counter()
+        for u in people:
+            l2.update(_level_weights(pool.users[u], 2))
+        homes = [_home(pool.users[u]) for u in people]
+        types = sorted(
+            ((sum(l2[i] for i in ints), at) for at, ints in ACTIVITY_INTERESTS.items()),
+            key=lambda t: (-t[0], t[1]),
+        )
+        options = []
+        for score, at in types:
+            if score <= 0:
                 break
-            starts = _next_slot(earliest, *rng.choice(top_slots))
+            near = sorted(
+                (
+                    sum(travel_minutes(h, v.location, "transit", params) for h in homes) / len(homes),
+                    v.venue_id,
+                )
+                for v in usable
+                if at in v.activity_types
+            )
+            options += [(at, by_id[vid]) for _, vid in near[:2]]
+        taken: set[datetime] = set()
+        n = 0
+        for at, v in options:
+            if n >= pp["proposalsPerSceneWeek"]:
+                break
+            if (w := best_window(v, people, taken)) is None or (v.venue_id, w) in seen_venue_at:
+                continue
+            taken.add(w)
+            seen_venue_at.add((v.venue_id, w))
+            targets = [i for i in ACTIVITY_INTERESTS[at] if l2[i] > 0]
+            out.append(make(f"pl_{sc.removeprefix('sc_')}_{stamp}_{n:02d}", at, v, w, targets, sc, "seed"))
+            n += 1
+
+    # Signal plans: one per venue a strong visible frequent_place/routine signal points at.
+    sig_venues: dict[str, list[tuple[str, list[str]]]] = {}
+    for uid, u in sorted(pool.users.items()):
+        for s in u["signals"]:
+            ok = s["visibility"] == "shown" and not s["sensitive"] and s["strength"] >= strong
+            if ok and s["kind"] in ("frequent_place", "routine") and s.get("venueId") in by_id:
+                sig_venues.setdefault(s["venueId"], []).append((uid, s["interestIds"]))
+    for vid, hits in sorted(sig_venues.items()):
+        v = by_id[vid]
+        sig_l2 = Counter(p for _, ints in hits for i in ints if (p := _prefix(i, 2)))
+        at = min(v.activity_types, key=lambda t: (-sum(sig_l2[i] for i in ACTIVITY_INTERESTS.get(t, [])), t))
+        people = [u for u, _ in hits]
+        if (w := best_window(v, people, set())) is None or (vid, w) in seen_venue_at:
+            continue
+        seen_venue_at.add((vid, w))
+        targets = [i for i in ACTIVITY_INTERESTS.get(at, []) if sig_l2[i] > 0] or ACTIVITY_INTERESTS.get(
+            at, []
+        )[:1]
+        if targets:
             out.append(
-                Plan(
-                    plan_id=f"pl_{sc.removeprefix('sc_')}_{len(out):03d}",
-                    activity_type=at,
-                    venue_id=vid,
-                    starts_at=starts,
-                    ends_at=starts + timedelta(hours=2),
-                    size_min=p["defaultSize"]["min"],
-                    size_max=p["defaultSize"]["max"],
-                    cost=dict(v.cost),
-                    target_interest_ids=tuple(i for i in ACTIVITY_INTERESTS[at] if l2[i] > 0),
-                    scene_id=sc,
-                    origin="seed",
+                make(
+                    f"pl_sig_{vid.removeprefix('vn_')}_{stamp}",
+                    at,
+                    v,
+                    w,
+                    targets,
+                    scene_of.get(people[0]),
+                    "signal",
                 )
             )
-            n += 1
     return out
 
 
@@ -487,6 +609,11 @@ def form_groups(
     def worst(group: list[str]) -> float:
         return min((pair(a, b) for i, a in enumerate(group) for b in group[i + 1 :]), default=0.0)
 
+    if fixed := [u for u in state.fixed_ids.get(plan.plan_id, []) if u in pool.users]:
+        return _backfill(
+            plan, fixed, [u for u in queue if u not in fixed], hi, lo, pair, umax, shares_ok, worst, order
+        )
+
     # Split size: plan cap, lowered to the median member's own max so the split fits most people.
     split = min(hi, median_low([umax(u) for u in queue[:seats]] or [hi]))
     k = max(1, -(-seats // split))  # ceil
@@ -556,3 +683,30 @@ def form_groups(
         out.append(GroupResult(plan.plan_id, sorted(group, key=order.get), round(worst(group), 6)))
     unseated += waiting
     return FormResult(out, sorted(dict.fromkeys(unseated), key=order.get))
+
+
+def _backfill(plan, fixed, waiting, hi, lo, pair, umax, shares_ok, worst, order) -> FormResult:
+    group = list(fixed)
+    target = min(hi, max(lo(group), len(group) + 1))
+    while len(group) < target:
+        n = len(group) + 1
+        fits = [
+            c
+            for c in waiting
+            if umax(c) >= n
+            and all(umax(x) >= n for x in group)
+            and min(pair(c, x) for x in group) >= 0
+            and (n < 3 or shares_ok(c, [*group, c]))
+        ]
+        if not fits:
+            break
+        best = max(fits, key=lambda c: (min(pair(c, x) for x in group), -waiting.index(c)))
+        group.append(best)
+        waiting.remove(best)
+    rank = {u: k for k, u in enumerate(group)} | order
+    if len(group) < lo(group):
+        return FormResult([], sorted(waiting, key=order.get))
+    return FormResult(
+        [GroupResult(plan.plan_id, sorted(group, key=rank.get), round(worst(group), 6))],
+        sorted(waiting, key=order.get),
+    )
