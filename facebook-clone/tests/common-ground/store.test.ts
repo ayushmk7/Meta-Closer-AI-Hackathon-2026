@@ -26,6 +26,7 @@ import {
   withdraw,
 } from '../../src/features/common-ground/store';
 import { STEP_DELAY_S, mockRequest, resetMock } from '../../src/features/common-ground/mock';
+import { handleEvent } from '../../src/features/common-ground/realtime';
 import type { MuseStep } from '../../src/features/common-ground/types';
 
 let saved: string | null = null;
@@ -306,4 +307,49 @@ test('staged mock: forms, ticks steps, waits for approval, books, reschedules, n
   assert.equal(seeded.status, 'not_filled');
   assert.deepEqual(seeded.alternatives, ['pl_0003']);
   resetMock();
+});
+
+test('realtime events refetch what CONTRACTS §6 names; meetup.step merges; unknown types skip', () => {
+  const called: string[] = [];
+  const real = { ...load };
+  for (const k of Object.keys(load) as (keyof typeof load)[])
+    (load as Record<string, unknown>)[k] = async (...args: unknown[]) =>
+      void called.push([k, ...args].join(':'));
+  setState({
+    meetups: {
+      mt_1: { meetupId: 'mt_1', museSteps: [step('a')] } as never,
+    },
+    messages: { th_1: [] },
+  });
+  const ev = (type: string, data: Record<string, unknown> = {}) =>
+    handleEvent({ type, eventId: 'e', at: '', data });
+  ev('meetup.step', { meetupId: 'mt_1', step: step('a', 'done') });
+  ev('meetup.step', { meetupId: 'mt_1', step: step('b') });
+  assert.deepEqual(
+    getState().meetups.mt_1!.museSteps.map((s) => [s.stepId, s.status]),
+    [
+      ['a', 'done'],
+      ['b', 'queued'],
+    ],
+  );
+  ev('join.updated');
+  ev('approval.requested', { meetupId: 'mt_1' });
+  ev('message.created', { threadId: 'th_1' });
+  ev('message.created', { threadId: 'th_unopened' });
+  ev('me.updated');
+  ev('teleport.started');
+  ev('constructor');
+  Object.assign(load, real);
+  assert.deepEqual(called, [
+    'joins',
+    'feed',
+    'approvals',
+    'meetup:mt_1',
+    'messages:th_1',
+    'threads',
+    'threads',
+    'me',
+    'config',
+  ]);
+  setState({ meetups: {}, messages: {} });
 });

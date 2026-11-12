@@ -5,6 +5,7 @@ import type { StorageAdapter } from '../../core/persistence';
 import type { ExternalRow } from '../../extensions/types';
 import { api, getUser, setUser } from './api';
 import { resetMock } from './mock';
+import { startRealtime, stopRealtime } from './realtime';
 import type {
   Approval,
   Config,
@@ -200,25 +201,6 @@ export async function refreshAll(): Promise<void> {
   ]);
 }
 
-// ponytail: one global poll for shell badges/rows at feedRefreshS; screens poll their own detail
-// with usePoll at pollIntervalS. A2 replaces this with realtime.ts (WS + polling fallback).
-let timer: ReturnType<typeof setInterval> | null = null;
-let inFlight = false;
-function startPolling() {
-  if (timer || !state.config) return;
-  timer = setInterval(async () => {
-    if (inFlight || !state.me?.optedIn) return;
-    inFlight = true;
-    await Promise.all([load.threads(), load.approvals(), load.nudges(), load.joins()]);
-    inFlight = false;
-  }, state.config.limits.feedRefreshS * 1000);
-  (timer as { unref?: () => void }).unref?.(); // Node: never keep tests alive
-}
-function stopPolling() {
-  if (timer) clearInterval(timer);
-  timer = null;
-}
-
 let starting: Promise<void> | null = null;
 export function start(): Promise<void> {
   return (starting ??= (async () => {
@@ -251,7 +233,7 @@ export function start(): Promise<void> {
     if (state.me.optedIn) await refreshAll();
     if (g !== gen) return;
     setState({ ready: true });
-    startPolling();
+    startRealtime();
   })());
 }
 
@@ -479,7 +461,7 @@ export async function sendMessage(
 // ---- Identity, reset, location ----
 export async function setIdentity(userId: string | null): Promise<void> {
   gen++;
-  stopPolling();
+  stopRealtime();
   starting = null;
   const { homeCardDismissed, lastMode, drafts } = state;
   setState({ ...initial(), userOverride: userId, homeCardDismissed, lastMode, drafts });
@@ -488,7 +470,7 @@ export async function setIdentity(userId: string | null): Promise<void> {
 
 export async function reset(): Promise<void> {
   gen++;
-  stopPolling();
+  stopRealtime();
   starting = null;
   await storage().remove();
   resetMock();
