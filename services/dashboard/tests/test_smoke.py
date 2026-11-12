@@ -63,9 +63,13 @@ def test_replay_fixture_shape(dash):
     status, body = call(dash[0] + "/api/replay")
     r = json.loads(body)
     assert status == 200 and r["people"]
+    # mirrors services/sim/src/cg_sim/mc/replay.py (version 1)
+    assert r["version"] == 1
     for pol in ("greedy", "common_ground"):
-        assert len(r["policies"][pol]["weekly"]) == r["weeks"]
-        assert len(r["isolatedShare"][pol]["mean"]) == len(r["isolatedShare"]["weeks"])
+        assert [f["week"] for f in r["frames"][pol]] == list(range(1, r["weeks"] + 1))
+        assert all(0 <= f["isolatedShareLowOut"] <= 1 for f in r["frames"][pol])
+        chart = r["isolatedShare"][pol]
+        assert chart["week"] == list(range(r["weeks"] + 1)) and len(chart["mean"]) == len(chart["week"])
     assert replay_path().exists()
 
 

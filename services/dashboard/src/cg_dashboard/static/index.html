@@ -230,7 +230,7 @@ let replay, playing = null;
 async function loadReplay() {
   try { replay = await api("/api/replay"); } catch (e) { return showErr(e); }
   $("#week").max = replay.weeks || 8;
-  $("#run-id").textContent = `run ${replay.runId}, seed ${replay.seed}`;
+  $("#run-id").textContent = `run ${replay.runId}, seed ${replay.seed}` + (replay.cell ? `, flake ×${replay.cell.flake}, join ×${replay.cell.join}` : "");
   drawChart(); drawWeek();
 }
 function drawWeek() {
@@ -240,9 +240,10 @@ function drawWeek() {
   const lats = replay.people.map(p => p.lat), lngs = replay.people.map(p => p.lng);
   const [a0, a1, o0, o1] = [Math.min(...lats), Math.max(...lats), Math.min(...lngs), Math.max(...lngs)];
   for (const key of ["greedy", "common_ground"]) {
-    const wk = replay.policies[key]?.weekly.find(x => x.week === w);
+    const frames = (replay.frames?.[key] || []).filter(x => x.week <= w);  // pairs are per-week; cumulate
+    const wk = frames.at(-1);
     if (!wk) continue;
-    $("#iso-" + key).textContent = Math.round(wk.isolatedShare * 100) + "%";
+    $("#iso-" + key).textContent = Math.round(wk.isolatedShareLowOut * 100) + "%";
     const cv = $("#cv-" + key), ctx = cv.getContext("2d");
     cv.width = cv.clientWidth * devicePixelRatio; cv.height = cv.clientHeight * devicePixelRatio;
     const W = cv.width, H = cv.height, m = 20 * devicePixelRatio;
@@ -251,7 +252,7 @@ function drawWeek() {
     ctx.clearRect(0, 0, W, H);
     ctx.strokeStyle = key === "greedy" ? "#f2994a" : "#4fd1c5"; ctx.lineWidth = 2.5 * devicePixelRatio;
     const friended = new Set();
-    for (const [a, b] of wk.friendships) {
+    for (const [a, b] of frames.flatMap(f => f.friendships)) {
       if (!byId[a] || !byId[b]) continue;
       friended.add(a); friended.add(b);
       ctx.beginPath(); ctx.moveTo(...xy(byId[a])); ctx.lineTo(...xy(byId[b])); ctx.stroke();
@@ -265,11 +266,12 @@ function drawWeek() {
 }
 function drawChart() {
   const c = replay.isolatedShare; if (!c) return;
-  const W = 1000, H = 300, L = 70, B = 40, n = c.weeks.length;
+  const weeks = c.greedy?.week || c.common_ground?.week || [];
+  const W = 1000, H = 300, L = 70, B = 40, n = weeks.length;
   const x = i => L + i * (W - L - 20) / Math.max(1, n - 1), y = v => 10 + (1 - v) * (H - B - 10);
   let s = "";
   for (const t of [0, 0.25, 0.5, 0.75, 1]) s += `<line x1="${L}" x2="${W - 20}" y1="${y(t)}" y2="${y(t)}" stroke="#2a303c"/><text x="${L - 10}" y="${y(t) + 6}" fill="#9aa3b2" font-size="18" text-anchor="end">${t * 100}%</text>`;
-  c.weeks.forEach((w, i) => s += `<text x="${x(i)}" y="${H - 10}" fill="#9aa3b2" font-size="18" text-anchor="middle">wk ${w}</text>`);
+  weeks.forEach((w, i) => s += `<text x="${x(i)}" y="${H - 10}" fill="#9aa3b2" font-size="18" text-anchor="middle">wk ${w}</text>`);
   for (const [key, col] of [["greedy", "#f2994a"], ["common_ground", "#4fd1c5"]]) {
     const d = c[key]; if (!d) continue;
     const band = d.hi.map((v, i) => `${x(i)},${y(v)}`).concat(d.lo.map((v, i) => `${x(i)},${y(v)}`).reverse()).join(" ");
@@ -277,7 +279,7 @@ function drawChart() {
   }
   s += `<line id="wk-cursor" stroke="#fff" stroke-width="2" x1="${x(0)}" x2="${x(0)}" y1="10" y2="${H - B}"/>`;
   $("#chart").innerHTML = s;
-  window._chartX = (w) => x(c.weeks.indexOf(w));
+  window._chartX = (w) => x(weeks.indexOf(w));
 }
 $("#week").oninput = () => { drawWeek(); const cur = $("#wk-cursor"); if (cur && window._chartX) { const X = window._chartX(+$("#week").value); cur.setAttribute("x1", X); cur.setAttribute("x2", X); } };
 $("#play").onclick = () => {
