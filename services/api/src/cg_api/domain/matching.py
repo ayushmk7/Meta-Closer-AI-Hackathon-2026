@@ -129,11 +129,11 @@ def plan_overlap(w: "World", uid: str, plan: dict, joined_ids: list[str], level:
     cgm = _cgm()
     if not cgm:
         return stubs.plan_overlap(w, uid, plan, joined_ids, level, limit)
-    pool, _, _ = _ctx(cgm, w)
+    pool, params, _ = _ctx(cgm, w)
     if uid not in pool.users:
         return []
     ids = [o for o in joined_ids if o in pool.users]
-    return cgm.plan_overlap(pool, uid, _plan(cgm, w, plan), ids, level, limit)
+    return cgm.plan_overlap(pool, uid, _plan(cgm, w, plan), ids, level, limit, params=params)
 
 
 def travel_minutes(origin, dest, mode: str, params: dict) -> int:
