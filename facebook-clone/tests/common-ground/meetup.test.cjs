@@ -217,3 +217,30 @@ test('a cancelled meetup shows no day-of actions', async () => {
   expect(byLabel('On my way')).toBeUndefined();
   expect(byLabel('Check in')).toBeUndefined();
 });
+
+test('steps added after confirmation re-open the collapsed timeline', async () => {
+  const m = confirmedNow();
+  m.museSteps.forEach((s) => (s.status = 'done'));
+  const { byLabel } = await show(m);
+  expect(byLabel('Opened your group chat, done')).toBeUndefined();
+  const next = clone(m);
+  next.museSteps.push({
+    stepId: 'st_r',
+    kind: 'reschedule',
+    status: 'running',
+    label: 'Moving to 11',
+    at: m.museSteps[0].at,
+  });
+  await renderer.act(async () => store.setState({ meetups: { [m.meetupId]: next } }));
+  expect(byLabel('Moving to 11, in progress')).toBeTruthy();
+});
+
+test('the day-of section is titled by weekday when it is not today', async () => {
+  const m = confirmedNow();
+  m.startsAt = new Date(Date.now() + 2 * 86_400_000).toISOString();
+  m.endsAt = new Date(Date.now() + 2 * 86_400_000 + 3_600_000).toISOString();
+  const { text } = await show(m);
+  const weekday = new Date(m.startsAt).toLocaleDateString('en-US', { weekday: 'long' });
+  expect(text()).toContain(`"${weekday}"`);
+  expect(text()).not.toContain('"Today"');
+});

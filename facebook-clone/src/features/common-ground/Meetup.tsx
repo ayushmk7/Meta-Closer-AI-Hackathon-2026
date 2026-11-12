@@ -1,5 +1,5 @@
 // Meetup (PRD-1 §8.3): header, Muse's steps, approvals, who's coming, details, day of, feedback.
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Alert, Linking, Platform, Pressable, Share, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import {
@@ -190,6 +190,15 @@ export default function MeetupScreen() {
   const ready = useCg((s) => s.ready);
   const [stepsOpen, setStepsOpen] = useState(false);
   const [checkin, setCheckin] = useState<string | null>(null);
+  // Steps that arrive after confirmation (a reschedule) re-open the collapsed timeline.
+  const seenSteps = useRef<number | null>(null);
+  const status = m?.status;
+  const stepCount = m?.museSteps.length ?? 0;
+  useEffect(() => {
+    if (status !== 'confirmed') return void (seenSteps.current = null);
+    if (seenSteps.current != null && stepCount > seenSteps.current) setStepsOpen(true);
+    seenSteps.current = stepCount;
+  }, [status, stepCount]);
   // Poll only while Muse is still setting up; one load on focus otherwise.
   usePoll(() => void load.meetup(meetupId), m && m.status !== 'setting_up' ? 0 : undefined);
 
@@ -384,7 +393,13 @@ export default function MeetupScreen() {
       </Section>
 
       {(dayOf || canCheckIn) && (
-        <Section title="Today">
+        <Section
+          title={
+            new Date(m.startsAt).toDateString() === new Date().toDateString()
+              ? 'Today'
+              : new Date(m.startsAt).toLocaleDateString('en-US', { weekday: 'long' })
+          }
+        >
           {dayOf && (
             <View style={{ flexDirection: 'row', gap: 8 }}>
               <Button
