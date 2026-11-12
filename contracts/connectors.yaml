@@ -65,6 +65,22 @@ providers:
     simulated: true
     status: available
 
+  luma:
+    label: "Luma"
+    reads: "Events you RSVP'd to."
+    recordKinds: [ticket]
+    signalKinds: [ticket]
+    simulated: true
+    status: available
+
+  beli:
+    label: "Beli"
+    reads: "Restaurants you rated and want to try."
+    recordKinds: [saved_place]
+    signalKinds: [saved_place]
+    simulated: true
+    status: available
+
   meetup:
     label: "Meetup"
     reads: "Groups you belong to."
