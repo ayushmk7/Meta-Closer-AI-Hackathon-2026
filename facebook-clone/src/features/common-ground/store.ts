@@ -118,6 +118,7 @@ const subscribe = (l: () => void) => {
   listeners.add(l);
   return () => void listeners.delete(l);
 };
+/** `select` must return a stable reference for unchanged state (no fresh `[]`/`{}`), or React loops. */
 export function useCg<T>(select: (s: CgState) => T): T {
   return useSyncExternalStore(subscribe, () => select(state));
 }
@@ -451,10 +452,26 @@ export async function currentLocation(): Promise<LatLng | null> {
 
 // ---- Pure selectors behind the shell hooks (exported for tests) ----
 const on = (s: CgState) => !!s.me?.optedIn && !s.error;
-export const nudgesFor = (s: CgState, surface: NudgeSurface): Nudge[] =>
-  on(s) && s.config?.features.nudges ? s.nudges.filter((n) => n.surfaces.includes(surface)) : [];
-export const pendingApprovals = (s: CgState): Approval[] =>
-  s.approvals.filter((a) => a.status === 'pending');
+// Array selectors are cached on their inputs so they are safe to pass to useCg.
+const NONE: never[] = [];
+const nudgeCache = new Map<string, { nudges: Nudge[]; ok: boolean; out: Nudge[] }>();
+export const nudgesFor = (s: CgState, surface: NudgeSurface): Nudge[] => {
+  const ok = on(s) && !!s.config?.features.nudges;
+  const hit = nudgeCache.get(surface);
+  if (hit && hit.nudges === s.nudges && hit.ok === ok) return hit.out;
+  const out = ok ? s.nudges.filter((n) => n.surfaces.includes(surface)) : NONE;
+  nudgeCache.set(surface, { nudges: s.nudges, ok, out });
+  return out;
+};
+let approvalCache: { approvals: Approval[]; out: Approval[] } | null = null;
+export const pendingApprovals = (s: CgState): Approval[] => {
+  if (approvalCache?.approvals !== s.approvals)
+    approvalCache = {
+      approvals: s.approvals,
+      out: s.approvals.filter((a) => a.status === 'pending'),
+    };
+  return approvalCache.out;
+};
 export const badgeCount = (s: CgState): number =>
   on(s)
     ? pendingApprovals(s).length +

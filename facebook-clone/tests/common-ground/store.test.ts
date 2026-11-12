@@ -13,6 +13,8 @@ import {
   load,
   mergeStep,
   mergeSteps,
+  nudgesFor,
+  pendingApprovals,
   optIn,
   refreshAll,
   reset,
@@ -37,6 +39,17 @@ const step = (stepId: string, status = 'queued'): MuseStep => ({
   status,
   label: stepId,
   at: '2026-11-12T18:00:00Z',
+});
+
+test('exported selectors return stable references on unchanged state (useCg-safe)', () => {
+  const s = getState();
+  for (const select of [
+    badgeCount,
+    pendingApprovals,
+    (x: typeof s) => nudgesFor(x, 'home'),
+    (x: typeof s) => nudgesFor(x, 'plans'),
+  ])
+    assert.equal(select(s), select(s));
 });
 
 test('mergeSteps updates in place by stepId, appends new ones, never reorders', () => {
