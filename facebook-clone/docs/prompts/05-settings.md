@@ -1,6 +1,9 @@
 # Astra prompt: Settings and account menus
 
-Implement the full local **Settings** route and the account-menu path that opens it. Read the build brief, source atlas, visual spec, and content contract. Inspect the existing theme/state layer and shared shell before editing so every active value reads from the same persisted state.
+> Accepted implementation scope: responsive web + native iOS through Expo Go. Android testing/distribution is deferred. See [architecture and extension contract](../ARCHITECTURE.md).
+
+
+Implement the full local **Settings** route and account/Menu path on responsive web and native iOS. Read the build brief, source atlas, visual spec, native app spec, and content contract. Inspect the existing theme/state layer and both platform shells before editing so every active value reads from the same shared state rules.
 
 ## References to inspect
 
@@ -8,7 +11,11 @@ For desktop, use the [Senior Planet account-menu crop](../references/images/acco
 
 ## Account and Settings path
 
-On desktop, the avatar opens a right-aligned panel beneath the header. Its top profile card opens Maya's Profile; a **Settings & privacy** row opens a nested panel containing **Settings** and **Privacy Checkup**; **Display & accessibility** is reachable directly from the top account panel. Settings navigates to a full page with the shared header and a left category rail beside a main settings panel. The source menu shows other entries; only add a visible entry if it has a meaningful local destination. On mobile, Menu is a full page of destination tiles, followed by an expandable Settings & privacy section leading to Settings. Settings itself is a single column with a back control, search or compact title row, grouped categories, and no obstructed bottom controls.
+On desktop web, the avatar opens a right-aligned panel beneath the header. Its top profile card opens Maya's Profile; a **Settings & privacy** row opens a nested panel containing **Settings** and **Privacy Checkup**; **Display & accessibility** is reachable directly from the top account panel. Settings navigates to a full page with the shared header and a left category rail beside a main settings panel. The source menu shows other entries; only add a visible entry if it has a meaningful local destination. In phone web and native app, Menu is a full page of destination tiles, followed by an expandable Settings & privacy section leading to Settings. Settings itself is a single column with a back control, search or compact title row, grouped categories, and no obstructed bottom controls.
+
+## Native app implementation
+
+Use native Menu and Settings screens with the same category labels, active values, and behavior as web. Persist changes in the native overlay; apply Light/Dark to native tabs, headers, lists, dialogs, and sheets immediately. Notification toggles update the native badge/list, feed order changes native Home, and audience default updates the native composer. Native Reset demo confirms, removes only the demo key and owned user-photo files, and returns to the exact initial seed. System Back closes a detail setting before leaving Settings.
 
 ## Required settings and visible values
 
@@ -22,4 +29,4 @@ Settings & privacy, Display & accessibility, Notifications, Feed preferences, an
 
 ## Completion check
 
-Capture the desktop account menu, its Settings & privacy submenu, the desktop Settings page, and mobile Menu/Settings at **390 × 844**. Compare nesting, panel anchoring, category spacing, active states, and phone stacking with the references. Change theme, one notification category, feed order, and audience; refresh and check active labels and effects. Reset after creating a post and saving a listing; confirm the exact initial state returns while unrelated localStorage keys remain.
+Capture the desktop account menu, its Settings & privacy submenu, desktop Settings, phone-web Menu/Settings at **390 × 844**, and native Menu/Settings on iOS. Compare nesting, anchoring, category spacing, active states, and phone stacking with the references. Change theme, one notification category, feed order, and audience; refresh/relaunch and check active labels and effects on both platforms. Reset after creating a post and saving a listing; confirm the exact initial state returns while unrelated web/native storage remains.

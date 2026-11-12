@@ -1,0 +1,1 @@
+Official Facebook primary logo from Meta’s Facebook Brand Asset Pack, downloaded 2026-11-11 from https://www.meta.com/brand/resources/facebook/logo/. Unaltered complete mark; private unofficial UI demonstration. Meta retains its trademark rights.

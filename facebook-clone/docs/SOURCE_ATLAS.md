@@ -1,6 +1,6 @@
 # Desktop and mobile source atlas
 
-This is the research index for the **unofficial, private hackathon demo**. The references are snapshots of different Facebook releases, regions, devices, and account types. Use them as evidence for the specific surface named below. A publisher/page date or PDF creation date does **not** prove when an embedded Facebook screenshot was captured. The [visual specification](VISUAL_SPEC.md) and [page prompts](prompts/README.md) resolve conflicts into one demo design.
+This is the research index for the **unofficial, private hackathon demo** on responsive web and native iOS. The references are snapshots of different Facebook releases, regions, devices, and account types. Use them as evidence for the specific surface named below. A publisher/page date or PDF creation date does **not** prove when an embedded Facebook screenshot was captured. The [visual specification](VISUAL_SPEC.md), [native app specification](MOBILE_APP_SPEC.md), and [page prompts](prompts/README.md) resolve conflicts into one demo design.
 
 ## Source priority and use
 
@@ -54,6 +54,6 @@ The Digital for Life PDF has **44 PDF pages**. File suffix `pNN` uses the PDF's 
 2. **Profile:** follow desktop slide 8 for geometry; use the 2026 phone Profile crop to adapt the cover, avatar, actions, and stacked content.
 3. **Menu and Settings:** follow Senior Planet for the desktop account-menu path and Digital for Life for the phone path. Expose only settings that this demo actually stores.
 4. **Friends and Marketplace:** use the supplementary UI screenshots for layout and Meta announcements for broad behavior. Do not import old blue-header styling, ads, AI tools, checkout, or account-specific copy.
-5. **Responsive navigation:** source screenshots disagree about top versus bottom tab placement and exact tab count. The demo's [mobile navigation contract](VISUAL_SPEC.md#mobile-390--844-target) wins; keep it stable across every route.
+5. **Responsive navigation:** source screenshots disagree about top versus bottom tab placement and exact tab count. The demo's [mobile navigation contract](VISUAL_SPEC.md#phone-browser-390--844-target) wins; keep it stable across every route.
 
 The screenshots are reference material. They contain third-party images and real people; keep them under `docs/references` and create separate fictional, locally bundled runtime media. No Facebook account access is required to use this pack.

@@ -1,6 +1,9 @@
 # Astra prompt: Friends
 
-Implement **Friends** as a populated desktop and mobile view. Read the build brief, source atlas, visual spec, and content contract. Reuse the shared shell and person IDs; inspect the existing request/state handling before editing.
+> Accepted implementation scope: responsive web + native iOS through Expo Go. Android testing/distribution is deferred. See [architecture and extension contract](../ARCHITECTURE.md).
+
+
+Implement **Friends** as populated desktop web, phone web, and native iOS views. Read the build brief, source atlas, visual spec, native app spec, and content contract. Reuse the shared person IDs and request rules; inspect existing request/state handling before editing.
 
 ## References to inspect
 
@@ -12,7 +15,11 @@ Below the shared header, place a left Friends section rail with a strong **Frien
 
 ## Mobile layout
 
-At 390 × 844, remove the desktop section rail and show a page title, small section chips/tabs, a vertically readable request list, then suggestions/friend content. The 2026 screenshot shows the Friend Requests heading, count, See All, circular avatars, mutual-friend text, and side-by-side Confirm/Delete actions. Adapt those relationships without copying the real names or dated counts. Keep the persistent demo bottom nav clear of the last action row. The Friends tab is visibly active.
+At 390 × 844 in phone web and in the native app, remove the desktop section rail and show a page title, small section chips/tabs, a vertically readable request list, then suggestions/friend content. The 2026 screenshot shows the Friend Requests heading, count, See All, circular avatars, mutual-friend text, and side-by-side Confirm/Delete actions. Adapt those relationships without copying the real names or dated counts. Keep the persistent demo bottom tabs clear of the last action row. The Friends tab is visibly active.
+
+## Native app implementation
+
+Use native touch controls for request cards and section chips, with friend profiles as local stack screens. Confirm/Delete must update the same shared request overlay rules as web and remain changed after app relaunch. Android Back and iOS back gestures return from a profile to the Friends list without resetting its selected section.
 
 ## Local behavior
 
@@ -20,4 +27,4 @@ Confirm and Delete act on the correct request ID, update the card immediately, a
 
 ## Completion check
 
-Capture Friends at desktop and **390 × 844**. Compare desktop side-menu/main-area split and phone request density against the references. Confirm one request, delete another, refresh, and verify the resulting counts and destinations. Check all section chips/rail links, the empty state, and keyboard/touch operation of request buttons.
+Capture Friends at desktop web, **390 × 844** phone web, and native iOS. Compare desktop side-menu/main-area split and phone request density against the references. Confirm one request, delete another, refresh/relaunch, and verify counts and destinations on each platform. Check all section chips/rail links, empty states, and keyboard/touch request operation.

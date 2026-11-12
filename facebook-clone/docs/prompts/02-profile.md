@@ -1,6 +1,9 @@
 # Astra prompt: Profile
 
-Implement the signed-in demo account's **Profile** using the shared header, local seed, and Home post-card grammar. Read the build brief, content contract, visual spec, and source atlas. Inspect existing Profile route and shared post components before editing.
+> Accepted implementation scope: responsive web + native iOS through Expo Go. Android testing/distribution is deferred. See [architecture and extension contract](../ARCHITECTURE.md).
+
+
+Implement the signed-in demo account's **Profile on responsive web and native iOS** using the shared seed and Home post-card grammar. Read the build brief, content contract, visual spec, native app spec, and source atlas. Inspect existing Profile routes and shared post components before editing.
 
 ## References to inspect
 
@@ -14,7 +17,11 @@ The body is a narrower left Intro area and wider right post area. Intro contains
 
 ## Mobile composition
 
-At 390 × 844, the cover spans the content width and the avatar overlaps it visibly. Stack name, friend count, and actions beneath it. The tabs scroll horizontally or fit as a compact row without clipping. Put Intro, Friends/Photos previews, composer, then posts in one column. The 2026 phone capture shows a large avatar, action buttons, and suggestions; carry those proportions into the responsive web design, while retaining the shared bottom navigation and safe-area spacing. Photo tiles use stable local images and crop predictably.
+At 390 × 844 in phone web and in the native app, the cover spans the content width and the avatar overlaps it visibly. Stack name, friend count, and actions beneath it. The tabs scroll horizontally or fit as a compact row without clipping. Put Intro, Friends/Photos previews, composer, then posts in one column. The 2026 phone capture shows a large avatar, action buttons, and suggestions; carry those proportions into both phone layouts. Phone web retains its bottom navigation; native Profile uses a stack back action and may hide native tabs. Photo tiles use stable local images and crop predictably.
+
+## Native app implementation
+
+Use a native Profile screen with scrollable content and native tab/section controls. Maya's new posts and confirmed friends come from the same shared state rules as web. Keep cover/avatar overlap and actions clear of the status bar and bottom tabs. Back from a subsection or local View As preview returns to Profile rather than Home. If Edit profile is visible, persist its local changes in the native overlay as on web.
 
 ## Tab and action behavior
 
@@ -22,4 +29,4 @@ Posts displays Maya's seeded and new posts. About shows her fictional profile fi
 
 ## Completion check
 
-Capture Profile at **1440 × 900** and **390 × 844**. Compare cover height, avatar overlap, identity/action alignment, tab placement, Intro/post column ratio, and phone stacking. Verify every tab opens meaningful content, a new Maya post appears on Profile after refresh, confirmed friends appear in the Friends subsection, and no action opens Facebook or asks for credentials.
+Capture web Profile at **1440 × 900** and **390 × 844**, plus native Profile on iOS. Compare cover height, avatar overlap, identity/action alignment, tab placement, Intro/post column ratio, and phone stacking. Verify every tab opens meaningful content, a new Maya post appears after refresh/relaunch, confirmed friends appear in Friends, and no action opens Facebook or asks for credentials.

@@ -1,0 +1,22 @@
+{
+  "expo": {
+    "name": "Facebook Demo",
+    "slug": "facebook-clone-demo",
+    "version": "1.0.0",
+    "scheme": "facebook-demo",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "demo.hackathon.facebookclone"
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single"
+    },
+    "plugins": ["expo-router", "expo-asset", "expo-font"],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

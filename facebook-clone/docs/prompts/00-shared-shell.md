@@ -1,6 +1,9 @@
-# Astra prompt: shared shell, seed, and interaction foundation
+# Astra prompt: shared seed/state and responsive web shell
 
-You are implementing the **shared foundation** of the unofficial Facebook-style hackathon demo. Read `docs/ASTRA_PLAN.md`, `docs/SOURCE_ATLAS.md`, `docs/VISUAL_SPEC.md`, and `docs/CONTENT_AND_INTERACTIONS.md` before editing. Inspect the repository and preserve its existing framework and conventions. Do not implement new product areas beyond the documented demo.
+> Accepted implementation scope: responsive web + native iOS through Expo Go. Android testing/distribution is deferred. See [architecture and extension contract](../ARCHITECTURE.md).
+
+
+You are implementing the **shared seed/domain foundation and responsive web shell** of the unofficial Facebook-style hackathon demo. Read `docs/ASTRA_PLAN.md`, `docs/SOURCE_ATLAS.md`, `docs/VISUAL_SPEC.md`, `docs/MOBILE_APP_SPEC.md`, and `docs/CONTENT_AND_INTERACTIONS.md` before editing. Inspect the repository and preserve its existing framework and conventions. The [native foundation prompt](00-native-foundation.md) covers native tabs, storage, and safe areas; agree on shared IDs/state types before platform work branches.
 
 ## Visual references to open
 
@@ -11,9 +14,9 @@ You are implementing the **shared foundation** of the unofficial Facebook-style 
 
 ## Build the shared frame
 
-At 1440 × 900, use the light desktop shell from Home slide 5: a roughly 56 px sticky white header; blue circular Facebook mark and rounded search control on the left; five centered destinations (Home, Friends, Video, Marketplace, Groups); Menu, Messenger, Notifications, and demo-account avatar on the right. Active navigation uses blue icon/underline. Keep the header the same on Home, Friends, Marketplace, Profile, and Settings. Use the provisional tokens and width ranges in `docs/VISUAL_SPEC.md`, then tune by screenshots. The center Home feed is about 600 px wide; the left and right Home rails are each around 280–300 px. At tablet widths, remove the right rail first.
+At web **1440 × 900**, use the light desktop shell from Home slide 5: a roughly 56 px sticky white header; blue circular Facebook mark and rounded search control on the left; five centered destinations (Home, Friends, Video, Marketplace, Groups); Menu, Messenger, Notifications, and demo-account avatar on the right. Active navigation uses blue icon/underline. Keep the header the same on Home, Friends, Marketplace, Profile, and Settings. Use the provisional tokens and width ranges in `docs/VISUAL_SPEC.md`, then tune by screenshots. The center Home feed is about 600 px wide; the left and right Home rails are each around 280–300 px. At tablet widths, remove the right rail first.
 
-At 390 × 844, present one content column, compact top brand/search/Messenger controls, and a persistent bottom bar with **Home, Friends, Marketplace, Notifications, Menu**. Hide both desktop rails and centered desktop tabs. Reserve safe bottom space so the bar never covers a composer, comment field, listing, or Settings action. The source phone screenshots show different tab arrangements; keep this demo's five destinations in one order on all pages. The Menu screen uses the 2026 phone reference's tile hierarchy, with functioning local links to Profile, Saved, Groups, Video, Marketplace, Friends, Feeds, Events, Memories, and Settings & privacy.
+At web **390 × 844**, present one content column, compact top brand/search/Messenger controls, and a persistent bottom bar with **Home, Friends, Marketplace, Notifications, Menu**. Hide both desktop rails and centered desktop tabs. Reserve safe bottom space so the bar never covers a composer, comment field, listing, or Settings action. The source phone screenshots show different tab arrangements; keep this demo's five destinations in one order on all pages. The Menu screen uses the 2026 phone reference's tile hierarchy, with functioning local links to Profile, Saved, Groups, Video, Marketplace, Friends, Feeds, Events, Memories, and Settings & privacy.
 
 ## Shared panels and navigation
 
@@ -25,8 +28,8 @@ At 390 × 844, present one content column, compact top brand/search/Messenger co
 
 ## Seed and persistence contract
 
-Create one deterministic local seed file covering the seven posts and all people, stories, contacts, requests, notifications, listings, events, and conversations specified in `docs/CONTENT_AND_INTERACTIONS.md`. Keep IDs stable across every cross-reference. Bundle every runtime image locally and record its source/reuse rights. Keep user changes in one versioned `localStorage` overlay: new posts/comments/messages, reactions, saved IDs, friend decisions, notification read IDs, and settings. Handle corrupt JSON and storage-write failure with a visible local error. Reset must delete only the clone's namespaced state. No API calls, external runtime image URLs, randomness, or generated feed items.
+Create one deterministic local seed file covering the 24 posts and all people, stories, contacts, requests, notifications, listings, events, and conversations specified in `docs/CONTENT_AND_INTERACTIONS.md`. Keep IDs stable across every cross-reference. Bundle every runtime image locally with web and native mappings, and record its source/reuse rights. Define one versioned mutable overlay for new posts/comments/messages, reactions, saved IDs, friend decisions, notification read IDs, and settings. Web persists it in namespaced `localStorage`; native uses the separate adapter in [the native prompt](00-native-foundation.md). Handle corrupt JSON and storage-write failure visibly. Reset deletes only the clone's namespaced state and owned photo files. No API calls, external runtime image URLs, randomness, or generated feed items.
 
 ## Completion check
 
-Open all five primary routes at desktop and phone widths. Confirm the active header/mobile destination, popover anchoring, no horizontal overflow, search targets, a contact chat, and refresh/back behavior. At a fresh run, the exact seeded counts and first post order match the content contract. Leave shared state/types/routes stable for the page agents.
+Open all five web routes at desktop and phone widths. Confirm the active header/phone destination, popover anchoring, no horizontal overflow, search targets, a contact chat, and refresh/back behavior. At a fresh run, the exact seeded counts and first post order match the content contract. Leave shared state/types/routes stable for the native foundation and page agents.
