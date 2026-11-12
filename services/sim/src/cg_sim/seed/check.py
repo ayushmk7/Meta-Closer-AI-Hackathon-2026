@@ -259,9 +259,10 @@ def check_demo(pool_id, pool, demo, personas, truth, plans, venues) -> list[str]
         errors.append(f"{pool_id}/demo.json: hero plan must be prepaid")
     if nudge["cost"]["kind"] != "free":
         errors.append(f"{pool_id}/demo.json: nudge plan must be free")
-    frequent = maya.FREQUENT_VENUE if pool["mode"] == "city" else maya.EVENT_FREQUENT_VENUE
-    if nudge["venueId"] != frequent:
-        errors.append(f"{pool_id}/demo.json: nudge plan must be at Maya's frequent place {frequent}")
+    if nudge["origin"] != "signal":
+        errors.append(f"{pool_id}/demo.json: nudge plan origin must be signal")
+    if pool["mode"] == "city" and nudge["venueId"] != maya.FREQUENT_VENUE:  # CONTRACTS Decisions: city only
+        errors.append(f"{pool_id}/demo.json: nudge plan must be at Maya's frequent place {maya.FREQUENT_VENUE}")
 
     maya_top = {k for k, _ in sorted(maya.GROUND_TRUTH.items(), key=lambda kv: -kv[1])[:MAYA_TOP_N]}
     joins = set(hero.get("seedJoinIds", []))
