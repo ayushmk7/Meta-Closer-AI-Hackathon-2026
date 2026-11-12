@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { api } from '../../src/features/common-ground/api';
 import {
+  act,
   badgeCount,
   currentLocation,
   decideApproval,
@@ -222,6 +223,15 @@ test('review fixes: retry reruns the action, success clears error, failed start,
   await new Promise((r) => setImmediate(r));
   assert.equal(getState().plans.pl_0003!.myJoin?.status, 'interested');
 
+  // act: success clears the banner; no store action given -> no Retry (a bare re-call loses the result).
+  setState({ error: { message: 'old' } });
+  await act(async () => 1);
+  assert.equal(getState().error, null);
+  await act(async () => {
+    throw down();
+  });
+  assert.equal(getState().error?.retry, undefined);
+
   // (2) one failure no longer zeroes the shell hooks once a load succeeds.
   setState({ error: { message: 'down' } });
   assert.equal(badgeCount(getState()), 0);
@@ -241,4 +251,21 @@ test('review fixes: retry reruns the action, success clears error, failed start,
   await inFlight;
   assert.ok(!getState().approvals.some((a) => a.approvalId === 'STALE'));
   await reset();
+});
+
+test('event rows show times in America/Los_Angeles whatever the device zone', () => {
+  const rows = eventRows(
+    {
+      mt_1: {
+        meetupId: 'mt_1',
+        title: 'Walk',
+        status: 'confirmed',
+        startsAt: '2026-11-14T18:00:00Z',
+        venue: { name: 'Lands End' },
+      } as never,
+    },
+    [],
+    true,
+  );
+  assert.equal(rows[0]!.time, 'Sat 10:00 AM');
 });

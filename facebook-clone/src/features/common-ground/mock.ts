@@ -429,7 +429,13 @@ export async function mockRequest(
       new URLSearchParams(search),
       user,
     );
-    return out === undefined ? undefined : clone(out);
+    // D5: fixture media points at the backend (http://localhost:8000/static/…); the mock makes
+    // no network requests, so those URLs become null (avatars fall back to initials).
+    return out === undefined
+      ? undefined
+      : JSON.parse(JSON.stringify(out), (_, v) =>
+          typeof v === 'string' && /^https?:\/\/localhost\b/.test(v) ? null : v,
+        );
   }
   throw new MockError(404, 'not_found', 'Unknown route.');
 }

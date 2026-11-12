@@ -17,6 +17,7 @@ import {
   useColors,
 } from '../../ui/native';
 import { setIdentity, setState, start, useCg } from './store';
+import { TZ } from './types';
 import type { AvailabilitySlot, GroupSize, InterestRef, MyInterest, PersonCard } from './types';
 
 type Colors = ReturnType<typeof useColors>;
@@ -344,7 +345,7 @@ export function usePoll(fn: () => void, seconds?: number): void {
 // "Sat, Nov 15 · 7:30 AM"
 export const when = (iso: string): string => {
   const d = new Date(iso);
-  return `${d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} · ${d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`;
+  return `${d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: TZ })} · ${d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: TZ })}`;
 };
 // "in 5 hours" / "3 minutes ago". ponytail: hand-rolled; Hermes lacks Intl.RelativeTimeFormat.
 export const fromNow = (iso: string): string => {

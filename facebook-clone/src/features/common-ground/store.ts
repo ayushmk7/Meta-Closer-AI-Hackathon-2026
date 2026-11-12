@@ -4,6 +4,7 @@ import { useEffect, useMemo, useSyncExternalStore } from 'react';
 import type { StorageAdapter } from '../../core/persistence';
 import type { ExternalRow } from '../../extensions/types';
 import { api, getUser, setUser } from './api';
+import { TZ } from './types';
 import { resetMock } from './mock';
 import type {
   Approval,
@@ -255,16 +256,18 @@ export function start(): Promise<void> {
   })());
 }
 
-// `retry` re-invokes the calling store action so its bookkeeping reruns too; null = no Retry.
+// `retry` re-invokes the calling store action so its bookkeeping reruns too; without one the
+// banner has no Retry (a bare re-call would drop the result). Success clears the banner.
 export async function act<T>(
   fn: () => Promise<T>,
   retry?: (() => unknown) | null,
 ): Promise<T | undefined> {
   try {
-    return await fn();
+    const out = await fn();
+    if (state.error) setState({ error: null });
+    return out;
   } catch (e) {
-    const again = retry === undefined ? () => act(fn) : retry;
-    fail(e, (e as { retryable?: boolean }).retryable && again ? () => void again() : undefined);
+    fail(e, (e as { retryable?: boolean }).retryable && retry ? () => void retry() : undefined);
     return undefined;
   }
 }
@@ -554,7 +557,12 @@ export const inboxRows = (threads: Thread[], optedIn: boolean): ExternalRow[] =>
       }))
     : [];
 const shortTime = (iso: string) =>
-  new Date(iso).toLocaleString('en-US', { weekday: 'short', hour: 'numeric', minute: '2-digit' });
+  new Date(iso).toLocaleString('en-US', {
+    weekday: 'short',
+    hour: 'numeric',
+    minute: '2-digit',
+    timeZone: TZ,
+  });
 export const eventRows = (
   meetups: Record<string, Meetup>,
   nudges: Nudge[],
