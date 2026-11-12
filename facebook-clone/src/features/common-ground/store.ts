@@ -4,6 +4,7 @@ import { useEffect, useMemo, useSyncExternalStore } from 'react';
 import type { StorageAdapter } from '../../core/persistence';
 import type { ExternalRow } from '../../extensions/types';
 import { api, getUser, setUser } from './api';
+import { TZ } from './types';
 import { resetMock } from './mock';
 import type {
   Approval,
@@ -556,7 +557,12 @@ export const inboxRows = (threads: Thread[], optedIn: boolean): ExternalRow[] =>
       }))
     : [];
 const shortTime = (iso: string) =>
-  new Date(iso).toLocaleString('en-US', { weekday: 'short', hour: 'numeric', minute: '2-digit' });
+  new Date(iso).toLocaleString('en-US', {
+    weekday: 'short',
+    hour: 'numeric',
+    minute: '2-digit',
+    timeZone: TZ,
+  });
 export const eventRows = (
   meetups: Record<string, Meetup>,
   nudges: Nudge[],

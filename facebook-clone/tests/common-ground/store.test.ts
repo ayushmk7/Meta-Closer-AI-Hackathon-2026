@@ -252,3 +252,20 @@ test('review fixes: retry reruns the action, success clears error, failed start,
   assert.ok(!getState().approvals.some((a) => a.approvalId === 'STALE'));
   await reset();
 });
+
+test('event rows show times in America/Los_Angeles whatever the device zone', () => {
+  const rows = eventRows(
+    {
+      mt_1: {
+        meetupId: 'mt_1',
+        title: 'Walk',
+        status: 'confirmed',
+        startsAt: '2026-11-14T18:00:00Z',
+        venue: { name: 'Lands End' },
+      } as never,
+    },
+    [],
+    true,
+  );
+  assert.equal(rows[0]!.time, 'Sat 10:00 AM');
+});
