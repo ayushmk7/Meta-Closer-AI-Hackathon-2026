@@ -141,3 +141,19 @@ def test_extractor_gets_venue_lookup(apps):
 
     assert ports.extractor.venue("vn_lands_end")["name"] == "Lands End Trail"
     assert ports.extractor.venue("vn_nope") is None
+
+
+def test_p4_sensitive_place_fails_closed(api):
+    """Maya's meditation-centre visits: signal is sensitive and hidden, label names no place, export marks it."""
+    from cg_api.ports import StubExtractor, ports
+
+    assert StubExtractor().venue("vn_sunset_meditation")["sensitive"] is True  # default lookup, before any rebinding
+    assert ports.extractor.venue("vn_sunset_meditation")["sensitive"] is True
+    opt_in(api)
+    api("connectConnector", "/v1/connectors/google_maps")
+    [s] = [s for s in api("listSignals").json()["items"] if s["sensitive"]]
+    assert s["visibility"] == "hidden" and s["venue"] is None and "Sunset Meditation" not in s["label"]
+    ex = api("exportPool", "/internal/v1/pools/pool_sf_city/export").json()
+    maya = next(u for u in ex["users"] if u["userId"] == "u_maya")
+    [e] = [x for x in maya["signals"] if x["venueId"] == "vn_sunset_meditation"]
+    assert e["sensitive"] and e["visibility"] == "hidden"

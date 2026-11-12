@@ -62,7 +62,7 @@ def signal_view(s: dict, base: str) -> dict:
         "kind": s["kind"],
         "label": s["label"],
         "interests": [interest_ref(i, 2) for i in dict.fromkeys(".".join(i.split(".")[:2]) for i in s["interestIds"])],
-        "venue": venue_view(s.get("venueId"), base),
+        "venue": None if s["sensitive"] else venue_view(s.get("venueId"), base),  # as the spec example: no place named
         "observedAt": s["observedAt"],
         "visibility": s["visibility"],
         "sensitive": s["sensitive"],

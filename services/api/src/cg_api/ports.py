@@ -83,7 +83,8 @@ class StubLaya:
 
 
 class StubExtractor:
-    venue: Callable[[str], dict | None] = staticmethod(lambda vid: None)
+    # Fail closed: default to the live store, so a sensitive venue is always recognised (P4).
+    venue: Callable[[str], dict | None] = staticmethod(lambda vid: _store().venues.get(vid))
 
     async def extract(self, user_id: str, activity: list[dict], records: list[dict]) -> dict:
         return {"interests": [], "signals": []}
@@ -110,6 +111,12 @@ class StubCopy:
     async def nudge(self, signal_label: str, plan: dict) -> tuple[str, str]:
         title = (plan.get("title") or "A plan you might like")[:60]
         return title, f"Muse noticed {signal_label[:1].lower() + signal_label[1:]}. There's a plan for that this week."
+
+
+def _store():
+    from cg_api.store import store  # local: store must not depend on ports
+
+    return store
 
 
 class StubAgent:
@@ -143,9 +150,9 @@ def install_providers() -> None:
 
 
 def matching() -> Any:
-    """cg_matching, imported lazily: slice B's package may not be installed yet. Raises Unavailable."""
+    """cg_matching (path dependency on packages/matching), imported lazily. Raises Unavailable if missing."""
     try:
         import cg_matching
     except ImportError as e:
-        raise Unavailable("cg_matching not installed (uv sync --extra matching)") from e
+        raise Unavailable("cg_matching not installed (uv sync)") from e
     return cg_matching

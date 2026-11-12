@@ -9,3 +9,6 @@
 {"recordId":"cr_0125_001","userId":"u_0125","provider":"google_calendar","kind":"busy","at":"2026-11-16T17:00:00Z","end":"2026-11-17T01:00:00Z"}
 {"recordId":"cr_0144_001","userId":"u_0144","provider":"strava","kind":"routine","at":"2026-11-08T16:00:00Z","routine":{"activity":"run","day":"sat","part":"morning","area":"Hayes Valley"}}
 {"recordId":"cr_0169_001","userId":"u_0169","provider":"google_maps","kind":"place_visit","at":"2026-11-08T17:00:00Z","end":"2026-11-08T18:00:00Z","venueId":"vn_lands_end"}
+{"recordId":"cr_maya_101","userId":"u_maya","provider":"google_maps","kind":"place_visit","at":"2026-11-01T15:00:00Z","end":"2026-11-01T16:00:00Z","venueId":"vn_sunset_meditation"}
+{"recordId":"cr_maya_102","userId":"u_maya","provider":"google_maps","kind":"place_visit","at":"2026-11-02T15:00:00Z","end":"2026-11-02T16:00:00Z","venueId":"vn_sunset_meditation"}
+{"recordId":"cr_maya_103","userId":"u_maya","provider":"google_maps","kind":"place_visit","at":"2026-11-03T15:00:00Z","end":"2026-11-03T16:00:00Z","venueId":"vn_sunset_meditation"}

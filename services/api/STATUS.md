@@ -12,7 +12,7 @@ Milestone: M1 slice A (platform) done; C/D handlers pending
 - 2026-11-12 FastAPI + uvicorn, two `uvicorn.Server`s under one asyncio loop (`cg-api`).
 - 2026-11-12 Route auto-discovery: any module in `cg_api/routes/` (public) or `cg_api/internal/` (internal) exposing `router = APIRouter()` is mounted. Set `operation_id=<spec operationId>` on each route; operations without a handler fall through to the spec example (logged as `example fallthrough`). `app.py` is frozen after M0.
 - 2026-11-12 Ports (`cg_api/ports.py`): `Muse`, `Laya`, `Extractor`, `Copy`, `AgentRunner` Protocols on `cg_api.ports.ports`; stubs by default (StubMuse raises `Unavailable` so callers run their D4 fallback). Slice D installs real ones via `cg_api.providers.install(ports)`.
-- 2026-11-12 `cg_matching` (slice B, `packages/matching`) is an optional extra (`uv sync --extra matching`) via a uv path source, imported lazily through `ports.matching()` (raises `Unavailable` when absent). Becomes a hard dependency once B lands on the base. The lock was generated against a placeholder `cg-matching` with deps numpy, pyarrow, pyyaml, igraph, leidenalg.
+- 2026-11-12 `cg_matching` 0.2.0 (slice B, `packages/matching`, merged #13) is a uv path dependency, pinned in `uv.lock`; imported lazily through `ports.matching()` (raises `Unavailable` if missing).
 - 2026-11-12 World access: `cg_api.deps.get_world()` / `deps.World` (FastAPI dependency) return the single `cg_api.store.Store` instance. Its field layout is documented in `cg_api/store/__init__.py`; live IDs come from `store.new_id(prefix)`.
 - 2026-11-12 Identity: unknown `X-CG-User` (not in the loaded seed) → 401. P3 helpers for every slice: `store.views.display_name`, `store.views.avatar_url`.
 - 2026-11-12 Rule-based signals (frequent_place, saved_place, routine, ticket) and busy blocks are slice A (`cg_api.seed`). Interests and model signals come from `ports.extractor` (slice D), cached in `services/api/.cache/extract/`. Rule signals carry no `interestIds` yet.
@@ -23,12 +23,10 @@ Milestone: M1 slice A (platform) done; C/D handlers pending
 - 2026-11-12 Branch tracks origin/main (v2 contracts #12, Decisions #15 merged in).
 - 2026-11-12 `/v1/ws` applies the REST identity rule to `?user=` (close 1008 otherwise) and ignores non-object frames.
 
-- 2026-11-12 `ports.extractor.venue` is set at seed load to a venue-ID lookup (`store.venues.get`), for the extractor's sensitive-venue check.
+- 2026-11-12 `ports.extractor.venue` is a venue-ID lookup into the loaded seed (`store.venues.get`): the stub default and `seed.load` both bind it, so the sensitive-venue check never fails open (P4).
 
 ## Needs
-- needs: slice B — `packages/matching/pyproject.toml` named `cg-matching`, deps within numpy/pyarrow/pyyaml/igraph/leidenalg (else A re-locks services/api).
-- needs: merge order #13 (packages/matching) then this; A then merges main and re-locks so cg-matching is pinned. Until then plain `uv run` (no `--frozen`) fails to resolve the missing path dep; use `uv run --frozen`.
-- needs: human — merge `cg/sim/m0-seed-v2` to main (v2 contracts merged in #12, #15).
+- none
 
 ## Known gaps
 - `getDemoState`, `setDemoState`, `advanceMeetup`, `poolGraph`, `liveMetrics`, `regeneratePlans`, `triggerNudge`, `formPlan` are still example fallthrough (M2, or slice C).
