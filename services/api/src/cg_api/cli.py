@@ -15,10 +15,13 @@ from cg_api.settings import get_settings
 
 def main() -> None:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
+    from cg_api import seed
     from cg_api.app import create_apps
 
     s = get_settings()
     public, internal = create_apps()
+    default_pool = s.contract("modes.yaml")["pools"][0]["poolId"]
+    asyncio.run(seed.load(default_pool))  # data/seed/<pool> if present, else the tiny built-in seed
     servers = [
         uvicorn.Server(uvicorn.Config(public, host=s.api_host, port=s.api_port, log_level="info")),
         uvicorn.Server(uvicorn.Config(internal, host=s.internal_host, port=s.internal_port, log_level="info")),

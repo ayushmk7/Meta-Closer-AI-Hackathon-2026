@@ -3297,6 +3297,54 @@
           }
         }
       },
+      "Rewards": {
+        "type": "object",
+        "description": "Private progress, shown only to the user (DESIGN Rewards). Optional on Me; absent means none yet.",
+        "required": [
+          "confirmedMeetups",
+          "streakWeeks"
+        ],
+        "properties": {
+          "confirmedMeetups": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Meetups that counted (PRD-2 trust rule)."
+          },
+          "streakWeeks": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Consecutive weeks (America/Los_Angeles, Mon-Sun) with at least one counted meetup, ending this or last week."
+          },
+          "nextUnlock": {
+            "oneOf": [
+              {
+                "type": "object",
+                "required": [
+                  "unlockId",
+                  "label",
+                  "remaining"
+                ],
+                "properties": {
+                  "unlockId": {
+                    "type": "string"
+                  },
+                  "label": {
+                    "type": "string"
+                  },
+                  "remaining": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "Counted meetups still needed."
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
       "Unlock": {
         "type": "object",
         "required": [
@@ -3409,6 +3457,9 @@
             "items": {
               "$ref": "#/components/schemas/Unlock"
             }
+          },
+          "rewards": {
+            "$ref": "#/components/schemas/Rewards"
           }
         }
       },

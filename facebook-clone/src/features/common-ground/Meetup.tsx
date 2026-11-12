@@ -1,344 +1,454 @@
-// Meetup (PRD-1 §7.4). Visual reference: the Events branch of src/features/secondary/Screen.tsx.
-import { useState } from 'react';
-import { ActivityIndicator, Alert, View } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
-import MapView, { Marker } from './maps';
-import { Button, Card, Empty, go, Input, Label, Muted, Page, useColors } from '../../ui/native';
-import { api, getUser } from './api';
-import { act, currentLocation, getState, load, setState, useCg } from './store';
-import type { Attendee, Meetup, MeetupOption, PersonCard } from './types';
-import { Banners, NotFound, PersonAvatar, personName, usePoll, when } from './ui';
+// Meetup (PRD-1 §8.3): header, Muse's steps, approvals, who's coming, details, day of, feedback.
+import { useEffect, useRef, useState } from 'react';
+import { Alert, Linking, Platform, Pressable, Share, View } from 'react-native';
+import { useLocalSearchParams } from 'expo-router';
+import {
+  Button,
+  Card,
+  Divider,
+  Icon,
+  Input,
+  Label,
+  Muted,
+  Page,
+  go,
+  useColors,
+} from '../../ui/native';
+import ApprovalSheet, { money } from './ApprovalSheet';
+import StepTimeline from './StepTimeline';
+import VenueMap from './VenueMap';
+import { api } from './api';
+import { act, currentLocation, leaveMeetup, load, setState, getState, useCg } from './store';
+import { TZ, type Attendee, type Feedback, type Meetup } from './types';
+import { Banners, InterestChips, NotFound, PersonAvatar, personName, usePoll, when } from './ui';
 
-const backToMap = () => router.replace('/common-ground');
-const CHECKIN_REASONS: Record<string, string> = {
-  outside_geofence: "You're not close enough yet.",
-  outside_window: "Check-in isn't open yet.",
+const time = (iso: string) =>
+  new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: TZ });
+// Day in the plan's timezone (CONTRACTS Decisions), not the phone's.
+const day = (d: Date | string, opts: Intl.DateTimeFormatOptions = {}) =>
+  new Date(d).toLocaleDateString('en-US', { ...opts, timeZone: TZ });
+const firstName = (a: Attendee) =>
+  a.person.profileVisibility === 'private'
+    ? personName(a.person).split(' ')[0]!
+    : personName(a.person);
+const PAYMENT: Record<string, string> = {
+  not_needed: 'Nothing to pay',
+  pending_approval: 'Waiting for your OK',
+  paid: 'Paid',
+  pay_at_venue: 'Pay at the venue',
+  declined: 'You chose not to pay ahead',
 };
+const REASON: Record<string, string> = {
+  outside_geofence: "You don't seem to be at the venue yet.",
+  outside_window: 'Check-in is not open right now.',
+  not_attendee: "You're not on this plan.",
+};
+const put = (m: Meetup) => setState({ meetups: { ...getState().meetups, [m.meetupId]: m } });
+// iOS calshow takes seconds since 2001-01-01.
+const calshow = (iso: string) => `calshow:${Math.round(Date.parse(iso) / 1000 - 978307200)}`;
 
-function YesNo({
-  value,
-  onVote,
-  label,
-}: {
-  value?: boolean | null;
-  onVote(yes: boolean): void;
-  label: string;
-}) {
-  // ponytail: Button has no accessibilityState prop, so selection is carried in the label instead.
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <View style={{ flexDirection: 'row', gap: 8 }}>
-      {([true, false] as const).map((yes) => (
-        <Button
-          key={String(yes)}
-          title={yes ? 'Yes' : 'No'}
-          secondary={value !== yes}
-          accessibilityLabel={`${label}: ${yes ? 'Yes' : 'No'}${value === yes ? ', selected' : ''}`}
-          onPress={() => onVote(yes)}
-          style={{ flex: 1 }}
-        />
-      ))}
-    </View>
-  );
-}
-
-export function VotingCard({
-  option,
-  onVote,
-}: {
-  option: MeetupOption;
-  onVote(vote: 'yes' | 'no'): void;
-}) {
-  const c = useColors();
-  const venue = [option.venue?.name, option.venue?.neighborhood].filter(Boolean).join(' · ');
-  return (
-    <Card>
-      <View style={{ padding: 16, gap: 7 }}>
-        <Label style={{ fontSize: 17, fontWeight: '700' }}>{option.activity}</Label>
-        <Label style={{ color: c.badge, fontSize: 13, fontWeight: '700' }}>
-          {when(option.startsAt)}
-        </Label>
-        <Muted>{venue}</Muted>
-        <Label>{option.reason}</Label>
-        <YesNo
-          label={option.activity}
-          value={option.myVote ? option.myVote === 'yes' : null}
-          onVote={(yes) => onVote(yes ? 'yes' : 'no')}
-        />
-        <Muted>
-          {option.votes?.yes ?? 0} yes · {option.votes?.no ?? 0} no
-        </Muted>
-      </View>
+    <Card style={{ padding: 16, gap: 10 }}>
+      <Label accessibilityRole="header" style={{ fontSize: 17, fontWeight: '700' }}>
+        {title}
+      </Label>
+      {children}
     </Card>
   );
 }
+function Row({
+  icon,
+  children,
+}: {
+  icon: React.ComponentProps<typeof Icon>['name'];
+  children: React.ReactNode;
+}) {
+  const c = useColors();
+  return (
+    <View style={{ flexDirection: 'row', gap: 12, alignItems: 'flex-start' }}>
+      <Icon name={icon} size={20} color={c.secondary} />
+      <View style={{ flex: 1, gap: 2 }}>{children}</View>
+    </View>
+  );
+}
+function Link({ title, onPress }: { title: string; onPress(): void }) {
+  const c = useColors();
+  return (
+    <Pressable
+      accessibilityRole="link"
+      onPress={onPress}
+      style={{ minHeight: 44, justifyContent: 'center' }}
+    >
+      <Label style={{ color: c.blue, fontWeight: '600' }}>{title}</Label>
+    </Pressable>
+  );
+}
 
-// C5/C6: never show another person's decline; unknown values render nothing.
-const attendeeLine = (a: Attendee) =>
-  a.checkedIn
-    ? 'Checked in'
-    : a.status === 'arrived'
-      ? 'Arrived'
-      : a.status === 'on_my_way'
-        ? 'On my way'
-        : a.rsvp === 'yes'
-          ? 'Going'
-          : a.rsvp === 'pending'
-            ? 'Invited'
-            : '';
+function openDirections(m: Meetup) {
+  const d = m.travel?.directions;
+  if (!d) return;
+  // C4: open only the server's Directions URL, only on tap.
+  Alert.alert('Directions', m.venue.name, [
+    { text: 'Apple Maps', onPress: () => void Linking.openURL(d.apple) },
+    { text: 'Google Maps', onPress: () => void Linking.openURL(d.google) },
+    { text: 'Cancel', style: 'cancel' },
+  ]);
+}
+
+function Feedback({ m }: { m: Meetup }) {
+  const others = m.attendees.filter((a) => !a.isMe);
+  const [answers, setAnswers] = useState<
+    Record<string, { showedUp?: boolean; meetAgain?: boolean }>
+  >({});
+  const [reports, setReports] = useState<string[]>([]);
+  const [note, setNote] = useState('');
+  const [sending, setSending] = useState(false);
+  const complete = others.every(
+    (a) =>
+      answers[a.person.userId]?.showedUp != null && answers[a.person.userId]?.meetAgain != null,
+  );
+  const set = (id: string, key: 'showedUp' | 'meetAgain', v: boolean) =>
+    setAnswers((x) => ({ ...x, [id]: { ...x[id], [key]: v } }));
+  const send = async () => {
+    setSending(true);
+    const body: Feedback = {
+      answers: others.map((a) => ({
+        userId: a.person.userId,
+        showedUp: !!answers[a.person.userId]?.showedUp,
+        meetAgain: !!answers[a.person.userId]?.meetAgain,
+      })),
+      ...(note.trim() ? { note: note.trim() } : {}),
+      ...(reports.length ? { reportUserIds: reports } : {}),
+    };
+    const ok = await act(() => api.sendFeedback(m.meetupId, body).then(() => true));
+    setSending(false);
+    if (ok) put({ ...m, feedbackDue: false });
+  };
+  return (
+    <Section title="How did it go?">
+      {others.map((a) => {
+        const name = firstName(a);
+        const v = answers[a.person.userId] ?? {};
+        return (
+          <View key={a.person.userId} style={{ gap: 6 }}>
+            <Label style={{ fontWeight: '600' }}>{name}</Label>
+            {(
+              [
+                ['showedUp', `Did ${name} show up?`],
+                ['meetAgain', `Would you meet ${name} again?`],
+              ] as const
+            ).map(([key, q]) => (
+              <View key={key} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Muted style={{ flex: 1 }}>{q}</Muted>
+                {([true, false] as const).map((yes) => (
+                  <Button
+                    key={String(yes)}
+                    title={yes ? 'Yes' : 'No'}
+                    accessibilityLabel={`${q} ${yes ? 'Yes' : 'No'}`}
+                    secondary={v[key] !== yes}
+                    onPress={() => set(a.person.userId, key, yes)}
+                    style={{ minHeight: 44 }}
+                  />
+                ))}
+              </View>
+            ))}
+          </View>
+        );
+      })}
+      <Input
+        accessibilityLabel="Anything we should know?"
+        placeholder="Anything we should know?"
+        value={note}
+        onChangeText={setNote}
+        multiline
+      />
+      {note.length > 0 &&
+        others.map((a) => {
+          const on = reports.includes(a.person.userId);
+          return (
+            <Button
+              key={a.person.userId}
+              title={on ? `Reporting ${firstName(a)}` : `Report ${firstName(a)}`}
+              secondary={!on}
+              icon="flag-outline"
+              onPress={() =>
+                setReports((r) =>
+                  on ? r.filter((x) => x !== a.person.userId) : [...r, a.person.userId],
+                )
+              }
+            />
+          );
+        })}
+      <Button title="Send" disabled={!complete || sending} onPress={() => void send()} />
+    </Section>
+  );
+}
 
 export default function MeetupScreen() {
   const c = useColors();
   const { meetupId = '' } = useLocalSearchParams<{ meetupId: string }>();
-  const meetup = useCg((s) => s.meetups[meetupId]);
-  const threads = useCg((s) => s.threads);
-  const me = useCg((s) => s.me);
+  const m = useCg((s) => s.meetups[meetupId]);
   const config = useCg((s) => s.config);
-  const [loaded, setLoaded] = useState(false);
-  const [checkinNote, setCheckinNote] = useState('');
-  const [answers, setAnswers] = useState<
-    Record<string, { showedUp?: boolean; meetAgain?: boolean }>
-  >({});
-  const [note, setNote] = useState('');
-  const [reportIds, setReportIds] = useState<string[]>([]);
-  usePoll(() => void load.meetup(meetupId).then(() => setLoaded(true)));
+  const ready = useCg((s) => s.ready);
+  const [stepsOpen, setStepsOpen] = useState(false);
+  const [checkin, setCheckin] = useState<string | null>(null);
+  // Steps that arrive after confirmation (a reschedule) re-open the collapsed timeline.
+  const seenSteps = useRef<number | null>(null);
+  const status = m?.status;
+  const stepCount = m?.museSteps.length ?? 0;
+  useEffect(() => {
+    if (status !== 'confirmed') return void (seenSteps.current = null);
+    if (seenSteps.current != null && stepCount > seenSteps.current) setStepsOpen(true);
+    seenSteps.current = stepCount;
+  }, [status, stepCount]);
+  // Poll only while Muse is still setting up; one load on focus otherwise.
+  usePoll(() => void load.meetup(meetupId), m && m.status !== 'setting_up' ? 0 : undefined);
 
-  if (!meetup) return <Page>{loaded ? <NotFound title="Plan not found" /> : <Banners />}</Page>;
-
-  const myId = getUser();
-  const thread = threads.find((t) => t.threadId === meetup.threadId);
-  const person = (userId: string): PersonCard =>
-    userId === myId
-      ? {
-          userId,
-          displayName: 'You',
-          initials: me?.displayName?.[0] ?? 'Y',
-          avatarUrl: me?.avatarUrl ?? null,
-          profileVisibility: 'public',
-        }
-      : (thread?.participants.find((p) => p.userId === userId) ?? {
-          userId,
-          initials: '?',
-          profileVisibility: 'private',
-        });
-  const others = meetup.attendees.filter((a) => a.userId !== myId);
-  const save = (m?: Meetup) =>
-    m && setState({ meetups: { ...getState().meetups, [m.meetupId]: m } });
-  const now = Date.now();
-  const start = Date.parse(meetup.startsAt ?? '');
-  const end = Date.parse(meetup.endsAt ?? '');
-  const beforeMs = (config?.limits.meetupStatusBeforeMin ?? 60) * 60_000;
-  const statusOpen = now >= start - beforeMs && now <= end;
-  const win = meetup.checkinWindow;
-  const checkinOpen =
-    !!config?.features.checkin &&
-    !!win &&
-    now >= Date.parse(win.opensAt) &&
-    now <= Date.parse(win.closesAt);
-  const refresh = () => Promise.all([load.meetup(meetupId), load.map()]);
-
-  const checkIn = async () => {
-    const location = await currentLocation();
-    if (!location) return setCheckinNote("We couldn't find your location. Try again.");
-    const res = await act(() => api.checkIn(meetupId, location));
-    if (res && !res.accepted)
-      setCheckinNote(CHECKIN_REASONS[res.reason ?? ''] ?? "Check-in didn't go through. Try again.");
-    await refresh();
-  };
-  const report = () =>
-    Alert.alert('Report someone', 'Who do you want to report?', [
-      ...others.map((a) => ({
-        text: personName(person(a.userId)),
-        onPress: () => setReportIds((ids) => [...new Set([...ids, a.userId])]),
-      })),
-      { text: 'Cancel', style: 'cancel' as const },
-    ]);
-  const allAnswered = others.every(
-    (a) => answers[a.userId]?.showedUp != null && answers[a.userId]?.meetAgain != null,
-  );
-  const sendFeedback = async () => {
-    await act(() =>
-      api.sendFeedback(meetupId, {
-        answers: others.map((a) => ({
-          userId: a.userId,
-          showedUp: !!answers[a.userId]?.showedUp,
-          meetAgain: !!answers[a.userId]?.meetAgain,
-        })),
-        note: note.trim() || undefined,
-        reportUserIds: reportIds.length ? reportIds : undefined,
-      }),
+  if (!m)
+    return (
+      <Page>
+        <Banners />
+        {ready && <NotFound title="This plan isn't available" />}
+      </Page>
     );
-    await Promise.all([refresh(), load.connections()]);
+
+  const now = Date.now();
+  const start = Date.parse(m.startsAt);
+  const end = Date.parse(m.endsAt);
+  const me = m.attendees.find((a) => a.isMe);
+  const going = m.attendees.filter((a) => a.rsvp === 'going');
+  const left = me?.rsvp === 'left';
+  const live = !left && m.status !== 'cancelled';
+  const dayOf =
+    live && now >= start - (config?.limits.meetupStatusBeforeMin ?? 60) * 60_000 && now <= end;
+  const w = m.checkinWindow;
+  const windowOpen = !!w && now >= Date.parse(w.opensAt) && now <= Date.parse(w.closesAt);
+  const canCheckIn =
+    !!config?.features.checkin &&
+    live &&
+    !me?.checkedIn &&
+    (windowOpen || (!!config.demo.relaxCheckin && m.status === 'confirmed'));
+  // A step waiting on me keeps the timeline open, or its linked approval would show nowhere.
+  const showSteps =
+    m.status !== 'confirmed' || stepsOpen || m.museSteps.some((s) => s.status === 'needs_you');
+  const linked = new Set(m.museSteps.map((s) => s.approvalId).filter(Boolean));
+  const loose = m.approvals.filter((a) => a.status === 'pending' && !linked.has(a.approvalId));
+  const web = Platform.OS === 'web'; // no calendar, maps or directions on web (D5)
+
+  const setStatus = async (status: 'on_my_way' | 'arrived') => {
+    const next = await act(() => api.setMeetupStatus(m.meetupId, status));
+    if (next) put(next);
   };
-  const answer = (userId: string, key: 'showedUp' | 'meetAgain', yes: boolean) =>
-    setAnswers((a) => ({ ...a, [userId]: { ...a[userId], [key]: yes } }));
+  const doCheckIn = async () => {
+    setCheckin(null);
+    const loc = await currentLocation(); // C2: the only location read
+    if (!loc) return setCheckin('Location is off. Turn it on in Settings to check in.');
+    const r = await act(() => api.checkIn(m.meetupId, loc));
+    if (!r) return;
+    setCheckin(
+      r.accepted ? "You're checked in." : (REASON[r.reason ?? ''] ?? "Couldn't check you in."),
+    );
+    if (r.accepted) void load.meetup(m.meetupId);
+  };
+  const askMuse = () => {
+    setState({ drafts: { ...getState().drafts, [m.threadId]: 'Muse, ' } });
+    go(`/common-ground/chat/${m.threadId}`);
+  };
+  const cantMakeIt = () =>
+    Alert.alert("Can't make it?", 'Muse will let the group know and free your spot.', [
+      { text: 'Stay in', style: 'cancel' },
+      {
+        text: "I can't make it",
+        style: 'destructive',
+        onPress: () => void leaveMeetup(m.meetupId),
+      },
+    ]);
 
   return (
     <Page>
       <Banners />
-      {meetup.status === 'proposing' && (
-        <Card>
-          <View style={{ padding: 16, gap: 7, alignItems: 'center' }}>
-            <ActivityIndicator color={c.blue} />
-            <Muted>Muse is finding options…</Muted>
-          </View>
-        </Card>
-      )}
-      {meetup.status === 'voting' && (
-        <>
-          <View style={{ paddingHorizontal: 16, paddingTop: 8 }}>
-            <Label accessibilityRole="header" style={{ fontSize: 19, fontWeight: '700' }}>
-              Muse found {meetup.options.length} options
-            </Label>
-            <Muted>Vote yes on any that work for you.</Muted>
-          </View>
-          {meetup.options.map((option) => (
-            <VotingCard
-              key={option.optionId}
-              option={option}
-              onVote={async (vote) =>
-                save(
-                  await act(() => api.voteMeetup(meetupId, [{ optionId: option.optionId, vote }])),
-                )
-              }
-            />
-          ))}
-        </>
-      )}
-      {meetup.status === 'confirmed' && (
-        <Card>
-          {meetup.venue && (
-            <MapView
-              style={{ width: '100%', height: 200 }}
-              scrollEnabled={false}
-              pointerEvents="none"
-              initialRegion={{
-                latitude: meetup.venue.location.lat,
-                longitude: meetup.venue.location.lng,
-                latitudeDelta: 0.01,
-                longitudeDelta: 0.01,
-              }}
-            >
-              <Marker
-                coordinate={{
-                  latitude: meetup.venue.location.lat,
-                  longitude: meetup.venue.location.lng,
-                }}
-                title={meetup.venue.name}
-              />
-            </MapView>
+      <Card>
+        <VenueMap venue={m.venue} />
+        <View style={{ padding: 16, gap: 6 }}>
+          <Label style={{ color: c.badge, fontWeight: '700', fontSize: 13 }}>
+            {when(m.startsAt).toUpperCase()}
+          </Label>
+          <Label
+            accessibilityRole="header"
+            style={{ fontSize: 24, lineHeight: 30, fontWeight: '800' }}
+          >
+            {m.title}
+          </Label>
+          <Muted>{[m.venue.name, m.venue.neighborhood].filter(Boolean).join(' · ')}</Muted>
+          {!!m.eventLabel && <Muted>{m.eventLabel}</Muted>}
+          {m.status === 'cancelled' && (
+            <Label style={{ fontWeight: '700' }}>This plan was cancelled</Label>
           )}
-          <View style={{ padding: 16, gap: 7 }}>
-            {!!meetup.startsAt && (
-              <Label style={{ color: c.badge, fontSize: 13, fontWeight: '700' }}>
-                {when(meetup.startsAt)}
-              </Label>
-            )}
-            <Label style={{ fontSize: 21, lineHeight: 27, fontWeight: '700' }}>
-              {meetup.title ?? 'Your plan'}
-            </Label>
-            {!!meetup.venue && (
-              <Muted>
-                {[meetup.venue.name, meetup.venue.neighborhood].filter(Boolean).join(' · ')}
-              </Muted>
-            )}
-            {!!meetup.eventLabel && <Muted>{meetup.eventLabel}</Muted>}
-            {meetup.attendees.map((a) => (
-              <View key={a.userId} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                <PersonAvatar person={person(a.userId)} />
-                <View style={{ flex: 1 }}>
-                  <Label style={{ fontSize: 16, fontWeight: '600' }}>
-                    {personName(person(a.userId))}
-                  </Label>
-                  {!!attendeeLine(a) && <Muted>{attendeeLine(a)}</Muted>}
-                </View>
-              </View>
+          {left && <Label style={{ fontWeight: '700' }}>You left this plan</Label>}
+          <View
+            accessible
+            accessibilityLabel={`${going.length} going`}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 }}
+          >
+            {going.map((a) => (
+              <PersonAvatar key={a.person.userId} person={a.person} size={32} />
             ))}
-            {statusOpen && (
-              <View style={{ flexDirection: 'row', gap: 8 }}>
-                <Button
-                  title="On my way"
-                  style={{ flex: 1 }}
-                  onPress={async () =>
-                    save(await act(() => api.setMeetupStatus(meetupId, 'on_my_way')))
-                  }
-                />
-                <Button
-                  title="Arrived"
-                  secondary
-                  style={{ flex: 1 }}
-                  onPress={async () =>
-                    save(await act(() => api.setMeetupStatus(meetupId, 'arrived')))
-                  }
-                />
-              </View>
-            )}
-            {checkinOpen && <Button title="Check in" onPress={() => void checkIn()} />}
-            {!!checkinNote && <Muted>{checkinNote}</Muted>}
-            <Button
-              title="Open chat"
-              secondary
-              onPress={() => go(`/common-ground/chat/${meetup.threadId}`)}
-            />
+            <Muted style={{ marginLeft: 6 }}>{going.length} going</Muted>
           </View>
-        </Card>
-      )}
-      {meetup.status === 'completed' && meetup.feedbackDue && (
-        <>
-          {others.map((a) => {
-            const name = personName(person(a.userId));
-            return (
-              <Card key={a.userId}>
-                <View style={{ padding: 16, gap: 7 }}>
-                  <Label style={{ fontSize: 16, fontWeight: '700' }}>Did {name} show up?</Label>
-                  <YesNo
-                    label={`Did ${name} show up`}
-                    value={answers[a.userId]?.showedUp}
-                    onVote={(yes) => answer(a.userId, 'showedUp', yes)}
-                  />
-                  <Label style={{ fontSize: 16, fontWeight: '700' }}>Would you meet again?</Label>
-                  <YesNo
-                    label={`Would you meet ${name} again`}
-                    value={answers[a.userId]?.meetAgain}
-                    onVote={(yes) => answer(a.userId, 'meetAgain', yes)}
-                  />
-                </View>
-              </Card>
-            );
-          })}
-          <Card>
-            <View style={{ padding: 16, gap: 7 }}>
-              <Input
-                multiline
-                placeholder="Anything we should know?"
-                accessibilityLabel="Anything we should know?"
-                value={note}
-                onChangeText={setNote}
-              />
-              <Button title="Report someone" secondary onPress={report} />
-              {reportIds.length > 0 && (
-                <Muted>Reporting {reportIds.map((id) => personName(person(id))).join(', ')}</Muted>
-              )}
-              <Button title="Send" disabled={!allAnswered} onPress={() => void sendFeedback()} />
-            </View>
-          </Card>
-        </>
-      )}
-      {meetup.status === 'completed' && !meetup.feedbackDue && (
-        <Card>
-          <View style={{ padding: 16, gap: 7 }}>
-            <Muted>Thanks. See your new friends on the map.</Muted>
-            <Button title="Back to Map" onPress={backToMap} />
-          </View>
-        </Card>
-      )}
-      {!['proposing', 'voting', 'confirmed', 'completed'].includes(meetup.status) && (
-        <Card>
-          <Empty
-            title="This plan isn't active"
-            message="Muse can help you plan another one from the chat."
+        </View>
+      </Card>
+
+      <Section title={m.status === 'confirmed' ? 'Muse set this up' : 'Muse is setting this up'}>
+        {m.status === 'confirmed' && (
+          <Link
+            title={stepsOpen ? 'Hide steps' : `Show ${m.museSteps.length} steps`}
+            onPress={() => setStepsOpen((x) => !x)}
           />
-        </Card>
+        )}
+        {showSteps && <StepTimeline meetupId={m.meetupId} steps={m.museSteps} />}
+        {loose.map((a) => (
+          <ApprovalSheet key={a.approvalId} approval={a} />
+        ))}
+      </Section>
+
+      <Section title="Who's coming">
+        {going.map((a) => {
+          const canOpen = !a.isMe && a.person.profileVisibility === 'public';
+          const status =
+            a.status === 'arrived' ? 'Arrived' : a.status === 'on_my_way' ? 'On my way' : null;
+          const name = a.isMe ? 'You' : firstName(a);
+          return (
+            <Pressable
+              key={a.person.userId}
+              disabled={!canOpen}
+              accessibilityRole={canOpen ? 'button' : undefined}
+              accessibilityLabel={[name, status].filter(Boolean).join(', ')}
+              onPress={() => go(`/common-ground/person/${a.person.userId}`)}
+              style={{ flexDirection: 'row', gap: 12, minHeight: 44 }}
+            >
+              <PersonAvatar person={a.person} />
+              <View style={{ flex: 1, gap: 6 }}>
+                <Label style={{ fontWeight: '600' }}>
+                  {name}
+                  {status ? <Muted> · {status}</Muted> : null}
+                </Label>
+                {a.sharedInterests.length > 0 && <InterestChips interests={a.sharedInterests} />}
+              </View>
+            </Pressable>
+          );
+        })}
+      </Section>
+
+      <Section title="Details">
+        <Row icon="ticket-outline">
+          <Label>{m.booking.label}</Label>
+          {!!m.booking.confirmationCode && <Muted>Confirmation {m.booking.confirmationCode}</Muted>}
+          <Muted>{m.booking.provider}</Muted>
+        </Row>
+        <Row icon="card-outline">
+          <Label>
+            {m.cost.perPersonCents ? money(m.cost.perPersonCents, m.cost.currency) : m.cost.label}
+          </Label>
+          <Muted>{PAYMENT[m.cost.myPayment] ?? m.cost.myPayment}</Muted>
+        </Row>
+        {m.calendar && m.calendar.desired !== 'none' && (
+          <Row icon="calendar-outline">
+            {/* NEEDS(A2): calendar applied state; until then "on your calendar" follows the directive. */}
+            <Label>
+              {m.calendar.desired === 'event' ? 'Added to your calendar' : 'Held on your calendar'}
+            </Label>
+            {!web && Platform.OS === 'ios' && (
+              <Link
+                title="Open Calendar"
+                onPress={() => void Linking.openURL(calshow(m.startsAt))}
+              />
+            )}
+          </Row>
+        )}
+        {m.travel && (
+          <Row icon="navigate-outline">
+            <Label>{m.travel.label}</Label>
+            <Muted>Leave by {time(m.travel.leaveBy)}</Muted>
+          </Row>
+        )}
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          {!web && m.travel && (
+            <Button
+              title="Directions"
+              icon="navigate"
+              style={{ flex: 1 }}
+              onPress={() => openDirections(m)}
+            />
+          )}
+          <Button
+            title="Share"
+            icon="share-outline"
+            secondary
+            style={{ flex: 1 }}
+            onPress={() =>
+              void Share.share({
+                message: `${m.title} · ${when(m.startsAt)} · ${m.venue.name}`,
+              }).catch(() => {})
+            }
+          />
+        </View>
+      </Section>
+
+      {(dayOf || canCheckIn) && (
+        <Section
+          title={
+            day(m.startsAt) === day(new Date()) ? 'Today' : day(m.startsAt, { weekday: 'long' })
+          }
+        >
+          {dayOf && (
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              <Button
+                title="On my way"
+                secondary={me?.status !== 'on_my_way'}
+                style={{ flex: 1 }}
+                onPress={() => void setStatus('on_my_way')}
+              />
+              <Button
+                title="Arrived"
+                secondary={me?.status !== 'arrived'}
+                style={{ flex: 1 }}
+                onPress={() => void setStatus('arrived')}
+              />
+            </View>
+          )}
+          {me?.checkedIn ? (
+            <Muted>You're checked in.</Muted>
+          ) : (
+            canCheckIn && (
+              <Button title="Check in" icon="location" onPress={() => void doCheckIn()} />
+            )
+          )}
+          {!!checkin && <Muted accessibilityLiveRegion="polite">{checkin}</Muted>}
+        </Section>
       )}
+
+      {m.feedbackDue && <Feedback m={m} />}
+
+      <Card style={{ padding: 16, gap: 8 }}>
+        <Button
+          title="Open group chat"
+          icon="chatbubbles-outline"
+          onPress={() => go(`/common-ground/chat/${m.threadId}`)}
+        />
+        {!left && m.status !== 'cancelled' && m.status !== 'completed' && (
+          <>
+            <Button
+              title="Ask Muse to change something"
+              icon="sparkles-outline"
+              secondary
+              onPress={askMuse}
+            />
+            <Divider />
+            <Button title="Can't make it" secondary onPress={cantMakeIt} />
+          </>
+        )}
+      </Card>
     </Page>
   );
 }

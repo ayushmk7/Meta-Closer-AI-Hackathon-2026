@@ -1,294 +1,355 @@
-import type { ReactNode } from 'react';
+// Settings (PRD-1 §8.6) plus the preference pieces the setup flow reuses.
+import { useEffect } from 'react';
 import { Alert, Pressable, Switch, View } from 'react-native';
 import { router } from 'expo-router';
-import {
-  Busy,
-  Button,
-  Card,
-  Chips,
-  Divider,
-  Empty,
-  go,
-  Icon,
-  Label,
-  Muted,
-  Page,
-  Title,
-  useColors,
-} from '../../ui/native';
+import { Button, Card, Chips, Icon, Label, Muted, Page, useColors } from '../../ui/native';
 import { api } from './api';
-import { act, load, refreshAll, setState, useCg } from './store';
-import type { Me, SharePrecision } from './types';
-import {
-  AvailabilityGrid,
-  Banners,
-  GroupSizePicker,
-  InterestEditor,
-  PersonAvatar,
-  personName,
-} from './ui';
+import Connectors from './Connectors';
+import { SetupPrompt, sizeBounds, sourceName } from './Plan';
+import { act, load, optIn, setState, useCg } from './store';
+import type {
+  MeUpdate,
+  ModeInfo,
+  MuseSettings,
+  Signal,
+  TravelMode,
+  TravelPrefs,
+  Visibility,
+} from './types';
+import { Banners, GroupSizePicker, InterestEditor } from './ui';
 
-const SHARES: [SharePrecision, string][] = [
-  ['off', 'Off'],
-  ['neighborhood', 'Neighborhood'],
-  ['exact', 'Exact'],
-];
+// NEEDS(ioscore): store actions for updateMe, interest/signal visibility, delete and optOut.
+// Until then these call the api through the store's act() (same error banner) and reload.
+const NONE: ModeInfo[] = []; // stable fallback outside useCg (useSyncExternalStore)
 
-// Same section header as the clone's Settings: Label 19/700 plus Muted, padding 16.
-function Section({
-  title,
-  detail,
-  children,
-}: {
-  title: string;
-  detail: string;
-  children?: ReactNode;
-}) {
+export async function saveMe(patch: MeUpdate): Promise<boolean> {
+  const me = await act(
+    () => api.updateMe(patch),
+    () => saveMe(patch),
+  );
+  if (me) setState({ me });
+  return !!me;
+}
+export async function setSignal(signalId: string, visibility: Visibility | 'delete') {
+  const ok = await act(
+    () =>
+      visibility === 'delete'
+        ? api.deleteSignal(signalId).then(() => true)
+        : api.setSignalVisibility(signalId, visibility).then(() => true),
+    () => setSignal(signalId, visibility),
+  );
+  if (ok) await Promise.all([load.signals(), load.setup()]);
+}
+
+export function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <>
-      <View style={{ padding: 16, paddingTop: 28 }}>
-        <Label accessibilityRole="header" style={{ fontSize: 19, fontWeight: '700' }}>
-          {title}
-        </Label>
-        <Muted>{detail}</Muted>
-      </View>
+    <Card style={{ padding: 16, gap: 10 }}>
+      <Label accessibilityRole="header" style={{ fontSize: 17, fontWeight: '700' }}>
+        {title}
+      </Label>
       {children}
-    </>
+    </Card>
   );
 }
 
-export default function Settings() {
-  const c = useColors();
-  const ready = useCg((s) => s.ready);
-  const config = useCg((s) => s.config);
-  const me = useCg((s) => s.me);
-  const connections = useCg((s) => s.connections);
+export function Toggle({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: boolean;
+  onChange(v: boolean): void;
+}) {
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', minHeight: 44, gap: 12 }}>
+      <Label style={{ flex: 1 }}>{label}</Label>
+      <Switch accessibilityLabel={label} value={value} onValueChange={onChange} />
+    </View>
+  );
+}
 
-  if (!ready) return <Busy />;
-  if (!me?.optedIn)
+// Chips puts 16pt padding around itself; undo it inside a padded card.
+const flush = { marginHorizontal: -16, marginBottom: -12 } as const;
+
+export function GroupSizeSetting({
+  value,
+  onChange,
+}: {
+  value: { min: number; max: number };
+  onChange(v: { min: number; max: number }): void;
+}) {
+  const limits = useCg((s) => s.config?.limits);
+  const cap = useCg((s) => s.me?.capabilities.maxGroupSize);
+  const b = sizeBounds(limits, cap);
+  return <GroupSizePicker value={value} min={b.min} max={b.max} onChange={onChange} />;
+}
+
+const MINUTES = ['15', '25', '35', '45', '60'];
+const MODES: TravelMode[] = ['transit', 'walk', 'bike', 'drive'];
+export function TravelPicker({
+  value,
+  onChange,
+}: {
+  value: TravelPrefs;
+  onChange(v: TravelPrefs): void;
+}) {
+  const c = useColors();
+  return (
+    <View style={{ gap: 8 }}>
+      <Muted>Up to {value.maxMinutes} minutes</Muted>
+      <View style={flush}>
+        <Chips
+          items={MINUTES}
+          value={String(value.maxMinutes)}
+          onChange={(m) => onChange({ ...value, maxMinutes: Number(m) })}
+        />
+      </View>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+        {MODES.map((m) => {
+          const on = value.modes.includes(m);
+          return (
+            <Pressable
+              key={m}
+              accessibilityRole="button"
+              accessibilityLabel={`Travel by ${m}`}
+              accessibilityState={{ selected: on }}
+              onPress={() =>
+                onChange({
+                  ...value,
+                  modes: on ? value.modes.filter((x) => x !== m) : [...value.modes, m],
+                })
+              }
+              style={{
+                minHeight: 44,
+                justifyContent: 'center',
+                paddingHorizontal: 15,
+                borderRadius: 22,
+                backgroundColor: on ? (c.canvas === '#18191A' ? '#263951' : '#e7f3ff') : c.input,
+              }}
+            >
+              <Label style={{ color: on ? c.blue : c.text, fontWeight: '600', fontSize: 14 }}>
+                {m[0]!.toUpperCase() + m.slice(1)}
+              </Label>
+            </Pressable>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
+const SPEND = [
+  ['$0', 0],
+  ['$10', 1000],
+  ['$25', 2500],
+  ['$50', 5000],
+] as const;
+// "What Muse can do without asking" (features.autonomySettings only); saved with updateMe.
+export function MusePermissions() {
+  const on = useCg((s) => !!s.config?.features.autonomySettings);
+  const settings = useCg((s) => s.me?.museSettings);
+  if (!on || !settings) return null;
+  const save = (patch: Partial<MuseSettings>) =>
+    void saveMe({ museSettings: { ...settings, ...patch } });
+  // Any other server value shows as its own selected chip, never as a misleading "$0".
+  const cents = settings.spendWithoutAskingCents;
+  const spend =
+    SPEND.find(([, v]) => v === cents)?.[0] ?? `$${(cents / 100).toFixed(cents % 100 ? 2 : 0)}`;
+  const items: string[] = SPEND.map(([l]) => l);
+  return (
+    <Section title="What Muse can do without asking">
+      <Muted>Spend up to</Muted>
+      <View style={flush}>
+        <Chips
+          items={items.includes(spend) ? items : [...items, spend]}
+          value={spend}
+          onChange={(l) => {
+            const v = SPEND.find(([x]) => x === l)?.[1];
+            if (v !== undefined) save({ spendWithoutAskingCents: v });
+          }}
+        />
+      </View>
+      <Toggle
+        label="Reschedule when plans change"
+        value={settings.autoReschedule}
+        onChange={(v) => save({ autoReschedule: v })}
+      />
+      <Toggle
+        label="Fill spots when someone drops"
+        value={settings.autoBackfill}
+        onChange={(v) => save({ autoBackfill: v })}
+      />
+      <Toggle
+        label="Hold time on my calendar"
+        value={settings.calendarHolds}
+        onChange={(v) => save({ calendarHolds: v })}
+      />
+    </Section>
+  );
+}
+
+export function SignalRow({ signal, onDelete }: { signal: Signal; onDelete?: () => void }) {
+  const c = useColors();
+  const shown = signal.visibility === 'shown';
+  const labels = useCg((s) => s.connectors);
+  const source = sourceName(
+    signal.provider,
+    Object.fromEntries(labels.map((x) => [x.provider, x.label])),
+  );
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 44 }}>
+      {signal.sensitive && <Icon name="lock-closed" size={16} color={c.secondary} />}
+      <View style={{ flex: 1 }}>
+        <Label style={{ color: shown ? c.text : c.secondary }}>{signal.label}</Label>
+        <Muted>{signal.sensitive ? 'Only you can see this' : source}</Muted>
+      </View>
+      <Button
+        title={shown ? 'Hide' : 'Show'}
+        accessibilityLabel={`${shown ? 'Hide' : 'Show'} ${signal.label}`}
+        secondary
+        onPress={() => void setSignal(signal.signalId, shown ? 'hidden' : 'shown')}
+      />
+      {onDelete && (
+        <Button
+          title="Delete"
+          accessibilityLabel={`Delete ${signal.label}`}
+          secondary
+          onPress={onDelete}
+        />
+      )}
+    </View>
+  );
+}
+
+export default function SettingsScreen() {
+  const me = useCg((s) => s.me);
+  const modes = useCg((s) => s.config?.modes) ?? NONE;
+  const connectorsOn = useCg((s) => !!s.config?.features.connectors);
+  const signals = useCg((s) => s.signals);
+  const optedIn = !!me?.optedIn;
+  useEffect(() => void load.me(), []);
+  useEffect(() => void (optedIn && (load.signals(), load.connectors())), [optedIn]);
+  if (me && !optedIn)
     return (
       <Page>
         <Banners />
-        <Card style={{ borderRadius: 0 }}>
-          <Title>Common Ground settings</Title>
-          <Empty
-            title="You haven't joined yet"
-            message="Join Common Ground to choose a mode, your interests and who sees you."
-          />
-          <View style={{ padding: 16 }}>
-            <Button title="Get started" onPress={() => go('/common-ground?find=1')} />
-          </View>
-        </Card>
+        <SetupPrompt />
       </Page>
     );
-
-  const update = async (fn: () => Promise<Me>) => {
-    const next = await act(fn);
-    if (next) setState({ me: next });
-  };
-  const leave = () =>
-    Alert.alert(
-      'Leave Common Ground?',
-      "You'll be hidden from everyone and your interests will be cleared. You can join again later.",
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Leave',
-          style: 'destructive',
-          onPress: () =>
-            void (async () => {
-              if ((await act(() => api.optOut().then(() => true))) !== true) return;
-              await refreshAll();
-              await load.me();
-              router.replace('/common-ground');
-            })(),
-        },
-      ],
+  if (!me)
+    return (
+      <Page>
+        <Banners />
+      </Page>
     );
-  const maxSize = Math.min(
-    config?.limits.groupSizeMax ?? me.capabilities?.maxGroupSize ?? 4,
-    me.capabilities?.maxGroupSize ?? config?.limits.groupSizeMax ?? 4,
-  );
-
+  const available = modes.filter((m) => m.available);
+  const reloadMe = (ok: unknown) => void (ok && load.me());
   return (
-    <Page>
+    <Page style={{ paddingHorizontal: 0 }}>
       <Banners />
-      <Card style={{ borderRadius: 0 }}>
-        <Title>Common Ground settings</Title>
-
-        <View style={{ paddingHorizontal: 16, paddingBottom: 16 }}>
-          <Label accessibilityRole="header" style={{ fontSize: 19, fontWeight: '700' }}>
-            Mode
-          </Label>
-          <Muted>Choose where you want to meet people.</Muted>
-        </View>
-        <View style={{ paddingHorizontal: 16, gap: 14 }}>
-          {(config?.modes ?? []).map((m) => {
-            const on = me.mode === m.mode;
-            return (
-              <Pressable
-                key={m.mode}
-                accessibilityRole="radio"
-                accessibilityLabel={m.available ? m.label : `${m.label}, coming soon`}
-                accessibilityState={{ checked: on, disabled: !m.available }}
-                disabled={!m.available}
-                onPress={() =>
-                  void (async () => {
-                    const next = await act(() => api.optIn(m.mode, m.poolId));
-                    if (next) setState({ me: next, lastMode: m.mode });
-                  })()
-                }
-                style={{
-                  minHeight: 76,
-                  borderWidth: 1,
-                  borderColor: on ? c.blue : c.divider,
-                  borderRadius: 10,
-                  padding: 16,
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  gap: 16,
-                  opacity: m.available ? 1 : 0.6,
-                }}
-              >
-                <View style={{ flex: 1 }}>
-                  <Label style={{ fontSize: 17 }}>{m.label}</Label>
-                  <Muted>{m.available ? (m.description ?? '') : 'Coming soon'}</Muted>
-                </View>
-                <Icon
-                  name={on ? 'radio-button-on' : 'radio-button-off'}
-                  color={on ? c.blue : c.secondary}
-                />
-              </Pressable>
-            );
-          })}
-        </View>
-
-        <Section title="Profile" detail="Private hides your photo and name until you connect.">
+      {available.length > 1 && (
+        <Section title="Mode">
+          <View style={flush}>
+            <Chips
+              items={available.map((m) => m.label)}
+              value={modes.find((m) => m.mode === me.mode)?.label ?? ''}
+              onChange={(label) => {
+                const m = available.find((x) => x.label === label);
+                if (m) void optIn(m.mode, m.poolId);
+              }}
+            />
+          </View>
+        </Section>
+      )}
+      {connectorsOn && (
+        <Section title="Connected apps">
+          <Connectors />
+        </Section>
+      )}
+      <Section title="What Muse knows">
+        {signals.map((s) => (
+          <SignalRow
+            key={s.signalId}
+            signal={s}
+            onDelete={() => void setSignal(s.signalId, 'delete')}
+          />
+        ))}
+        <InterestEditor
+          interests={me.interests}
+          onToggle={(id) => {
+            const i = me.interests.find((x) => x.interest.id === id);
+            const next = i?.visibility === 'shown' ? 'hidden' : 'shown';
+            void act(() => api.setInterestVisibility(id, next)).then(reloadMe);
+          }}
+          onRemove={(id) => void act(() => api.removeInterest(id).then(() => true)).then(reloadMe)}
+        />
+      </Section>
+      <Section title="Profile">
+        <View style={flush}>
           <Chips
             items={['Public', 'Private']}
-            value={me.profileVisibility === 'private' ? 'Private' : 'Public'}
+            value={me.profileVisibility === 'public' ? 'Public' : 'Private'}
             onChange={(v) =>
-              void update(() =>
-                api.updateMe({ profileVisibility: v === 'Private' ? 'private' : 'public' }),
-              )
+              void saveMe({ profileVisibility: v === 'Public' ? 'public' : 'private' })
             }
           />
-        </Section>
-
-        <Section
-          title="Your interests"
-          detail="Tap to show or hide an interest. Hidden ones are never shown to anyone."
-        >
-          <View style={{ paddingHorizontal: 16 }}>
-            {me.interests.length ? (
-              <InterestEditor
-                interests={me.interests}
-                onToggle={(id) => {
-                  const shown =
-                    me.interests.find((i) => i.interest.id === id)?.visibility === 'shown';
-                  void act(() => api.setInterestVisibility(id, shown ? 'hidden' : 'shown')).then(
-                    () => load.me(),
-                  );
-                }}
-                onRemove={(id) => void act(() => api.removeInterest(id)).then(() => load.me())}
-              />
-            ) : (
-              <Muted>No interests yet.</Muted>
-            )}
-          </View>
-        </Section>
-
-        <Section title="Group size" detail="How many people you'd like to meet at once.">
-          <View style={{ paddingHorizontal: 16 }}>
-            <GroupSizePicker
-              value={me.groupSize}
-              min={config?.limits.groupSizeMin ?? 1}
-              max={maxSize}
-              onChange={(groupSize) => void update(() => api.updateMe({ groupSize }))}
-            />
-          </View>
-        </Section>
-
-        <Section title="Availability" detail="When you're usually free to meet.">
-          <View style={{ paddingHorizontal: 16 }}>
-            <AvailabilityGrid
-              value={me.availability}
-              onChange={(availability) => void update(() => api.updateMe({ availability }))}
-            />
-          </View>
-        </Section>
-
-        <Section title="Visibility" detail="Control who can see you on the map.">
-          <View
-            style={{
-              minHeight: 74,
-              paddingHorizontal: 16,
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: 14,
-            }}
-          >
-            <Icon name="eye-off-outline" size={25} />
-            <View style={{ flex: 1 }}>
-              <Label style={{ fontWeight: '600' }}>Ghost mode</Label>
-              <Muted>Hide me from everyone&apos;s map</Muted>
-            </View>
-            <Switch
-              accessibilityLabel="Ghost mode"
-              value={me.ghostMode}
-              onValueChange={(enabled) =>
-                void act(() => api.setGhostMode(enabled)).then(() =>
-                  Promise.all([load.me(), load.map()]),
-                )
-              }
-              trackColor={{ true: c.blue, false: c.divider }}
-            />
-          </View>
-        </Section>
-
-        {config?.features.locationSharing !== false && (
-          <Section title="Location sharing" detail="Choose how precisely each person sees you.">
-            {connections.length === 0 && (
-              <View style={{ paddingHorizontal: 16 }}>
-                <Muted>No connections yet.</Muted>
-              </View>
-            )}
-            {connections.map((conn) => (
-              <View key={conn.connectionId}>
-                <View
-                  style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    gap: 12,
-                    paddingHorizontal: 16,
-                    paddingVertical: 8,
-                  }}
-                >
-                  <PersonAvatar person={conn.person} size={40} />
-                  <Label style={{ fontWeight: '600', flex: 1 }}>{personName(conn.person)}</Label>
-                </View>
-                <Chips
-                  items={SHARES.map(([, label]) => label)}
-                  value={SHARES.find(([v]) => v === conn.location?.iShare)?.[1] ?? 'Off'}
-                  onChange={(label) => {
-                    const value = SHARES.find(([, l]) => l === label)?.[0] ?? 'off';
-                    void act(() => api.setLocationShare(conn.person.userId, value)).then(() =>
-                      load.connections(),
-                    );
-                  }}
-                />
-              </View>
-            ))}
-          </Section>
-        )}
-
-        <View style={{ height: 16 }} />
-        <Divider />
-        <View style={{ padding: 16, gap: 14 }}>
-          <Button title="Leave Common Ground" secondary icon="exit-outline" onPress={leave} />
-          <Muted>Unofficial hackathon demo. Everything runs on this device.</Muted>
         </View>
-      </Card>
+        <Muted>
+          {me.profileVisibility === 'public'
+            ? 'People in your groups can see your profile.'
+            : 'People in your groups see your first name and initials only.'}
+        </Muted>
+      </Section>
+      <Section title="Group size">
+        <GroupSizeSetting
+          value={me.groupSize}
+          onChange={(groupSize) => void saveMe({ groupSize })}
+        />
+      </Section>
+      <Section title="How far you'll travel">
+        <TravelPicker value={me.travel} onChange={(travel) => void saveMe({ travel })} />
+      </Section>
+      <MusePermissions />
+      <Section title="Notifications">
+        <Toggle
+          label="Remind me when to leave"
+          value={me.museSettings.leaveByReminders}
+          onChange={(v) =>
+            void saveMe({ museSettings: { ...me.museSettings, leaveByReminders: v } })
+          }
+        />
+      </Section>
+      <Section title="Common Ground">
+        <Button
+          title="Revisit setup"
+          secondary
+          onPress={() => router.push('/common-ground/setup')}
+        />
+        <Button
+          title="Leave Common Ground"
+          secondary
+          onPress={() =>
+            Alert.alert(
+              'Leave Common Ground?',
+              'Muse stops finding plans for you. You can come back any time.',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                  text: 'Leave',
+                  style: 'destructive',
+                  onPress: async () => {
+                    if (await act(() => api.optOut().then(() => true))) {
+                      await load.me();
+                      router.replace('/common-ground');
+                    }
+                  },
+                },
+              ],
+            )
+          }
+        />
+      </Section>
     </Page>
   );
 }

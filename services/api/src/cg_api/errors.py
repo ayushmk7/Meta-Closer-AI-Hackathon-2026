@@ -32,6 +32,10 @@ _COPY = {
 }
 
 
+class UserMessage(ValueError):
+    """Raise from a pydantic validator: its text becomes the 400 message, as final copy."""
+
+
 class ApiError(Exception):
     def __init__(self, status: int, code: str, message: str, retryable: bool = False, details: dict | None = None):
         super().__init__(message)
@@ -52,7 +56,10 @@ def install(app: FastAPI) -> None:
 
     @app.exception_handler(RequestValidationError)
     async def _validation(_: Request, e: RequestValidationError):
-        return envelope(400, "validation_failed", "Something in that request isn't right.")
+        human = next(
+            (str(x) for err in e.errors() if isinstance(x := err.get("ctx", {}).get("error"), UserMessage)), None
+        )
+        return envelope(400, "validation_failed", human or _COPY[400])
 
     @app.exception_handler(StarletteHTTPException)
     async def _http(_: Request, e: StarletteHTTPException):
