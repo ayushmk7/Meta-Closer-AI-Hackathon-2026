@@ -386,6 +386,7 @@ export interface Attendee {
   isMe: boolean;
   rsvp: Open<'going' | 'left'>;
   checkedIn: boolean;
+  verified?: boolean; // confirmed in person by a QR scan
   status?: AttendeeStatus | null;
   sharedInterests: InterestRef[];
 }
@@ -408,6 +409,7 @@ export interface Meetup {
   calendar?: CalendarDirective | null;
   travel?: MeetupTravel | null;
   checkinWindow?: { opensAt: string; closesAt: string } | null;
+  verifyCode?: string | null; // my own code only, shown as a QR
   feedbackDue: boolean;
   eventLabel?: string | null;
 }
@@ -419,6 +421,32 @@ export interface Feedback {
   answers: { userId: string; showedUp: boolean; meetAgain: boolean }[];
   note?: string;
   reportUserIds?: string[];
+  rating?: number; // 1-5 stars
+  tags?: Open<'great_venue' | 'good_group' | 'too_far' | 'too_long'>[];
+}
+// Anonymous meetup share: no person fields; venue photo only.
+export interface Share {
+  shareId: string;
+  activityType: string;
+  caption: string;
+  venue: { venueId: string; name: string; neighborhood: string };
+  groupSize: number;
+  happenedOn: string; // LA local date
+  photoUrl: string | null;
+  likes: number;
+  likedByMe: boolean;
+  mine: boolean;
+  promptText: string;
+}
+export interface ShareFilter {
+  activityType?: string;
+  neighborhood?: string;
+  venueId?: string;
+}
+export interface VerifyResult {
+  accepted: boolean;
+  reason?: Open<'invalid_code' | 'not_attendee' | 'outside_window' | 'self'>;
+  person?: PersonCard;
 }
 export interface Connection {
   connectionId: string;
@@ -568,6 +596,10 @@ export const decoders: Record<string, D> = {
   listMessages: list(message),
   sendMessage: message,
   report: id,
+  listShares: list(id),
+  shareMeetup: id,
+  likeShare: id,
+  verifyAttendee: id,
 };
 // Realtime frames: unknown types pass through so the caller can skip them.
 export const decodeEvent = (json: unknown): RealtimeEvent => {
