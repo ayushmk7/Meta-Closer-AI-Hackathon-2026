@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "persona.schema.json",
+  "title": "One line of data/seed/<poolId>/personas.jsonl",
+  "description": "Public profile fields only. Hidden traits (outgoingness, flakiness, true interests) live in data/sim_private and are never in this file.",
+  "type": "object",
+  "required": ["userId", "displayName", "firstName", "initials", "avatar", "profileVisibility", "homeLocation", "neighborhood", "ageBand", "availability", "groupSize", "joinedAt"],
+  "additionalProperties": false,
+  "properties": {
+    "userId": { "$ref": "common.schema.json#/$defs/userId" },
+    "displayName": { "type": "string" },
+    "firstName": { "type": "string" },
+    "initials": { "type": "string", "maxLength": 3 },
+    "avatar": { "type": ["string", "null"], "description": "Path relative to the pool folder, e.g. 'avatars/u_0042.png'. Fictional, generated or licensed images only; never photos of real people unless licensed and listed in avatars/PROVENANCE.md." },
+    "profileVisibility": { "enum": ["public", "private"] },
+    "homeLocation": { "$ref": "common.schema.json#/$defs/latLng" },
+    "neighborhood": { "type": "string" },
+    "ageBand": { "$ref": "common.schema.json#/$defs/ageBand" },
+    "bio": { "type": "string", "maxLength": 200 },
+    "availability": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/availabilitySlot" } },
+    "groupSize": { "$ref": "common.schema.json#/$defs/groupSize" },
+    "joinedAt": { "type": "string", "format": "date-time" },
+    "cloneProfileId": { "type": "string", "description": "Only for u_maya: the facebook-clone seed person ID ('maya')." }
+  }
+}

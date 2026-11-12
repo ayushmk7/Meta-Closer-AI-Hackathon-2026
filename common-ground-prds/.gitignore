@@ -1,0 +1,10 @@
+.env
+facebook-clone/.env
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+services/sim/.cache/
+data/sim/runs/*/scratch/
+.DS_Store

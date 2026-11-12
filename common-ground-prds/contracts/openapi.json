@@ -1,0 +1,4271 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Common Ground public API",
+    "version": "1.0.0",
+    "summary": "The only interface between the iOS app and the backend.",
+    "description": "Contract v1. Owned by the human integrator (`contracts/**`). Read `contracts/CONTRACTS.md` first.\n\nRules that apply to every operation:\n- JSON field names are camelCase. Timestamps are ISO 8601 UTC strings ending in `Z`.\n- All IDs are opaque strings. Clients never parse them.\n- Every request carries `X-CG-User` (demo identity). There is no other auth in v1.\n- Additive evolution only: new optional fields, new operations, new enum values.\n  Clients ignore unknown fields and render a neutral fallback for unknown enum values.\n- Errors always use the `Error` envelope.\n- Interest granularity (coarse vs full depth) is decided by the server. Clients render `label` as given.\n- Any number a client needs (limits, intervals, sizes) comes from `GET /v1/config`, never a hardcoded constant.\n"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8000",
+      "description": "Local backend or Prism mock (`make mock-api`)"
+    }
+  ],
+  "security": [
+    {
+      "demoUser": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "system"
+    },
+    {
+      "name": "me"
+    },
+    {
+      "name": "onboarding"
+    },
+    {
+      "name": "discovery"
+    },
+    {
+      "name": "connections"
+    },
+    {
+      "name": "chat"
+    },
+    {
+      "name": "meetups"
+    },
+    {
+      "name": "map"
+    },
+    {
+      "name": "community"
+    },
+    {
+      "name": "safety"
+    }
+  ],
+  "paths": {
+    "/v1/health": {
+      "get": {
+        "tags": [
+          "system"
+        ],
+        "operationId": "getHealth",
+        "security": [],
+        "summary": "Liveness and dependency status.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                },
+                "example": {
+                  "status": "ok",
+                  "muse": "ok",
+                  "laya": "ok",
+                  "demoMode": true,
+                  "apiVersion": "1"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/config": {
+      "get": {
+        "tags": [
+          "system"
+        ],
+        "operationId": "getConfig",
+        "summary": "Feature flags, limits and modes for this user. Clients read every number from here.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Config"
+                },
+                "example": {
+                  "apiVersion": "1",
+                  "features": {
+                    "eventMode": true,
+                    "groups": true,
+                    "sayHi": true,
+                    "leaderboard": false,
+                    "unlocks": false,
+                    "checkin": true,
+                    "locationSharing": true,
+                    "density": true,
+                    "realtime": true
+                  },
+                  "limits": {
+                    "dropMax": 5,
+                    "sharedCoarseMax": 3,
+                    "sharedFullMax": 8,
+                    "openersPerPersonPerWeek": 1,
+                    "openerMaxChars": 280,
+                    "messageMaxChars": 2000,
+                    "groupSizeMin": 2,
+                    "groupSizeMax": 8,
+                    "locationMinIntervalS": 30,
+                    "pollIntervalS": 5,
+                    "mapRefreshS": 30,
+                    "meetupStatusBeforeMin": 60
+                  },
+                  "modes": [
+                    {
+                      "mode": "city",
+                      "label": "San Francisco",
+                      "poolId": "pool_sf_city",
+                      "available": true,
+                      "description": "People near you in San Francisco",
+                      "center": {
+                        "lat": 37.7749,
+                        "lng": -122.4194
+                      },
+                      "radiusKm": 10
+                    },
+                    {
+                      "mode": "event",
+                      "label": "Closer Together AI Hackathon",
+                      "poolId": "pool_evt_closer_together",
+                      "available": true,
+                      "description": "People at this event, Nov 11 to 13",
+                      "center": {
+                        "lat": 37.4848,
+                        "lng": -122.1484
+                      },
+                      "radiusKm": 2
+                    },
+                    {
+                      "mode": "campus",
+                      "label": "Campus",
+                      "poolId": "pool_campus_placeholder",
+                      "available": false,
+                      "description": "Coming soon"
+                    }
+                  ],
+                  "demo": {
+                    "enabled": true,
+                    "counterpart": "synthetic",
+                    "fakeLocation": {
+                      "lat": 37.7694,
+                      "lng": -122.4862
+                    },
+                    "relaxCheckin": true
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/me": {
+      "get": {
+        "tags": [
+          "me"
+        ],
+        "operationId": "getMe",
+        "summary": "The current user's own Common Ground profile, including private and hidden interests.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Me"
+                },
+                "example": {
+                  "userId": "u_maya",
+                  "displayName": "Maya Chen",
+                  "avatarUrl": "http://localhost:8000/static/avatars/u_maya.jpg",
+                  "profileVisibility": "public",
+                  "optedIn": true,
+                  "mode": "city",
+                  "poolId": "pool_sf_city",
+                  "neighborhood": "Inner Sunset",
+                  "groupSize": {
+                    "min": 2,
+                    "max": 4
+                  },
+                  "availability": [
+                    {
+                      "day": "sat",
+                      "part": "morning"
+                    },
+                    {
+                      "day": "sun",
+                      "part": "afternoon"
+                    },
+                    {
+                      "day": "wed",
+                      "part": "evening"
+                    }
+                  ],
+                  "ghostMode": false,
+                  "interests": [
+                    {
+                      "interest": {
+                        "id": "outdoors.hiking.coastal_hikes",
+                        "label": "Coastal hikes",
+                        "path": [
+                          "Outdoors",
+                          "Hiking",
+                          "Coastal hikes"
+                        ],
+                        "level": 3
+                      },
+                      "weight": 0.82,
+                      "visibility": "shown",
+                      "sensitive": false,
+                      "source": "activity",
+                      "evidence": "Posted three photos from a coastal hike"
+                    },
+                    {
+                      "interest": {
+                        "id": "arts_crafts.ceramics.wheel_throwing",
+                        "label": "Wheel throwing",
+                        "path": [
+                          "Arts & crafts",
+                          "Ceramics",
+                          "Wheel throwing"
+                        ],
+                        "level": 3
+                      },
+                      "weight": 0.7,
+                      "visibility": "shown",
+                      "sensitive": false,
+                      "source": "onboarding"
+                    },
+                    {
+                      "interest": {
+                        "id": "games.board_games.strategy_games",
+                        "label": "Strategy board games",
+                        "path": [
+                          "Games",
+                          "Board games",
+                          "Strategy board games"
+                        ],
+                        "level": 3
+                      },
+                      "weight": 0.55,
+                      "visibility": "shown",
+                      "sensitive": false,
+                      "source": "activity"
+                    }
+                  ],
+                  "capabilities": {
+                    "canHost": false,
+                    "maxGroupSize": 4,
+                    "groupOnly": false,
+                    "dailySlots": 5
+                  },
+                  "unlocks": []
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "me"
+        ],
+        "operationId": "updateMe",
+        "summary": "Update profile settings. Omitted fields are unchanged.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MeUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated profile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Me"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/v1/me/interests/{interestId}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/InterestId"
+        }
+      ],
+      "put": {
+        "tags": [
+          "me"
+        ],
+        "operationId": "setInterestVisibility",
+        "summary": "Show or hide one of my interests. Hidden interests are never used for overlap.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "visibility"
+                ],
+                "properties": {
+                  "visibility": {
+                    "$ref": "#/components/schemas/InterestVisibility"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated interest",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyInterest"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "me"
+        ],
+        "operationId": "removeInterest",
+        "summary": "Remove an interest from my profile.",
+        "responses": {
+          "204": {
+            "description": "Removed"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/v1/optin": {
+      "post": {
+        "tags": [
+          "me"
+        ],
+        "operationId": "optIn",
+        "summary": "Join a pool. Required before drops, density or matching. Idempotent.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "mode"
+                ],
+                "properties": {
+                  "mode": {
+                    "$ref": "#/components/schemas/Mode"
+                  },
+                  "poolId": {
+                    "type": "string",
+                    "description": "Required when the mode has several pools. Take it from /v1/config."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Opted in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Me"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "me"
+        ],
+        "operationId": "optOut",
+        "summary": "Leave the pool. Removes the user from matching and from the internal map.",
+        "responses": {
+          "204": {
+            "description": "Left the pool"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/v1/onboarding/sessions": {
+      "post": {
+        "tags": [
+          "onboarding"
+        ],
+        "operationId": "startOnboarding",
+        "summary": "Start (or resume) the Muse onboarding chat. Returns Muse's opening messages.",
+        "responses": {
+          "200": {
+            "description": "Session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OnboardingSession"
+                },
+                "example": {
+                  "sessionId": "ob_7f3a",
+                  "status": "chatting",
+                  "messages": [
+                    {
+                      "messageId": "om_1",
+                      "role": "muse",
+                      "text": "Hi Maya! I already noticed you post a lot about hikes and pottery. What else do you love doing on a free weekend?",
+                      "createdAt": "2026-11-12T18:00:00Z"
+                    }
+                  ],
+                  "proposedInterests": []
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/v1/onboarding/sessions/{sessionId}/messages": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/SessionId"
+        }
+      ],
+      "post": {
+        "tags": [
+          "onboarding"
+        ],
+        "operationId": "sendOnboardingMessage",
+        "summary": "Send one user turn. May take several seconds (Muse). Returns only the new messages.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "text"
+                ],
+                "properties": {
+                  "text": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "New messages and current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OnboardingSession"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/v1/onboarding/sessions/{sessionId}/complete": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/SessionId"
+        }
+      ],
+      "post": {
+        "tags": [
+          "onboarding"
+        ],
+        "operationId": "completeOnboarding",
+        "summary": "Confirm the reviewed interests and preferences. Creates the first drop.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OnboardingComplete"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Final profile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Me"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/v1/pools/{poolId}/density": {
+      "parameters": [
+        {
+          "name": "poolId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "get": {
+        "tags": [
+          "discovery"
+        ],
+        "operationId": "getDensity",
+        "summary": "Anonymous density of people looking. Works before opt-in. Bins under the privacy minimum are never returned.",
+        "responses": {
+          "200": {
+            "description": "Density layer",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Density"
+                },
+                "example": {
+                  "poolId": "pool_sf_city",
+                  "totalLooking": 214,
+                  "minBinCount": 10,
+                  "bins": [
+                    {
+                      "binId": "hx_8828308281fffff",
+                      "count": 23,
+                      "polygon": [
+                        {
+                          "lat": 37.7651,
+                          "lng": -122.4864
+                        },
+                        {
+                          "lat": 37.7689,
+                          "lng": -122.4802
+                        },
+                        {
+                          "lat": 37.7741,
+                          "lng": -122.4821
+                        },
+                        {
+                          "lat": 37.7754,
+                          "lng": -122.4897
+                        },
+                        {
+                          "lat": 37.7716,
+                          "lng": -122.4959
+                        },
+                        {
+                          "lat": 37.7664,
+                          "lng": -122.494
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/v1/drops/current": {
+      "get": {
+        "tags": [
+          "discovery"
+        ],
+        "operationId": "getCurrentDrop",
+        "summary": "Today's suggested people. Empty `cards` with `nextDropAt` when nothing is available.",
+        "responses": {
+          "200": {
+            "description": "Current drop",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Drop"
+                },
+                "example": {
+                  "dropId": "dr_0001",
+                  "poolId": "pool_sf_city",
+                  "generatedAt": "2026-11-12T18:02:00Z",
+                  "expiresAt": "2026-11-13T18:02:00Z",
+                  "nextDropAt": "2026-11-13T18:02:00Z",
+                  "cards": [
+                    {
+                      "suggestionId": "sg_0001",
+                      "person": {
+                        "userId": "u_0042",
+                        "displayName": "Daniel Okafor",
+                        "initials": "DO",
+                        "avatarUrl": "http://localhost:8000/static/avatars/u_0042.png",
+                        "profileVisibility": "public"
+                      },
+                      "distanceBand": "1_3km",
+                      "sharedInterests": [
+                        {
+                          "id": "outdoors.hiking",
+                          "label": "Hiking",
+                          "path": [
+                            "Outdoors",
+                            "Hiking"
+                          ],
+                          "level": 2
+                        },
+                        {
+                          "id": "games.board_games",
+                          "label": "Board games",
+                          "path": [
+                            "Games",
+                            "Board games"
+                          ],
+                          "level": 2
+                        }
+                      ],
+                      "reason": "You both spend weekends on the coast trails and love a long strategy game.",
+                      "state": "open",
+                      "hiAvailable": true
+                    },
+                    {
+                      "suggestionId": "sg_0002",
+                      "person": {
+                        "userId": "u_0117",
+                        "displayName": null,
+                        "initials": "R",
+                        "avatarUrl": null,
+                        "profileVisibility": "private"
+                      },
+                      "distanceBand": "under_1km",
+                      "sharedInterests": [
+                        {
+                          "id": "arts_crafts.ceramics",
+                          "label": "Ceramics",
+                          "path": [
+                            "Arts & crafts",
+                            "Ceramics"
+                          ],
+                          "level": 2
+                        }
+                      ],
+                      "reason": "Another ceramics person a few blocks from you.",
+                      "state": "open",
+                      "hiAvailable": true
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/v1/suggestions/{suggestionId}/decision": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/SuggestionId"
+        }
+      ],
+      "post": {
+        "tags": [
+          "discovery"
+        ],
+        "operationId": "decideSuggestion",
+        "summary": "Private Connect or Pass. A Connect becomes a Connection only when both sides connect.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "decision"
+                ],
+                "properties": {
+                  "decision": {
+                    "type": "string",
+                    "enum": [
+                      "connect",
+                      "pass"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Decision recorded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DecisionResult"
+                },
+                "example": {
+                  "suggestionId": "sg_0001",
+                  "state": "connected",
+                  "connection": null
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/v1/suggestions/{suggestionId}/hi": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/SuggestionId"
+        }
+      ],
+      "post": {
+        "tags": [
+          "discovery"
+        ],
+        "operationId": "sayHi",
+        "summary": "Send one screened opener without waiting for a mutual connect.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "text"
+                ],
+                "properties": {
+                  "text": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Max length from config.limits.openerMaxChars"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Result. `rejected` is a normal outcome, not an error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HiResult"
+                },
+                "example": {
+                  "hiId": "hi_0001",
+                  "status": "delivered"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/v1/hi": {
+      "get": {
+        "tags": [
+          "discovery"
+        ],
+        "operationId": "listHi",
+        "summary": "Openers I received that I have not replied to or dismissed.",
+        "responses": {
+          "200": {
+            "description": "Openers",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "items"
+                  ],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/HiItem"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/v1/hi/{hiId}/reply": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/HiId"
+        }
+      ],
+      "post": {
+        "tags": [
+          "discovery"
+        ],
+        "operationId": "replyHi",
+        "summary": "Reply to an opener. Replying creates a mutual Connection and a thread.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "text"
+                ],
+                "properties": {
+                  "text": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Connection created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Connection"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/v1/hi/{hiId}/dismiss": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/HiId"
+        }
+      ],
+      "post": {
+        "tags": [
+          "discovery"
+        ],
+        "operationId": "dismissHi",
+        "summary": "Ignore an opener silently. The sender is never told.",
+        "responses": {
+          "204": {
+            "description": "Dismissed"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/v1/groups": {
+      "post": {
+        "tags": [
+          "discovery"
+        ],
+        "operationId": "requestGroup",
+        "summary": "Invite several suggested people to form a small group.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "suggestionIds",
+                  "size"
+                ],
+                "properties": {
+                  "suggestionIds": {
+                    "type": "array",
+                    "minItems": 2,
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "size": {
+                    "$ref": "#/components/schemas/GroupSize"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Invites sent. Progress arrives via `group.updated` events or GET.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GroupRequest"
+                },
+                "example": {
+                  "groupRequestId": "gr_0001",
+                  "status": "inviting",
+                  "invitedCount": 2,
+                  "acceptedCount": 0,
+                  "size": {
+                    "min": 3,
+                    "max": 4
+                  },
+                  "threadId": null
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/v1/groups/{groupRequestId}": {
+      "parameters": [
+        {
+          "name": "groupRequestId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "get": {
+        "tags": [
+          "discovery"
+        ],
+        "operationId": "getGroupRequest",
+        "summary": "Current state of a group request.",
+        "responses": {
+          "200": {
+            "description": "Group request state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GroupRequest"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/v1/invites": {
+      "get": {
+        "tags": [
+          "discovery"
+        ],
+        "operationId": "listInvites",
+        "summary": "Group invites I received.",
+        "responses": {
+          "200": {
+            "description": "Invites",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "items"
+                  ],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Invite"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/v1/invites/{inviteId}/decision": {
+      "parameters": [
+        {
+          "name": "inviteId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "post": {
+        "tags": [
+          "discovery"
+        ],
+        "operationId": "decideInvite",
+        "summary": "Accept or decline a group invite.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "decision"
+                ],
+                "properties": {
+                  "decision": {
+                    "type": "string",
+                    "enum": [
+                      "accept",
+                      "decline"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Invite state after the decision",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Invite"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/v1/connections": {
+      "get": {
+        "tags": [
+          "connections"
+        ],
+        "operationId": "listConnections",
+        "summary": "People I have mutually connected with, newest first.",
+        "responses": {
+          "200": {
+            "description": "Connections",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "items"
+                  ],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Connection"
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "items": [
+                    {
+                      "connectionId": "cn_0001",
+                      "person": {
+                        "userId": "u_0042",
+                        "displayName": "Daniel Okafor",
+                        "initials": "DO",
+                        "avatarUrl": "http://localhost:8000/static/avatars/u_0042.png",
+                        "profileVisibility": "public"
+                      },
+                      "sharedInterests": [
+                        {
+                          "id": "outdoors.hiking.coastal_hikes",
+                          "label": "Coastal hikes",
+                          "path": [
+                            "Outdoors",
+                            "Hiking",
+                            "Coastal hikes"
+                          ],
+                          "level": 3
+                        },
+                        {
+                          "id": "games.board_games.strategy_games",
+                          "label": "Strategy board games",
+                          "path": [
+                            "Games",
+                            "Board games",
+                            "Strategy board games"
+                          ],
+                          "level": 3
+                        }
+                      ],
+                      "threadId": "th_0001",
+                      "status": "new",
+                      "connectedAt": "2026-11-12T18:05:00Z",
+                      "firstMetAt": null,
+                      "location": {
+                        "iShare": "off",
+                        "theyShare": "off",
+                        "viewing": "neighborhood"
+                      },
+                      "canViewProfile": true
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/v1/people/{userId}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/UserId"
+        }
+      ],
+      "get": {
+        "tags": [
+          "connections"
+        ],
+        "operationId": "getPerson",
+        "summary": "Public profile of a connected person. 403 `not_allowed` for private profiles or non-connections.",
+        "responses": {
+          "200": {
+            "description": "Public profile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicProfile"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/v1/threads": {
+      "get": {
+        "tags": [
+          "chat"
+        ],
+        "operationId": "listThreads",
+        "summary": "My Common Ground threads, most recent activity first.",
+        "responses": {
+          "200": {
+            "description": "Threads",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "items"
+                  ],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Thread"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/v1/threads/{threadId}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ThreadId"
+        }
+      ],
+      "get": {
+        "tags": [
+          "chat"
+        ],
+        "operationId": "getThread",
+        "summary": "One thread.",
+        "responses": {
+          "200": {
+            "description": "Thread",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Thread"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/v1/threads/{threadId}/messages": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ThreadId"
+        }
+      ],
+      "get": {
+        "tags": [
+          "chat"
+        ],
+        "operationId": "listMessages",
+        "summary": "Messages oldest first. Pass `after` (a messageId) to fetch only newer ones.",
+        "parameters": [
+          {
+            "name": "after",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Messages",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "items"
+                  ],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Message"
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "items": [
+                    {
+                      "messageId": "ms_0001",
+                      "threadId": "th_0001",
+                      "sender": {
+                        "kind": "muse",
+                        "userId": null
+                      },
+                      "text": "Maya, meet Daniel. You both hike the coast trails most weekends, and you are both into long strategy games.",
+                      "createdAt": "2026-11-12T18:05:01Z",
+                      "attachments": [
+                        {
+                          "kind": "starters",
+                          "starters": [
+                            "What's your favorite stretch of the coast trail?",
+                            "Which strategy game could you play every week?",
+                            "Ever tried hiking to Lands End at sunrise?"
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "messageId": "ms_0002",
+                      "threadId": "th_0001",
+                      "sender": {
+                        "kind": "user",
+                        "userId": "u_0042"
+                      },
+                      "text": "Hey Maya! Lands End at sunrise is my favorite thing in the city.",
+                      "createdAt": "2026-11-12T18:06:10Z",
+                      "attachments": []
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "chat"
+        ],
+        "operationId": "sendMessage",
+        "summary": "Send a message. `clientId` makes retries idempotent.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "text",
+                  "clientId"
+                ],
+                "properties": {
+                  "text": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "clientId": {
+                    "type": "string",
+                    "description": "Client-generated unique ID used for idempotency and optimistic UI."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The stored message",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Message"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/v1/threads/{threadId}/read": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ThreadId"
+        }
+      ],
+      "post": {
+        "tags": [
+          "chat"
+        ],
+        "operationId": "markThreadRead",
+        "summary": "Mark every message in the thread as read.",
+        "responses": {
+          "204": {
+            "description": "Marked read"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/v1/threads/{threadId}/plan": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ThreadId"
+        }
+      ],
+      "post": {
+        "tags": [
+          "meetups"
+        ],
+        "operationId": "planMeetup",
+        "summary": "Ask Muse to propose meetup options for this thread. Options arrive asynchronously.",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "size": {
+                    "$ref": "#/components/schemas/GroupSize"
+                  },
+                  "note": {
+                    "type": "string",
+                    "maxLength": 280,
+                    "description": "Optional free-text hint, e.g. 'something outdoors on Saturday'."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Planning started. Poll GET /v1/meetups/{meetupId} or wait for `meetup.updated`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Meetup"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/v1/meetups": {
+      "get": {
+        "tags": [
+          "meetups"
+        ],
+        "operationId": "listMeetups",
+        "summary": "My meetups that are not cancelled, soonest first.",
+        "responses": {
+          "200": {
+            "description": "Meetups",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "items"
+                  ],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Meetup"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/v1/meetups/{meetupId}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/MeetupId"
+        }
+      ],
+      "get": {
+        "tags": [
+          "meetups"
+        ],
+        "operationId": "getMeetup",
+        "summary": "One meetup with its options, votes and attendees.",
+        "responses": {
+          "200": {
+            "description": "Meetup",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Meetup"
+                },
+                "example": {
+                  "meetupId": "mt_0001",
+                  "threadId": "th_0001",
+                  "status": "voting",
+                  "organizerId": "u_maya",
+                  "size": {
+                    "min": 2,
+                    "max": 4
+                  },
+                  "title": null,
+                  "chosenOptionId": null,
+                  "startsAt": null,
+                  "endsAt": null,
+                  "venue": null,
+                  "options": [
+                    {
+                      "optionId": "op_0001",
+                      "activity": "Sunrise walk at Lands End, then coffee",
+                      "venue": {
+                        "venueId": "vn_lands_end",
+                        "name": "Lands End Lookout",
+                        "neighborhood": "Outer Richmond",
+                        "location": {
+                          "lat": 37.7798,
+                          "lng": -122.5118
+                        },
+                        "kind": "park"
+                      },
+                      "startsAt": "2026-11-15T15:30:00Z",
+                      "endsAt": "2026-11-15T17:30:00Z",
+                      "reason": "You both love the coast trail and are free Saturday morning.",
+                      "votes": {
+                        "yes": 1,
+                        "no": 0
+                      },
+                      "myVote": "yes"
+                    },
+                    {
+                      "optionId": "op_0002",
+                      "activity": "Strategy game night",
+                      "venue": {
+                        "venueId": "vn_game_parlor",
+                        "name": "Game Parlor",
+                        "neighborhood": "Mission",
+                        "location": {
+                          "lat": 37.7599,
+                          "lng": -122.4148
+                        },
+                        "kind": "game_cafe"
+                      },
+                      "startsAt": "2026-11-19T03:00:00Z",
+                      "endsAt": "2026-11-19T05:30:00Z",
+                      "reason": "A public game cafe with long tables.",
+                      "votes": {
+                        "yes": 0,
+                        "no": 0
+                      },
+                      "myVote": null
+                    }
+                  ],
+                  "attendees": [
+                    {
+                      "userId": "u_maya",
+                      "rsvp": "yes",
+                      "checkedIn": false,
+                      "status": null
+                    },
+                    {
+                      "userId": "u_0042",
+                      "rsvp": "pending",
+                      "checkedIn": false,
+                      "status": null
+                    }
+                  ],
+                  "checkinWindow": null,
+                  "feedbackDue": false,
+                  "eventLabel": null
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/v1/meetups/{meetupId}/votes": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/MeetupId"
+        }
+      ],
+      "post": {
+        "tags": [
+          "meetups"
+        ],
+        "operationId": "voteMeetup",
+        "summary": "Vote yes or no on one or more options. Several yes votes are allowed. Replaces my previous votes for the listed options.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "votes"
+                ],
+                "properties": {
+                  "votes": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "optionId",
+                        "vote"
+                      ],
+                      "properties": {
+                        "optionId": {
+                          "type": "string"
+                        },
+                        "vote": {
+                          "type": "string",
+                          "enum": [
+                            "yes",
+                            "no"
+                          ]
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Meetup after the vote (may now be `confirmed`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Meetup"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/v1/meetups/{meetupId}/my-status": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/MeetupId"
+        }
+      ],
+      "put": {
+        "tags": [
+          "meetups"
+        ],
+        "operationId": "setMeetupStatus",
+        "summary": "Share \"on my way\" or \"arrived\" with the other attendees during the meetup window only.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "status"
+                ],
+                "properties": {
+                  "status": {
+                    "$ref": "#/components/schemas/AttendeeStatus"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Meetup",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Meetup"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/v1/meetups/{meetupId}/checkin": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/MeetupId"
+        }
+      ],
+      "post": {
+        "tags": [
+          "meetups"
+        ],
+        "operationId": "checkIn",
+        "summary": "Check in at the venue during the check-in window.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "location"
+                ],
+                "properties": {
+                  "location": {
+                    "$ref": "#/components/schemas/LatLng"
+                  },
+                  "accuracyM": {
+                    "type": "number",
+                    "minimum": 0
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Check-in result. `accepted=false` is a normal outcome.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckinResult"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/v1/meetups/{meetupId}/feedback": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/MeetupId"
+        }
+      ],
+      "post": {
+        "tags": [
+          "meetups"
+        ],
+        "operationId": "sendFeedback",
+        "summary": "The three post-meetup questions, one answer per other attendee.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Feedback"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Recorded"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/v1/map": {
+      "get": {
+        "tags": [
+          "map"
+        ],
+        "operationId": "getMap",
+        "summary": "Everything the map tab draws. Location precision is already enforced by the server.",
+        "responses": {
+          "200": {
+            "description": "Map view",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MapView"
+                },
+                "example": {
+                  "generatedAt": "2026-11-15T15:10:00Z",
+                  "me": {
+                    "location": {
+                      "lat": 37.7694,
+                      "lng": -122.4862
+                    },
+                    "ghostMode": false
+                  },
+                  "friends": [
+                    {
+                      "userId": "u_0042",
+                      "person": {
+                        "userId": "u_0042",
+                        "displayName": "Daniel Okafor",
+                        "initials": "DO",
+                        "avatarUrl": "http://localhost:8000/static/avatars/u_0042.png",
+                        "profileVisibility": "public"
+                      },
+                      "precision": "neighborhood",
+                      "location": {
+                        "lat": 37.7801,
+                        "lng": -122.49
+                      },
+                      "radiusM": 800,
+                      "sharedInterests": [
+                        {
+                          "id": "outdoors.hiking.coastal_hikes",
+                          "label": "Coastal hikes",
+                          "path": [
+                            "Outdoors",
+                            "Hiking",
+                            "Coastal hikes"
+                          ],
+                          "level": 3
+                        }
+                      ],
+                      "meetupStatus": "on_my_way",
+                      "threadId": "th_0001",
+                      "updatedAt": "2026-11-15T15:08:00Z"
+                    }
+                  ],
+                  "tray": [
+                    {
+                      "userId": "u_0117",
+                      "person": {
+                        "userId": "u_0117",
+                        "displayName": "Rosa",
+                        "initials": "R",
+                        "avatarUrl": null,
+                        "profileVisibility": "private"
+                      },
+                      "reason": "not_met",
+                      "threadId": "th_0002",
+                      "sharedInterests": [
+                        {
+                          "id": "arts_crafts.ceramics.wheel_throwing",
+                          "label": "Wheel throwing",
+                          "path": [
+                            "Arts & crafts",
+                            "Ceramics",
+                            "Wheel throwing"
+                          ],
+                          "level": 3
+                        }
+                      ]
+                    }
+                  ],
+                  "meetups": [
+                    {
+                      "meetupId": "mt_0001",
+                      "title": "Sunrise walk at Lands End",
+                      "venue": {
+                        "venueId": "vn_lands_end",
+                        "name": "Lands End Lookout",
+                        "neighborhood": "Outer Richmond",
+                        "location": {
+                          "lat": 37.7798,
+                          "lng": -122.5118
+                        },
+                        "kind": "park"
+                      },
+                      "startsAt": "2026-11-15T15:30:00Z",
+                      "attendeeCount": 2
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/v1/location": {
+      "put": {
+        "tags": [
+          "map"
+        ],
+        "operationId": "updateLocation",
+        "summary": "Foreground location update. Send at most once per config.limits.locationMinIntervalS.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "location",
+                  "capturedAt"
+                ],
+                "properties": {
+                  "location": {
+                    "$ref": "#/components/schemas/LatLng"
+                  },
+                  "accuracyM": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "capturedAt": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Stored"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/v1/location/shares/{userId}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/UserId"
+        }
+      ],
+      "put": {
+        "tags": [
+          "map"
+        ],
+        "operationId": "setLocationShare",
+        "summary": "The most precise level I share with this connection. Off by default.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "maxPrecision"
+                ],
+                "properties": {
+                  "maxPrecision": {
+                    "$ref": "#/components/schemas/SharePrecision"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated sharing state for this connection",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LocationShareState"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/v1/location/views/{userId}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/UserId"
+        }
+      ],
+      "put": {
+        "tags": [
+          "map"
+        ],
+        "operationId": "setLocationView",
+        "summary": "How precisely I want to view this connection. The server caps it at what they share.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "precision"
+                ],
+                "properties": {
+                  "precision": {
+                    "$ref": "#/components/schemas/Precision"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated sharing state for this connection",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LocationShareState"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/v1/location/ghost": {
+      "put": {
+        "tags": [
+          "map"
+        ],
+        "operationId": "setGhostMode",
+        "summary": "Ghost mode hides my location from everyone until turned off.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "enabled"
+                ],
+                "properties": {
+                  "enabled": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Updated"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/v1/scenes/leaderboard": {
+      "get": {
+        "tags": [
+          "community"
+        ],
+        "operationId": "getSceneLeaderboard",
+        "summary": "Most active scenes in my pool this week. Ranks scenes, never people.",
+        "responses": {
+          "200": {
+            "description": "Leaderboard",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SceneLeaderboard"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/v1/scenes/{sceneId}/follow": {
+      "parameters": [
+        {
+          "name": "sceneId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "post": {
+        "tags": [
+          "community"
+        ],
+        "operationId": "followScene",
+        "summary": "Add the scene's top interest to my profile.",
+        "responses": {
+          "200": {
+            "description": "Updated profile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Me"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/v1/reports": {
+      "post": {
+        "tags": [
+          "safety"
+        ],
+        "operationId": "report",
+        "summary": "Report a person. Severe reports pause their account pending review.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReportRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Report received",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "reportId"
+                  ],
+                  "properties": {
+                    "reportId": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/v1/blocks": {
+      "post": {
+        "tags": [
+          "safety"
+        ],
+        "operationId": "block",
+        "summary": "Block a person. They disappear from my drops, map and threads. Idempotent.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "userId"
+                ],
+                "properties": {
+                  "userId": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Blocked"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/v1/ws": {
+      "get": {
+        "tags": [
+          "system"
+        ],
+        "operationId": "realtime",
+        "summary": "WebSocket upgrade for realtime hints. See CONTRACTS.md \"Realtime\".",
+        "description": "Connect with `ws://<host>/v1/ws?user=<userId>` (query parameter, because not every client can set headers).\nThe server sends `RealtimeEvent` JSON frames. The client sends nothing except optional `{\"type\":\"ping\"}`.\nEvents are hints. After any event, or on reconnect, the client refetches the affected REST resource.\nA client that never connects must still work through polling.\n",
+        "security": [],
+        "parameters": [
+          {
+            "name": "user",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "101": {
+            "description": "Switching protocols"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "demoUser": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-CG-User",
+        "description": "Demo identity, e.g. `u_maya`. Only accepted when the backend runs with DEMO_MODE=1."
+      }
+    },
+    "parameters": {
+      "InterestId": {
+        "name": "interestId",
+        "in": "path",
+        "required": true,
+        "description": "Taxonomy ID, e.g. `outdoors.climbing.bouldering`.",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "SessionId": {
+        "name": "sessionId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "SuggestionId": {
+        "name": "suggestionId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "HiId": {
+        "name": "hiId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "UserId": {
+        "name": "userId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "ThreadId": {
+        "name": "threadId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "MeetupId": {
+        "name": "meetupId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      }
+    },
+    "responses": {
+      "Error": {
+        "description": "Error envelope",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": {
+                "code": "not_found",
+                "message": "That person is no longer available.",
+                "retryable": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "required": [
+          "error"
+        ],
+        "properties": {
+          "error": {
+            "type": "object",
+            "required": [
+              "code",
+              "message",
+              "retryable"
+            ],
+            "properties": {
+              "code": {
+                "type": "string",
+                "description": "Open enum. Known values: unauthenticated, not_found, validation_failed, not_allowed,\nrate_limited, conflict, not_opted_in, muse_unavailable, laya_unavailable, unavailable, internal.\nClients map unknown codes by HTTP status.\n"
+              },
+              "message": {
+                "type": "string",
+                "description": "Safe to show to the user."
+              },
+              "retryable": {
+                "type": "boolean"
+              },
+              "details": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        }
+      },
+      "Health": {
+        "type": "object",
+        "required": [
+          "status",
+          "apiVersion"
+        ],
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "degraded"
+            ]
+          },
+          "muse": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "fake",
+              "down"
+            ]
+          },
+          "laya": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "fake",
+              "down"
+            ]
+          },
+          "demoMode": {
+            "type": "boolean"
+          },
+          "apiVersion": {
+            "type": "string"
+          }
+        }
+      },
+      "LatLng": {
+        "type": "object",
+        "required": [
+          "lat",
+          "lng"
+        ],
+        "properties": {
+          "lat": {
+            "type": "number",
+            "minimum": -90,
+            "maximum": 90
+          },
+          "lng": {
+            "type": "number",
+            "minimum": -180,
+            "maximum": 180
+          }
+        }
+      },
+      "Mode": {
+        "type": "string",
+        "description": "Open enum. v1 values; clients hide modes they do not recognise.",
+        "enum": [
+          "city",
+          "event",
+          "campus",
+          "group",
+          "arriving",
+          "cohort"
+        ]
+      },
+      "ModeInfo": {
+        "type": "object",
+        "required": [
+          "mode",
+          "label",
+          "poolId",
+          "available"
+        ],
+        "properties": {
+          "mode": {
+            "$ref": "#/components/schemas/Mode"
+          },
+          "label": {
+            "type": "string"
+          },
+          "poolId": {
+            "type": "string"
+          },
+          "available": {
+            "type": "boolean",
+            "description": "false = shown as 'coming soon', not selectable."
+          },
+          "description": {
+            "type": "string"
+          },
+          "center": {
+            "$ref": "#/components/schemas/LatLng"
+          },
+          "radiusKm": {
+            "type": "number"
+          }
+        }
+      },
+      "Config": {
+        "type": "object",
+        "required": [
+          "apiVersion",
+          "features",
+          "limits",
+          "modes",
+          "demo"
+        ],
+        "properties": {
+          "apiVersion": {
+            "type": "string"
+          },
+          "features": {
+            "type": "object",
+            "description": "Clients hide any surface whose flag is false or missing.",
+            "additionalProperties": {
+              "type": "boolean"
+            },
+            "properties": {
+              "eventMode": {
+                "type": "boolean"
+              },
+              "groups": {
+                "type": "boolean"
+              },
+              "sayHi": {
+                "type": "boolean"
+              },
+              "leaderboard": {
+                "type": "boolean"
+              },
+              "unlocks": {
+                "type": "boolean"
+              },
+              "checkin": {
+                "type": "boolean"
+              },
+              "locationSharing": {
+                "type": "boolean"
+              },
+              "density": {
+                "type": "boolean"
+              },
+              "realtime": {
+                "type": "boolean"
+              }
+            }
+          },
+          "limits": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "number"
+            },
+            "required": [
+              "dropMax",
+              "sharedCoarseMax",
+              "openersPerPersonPerWeek",
+              "openerMaxChars",
+              "messageMaxChars",
+              "groupSizeMin",
+              "groupSizeMax",
+              "locationMinIntervalS",
+              "pollIntervalS",
+              "mapRefreshS"
+            ],
+            "properties": {
+              "dropMax": {
+                "type": "integer"
+              },
+              "sharedCoarseMax": {
+                "type": "integer"
+              },
+              "sharedFullMax": {
+                "type": "integer"
+              },
+              "openersPerPersonPerWeek": {
+                "type": "integer"
+              },
+              "openerMaxChars": {
+                "type": "integer"
+              },
+              "messageMaxChars": {
+                "type": "integer"
+              },
+              "groupSizeMin": {
+                "type": "integer"
+              },
+              "groupSizeMax": {
+                "type": "integer"
+              },
+              "locationMinIntervalS": {
+                "type": "integer"
+              },
+              "pollIntervalS": {
+                "type": "integer"
+              },
+              "mapRefreshS": {
+                "type": "integer"
+              },
+              "meetupStatusBeforeMin": {
+                "type": "integer",
+                "description": "Minutes before start when 'on my way' becomes available."
+              }
+            }
+          },
+          "modes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ModeInfo"
+            }
+          },
+          "demo": {
+            "type": "object",
+            "required": [
+              "enabled"
+            ],
+            "properties": {
+              "enabled": {
+                "type": "boolean"
+              },
+              "counterpart": {
+                "type": "string",
+                "enum": [
+                  "live",
+                  "synthetic"
+                ]
+              },
+              "fakeLocation": {
+                "description": "When present, the app uses this instead of GPS for everything it sends.",
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/LatLng"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "relaxCheckin": {
+                "type": "boolean",
+                "description": "When true the server accepts check-ins outside the geofence and window."
+              }
+            }
+          }
+        }
+      },
+      "InterestRef": {
+        "type": "object",
+        "required": [
+          "id",
+          "label",
+          "path",
+          "level"
+        ],
+        "description": "A taxonomy node. The server picks the level (2 = coarse, 3 = full depth).",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9_]+(\\.[a-z0-9_]+){0,2}$"
+          },
+          "label": {
+            "type": "string"
+          },
+          "path": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "maxItems": 3
+          },
+          "level": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 3
+          }
+        }
+      },
+      "InterestVisibility": {
+        "type": "string",
+        "enum": [
+          "shown",
+          "hidden"
+        ]
+      },
+      "MyInterest": {
+        "type": "object",
+        "required": [
+          "interest",
+          "weight",
+          "visibility",
+          "sensitive",
+          "source"
+        ],
+        "properties": {
+          "interest": {
+            "$ref": "#/components/schemas/InterestRef"
+          },
+          "weight": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "visibility": {
+            "$ref": "#/components/schemas/InterestVisibility"
+          },
+          "sensitive": {
+            "type": "boolean",
+            "description": "Flagged sensitive. Starts hidden; only the owner sees this flag."
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "activity",
+              "onboarding",
+              "manual",
+              "scene"
+            ]
+          },
+          "evidence": {
+            "type": "string",
+            "description": "Short paraphrase of why Muse added it. Only the owner sees it."
+          }
+        }
+      },
+      "AvailabilitySlot": {
+        "type": "object",
+        "required": [
+          "day",
+          "part"
+        ],
+        "properties": {
+          "day": {
+            "type": "string",
+            "enum": [
+              "mon",
+              "tue",
+              "wed",
+              "thu",
+              "fri",
+              "sat",
+              "sun"
+            ]
+          },
+          "part": {
+            "type": "string",
+            "enum": [
+              "morning",
+              "afternoon",
+              "evening"
+            ]
+          }
+        }
+      },
+      "GroupSize": {
+        "type": "object",
+        "required": [
+          "min",
+          "max"
+        ],
+        "properties": {
+          "min": {
+            "type": "integer",
+            "minimum": 2
+          },
+          "max": {
+            "type": "integer",
+            "minimum": 2
+          }
+        }
+      },
+      "Capabilities": {
+        "type": "object",
+        "description": "What trust and unlocks allow. The trust score itself is never exposed.",
+        "required": [
+          "canHost",
+          "maxGroupSize",
+          "groupOnly",
+          "dailySlots"
+        ],
+        "properties": {
+          "canHost": {
+            "type": "boolean"
+          },
+          "maxGroupSize": {
+            "type": "integer"
+          },
+          "groupOnly": {
+            "type": "boolean"
+          },
+          "dailySlots": {
+            "type": "integer"
+          }
+        }
+      },
+      "Unlock": {
+        "type": "object",
+        "required": [
+          "unlockId",
+          "label",
+          "earnedAt"
+        ],
+        "properties": {
+          "unlockId": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "earnedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "Me": {
+        "type": "object",
+        "required": [
+          "userId",
+          "displayName",
+          "profileVisibility",
+          "optedIn",
+          "interests",
+          "groupSize",
+          "availability",
+          "ghostMode",
+          "capabilities",
+          "unlocks"
+        ],
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "avatarUrl": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "profileVisibility": {
+            "$ref": "#/components/schemas/ProfileVisibility"
+          },
+          "optedIn": {
+            "type": "boolean"
+          },
+          "mode": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Mode"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "poolId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "neighborhood": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "groupSize": {
+            "$ref": "#/components/schemas/GroupSize"
+          },
+          "availability": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AvailabilitySlot"
+            }
+          },
+          "ghostMode": {
+            "type": "boolean"
+          },
+          "interests": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MyInterest"
+            }
+          },
+          "capabilities": {
+            "$ref": "#/components/schemas/Capabilities"
+          },
+          "unlocks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Unlock"
+            }
+          }
+        }
+      },
+      "MeUpdate": {
+        "type": "object",
+        "properties": {
+          "profileVisibility": {
+            "$ref": "#/components/schemas/ProfileVisibility"
+          },
+          "neighborhood": {
+            "type": "string"
+          },
+          "groupSize": {
+            "$ref": "#/components/schemas/GroupSize"
+          },
+          "availability": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AvailabilitySlot"
+            }
+          }
+        }
+      },
+      "ProfileVisibility": {
+        "type": "string",
+        "enum": [
+          "public",
+          "private"
+        ]
+      },
+      "OnboardingMessage": {
+        "type": "object",
+        "required": [
+          "messageId",
+          "role",
+          "text",
+          "createdAt"
+        ],
+        "properties": {
+          "messageId": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "muse",
+              "user"
+            ]
+          },
+          "text": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "OnboardingSession": {
+        "type": "object",
+        "required": [
+          "sessionId",
+          "status",
+          "messages",
+          "proposedInterests"
+        ],
+        "properties": {
+          "sessionId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "description": "`review` means Muse has enough; the client shows proposedInterests for confirmation.",
+            "enum": [
+              "chatting",
+              "review",
+              "complete"
+            ]
+          },
+          "messages": {
+            "type": "array",
+            "description": "On start, the full history. On a send, only the new messages (user echo plus Muse reply).",
+            "items": {
+              "$ref": "#/components/schemas/OnboardingMessage"
+            }
+          },
+          "proposedInterests": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MyInterest"
+            }
+          },
+          "proposedGroupSize": {
+            "$ref": "#/components/schemas/GroupSize"
+          },
+          "proposedAvailability": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AvailabilitySlot"
+            }
+          }
+        }
+      },
+      "OnboardingComplete": {
+        "type": "object",
+        "required": [
+          "acceptedInterestIds",
+          "hiddenInterestIds",
+          "groupSize",
+          "availability",
+          "profileVisibility"
+        ],
+        "properties": {
+          "acceptedInterestIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "hiddenInterestIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "groupSize": {
+            "$ref": "#/components/schemas/GroupSize"
+          },
+          "availability": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AvailabilitySlot"
+            }
+          },
+          "profileVisibility": {
+            "$ref": "#/components/schemas/ProfileVisibility"
+          },
+          "neighborhood": {
+            "type": "string"
+          }
+        }
+      },
+      "DensityBin": {
+        "type": "object",
+        "required": [
+          "binId",
+          "count",
+          "polygon"
+        ],
+        "properties": {
+          "binId": {
+            "type": "string"
+          },
+          "count": {
+            "type": "integer"
+          },
+          "polygon": {
+            "type": "array",
+            "minItems": 3,
+            "items": {
+              "$ref": "#/components/schemas/LatLng"
+            }
+          }
+        }
+      },
+      "Density": {
+        "type": "object",
+        "required": [
+          "poolId",
+          "totalLooking",
+          "minBinCount",
+          "bins"
+        ],
+        "properties": {
+          "poolId": {
+            "type": "string"
+          },
+          "totalLooking": {
+            "type": "integer"
+          },
+          "minBinCount": {
+            "type": "integer"
+          },
+          "bins": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DensityBin"
+            }
+          }
+        }
+      },
+      "PersonCard": {
+        "type": "object",
+        "description": "How another user appears anywhere in the app. For private profiles the server sends\n`displayName: null` and `avatarUrl: null` until a mutual connect, then first name only.\n",
+        "required": [
+          "userId",
+          "initials",
+          "profileVisibility"
+        ],
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "initials": {
+            "type": "string"
+          },
+          "avatarUrl": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "profileVisibility": {
+            "$ref": "#/components/schemas/ProfileVisibility"
+          }
+        }
+      },
+      "DistanceBand": {
+        "type": "string",
+        "description": "Open enum.",
+        "enum": [
+          "under_1km",
+          "1_3km",
+          "3_10km",
+          "over_10km"
+        ]
+      },
+      "DropCard": {
+        "type": "object",
+        "required": [
+          "suggestionId",
+          "person",
+          "distanceBand",
+          "sharedInterests",
+          "reason",
+          "state",
+          "hiAvailable"
+        ],
+        "properties": {
+          "suggestionId": {
+            "type": "string"
+          },
+          "person": {
+            "$ref": "#/components/schemas/PersonCard"
+          },
+          "distanceBand": {
+            "$ref": "#/components/schemas/DistanceBand"
+          },
+          "sharedInterests": {
+            "type": "array",
+            "maxItems": 3,
+            "description": "Coarse level only (level 2) before a mutual connect.",
+            "items": {
+              "$ref": "#/components/schemas/InterestRef"
+            }
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 160,
+            "description": "Muse's one-line reason."
+          },
+          "state": {
+            "type": "string",
+            "description": "My own view only. `passed` is visible to the person who passed, nobody else.",
+            "enum": [
+              "open",
+              "connect_sent",
+              "connected",
+              "passed",
+              "expired"
+            ]
+          },
+          "hiAvailable": {
+            "type": "boolean"
+          }
+        }
+      },
+      "Drop": {
+        "type": "object",
+        "required": [
+          "dropId",
+          "poolId",
+          "generatedAt",
+          "expiresAt",
+          "nextDropAt",
+          "cards"
+        ],
+        "properties": {
+          "dropId": {
+            "type": "string"
+          },
+          "poolId": {
+            "type": "string"
+          },
+          "generatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "nextDropAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "cards": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DropCard"
+            }
+          }
+        }
+      },
+      "DecisionResult": {
+        "type": "object",
+        "required": [
+          "suggestionId",
+          "state"
+        ],
+        "properties": {
+          "suggestionId": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "connect_sent",
+              "connected",
+              "passed",
+              "expired"
+            ]
+          },
+          "connection": {
+            "description": "Present when this decision completed a mutual connect.",
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Connection"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "HiResult": {
+        "type": "object",
+        "required": [
+          "hiId",
+          "status"
+        ],
+        "properties": {
+          "hiId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "delivered",
+              "rejected"
+            ]
+          },
+          "rejectionReason": {
+            "type": "string",
+            "description": "Open enum.",
+            "enum": [
+              "screened",
+              "limit",
+              "not_allowed"
+            ]
+          }
+        }
+      },
+      "HiItem": {
+        "type": "object",
+        "required": [
+          "hiId",
+          "from",
+          "sharedInterests",
+          "text",
+          "receivedAt"
+        ],
+        "properties": {
+          "hiId": {
+            "type": "string"
+          },
+          "from": {
+            "$ref": "#/components/schemas/PersonCard"
+          },
+          "sharedInterests": {
+            "type": "array",
+            "description": "Coarse level only.",
+            "items": {
+              "$ref": "#/components/schemas/InterestRef"
+            }
+          },
+          "text": {
+            "type": "string"
+          },
+          "receivedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "GroupRequest": {
+        "type": "object",
+        "required": [
+          "groupRequestId",
+          "status",
+          "invitedCount",
+          "acceptedCount",
+          "size"
+        ],
+        "properties": {
+          "groupRequestId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "description": "Open enum.",
+            "enum": [
+              "inviting",
+              "formed",
+              "fallback_1to1",
+              "failed"
+            ]
+          },
+          "invitedCount": {
+            "type": "integer"
+          },
+          "acceptedCount": {
+            "type": "integer"
+          },
+          "size": {
+            "$ref": "#/components/schemas/GroupSize"
+          },
+          "threadId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "Invite": {
+        "type": "object",
+        "required": [
+          "inviteId",
+          "from",
+          "sharedInterests",
+          "size",
+          "status",
+          "expiresAt"
+        ],
+        "properties": {
+          "inviteId": {
+            "type": "string"
+          },
+          "from": {
+            "$ref": "#/components/schemas/PersonCard"
+          },
+          "sharedInterests": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InterestRef"
+            }
+          },
+          "size": {
+            "$ref": "#/components/schemas/GroupSize"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "accepted",
+              "declined",
+              "expired"
+            ]
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "threadId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "SharePrecision": {
+        "type": "string",
+        "enum": [
+          "exact",
+          "neighborhood",
+          "off"
+        ]
+      },
+      "Precision": {
+        "type": "string",
+        "enum": [
+          "exact",
+          "neighborhood"
+        ]
+      },
+      "LocationShareState": {
+        "type": "object",
+        "required": [
+          "iShare",
+          "theyShare",
+          "viewing"
+        ],
+        "properties": {
+          "iShare": {
+            "$ref": "#/components/schemas/SharePrecision"
+          },
+          "theyShare": {
+            "$ref": "#/components/schemas/SharePrecision"
+          },
+          "viewing": {
+            "$ref": "#/components/schemas/Precision",
+            "description": "My view preference. The effective precision is the coarser of this and theyShare."
+          }
+        }
+      },
+      "Connection": {
+        "type": "object",
+        "required": [
+          "connectionId",
+          "person",
+          "sharedInterests",
+          "threadId",
+          "status",
+          "connectedAt",
+          "location",
+          "canViewProfile"
+        ],
+        "properties": {
+          "connectionId": {
+            "type": "string"
+          },
+          "person": {
+            "$ref": "#/components/schemas/PersonCard"
+          },
+          "sharedInterests": {
+            "type": "array",
+            "description": "Full depth after a mutual connect, capped by config.limits.sharedFullMax.",
+            "items": {
+              "$ref": "#/components/schemas/InterestRef"
+            }
+          },
+          "threadId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "new",
+              "met"
+            ]
+          },
+          "connectedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "firstMetAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "location": {
+            "$ref": "#/components/schemas/LocationShareState"
+          },
+          "canViewProfile": {
+            "type": "boolean"
+          }
+        }
+      },
+      "PublicProfile": {
+        "type": "object",
+        "required": [
+          "person",
+          "sharedInterests"
+        ],
+        "properties": {
+          "person": {
+            "$ref": "#/components/schemas/PersonCard"
+          },
+          "bio": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "neighborhood": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "sharedInterests": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InterestRef"
+            }
+          },
+          "meetupsTogether": {
+            "type": "integer"
+          }
+        }
+      },
+      "Thread": {
+        "type": "object",
+        "required": [
+          "threadId",
+          "kind",
+          "title",
+          "participants",
+          "unreadCount",
+          "updatedAt"
+        ],
+        "properties": {
+          "threadId": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "direct",
+              "group"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "participants": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PersonCard"
+            }
+          },
+          "lastMessage": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Message"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "unreadCount": {
+            "type": "integer"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "activeMeetupId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "MessageSender": {
+        "type": "object",
+        "required": [
+          "kind"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "description": "Open enum. `muse` messages are styled as Muse; `system` as small centered notes.",
+            "enum": [
+              "user",
+              "muse",
+              "system"
+            ]
+          },
+          "userId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "MessageAttachment": {
+        "type": "object",
+        "description": "Open union keyed by `kind`. Clients render known kinds and skip unknown ones.\n- starters: conversation starter chips (tapping one fills the composer).\n- meetup: a meetup card for `meetupId`; the client fetches the meetup.\n",
+        "required": [
+          "kind"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string"
+          },
+          "starters": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "meetupId": {
+            "type": "string"
+          }
+        }
+      },
+      "Message": {
+        "type": "object",
+        "required": [
+          "messageId",
+          "threadId",
+          "sender",
+          "text",
+          "createdAt",
+          "attachments"
+        ],
+        "properties": {
+          "messageId": {
+            "type": "string"
+          },
+          "threadId": {
+            "type": "string"
+          },
+          "sender": {
+            "$ref": "#/components/schemas/MessageSender"
+          },
+          "text": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "clientId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "attachments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MessageAttachment"
+            }
+          }
+        }
+      },
+      "Venue": {
+        "type": "object",
+        "required": [
+          "venueId",
+          "name",
+          "location",
+          "kind"
+        ],
+        "properties": {
+          "venueId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "neighborhood": {
+            "type": "string"
+          },
+          "location": {
+            "$ref": "#/components/schemas/LatLng"
+          },
+          "kind": {
+            "type": "string",
+            "description": "Open enum, e.g. park, cafe, game_cafe, climbing_gym, studio, museum, bar, library."
+          }
+        }
+      },
+      "MeetupOption": {
+        "type": "object",
+        "required": [
+          "optionId",
+          "activity",
+          "venue",
+          "startsAt",
+          "endsAt",
+          "reason",
+          "votes"
+        ],
+        "properties": {
+          "optionId": {
+            "type": "string"
+          },
+          "activity": {
+            "type": "string"
+          },
+          "venue": {
+            "$ref": "#/components/schemas/Venue"
+          },
+          "startsAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endsAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "votes": {
+            "type": "object",
+            "required": [
+              "yes",
+              "no"
+            ],
+            "properties": {
+              "yes": {
+                "type": "integer"
+              },
+              "no": {
+                "type": "integer"
+              }
+            }
+          },
+          "myVote": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "yes",
+              "no",
+              null
+            ]
+          }
+        }
+      },
+      "AttendeeStatus": {
+        "type": "string",
+        "enum": [
+          "on_my_way",
+          "arrived"
+        ]
+      },
+      "Attendee": {
+        "type": "object",
+        "required": [
+          "userId",
+          "rsvp",
+          "checkedIn"
+        ],
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "rsvp": {
+            "type": "string",
+            "enum": [
+              "yes",
+              "no",
+              "pending"
+            ]
+          },
+          "checkedIn": {
+            "type": "boolean"
+          },
+          "status": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/AttendeeStatus"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "Meetup": {
+        "type": "object",
+        "required": [
+          "meetupId",
+          "threadId",
+          "status",
+          "organizerId",
+          "size",
+          "options",
+          "attendees",
+          "feedbackDue"
+        ],
+        "properties": {
+          "meetupId": {
+            "type": "string"
+          },
+          "threadId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "description": "Open enum.",
+            "enum": [
+              "proposing",
+              "voting",
+              "confirmed",
+              "completed",
+              "cancelled"
+            ]
+          },
+          "organizerId": {
+            "type": "string"
+          },
+          "size": {
+            "$ref": "#/components/schemas/GroupSize"
+          },
+          "title": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "chosenOptionId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "startsAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "endsAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "venue": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Venue"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MeetupOption"
+            }
+          },
+          "attendees": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Attendee"
+            }
+          },
+          "checkinWindow": {
+            "oneOf": [
+              {
+                "type": "object",
+                "required": [
+                  "opensAt",
+                  "closesAt"
+                ],
+                "properties": {
+                  "opensAt": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "closesAt": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "feedbackDue": {
+            "type": "boolean"
+          },
+          "eventLabel": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Label of the private Event Muse created, e.g. 'Private event · 2 going'."
+          }
+        }
+      },
+      "CheckinResult": {
+        "type": "object",
+        "required": [
+          "accepted"
+        ],
+        "properties": {
+          "accepted": {
+            "type": "boolean"
+          },
+          "reason": {
+            "type": "string",
+            "description": "Open enum.",
+            "enum": [
+              "outside_geofence",
+              "outside_window",
+              "not_attendee"
+            ]
+          }
+        }
+      },
+      "Feedback": {
+        "type": "object",
+        "required": [
+          "answers"
+        ],
+        "properties": {
+          "answers": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "userId",
+                "showedUp",
+                "meetAgain"
+              ],
+              "properties": {
+                "userId": {
+                  "type": "string"
+                },
+                "showedUp": {
+                  "type": "boolean"
+                },
+                "meetAgain": {
+                  "type": "boolean"
+                }
+              }
+            }
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 1000
+          },
+          "reportUserIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "FriendPin": {
+        "type": "object",
+        "required": [
+          "userId",
+          "person",
+          "precision",
+          "location",
+          "radiusM",
+          "sharedInterests",
+          "threadId",
+          "updatedAt"
+        ],
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "person": {
+            "$ref": "#/components/schemas/PersonCard"
+          },
+          "precision": {
+            "$ref": "#/components/schemas/Precision"
+          },
+          "location": {
+            "$ref": "#/components/schemas/LatLng",
+            "description": "For `neighborhood` this is the neighborhood centroid, never the real position."
+          },
+          "radiusM": {
+            "type": "number",
+            "description": "0 for exact; draw a circle of this radius otherwise."
+          },
+          "sharedInterests": {
+            "type": "array",
+            "maxItems": 3,
+            "items": {
+              "$ref": "#/components/schemas/InterestRef"
+            }
+          },
+          "meetupStatus": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/AttendeeStatus"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "threadId": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "TrayItem": {
+        "type": "object",
+        "required": [
+          "userId",
+          "person",
+          "reason",
+          "threadId",
+          "sharedInterests"
+        ],
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "person": {
+            "$ref": "#/components/schemas/PersonCard"
+          },
+          "reason": {
+            "type": "string",
+            "description": "Open enum.",
+            "enum": [
+              "not_sharing",
+              "not_met",
+              "ghost"
+            ]
+          },
+          "threadId": {
+            "type": "string"
+          },
+          "sharedInterests": {
+            "type": "array",
+            "maxItems": 3,
+            "items": {
+              "$ref": "#/components/schemas/InterestRef"
+            }
+          }
+        }
+      },
+      "MeetupPin": {
+        "type": "object",
+        "required": [
+          "meetupId",
+          "title",
+          "venue",
+          "startsAt",
+          "attendeeCount"
+        ],
+        "properties": {
+          "meetupId": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "venue": {
+            "$ref": "#/components/schemas/Venue"
+          },
+          "startsAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "attendeeCount": {
+            "type": "integer"
+          }
+        }
+      },
+      "MapView": {
+        "type": "object",
+        "required": [
+          "generatedAt",
+          "me",
+          "friends",
+          "tray",
+          "meetups"
+        ],
+        "properties": {
+          "generatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "me": {
+            "type": "object",
+            "required": [
+              "ghostMode"
+            ],
+            "properties": {
+              "location": {
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/LatLng"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "ghostMode": {
+                "type": "boolean"
+              }
+            }
+          },
+          "friends": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FriendPin"
+            }
+          },
+          "tray": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TrayItem"
+            }
+          },
+          "meetups": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MeetupPin"
+            }
+          }
+        }
+      },
+      "SceneLeaderboard": {
+        "type": "object",
+        "required": [
+          "poolId",
+          "weekOf",
+          "scenes"
+        ],
+        "properties": {
+          "poolId": {
+            "type": "string"
+          },
+          "weekOf": {
+            "type": "string",
+            "format": "date"
+          },
+          "scenes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "sceneId",
+                "label",
+                "topInterests",
+                "meetupsThisWeek",
+                "following"
+              ],
+              "properties": {
+                "sceneId": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "topInterests": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/InterestRef"
+                  }
+                },
+                "meetupsThisWeek": {
+                  "type": "integer"
+                },
+                "following": {
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        }
+      },
+      "ReportRequest": {
+        "type": "object",
+        "required": [
+          "userId",
+          "reason"
+        ],
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string",
+            "enum": [
+              "threat",
+              "harassment",
+              "no_show_pattern",
+              "fake_account",
+              "other"
+            ]
+          },
+          "text": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "threadId": {
+            "type": "string"
+          },
+          "meetupId": {
+            "type": "string"
+          }
+        }
+      },
+      "RealtimeEvent": {
+        "type": "object",
+        "description": "Envelope for WebSocket frames. Unknown `type` values must be ignored.",
+        "required": [
+          "type",
+          "eventId",
+          "at",
+          "data"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "description": "Open enum. v1 values and what the client should refetch:\nmessage.created (Message) -> append or refetch thread messages;\nthread.updated (Thread) -> refetch /v1/threads;\nconnection.created (Connection) -> refetch /v1/connections and /v1/map;\ndrop.updated ({dropId}) -> refetch /v1/drops/current;\nhi.received (HiItem) -> refetch /v1/hi;\ninvite.received (Invite) -> refetch /v1/invites;\ngroup.updated (GroupRequest) -> refetch the group request;\nmeetup.updated (Meetup) -> refetch the meetup and /v1/map;\nmap.updated ({}) -> refetch /v1/map;\nme.updated ({}) -> refetch /v1/me and /v1/config.\n"
+          },
+          "eventId": {
+            "type": "string"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "data": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      }
+    }
+  }
+}

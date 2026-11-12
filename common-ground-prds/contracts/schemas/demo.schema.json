@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "demo.schema.json",
+  "title": "data/seed/<poolId>/demo.json (demo identities, written by the simulation)",
+  "type": "object",
+  "required": ["poolId", "mayaId", "featuredIds", "publicFeaturedId", "privateFeaturedId", "liveUserId", "counterpartIds", "fakeLocation"],
+  "additionalProperties": false,
+  "properties": {
+    "poolId": { "$ref": "common.schema.json#/$defs/poolId" },
+    "mayaId": { "const": "u_maya" },
+    "featuredIds": { "type": "array", "minItems": 3, "maxItems": 5, "items": { "$ref": "common.schema.json#/$defs/userId" }, "description": "Pinned, in order, into Maya's first drop when DEMO_MODE=1." },
+    "publicFeaturedId": { "$ref": "common.schema.json#/$defs/userId" },
+    "privateFeaturedId": { "$ref": "common.schema.json#/$defs/userId" },
+    "liveUserId": { "$ref": "common.schema.json#/$defs/userId", "description": "Identity the second phone uses. Must also be in featuredIds." },
+    "counterpartIds": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/userId" }, "description": "Personas the synthetic actor drives. Includes every featured ID." },
+    "fakeLocation": { "$ref": "common.schema.json#/$defs/latLng", "description": "Maya's demo location inside the pool." }
+  }
+}

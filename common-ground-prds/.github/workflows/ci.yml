@@ -1,0 +1,64 @@
+name: ci
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  ownership:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: python scripts/check_ownership.py --branch "${GITHUB_HEAD_REF}" --base origin/${GITHUB_BASE_REF}
+
+  contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install pyyaml jsonschema
+      - run: python scripts/validate_contracts.py
+      - run: python scripts/build_openapi_json.py --check
+      - uses: actions/setup-node@v4
+        with: { node-version: "24" }
+      - run: npx -y @redocly/cli@latest lint contracts/openapi.yaml contracts/openapi.internal.yaml --config contracts/.redocly.yaml
+
+  app:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: facebook-clone } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "24", cache: npm, cache-dependency-path: facebook-clone/package-lock.json }
+      - run: npm ci
+      - run: npm test
+      - run: npm run test:native
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run build:ios
+
+  python:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [packages/matching, services/api, services/sim, services/dashboard]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - name: Test ${{ matrix.project }}
+        run: |
+          if [ -f "${{ matrix.project }}/pyproject.toml" ]; then
+            cd "${{ matrix.project }}" && uv run --frozen pytest -q
+          else
+            echo "No project yet at ${{ matrix.project }}"
+          fi
+        env:
+          MUSE_FAKE: "1"
+          LAYA_FAKE: "1"
+          DEMO_MODE: "1"

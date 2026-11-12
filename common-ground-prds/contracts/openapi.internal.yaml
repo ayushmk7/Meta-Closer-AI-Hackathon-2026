@@ -1,0 +1,371 @@
+openapi: 3.1.0
+info:
+  title: Common Ground internal API
+  version: "1.0.0"
+  summary: Backend-only interface for the simulation, the dashboard and demo controls.
+  description: |
+    Served by the backend on CG_INTERNAL_HOST:CG_INTERNAL_PORT (default 127.0.0.1:9001), a separate listener
+    from the public API. It is never reachable from the app: no route here exists on the public port,
+    and nothing in `facebook-clone/` may reference this host, port or any `/internal/` path.
+    No auth in v1 because it binds to loopback only. Same JSON conventions and Error envelope as the public API.
+servers:
+  - url: http://127.0.0.1:9001
+security: []
+tags:
+  - name: pool
+    description: Pool data for the simulation and dashboard.
+  - name: seed
+    description: Loading synthetic seed data.
+  - name: demo
+    description: Demo controls driven from the dashboard.
+paths:
+  /internal/v1/health:
+    get:
+      tags: [pool]
+      operationId: internalHealth
+      summary: Liveness.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status: { type: string, enum: [ok, degraded] }
+
+  /internal/v1/pools:
+    get:
+      tags: [pool]
+      operationId: listPools
+      summary: Pools with member counts.
+      responses:
+        "200":
+          description: Pools
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      required: [poolId, mode, label, members]
+                      properties:
+                        poolId: { type: string }
+                        mode: { type: string }
+                        label: { type: string }
+                        members: { type: integer }
+                        synthetic: { type: integer }
+
+  /internal/v1/pools/{poolId}/export:
+    parameters:
+      - $ref: "#/components/parameters/PoolId"
+    get:
+      tags: [pool]
+      operationId: exportPool
+      summary: Full pool snapshot after the real extraction pipeline. Input to cg_matching and the simulation.
+      responses:
+        "200":
+          description: Pool export
+          content:
+            application/json:
+              schema: { $ref: "./schemas/pool_export.schema.json" }
+        default: { $ref: "#/components/responses/Error" }
+
+  /internal/v1/pools/{poolId}/graph:
+    parameters:
+      - $ref: "#/components/parameters/PoolId"
+    get:
+      tags: [pool]
+      operationId: poolGraph
+      summary: Live internal map for the dashboard. Exact data; never exposed publicly.
+      responses:
+        "200":
+          description: Graph
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PoolGraph" }
+        default: { $ref: "#/components/responses/Error" }
+
+  /internal/v1/metrics:
+    get:
+      tags: [pool]
+      operationId: liveMetrics
+      summary: Live counters for the dashboard.
+      parameters:
+        - name: poolId
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Counters
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: { type: number }
+                properties:
+                  members: { type: integer }
+                  isolated: { type: integer }
+                  connections: { type: integer }
+                  meetupsConfirmed: { type: integer }
+                  meetupsCompleted: { type: integer }
+                  laya_decisive_share: { type: number }
+        default: { $ref: "#/components/responses/Error" }
+
+  /internal/v1/seed/load:
+    post:
+      tags: [seed]
+      operationId: loadSeed
+      summary: Load data/seed/<poolId>/ and run extraction for every persona. Idempotent per poolId.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [poolId]
+              properties:
+                poolId: { type: string }
+                reextract: { type: boolean, default: false, description: "Re-run Muse extraction even if cached." }
+      responses:
+        "202":
+          description: Job started
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Job" }
+        default: { $ref: "#/components/responses/Error" }
+
+  /internal/v1/jobs/{jobId}:
+    parameters:
+      - name: jobId
+        in: path
+        required: true
+        schema: { type: string }
+    get:
+      tags: [seed]
+      operationId: getJob
+      summary: Status of a long-running job.
+      responses:
+        "200":
+          description: Job
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Job" }
+        default: { $ref: "#/components/responses/Error" }
+
+  /internal/v1/laya-tables/reload:
+    post:
+      tags: [seed]
+      operationId: reloadLayaTables
+      summary: Reload data/laya_tables/<poolId>/ written by the simulation.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [poolId]
+              properties:
+                poolId: { type: string }
+      responses:
+        "200":
+          description: Reloaded
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [rows]
+                properties:
+                  rows: { type: object, additionalProperties: { type: integer } }
+                  questionsVersion: { type: integer }
+        default: { $ref: "#/components/responses/Error" }
+
+  /internal/v1/drops/regenerate:
+    post:
+      tags: [demo]
+      operationId: regenerateDrops
+      summary: Advance the day and build fresh drops now (all users in the pool, or the listed ones).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [poolId]
+              properties:
+                poolId: { type: string }
+                userIds: { type: array, items: { type: string } }
+      responses:
+        "200":
+          description: Done
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [drops]
+                properties:
+                  drops: { type: integer }
+        default: { $ref: "#/components/responses/Error" }
+
+  /internal/v1/demo:
+    get:
+      tags: [demo]
+      operationId: getDemoState
+      summary: Current demo controls.
+      responses:
+        "200":
+          description: Demo state
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DemoState" }
+    put:
+      tags: [demo]
+      operationId: setDemoState
+      summary: Change demo controls. Takes effect immediately, including mid-thread.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DemoState" }
+      responses:
+        "200":
+          description: Demo state
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DemoState" }
+        default: { $ref: "#/components/responses/Error" }
+
+  /internal/v1/demo/reset:
+    post:
+      tags: [demo]
+      operationId: resetDemo
+      summary: Delete all live interactions (onboarding, connections, threads, meetups, hi, invites, locations) and keep the seeded pool.
+      responses:
+        "204": { description: Reset }
+        default: { $ref: "#/components/responses/Error" }
+
+  /internal/v1/demo/meetups/{meetupId}/advance:
+    parameters:
+      - name: meetupId
+        in: path
+        required: true
+        schema: { type: string }
+    post:
+      tags: [demo]
+      operationId: advanceMeetup
+      summary: Time-travel a confirmed meetup so check-in or feedback can be demoed now.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [to]
+              properties:
+                to: { type: string, enum: [window_open, completed] }
+      responses:
+        "200":
+          description: Done
+        default: { $ref: "#/components/responses/Error" }
+
+components:
+  parameters:
+    PoolId:
+      name: poolId
+      in: path
+      required: true
+      schema: { type: string }
+  responses:
+    Error:
+      description: Error envelope (same shape as the public API)
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [error]
+            properties:
+              error:
+                type: object
+                required: [code, message, retryable]
+                properties:
+                  code: { type: string }
+                  message: { type: string }
+                  retryable: { type: boolean }
+  schemas:
+    Job:
+      type: object
+      required: [jobId, status]
+      properties:
+        jobId: { type: string }
+        status: { type: string, enum: [queued, running, done, failed] }
+        progress: { type: number, minimum: 0, maximum: 1 }
+        message: { type: string }
+
+    DemoState:
+      type: object
+      properties:
+        counterpart:
+          type: string
+          enum: [live, synthetic]
+          description: "live: liveUserId is driven by the second phone. synthetic: counterparts are automated."
+        liveUserId: { type: string }
+        forcedYes: { type: boolean, description: "Synthetic counterparts always connect, accept, vote yes and show up." }
+        relaxCheckin: { type: boolean }
+        fakeLocation:
+          oneOf:
+            - type: object
+              required: [lat, lng]
+              properties:
+                lat: { type: number }
+                lng: { type: number }
+            - { type: "null" }
+
+    PoolGraph:
+      type: object
+      required: [poolId, generatedAt, nodes, edges]
+      properties:
+        poolId: { type: string }
+        generatedAt: { type: string, format: date-time }
+        nodes:
+          type: array
+          items:
+            type: object
+            required: [userId, location, sceneId, connections, isolated, synthetic]
+            properties:
+              userId: { type: string }
+              displayName: { type: string }
+              location:
+                type: object
+                required: [lat, lng]
+                properties:
+                  lat: { type: number }
+                  lng: { type: number }
+              sceneId: { type: [string, "null"] }
+              connections: { type: integer }
+              isolated: { type: boolean }
+              synthetic: { type: boolean }
+        edges:
+          type: array
+          items:
+            type: object
+            required: [a, b, kind]
+            properties:
+              a: { type: string }
+              b: { type: string }
+              kind: { type: string, enum: [candidate, connection, friendship] }
+              weight: { type: number }
+        scenes:
+          type: array
+          items:
+            type: object
+            required: [sceneId, label]
+            properties:
+              sceneId: { type: string }
+              label: { type: string }
+              topInterestIds: { type: array, items: { type: string } }

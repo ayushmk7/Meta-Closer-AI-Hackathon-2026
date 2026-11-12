@@ -1,0 +1,244 @@
+# Interest taxonomy, version 1. Three levels: category > interest > specific.
+# Full ID = dotted slugs, e.g. outdoors.climbing.bouldering (pattern ^[a-z0-9_]+(\.[a-z0-9_]+){0,2}$).
+# IDs are permanent: never rename, re-parent, delete or reuse one. Labels may be polished.
+# Additions go through a cg/contracts/ PR (additive, bump version). The design target is ~400 leaves;
+# v1 ships ~180, enough for the demo pools.
+# sensitive: true applies to the node and every descendant. Sensitive interests start hidden,
+# and are only ever shown as shared when both users opted that category in (see AGENT_RULES P4).
+# Drop cards show level 2 labels (coarse). Level 3 appears only after a mutual connect.
+version: 1
+tree:
+  outdoors:
+    label: Outdoors
+    children:
+      hiking:
+        label: Hiking
+        children: { coastal_hikes: Coastal hikes, day_hikes: Day hikes, backpacking: Backpacking, trail_running: Trail running }
+      climbing:
+        label: Climbing
+        children: { bouldering: Bouldering, sport_climbing: Sport climbing, outdoor_climbing: Outdoor climbing }
+      cycling:
+        label: Cycling
+        children: { road_cycling: Road cycling, mountain_biking: Mountain biking, bike_commuting: Bike commuting, group_rides: Group rides }
+      water:
+        label: Water sports
+        children: { surfing: Surfing, open_water_swimming: Open-water swimming, kayaking: Kayaking, sailing: Sailing, paddleboarding: Paddleboarding }
+      camping:
+        label: Camping
+        children: { car_camping: Car camping, backcountry_camping: Backcountry camping }
+      gardening:
+        label: Gardening
+        children: { community_gardens: Community gardens, houseplants: Houseplants, urban_farming: Urban farming }
+      nature:
+        label: Nature
+        children: { birdwatching: Birdwatching, foraging: Foraging, stargazing: Stargazing, nature_photography: Nature photography }
+
+  sports_fitness:
+    label: Sports & fitness
+    children:
+      running:
+        label: Running
+        children: { run_clubs: Run clubs, marathon_training: Marathon training, casual_jogging: Casual jogging }
+      team_sports:
+        label: Team sports
+        children: { pickup_basketball: Pickup basketball, soccer: Soccer, volleyball: Volleyball, ultimate_frisbee: Ultimate frisbee, softball: Softball }
+      racket_sports:
+        label: Racket sports
+        children: { tennis: Tennis, pickleball: Pickleball, badminton: Badminton, table_tennis: Table tennis }
+      gym:
+        label: Gym training
+        children: { weightlifting: Weightlifting, crossfit: CrossFit, calisthenics: Calisthenics }
+      mind_body:
+        label: Mind & body
+        children: { yoga: Yoga, pilates: Pilates, meditation: Meditation, tai_chi: Tai chi }
+      combat_sports:
+        label: Combat sports
+        children: { martial_arts: Martial arts, boxing: Boxing, bjj: Brazilian jiu-jitsu }
+      winter_sports:
+        label: Winter sports
+        children: { skiing: Skiing, snowboarding: Snowboarding }
+      watching_sports:
+        label: Watching sports
+        children: { basketball_fans: Basketball fans, soccer_fans: Soccer fans, football_fans: Football fans, f1_fans: F1 fans }
+
+  games:
+    label: Games
+    children:
+      board_games:
+        label: Board games
+        children: { strategy_games: Strategy board games, party_games: Party games, cooperative_games: Co-op games }
+      tabletop_rpg:
+        label: Tabletop RPGs
+        children: { dnd: Dungeons & Dragons, other_ttrpg: Other tabletop RPGs }
+      video_games:
+        label: Video games
+        children: { competitive_shooters: Competitive shooters, rpgs: RPGs, nintendo: Nintendo games, indie_games: Indie games, mmos: MMOs, fighting_games: Fighting games, sim_cozy_games: Cozy and sim games }
+      cards_puzzles:
+        label: Cards & puzzles
+        children: { poker: Poker, trading_card_games: Trading card games, chess: Chess, crosswords_puzzles: Crosswords and puzzles }
+      esports:
+        label: Esports
+        children: { esports_watching: Watching esports, esports_amateur: Amateur leagues }
+
+  arts_crafts:
+    label: Arts & crafts
+    children:
+      ceramics:
+        label: Ceramics
+        children: { wheel_throwing: Wheel throwing, handbuilding: Handbuilding, glazing: Glazing }
+      visual_art:
+        label: Visual art
+        children: { painting: Painting, drawing_sketching: Drawing and sketching, printmaking: Printmaking, digital_art: Digital art }
+      fiber_arts:
+        label: Fiber arts
+        children: { knitting_crochet: Knitting and crochet, sewing: Sewing, embroidery: Embroidery }
+      making:
+        label: Making
+        children: { woodworking: Woodworking, jewelry_making: Jewelry making, three_d_printing: 3D printing, candle_soap_making: Candle and soap making }
+      photography:
+        label: Photography
+        children: { film_photography: Film photography, street_photography: Street photography, portrait_photography: Portrait photography }
+
+  music:
+    label: Music
+    children:
+      playing_music:
+        label: Playing music
+        children: { guitar: Guitar, piano_keys: Piano and keys, singing_choir: Singing and choir, drums: Drums, jam_sessions: Jam sessions }
+      listening:
+        label: Music taste
+        children: { indie_rock: Indie rock, hip_hop: Hip-hop, electronic: Electronic, jazz: Jazz, classical: Classical, kpop: K-pop, latin_music: Latin music }
+      live_music:
+        label: Live music
+        children: { concerts: Concerts, festivals: Festivals, open_mics: Open mics }
+      music_production:
+        label: Music production
+        children: { producing: Producing, djing: DJing }
+
+  food_drink:
+    label: Food & drink
+    children:
+      cooking:
+        label: Cooking
+        children: { home_cooking: Home cooking, baking: Baking, sourdough: Sourdough, meal_prep: Meal prep }
+      eating_out:
+        label: Eating out
+        children: { brunch: Brunch, ramen_noodles: Ramen and noodles, dim_sum: Dim sum, food_trucks: Food trucks, desserts: Desserts, trying_new_spots: Trying new spots }
+      coffee_tea:
+        label: Coffee & tea
+        children: { specialty_coffee: Specialty coffee, tea: Tea }
+      drinks:
+        label: Drinks
+        children: { craft_beer: Craft beer, natural_wine: Natural wine, cocktails: Cocktails, sober_curious: Sober-curious socials }
+
+  culture:
+    label: Books, film & culture
+    children:
+      reading:
+        label: Reading
+        children: { book_clubs: Book clubs, fantasy_scifi: Fantasy and sci-fi, literary_fiction: Literary fiction, nonfiction: Nonfiction, manga_comics: Manga and comics }
+      film_tv:
+        label: Film & TV
+        children: { film_buffs: Film buffs, anime: Anime, reality_tv: Reality TV, horror: Horror }
+      theater_comedy:
+        label: Theater & comedy
+        children: { improv: Improv, standup_comedy: Stand-up comedy, musicals: Musicals }
+      museums:
+        label: Museums
+        children: { art_museums: Art museums, science_museums: Science museums, history_museums: History museums }
+      languages:
+        label: Languages
+        children: { language_exchange: Language exchange, spanish: Spanish, japanese: Japanese, french: French, mandarin: Mandarin, korean: Korean }
+      writing:
+        label: Writing
+        children: { creative_writing: Creative writing, poetry: Poetry, journaling: Journaling }
+
+  tech_career:
+    label: Tech & career
+    children:
+      building:
+        label: Building things
+        children: { coding_side_projects: Coding side projects, hackathons: Hackathons, ai_ml: AI and ML, hardware_electronics: Hardware and electronics, game_dev: Game dev }
+      startups:
+        label: Startups
+        children: { founders: Founders, product_design: Product and design }
+      career:
+        label: Career
+        children: { career_switching: Career switching, networking: Networking, mentorship: Mentorship }
+      crypto:
+        label: Crypto & web3
+        children: { crypto_builders: Crypto builders }
+
+  social_community:
+    label: Social & community
+    children:
+      volunteering:
+        label: Volunteering
+        children: { food_banks: Food banks, animal_shelters: Animal shelters, tutoring: Tutoring, environmental_cleanups: Environmental cleanups }
+      nights_out:
+        label: Nights out
+        children: { trivia_nights: Trivia nights, karaoke: Karaoke, dance_nights: Dance nights, salsa_swing: Salsa and swing }
+      neighborhood:
+        label: Neighborhood life
+        children: { neighborhood_events: Neighborhood events, farmers_markets: Farmers markets, book_swaps: Book swaps }
+      pets:
+        label: Pets
+        children: { dog_owners: Dog owners, cat_people: Cat people }
+      parenting:
+        label: Parenting
+        children: { new_parents: New parents }
+
+  travel:
+    label: Travel & exploring
+    children:
+      trips:
+        label: Trips
+        children: { backpacking_travel: Backpacking travel, road_trips: Road trips, weekend_getaways: Weekend getaways }
+      local_exploring:
+        label: Exploring the city
+        children: { city_walks: City walks, hidden_gems: Hidden gems, architecture: Architecture }
+
+  style:
+    label: Style
+    children:
+      fashion:
+        label: Fashion
+        children: { thrifting: Thrifting, sneakers: Sneakers, vintage_fashion: Vintage fashion }
+      beauty:
+        label: Beauty
+        children: { skincare: Skincare, makeup: Makeup }
+
+  learning:
+    label: Learning
+    children:
+      ideas:
+        label: Ideas
+        children: { science_space: Science and space, history: History, philosophy: Philosophy, podcasts: Podcasts }
+      money_skills:
+        label: Money skills
+        children: { personal_finance: Personal finance, investing: Investing }
+
+  identity_values:
+    label: Identity & values
+    sensitive: true
+    children:
+      faith:
+        label: Faith & spirituality
+        children: { christianity: Christianity, islam: Islam, judaism: Judaism, hinduism: Hinduism, buddhism: Buddhism, spirituality: Spirituality }
+      politics:
+        label: Politics & activism
+        children: { political_organizing: Political organizing, progressive_causes: Progressive causes, conservative_causes: Conservative causes }
+      lgbtq:
+        label: LGBTQ+ community
+        children: { lgbtq_community: LGBTQ+ community }
+      heritage:
+        label: Heritage communities
+        children: { cultural_heritage_groups: Cultural heritage groups }
+
+  health_support:
+    label: Health & support
+    sensitive: true
+    children:
+      support_communities:
+        label: Support communities
+        children: { recovery_community: Recovery community, mental_health_support: Mental health support, chronic_illness_community: Chronic illness community, disability_community: Disability community }

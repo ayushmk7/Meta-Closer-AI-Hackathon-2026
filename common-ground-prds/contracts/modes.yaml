@@ -1,0 +1,57 @@
+# A mode is only a pool definition: who is eligible, where, and for how long.
+# Matching, the simulation and the Muse agent behave identically in every mode.
+# Adding a mode = a new entry here + a seeded pool. No client change: the app lists config.modes.
+version: 1
+
+modes:
+  city:
+    label: City
+    eligibility: Opted-in users whose home is within radiusKm of the pool center
+    window: always
+    distanceFilter: true
+    status: demo            # fully built, used in the demo
+  event:
+    label: Event
+    eligibility: Attendees of one Facebook Event
+    window: { startOffsetDays: -3, endOffsetDays: 7 }
+    distanceFilter: false   # everyone is at the same place
+    status: built           # shown as a switch in the demo
+  campus:
+    label: Campus
+    eligibility: Verified school email
+    window: semester
+    distanceFilter: true
+    status: specced         # appears in config.modes with available=false
+  group:
+    label: Group
+    eligibility: Local members of one Facebook Group
+    window: always
+    distanceFilter: true
+    status: specced
+  arriving:
+    label: Arriving
+    eligibility: People moving to the same city in the next 60 days, plus locals who opt in to welcome them
+    window: { endOffsetDaysAfterMove: 30 }
+    distanceFilter: false
+    status: specced
+  cohort:
+    label: Cohort
+    eligibility: Interns and new grads starting in the same city the same season
+    window: season
+    distanceFilter: true
+    status: specced
+
+pools:
+  - poolId: pool_sf_city
+    mode: city
+    label: San Francisco
+    description: People near you in San Francisco
+    center: { lat: 37.7749, lng: -122.4194 }
+    radiusKm: 10
+  - poolId: pool_evt_closer_together
+    mode: event
+    label: Closer Together AI Hackathon
+    description: People at this event, Nov 11 to 13
+    center: { lat: 37.4848, lng: -122.1484 }
+    radiusKm: 2
+    window: { start: "2026-11-08T08:00:00Z", end: "2026-11-20T08:00:00Z" }

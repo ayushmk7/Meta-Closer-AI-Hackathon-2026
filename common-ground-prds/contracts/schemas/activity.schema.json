@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "activity.schema.json",
+  "title": "One line of data/seed/<poolId>/activity.jsonl (synthetic Facebook activity)",
+  "type": "object",
+  "required": ["activityId", "userId", "kind", "at"],
+  "additionalProperties": false,
+  "properties": {
+    "activityId": { "type": "string" },
+    "userId": { "$ref": "common.schema.json#/$defs/userId" },
+    "kind": { "enum": ["post", "comment", "group_membership", "event_rsvp", "page_follow", "marketplace_listing"] },
+    "at": { "type": "string", "format": "date-time" },
+    "text": { "type": "string", "maxLength": 1000 },
+    "photoCaption": { "type": "string", "maxLength": 300 },
+    "groupName": { "type": "string" },
+    "eventName": { "type": "string" },
+    "pageName": { "type": "string" },
+    "listingTitle": { "type": "string" }
+  }
+}

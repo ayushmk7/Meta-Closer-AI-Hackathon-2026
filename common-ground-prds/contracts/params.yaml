@@ -1,0 +1,106 @@
+# Every tunable number in Common Ground. One source of truth.
+# - The backend loads this file at startup and serves the client subset through GET /v1/config.
+# - The simulation reads the same file so simulated policies match the live product.
+# - The app never hardcodes these values; it reads /v1/config.
+# Values are STARTING values. To change one, the sim agent opens a cg/contracts/ PR with the evidence
+# (run ID and metric deltas). Agents may override values locally with env vars for experiments only.
+version: 1
+
+drops:
+  size: 5                    # cards per drop (config.limits.dropMax)
+  refreshHours: 24
+  diversityMaxPerScene: 2    # at most N cards from the same Leiden scene
+  demoPinFeatured: true      # in DEMO_MODE, demo.json featuredIds lead Maya's first drop
+
+matching:
+  parentWeightFactor: 0.5    # parent node weight = factor x child weight
+  idf: true                  # rare shared interests count more
+  knnK: 20
+  minCosine: 0.15
+  distanceMaxKm: 10          # hard filter in city mode; event mode ignores distance
+  minOverlapSlotsPerWeek: 2
+  ageBands: ["18_21", "22_25", "26_29"]
+  exposureCapPerDay: 8       # a user appears in at most N other drops per day
+  isolationBoost: 0.5        # multiplicative boost for users with zero connections
+  leidenResolution: 1.0
+  rngSeedDefault: 7
+
+groups:
+  sizeMin: 2
+  sizeMax: 8
+  defaultSize: { min: 2, max: 4 }
+  objective: max_min_pairwise   # maximize the lowest pairwise score
+  minSharedWithOthers: 1        # groups of 3+: every member shares >= 1 interest with >= minOthers others
+  minOthers: 2
+  inviteExpiresHours: 48
+
+privacy:
+  sharedCoarseMax: 3         # interests shown on a drop card, level 2 only
+  sharedFullMax: 8           # interests shown after a mutual connect, level 3 allowed
+  densityMinBinCount: 10     # bins below this are never returned
+  densityH3Resolution: 8
+  neighborhoodRadiusM: 800
+  cityMinPool: 150           # below this, widen radius, then suggest an Event or Group pool
+  minCandidates: 5
+
+openers:
+  perPersonPerWeek: 1
+  maxChars: 280
+
+messages:
+  maxChars: 2000
+
+laya:
+  questionsVersion: 1
+  decisiveThreshold: 0.85    # noul answers with p >= t or p <= 1 - t are decided by Laya; others go to Muse
+
+location:
+  minIntervalS: 30
+  meetupWindowBeforeMin: 60  # "on my way" allowed from this long before start until the end
+
+checkin:
+  geofenceM: 150
+  opensBeforeMin: 15
+  closesAfterMin: 60
+  meetupCountsWhen: mutual_confirm_and_checkin   # >= 2 attendees confirm each other and checked in
+
+trust:
+  floor: 0.3                 # below: no drops
+  groupOnlyBelow: 0.5        # below: group meetups only
+  newAccountGroupOnly: true  # until the first confirmed meetup
+
+unlocks:
+  - { unlockId: host, afterConfirmedMeetups: 1, label: "Host meetups" }
+  - { unlockId: bigger_groups, afterConfirmedMeetups: 3, label: "Groups up to 8 and 2 extra daily slots" }
+  - { unlockId: regular, afterConfirmedMeetups: 5, requiresNoReports: true, label: "Regular badge" }
+
+client:
+  pollIntervalS: 5
+  mapRefreshS: 30
+
+features:                    # served as config.features
+  eventMode: true
+  groups: true
+  sayHi: true
+  leaderboard: false
+  unlocks: false
+  checkin: true
+  locationSharing: true
+  density: true
+  realtime: true
+
+sim:
+  personasCity: 300
+  personasEvent: 80
+  lowOutgoingShare: 0.33
+  weeks: 8
+  seeds: 50
+  sweepMultipliers: [0.5, 0.75, 1.0, 1.25, 1.5]   # applied to flake rate and connect rate
+  friendshipMeetups: 2       # friendship = N meetups where both wanted to meet again
+  candidatesPerUser: 20      # top-K pairs precomputed with Laya
+
+demo:
+  syntheticDelayS: [2, 5]    # synthetic counterpart reaction delay range
+  forcedYesDefault: true
+  relaxCheckinDefault: true
+  counterpartDefault: synthetic

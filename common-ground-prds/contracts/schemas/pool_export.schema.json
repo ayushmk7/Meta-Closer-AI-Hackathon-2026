@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "pool_export.schema.json",
+  "title": "GET /internal/v1/pools/{poolId}/export, and cg_matching.PoolSnapshot.from_export()",
+  "description": "Everything matching needs, after the real extraction pipeline. Contains exact homes and hidden/sensitive interests: internal only.",
+  "type": "object",
+  "required": ["poolId", "mode", "generatedAt", "taxonomyVersion", "questionsVersion", "users"],
+  "additionalProperties": false,
+  "properties": {
+    "poolId": { "$ref": "common.schema.json#/$defs/poolId" },
+    "mode": { "$ref": "common.schema.json#/$defs/mode" },
+    "generatedAt": { "type": "string", "format": "date-time" },
+    "taxonomyVersion": { "type": "integer" },
+    "questionsVersion": { "type": "integer" },
+    "users": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["userId", "synthetic", "profileVisibility", "homeLocation", "neighborhood", "ageBand", "availability", "groupSize", "interests", "groupOnly", "connectionIds", "blockedIds"],
+        "additionalProperties": false,
+        "properties": {
+          "userId": { "$ref": "common.schema.json#/$defs/userId" },
+          "synthetic": { "type": "boolean" },
+          "profileVisibility": { "enum": ["public", "private"] },
+          "homeLocation": { "$ref": "common.schema.json#/$defs/latLng" },
+          "neighborhood": { "type": "string" },
+          "ageBand": { "$ref": "common.schema.json#/$defs/ageBand" },
+          "availability": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/availabilitySlot" } },
+          "groupSize": { "$ref": "common.schema.json#/$defs/groupSize" },
+          "interests": {
+            "type": "array",
+            "description": "Leaf-level extracted interests. Parent weights are derived by cg_matching, not stored.",
+            "items": {
+              "type": "object",
+              "required": ["id", "weight", "visibility", "sensitive"],
+              "additionalProperties": false,
+              "properties": {
+                "id": { "$ref": "common.schema.json#/$defs/interestId" },
+                "weight": { "type": "number", "minimum": 0, "maximum": 1 },
+                "visibility": { "enum": ["shown", "hidden"] },
+                "sensitive": { "type": "boolean" },
+                "sharedSensitiveOptIn": { "type": "boolean", "description": "User opted this sensitive category into overlap." }
+              }
+            }
+          },
+          "groupOnly": { "type": "boolean" },
+          "trustFloorOk": { "type": "boolean" },
+          "connectionIds": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/userId" } },
+          "blockedIds": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/userId" } }
+        }
+      }
+    }
+  }
+}

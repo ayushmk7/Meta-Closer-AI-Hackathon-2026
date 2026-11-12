@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "pool.schema.json",
+  "title": "data/seed/<poolId>/pool.json",
+  "type": "object",
+  "required": ["poolId", "mode", "label", "center", "radiusKm", "window", "generator", "rngSeed", "taxonomyVersion"],
+  "additionalProperties": false,
+  "properties": {
+    "poolId": { "$ref": "common.schema.json#/$defs/poolId" },
+    "mode": { "$ref": "common.schema.json#/$defs/mode" },
+    "label": { "type": "string" },
+    "description": { "type": "string" },
+    "center": { "$ref": "common.schema.json#/$defs/latLng" },
+    "radiusKm": { "type": "number", "exclusiveMinimum": 0 },
+    "window": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "required": ["start", "end"],
+          "additionalProperties": false,
+          "properties": { "start": { "type": "string", "format": "date-time" }, "end": { "type": "string", "format": "date-time" } }
+        }
+      ]
+    },
+    "generator": { "type": "string", "description": "e.g. 'cg-sim 0.3.0'" },
+    "rngSeed": { "type": "integer" },
+    "taxonomyVersion": { "type": "integer" }
+  }
+}
