@@ -224,3 +224,21 @@ def test_event_mode_switch_on_real_seed(api, monkeypatch):
     finally:
         monkeypatch.undo()
         asyncio.run(seed.load("pool_sf_city"))
+
+
+def test_me_rewards_own_only(api):
+    """Me.rewards counts the user's counted meetups and points at the next unlock; no other surface carries it."""
+    me = api("getMe").json()  # validated against Me (incl. Rewards)
+    assert me["rewards"] == {"confirmedMeetups": 0, "streakWeeks": 0,
+                             "nextUnlock": {"unlockId": "create_plans", "label": "Create your own plans", "remaining": 1}}  # fmt: skip
+    store.meetups["mt_r"] = {"meetupId": "mt_r", "startsAt": "2026-11-10T18:00:00Z", "endsAt": "2026-11-10T20:00:00Z",
+                             "members": {"u_maya": {"counted": True}, "u_0125": {"counted": False}}}  # fmt: skip
+    r = api("getMe").json()["rewards"]
+    assert (
+        r["confirmedMeetups"] == 1
+        and r["nextUnlock"]["unlockId"] == "bigger_groups"
+        and r["nextUnlock"]["remaining"] == 2
+    )
+    assert api("getMe", headers={"X-CG-User": "u_0125"}).json()["rewards"]["confirmedMeetups"] == 0
+    other = api("getPerson", "/v1/people/u_maya", headers={"X-CG-User": "u_0125"})
+    assert "rewards" not in other.text  # P-private: never on someone else's profile

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import ipaddress
 import logging
 import sys
 import time
@@ -13,12 +14,25 @@ import uvicorn
 from cg_api.settings import get_settings
 
 
+def is_loopback(host: str) -> bool:
+    if host == "localhost":
+        return True
+    try:
+        return ipaddress.ip_address(host.strip("[]")).is_loopback
+    except ValueError:
+        return False
+
+
 def main() -> None:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
     from cg_api import seed
     from cg_api.app import create_apps
 
     s = get_settings()
+    if not is_loopback(s.internal_host):  # P9: the internal API is never reachable off this machine
+        raise SystemExit(
+            f"cg-api: CG_INTERNAL_HOST must be loopback (127.0.0.1, ::1, localhost), got {s.internal_host!r}"
+        )
     public, internal = create_apps()
     default_pool = s.contract("modes.yaml")["pools"][0]["poolId"]
     asyncio.run(seed.load(default_pool))  # data/seed/<pool> if present, else the tiny built-in seed

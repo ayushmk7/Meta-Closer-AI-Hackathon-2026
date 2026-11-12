@@ -12,7 +12,11 @@ Milestone: slice A M2 (platform) done
 - 2026-11-12 Store and slice C's domain World are one world (`cg_api/store/bridge.py`), checked end to end against #16 in `tests/platform/test_bridge.py`, which skips until `cg_api.domain` is on the branch.
 - 2026-11-12 Real seed (data/seed/pool_sf_city, 301 people), stub extraction: load 1.3 s; p95 getMe 3 ms, getSetup 5 ms, export 34 ms, graph 55 ms (first call, then cached), metrics 2 ms, reset 47 ms.
 
+- 2026-11-12 Perf guard `tests/perf/test_budgets.py` writes the real city seed scaled to 400 people and 600 plans as a seed dir and loads it for real: load 1.7 s, reset 0.09 s; p95 over 20 samples (2xx checked): getMe 4 ms, export 113 ms, graph 7 ms, the rest ≤ 3 ms (stub extraction). Asserts load < 60 s, reset < 10 s, GET p95 < 300 ms.
+
 ## Decisions
+- 2026-11-12 `Me.rewards` comes from `cg_api.domain.rewards` and appears only in the user's own `Me`. It counts meetups where `meetups[mt]["members"][uid]["counted"] is True`, plus `params.unlocks`; reports against the user (`store.reports[*].userId`) block the `requiresNoReports` unlock.
+- 2026-11-12 `cg-api` refuses to start unless `CG_INTERNAL_HOST` is loopback (127.0.0.1/::1/localhost), P9.
 - 2026-11-12 FastAPI + uvicorn, two `uvicorn.Server`s under one asyncio loop (`cg-api`).
 - 2026-11-12 Route auto-discovery: any module in `cg_api/routes/` (public) or `cg_api/internal/` (internal) exposing `router = APIRouter()` is mounted. Set `operation_id=<spec operationId>` on each route; operations without a handler fall through to the spec example (logged as `example fallthrough`). `app.py` is frozen after M0.
 - 2026-11-12 Ports (`cg_api/ports.py`): `Muse`, `Laya`, `Extractor`, `Copy`, `AgentRunner` Protocols on `cg_api.ports.ports`; stubs by default (StubMuse raises `Unavailable` so callers run their D4 fallback). Slice D installs real ones via `cg_api.providers.install(ports)`.
@@ -37,6 +41,8 @@ Milestone: slice A M2 (platform) done
 - 2026-11-12 Producer-only metric counts: increment `cg_api.store.counters` with `muse_fallbacks`, `laya_calls`, `laya_decisive` and `booking_fallbacks`.
 
 ## Needs
+- needs: slice C — set `meetups[mt]["members"][uid]["counted"] = True` when the trust rule passes (`params.checkin.meetupCountsWhen`); `Me.rewards` reads it.
+- needs: bplans — clean `ruff check` errors in domain/joins.py, plans.py, runner.py, world.py and routes/approvals.py.
 - needs: sim — make venue and plan IDs unique across pools (e.g. `vn_crux_collective` is in both seeds at different locations). The backend renames them for now.
 - needs: slice C — filter feed and plan inventory by the viewer's `poolId` (`plan["poolId"]`), and take featured plans from `store.demos[user poolId]` instead of `World.demo` (the primary pool only).
 
