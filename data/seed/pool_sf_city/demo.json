@@ -1,0 +1,26 @@
+{
+  "poolId": "pool_sf_city",
+  "mayaId": "u_maya",
+  "featuredPlanIds": [
+    "pl_sf_hero_wheel",
+    "pl_sf_lands_end_walk",
+    "pl_sf_wed_game_night",
+    "pl_builders_001",
+    "pl_builders_002"
+  ],
+  "heroPlanId": "pl_sf_hero_wheel",
+  "nudgePlanId": "pl_sf_lands_end_walk",
+  "liveUserId": "u_0098",
+  "counterpartIds": [
+    "u_0098",
+    "u_0125",
+    "u_0144",
+    "u_0169",
+    "u_0220"
+  ],
+  "privateCounterpartId": "u_0125",
+  "fakeLocation": {
+    "lat": 37.7594,
+    "lng": -122.4676
+  }
+}

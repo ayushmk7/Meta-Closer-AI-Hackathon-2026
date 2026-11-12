@@ -1,0 +1,15 @@
+{
+  "poolId": "pool_sf_city",
+  "mode": "city",
+  "label": "San Francisco",
+  "description": "Plans near you in San Francisco",
+  "center": {
+    "lat": 37.7749,
+    "lng": -122.4194
+  },
+  "radiusKm": 10,
+  "window": null,
+  "generator": "cg-sim 0.2.0",
+  "rngSeed": 7,
+  "taxonomyVersion": 1
+}
