@@ -5,6 +5,7 @@ import { router } from 'expo-router';
 import { Button, Card, Chips, Icon, Label, Muted, Page, useColors } from '../../ui/native';
 import { api } from './api';
 import Connectors from './Connectors';
+import Rewards from './Rewards';
 import { SetupPrompt, sizeBounds, sourceName } from './Plan';
 import { act, load, optIn, setState, useCg } from './store';
 import type {
@@ -320,6 +321,7 @@ export default function SettingsScreen() {
           }
         />
       </Section>
+      <Rewards />
       <Section title="Common Ground">
         <Button
           title="Revisit setup"

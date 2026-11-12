@@ -15,6 +15,7 @@ import {
 } from '../../ui/native';
 import MuseBar from './MuseBar';
 import PlanCard, { PlanCarousel, dayTime } from './PlanCard';
+import Rewards from './Rewards';
 import SetupScreen from './Setup';
 import SurpriseButton from './SurpriseButton';
 import { dismissNudge, nudgesFor, pendingApprovals, refreshAll, useCg } from './store';
@@ -291,6 +292,7 @@ export default function PlansScreen() {
             </View>
           </>
         )}
+        <Rewards style={{ marginHorizontal: 16 }} />
         {connections.length > 0 && (
           <>
             <Section title="People you've met" />

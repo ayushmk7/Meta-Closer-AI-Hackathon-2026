@@ -1,5 +1,5 @@
 {
-  "runId": "20261112T221432Z_pool_sf_city_fake_tables",
+  "runId": "20261112T224057Z_pool_sf_city_fake_tables",
   "poolId": "pool_sf_city",
   "fakeLaya": true,
   "world": "tables",
@@ -113,12 +113,17 @@
     "common_ground"
   ],
   "people": 301,
-  "plans": 698,
+  "plans": 960,
   "weeks": 8,
   "joinDaily": 0.5,
   "ablations": {
     "maxPerActivityType=4": {
       "feed.maxPerActivityType": 4
+    },
+    "caps lifted (type=8,scene=8,fillFloor=0)": {
+      "feed.maxPerActivityType": 8,
+      "feed.maxPerScene": 8,
+      "plans.fillLikelihoodFloor": 0.0
     },
     "exposureCapPerDay=20": {
       "plans.exposureCapPerDay": 20
@@ -150,7 +155,7 @@
       "plans.formLeadHours": 48
     }
   },
-  "mainSeconds": 471.0,
-  "totalSeconds": 761.1,
-  "matching": "matching_adapter fallback"
+  "mainSeconds": 865.1,
+  "totalSeconds": 1421.7,
+  "matching": "cg_matching"
 }

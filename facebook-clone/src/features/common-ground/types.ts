@@ -114,6 +114,11 @@ export interface Unlock {
   description?: string;
   earnedAt: string;
 }
+export interface Rewards {
+  confirmedMeetups: number;
+  streakWeeks: number;
+  nextUnlock?: { unlockId: string; label: string; remaining: number } | null;
+}
 export interface Me {
   userId: string;
   displayName: string;
@@ -131,6 +136,7 @@ export interface Me {
   museSettings: MuseSettings;
   capabilities: Capabilities;
   unlocks: Unlock[];
+  rewards?: Rewards;
 }
 export interface MeUpdate {
   profileVisibility?: ProfileVisibility;

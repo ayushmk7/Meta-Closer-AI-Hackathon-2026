@@ -15,6 +15,7 @@ import {
   useColors,
 } from '../../ui/native';
 import ApprovalSheet, { money } from './ApprovalSheet';
+import { SameTimeNextWeek } from './Rewards';
 import StepTimeline from './StepTimeline';
 import VenueMap from './VenueMap';
 import { api } from './api';
@@ -429,6 +430,7 @@ export default function MeetupScreen() {
       )}
 
       {m.feedbackDue && <Feedback m={m} />}
+      <SameTimeNextWeek m={m} />
 
       <Card style={{ padding: 16, gap: 8 }}>
         <Button
