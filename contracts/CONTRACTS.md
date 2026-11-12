@@ -349,3 +349,5 @@ Resolved open questions from the v2 build. Additive only; nothing renamed or tig
 - **`config.demo.stepDelayS`.** Added as optional; mirrors `params.demo.stepDelayS`.
 - **Laya answer fields.** Still unverified (no `laya-serve` docs here). Each service keeps the field mapping in one `LayaClient` adapter and fails loudly (>5% fallbacks) rather than faking silently.
 
+
+- **Rewards (2026-11-12).** Optional `Me.rewards` { confirmedMeetups, streakWeeks, nextUnlock } from `params.unlocks`; private to the user, never shown to others or used in ranking. "Surprise me" is client-only: it opens a random not-joined plan from the viewer's own `getFeed` (already tailored); no new endpoint.

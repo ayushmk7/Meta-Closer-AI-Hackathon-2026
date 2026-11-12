@@ -8,7 +8,7 @@ from fastapi import APIRouter, Response
 from pydantic import BaseModel, Field, model_validator
 
 from cg_api.deps import Base, User
-from cg_api.errors import ApiError
+from cg_api.errors import ApiError, UserMessage
 from cg_api.store import store
 from cg_api.store.bridge import changed
 from cg_api.store.views import me_view, my_interest
@@ -25,7 +25,7 @@ class GroupSize(BaseModel):
     @model_validator(mode="after")
     def _ordered(self):  # rejected before anything is written (400 validation_failed)
         if self.min > self.max:
-            raise ValueError("group size minimum is above the maximum")
+            raise UserMessage("Group size minimum is above the maximum.")
         return self
 
 

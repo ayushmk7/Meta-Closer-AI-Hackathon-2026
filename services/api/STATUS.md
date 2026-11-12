@@ -24,7 +24,7 @@ Milestone: slice A M2 (platform) done
 - 2026-11-12 Sensitive interests a user accepts are shown on their profile but never opted into overlap (`sharedSensitiveOptIn` stays false; no API sets it yet, P4).
 - 2026-11-12 Every seeded pool loads side by side (`seed.load(primary)`): one world, users carry `poolId`, and plans carry `poolId` from the seed. `loadSeed(poolId)` sets the primary pool, whose demo.json drives demo state; per-pool demo.json lives in `store.demos[poolId]`. `optIn` switches Maya between pools live (city ↔ event, demo 4:15) and keeps people met and threads. `config.modes` marks a built pool without a loaded seed `available: false`.
 - 2026-11-12 The seeds reuse 13 venue IDs and 12 plan IDs across pools, with different places. The loader renames the second pool's colliding IDs to `<id>_<pool suffix>` and rewrites every reference (plans, connector records, demo.json), with a warning in the log.
-- 2026-11-12 Profile updates are validated completely (pydantic, including group size min ≤ max) before any field is written, so a rejected `updateMe` or `completeSetup` changes nothing.
+- 2026-11-12 Profile updates are validated completely (pydantic, including group size min ≤ max) before any field is written, so a rejected `updateMe` or `completeSetup` changes nothing. Validators raise `errors.UserMessage("...")` to set the 400 message as final copy (otherwise it's generic).
 - 2026-11-12 Directives: other slices write `store.directives[uid][key]`; `syncCalendar` returns them all and records `store.applied[uid][key]` for ok reports.
 - 2026-11-12 Branch tracks origin/main (v2 contracts #12, Decisions #15 merged in).
 - 2026-11-12 `/v1/ws` applies the REST identity rule to `?user=` (close 1008 otherwise) and ignores non-object frames.
