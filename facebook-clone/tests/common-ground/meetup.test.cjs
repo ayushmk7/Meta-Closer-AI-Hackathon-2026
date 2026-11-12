@@ -191,3 +191,29 @@ test('feedback needs every answer before Send', async () => {
     ],
   });
 });
+
+test('a confirmed meetup still shows an approval its needs_you step links to', async () => {
+  const m = confirmedNow();
+  m.museSteps.forEach((s) => (s.status = 'done'));
+  m.museSteps.push({
+    stepId: 'st_c',
+    kind: 'reschedule',
+    status: 'needs_you',
+    label: 'Move to 7 PM?',
+    approvalId: 'ap_c',
+    at: m.museSteps[0].at,
+  });
+  m.approvals = [{ ...m.approvals[0], approvalId: 'ap_c', kind: 'change', title: 'Move to 7 PM?' }];
+  const { byLabel } = await show(m);
+  expect(byLabel('Review: Move to 7 PM?')).toBeTruthy();
+});
+
+test('a cancelled meetup shows no day-of actions', async () => {
+  const m = confirmedNow();
+  m.status = 'cancelled';
+  m.checkinWindow = { opensAt: m.startsAt, closesAt: m.endsAt };
+  const { byLabel, text } = await show(m);
+  expect(text()).toContain('This plan was cancelled');
+  expect(byLabel('On my way')).toBeUndefined();
+  expect(byLabel('Check in')).toBeUndefined();
+});

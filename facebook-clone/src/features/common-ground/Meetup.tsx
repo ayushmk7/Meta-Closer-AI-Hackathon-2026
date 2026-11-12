@@ -207,16 +207,19 @@ export default function MeetupScreen() {
   const me = m.attendees.find((a) => a.isMe);
   const going = m.attendees.filter((a) => a.rsvp === 'going');
   const left = me?.rsvp === 'left';
+  const live = !left && m.status !== 'cancelled';
   const dayOf =
-    !left && now >= start - (config?.limits.meetupStatusBeforeMin ?? 60) * 60_000 && now <= end;
+    live && now >= start - (config?.limits.meetupStatusBeforeMin ?? 60) * 60_000 && now <= end;
   const w = m.checkinWindow;
   const windowOpen = !!w && now >= Date.parse(w.opensAt) && now <= Date.parse(w.closesAt);
   const canCheckIn =
     !!config?.features.checkin &&
-    !left &&
+    live &&
     !me?.checkedIn &&
     (windowOpen || (!!config.demo.relaxCheckin && m.status === 'confirmed'));
-  const showSteps = m.status !== 'confirmed' || stepsOpen;
+  // A step waiting on me keeps the timeline open, or its linked approval would show nowhere.
+  const showSteps =
+    m.status !== 'confirmed' || stepsOpen || m.museSteps.some((s) => s.status === 'needs_you');
   const linked = new Set(m.museSteps.map((s) => s.approvalId).filter(Boolean));
   const loose = m.approvals.filter((a) => a.status === 'pending' && !linked.has(a.approvalId));
   const web = Platform.OS === 'web'; // no calendar, maps or directions on web (D5)

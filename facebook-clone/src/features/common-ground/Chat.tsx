@@ -126,8 +126,10 @@ function Starters({ items, onPick }: { items: string[]; onPick(text: string): vo
           onPress={() => onPick(t)}
           style={{
             minHeight: 44,
+            maxWidth: '100%',
             justifyContent: 'center',
             paddingHorizontal: 14,
+            paddingVertical: 8,
             borderRadius: 22,
             borderWidth: 1,
             borderColor: c.divider,
@@ -163,10 +165,12 @@ function Attachment({ a, onStarter }: { a: MessageAttachment; onStarter(t: strin
 function Bubble({
   m,
   thread,
+  first,
   onStarter,
 }: {
   m: Message;
   thread?: Thread;
+  first: boolean; // first bubble of a run from this sender
   onStarter(t: string): void;
 }) {
   const c = useColors();
@@ -191,25 +195,32 @@ function Bubble({
   const pending = m.messageId.startsWith('pending:');
   return (
     <View style={{ alignItems: own ? 'flex-end' : 'flex-start', gap: 4 }}>
-      {!own && person && (
-        <Muted style={{ marginLeft: 12 }}>{personName(person).split(' ')[0]}</Muted>
+      {!own && first && person && (
+        <Muted style={{ marginLeft: 48 }}>{personName(person).split(' ')[0]}</Muted>
       )}
-      <View
-        style={{
-          maxWidth: '85%',
-          borderRadius: 20,
-          paddingHorizontal: 14,
-          paddingVertical: 10,
-          backgroundColor: own ? c.blue : c.input,
-          opacity: pending ? 0.7 : 1,
-        }}
-      >
-        {m.toMuse && (
-          <Label style={{ color: own ? '#fff' : c.blue, fontSize: 12, fontWeight: '700' }}>
-            To Muse
-          </Label>
+      <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 8, maxWidth: '85%' }}>
+        {!own && (
+          <View style={{ width: 32 }}>
+            {first && person && <PersonAvatar person={person} size={32} />}
+          </View>
         )}
-        <Label style={{ color: own ? '#fff' : c.text }}>{m.text}</Label>
+        <View
+          style={{
+            flexShrink: 1,
+            borderRadius: 20,
+            paddingHorizontal: 14,
+            paddingVertical: 10,
+            backgroundColor: own ? c.blue : c.input,
+            opacity: pending ? 0.7 : 1,
+          }}
+        >
+          {m.toMuse && (
+            <Label style={{ color: own ? '#fff' : c.blue, fontSize: 12, fontWeight: '700' }}>
+              To Muse
+            </Label>
+          )}
+          <Label style={{ color: own ? '#fff' : c.text }}>{m.text}</Label>
+        </View>
       </View>
       {attachments}
     </View>
@@ -226,7 +237,13 @@ export default function ChatScreen() {
   const c = useColors();
   const keyboardOffset = useKeyboardOffset();
   const { threadId = '' } = useLocalSearchParams<{ threadId: string }>();
-  const thread = useCg((s) => s.threads.find((t) => t.threadId === threadId));
+  const listed = useCg((s) => s.threads.find((t) => t.threadId === threadId));
+  // Deep links and "Open group chat" can arrive before listThreads has this thread.
+  const [fetched, setFetched] = useState<Thread>();
+  useEffect(() => {
+    if (!listed) void act(() => api.getThread(threadId)).then((t) => t && setFetched(t));
+  }, [listed, threadId]);
+  const thread = listed ?? (fetched?.threadId === threadId ? fetched : undefined);
   const messages = useCg((s) => s.messages[threadId] ?? NONE);
   const draft = useCg((s) => s.drafts[threadId] ?? '');
   const maxChars = useCg((s) => s.config?.limits.messageMaxChars ?? 2000);
@@ -309,8 +326,17 @@ export default function ChatScreen() {
         onContentSizeChange={() => scroll.current?.scrollToEnd({ animated: false })}
         contentContainerStyle={{ padding: 14, gap: 12, flexGrow: 1 }}
       >
-        {messages.map((m) => (
-          <Bubble key={m.messageId} m={m} thread={thread} onStarter={setDraft} />
+        {messages.map((m, i) => (
+          <Bubble
+            key={m.messageId}
+            m={m}
+            thread={thread}
+            first={
+              messages[i - 1]?.sender.kind !== 'user' ||
+              messages[i - 1]?.sender.userId !== m.sender.userId
+            }
+            onStarter={setDraft}
+          />
         ))}
         {museBusy(messages) && (
           <View

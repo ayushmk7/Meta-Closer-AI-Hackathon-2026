@@ -170,3 +170,26 @@ test("muse_steps attachment lists those steps; 'Muse is on it…' until Muse rep
   expect(Chat.museBusy(list)).toBe(false);
   expect(Chat.museBusy([])).toBe(false);
 });
+
+test('header falls back to getThread; others get avatar + first name on the first bubble of a run', async () => {
+  store.setState({ threads: [] });
+  const thread = {
+    threadId: 'th_0001',
+    kind: 'group',
+    title: 'Wheel-throwing drop-in',
+    participants: F.getMeetup.attendees.map((a) => a.person),
+    unreadCount: 0,
+    updatedAt: '2026-11-12T18:14:16Z',
+    meetupId: 'mt_0001',
+  };
+  const get = jest.spyOn(api, 'getThread').mockResolvedValue(thread);
+  const daniel = { ...clone(F.listMessages.items[1]), toMuse: false };
+  const list = [daniel, { ...daniel, messageId: 'ms_d2', text: 'Mugs too.' }];
+  const { byLabel, text, tree } = await show(list);
+  expect(get).toHaveBeenCalledWith('th_0001');
+  expect(byLabel('Wheel-throwing drop-in, open the plan')).toBeTruthy();
+  expect(text().match(/"Daniel"/g)).toHaveLength(1);
+  expect(
+    tree.root.findAll((n) => n.props.accessibilityLabel === 'Daniel Okafor').length,
+  ).toBeGreaterThan(0);
+});
