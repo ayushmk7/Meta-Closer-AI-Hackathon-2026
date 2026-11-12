@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
+
 from cg_api.contracts import interest_ref
 from cg_api.errors import ApiError
 from cg_api.settings import get_settings
@@ -81,6 +83,25 @@ def capabilities(uid: str) -> dict:
     }
 
 
+def counted_starts(uid: str) -> list[datetime]:
+    """Start times of meetups that counted for uid: slice C sets members[uid]["counted"] = True when the
+    trust rule passes (params.checkin.meetupCountsWhen)."""
+    return [
+        datetime.fromisoformat(m["startsAt"])
+        for m in store.meetups.values()
+        if m.get("members", {}).get(uid, {}).get("counted") is True
+    ]
+
+
+def rewards_view(uid: str) -> dict:
+    """Me.rewards: private progress, only ever in the user's own Me."""
+    from cg_api.domain.rewards import rewards
+
+    now = store.world.now() if store.world is not None else datetime.now(UTC)
+    reported = any(r.get("userId") == uid for r in store.reports)
+    return rewards(counted_starts(uid), get_settings().params["unlocks"], now, has_reports=reported)
+
+
 def me_view(uid: str, base: str) -> dict:
     u = store.users[uid]
     return {
@@ -100,6 +121,7 @@ def me_view(uid: str, base: str) -> dict:
         "museSettings": u["museSettings"],
         "capabilities": capabilities(uid),
         "unlocks": u["unlocks"],
+        "rewards": rewards_view(uid),
     }
 
 
