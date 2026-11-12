@@ -13,8 +13,12 @@ import sys
 from pathlib import Path
 
 from cg_sim.contracts import data_dir, pool_ids
-from cg_sim.matching_adapter import ACTIVITY_INTERESTS
 from cg_sim.precompute import _jsonl, load_export
+from cg_sim.seed.export import ROUTINE_INTERESTS, ground_truth_signals, load_ground_truth
+
+
+def _covers(ids: list[str], targets: list[str]) -> bool:
+    return any(i == t or i.startswith(t + ".") or t.startswith(i + ".") for i in ids for t in targets)
 
 
 def _pr(pred: set, truth: set) -> dict:
@@ -26,7 +30,10 @@ def _pr(pred: set, truth: set) -> dict:
     }
 
 
-def evaluate(export: dict, truth: list[dict]) -> dict:
+def evaluate(export: dict, truth: list[dict], providers: dict[str, set[str]] | None = None) -> dict:
+    """truth: ground_truth rows (interests + frequentPlaces/routines/sensitivePlace). providers: userId ->
+    connected providers; place truth counts only for google_maps users, routines only for strava users
+    (the backend cannot see the rest). None = count every user."""
     users = {u["userId"]: u for u in export["users"]}
     leaf_p, leaf_t, l2_p, l2_t = set(), set(), set(), set()
     sens_p, sens_t, place_p, place_t, freq_p, freq_t, rout_p, rout_t = (set() for _ in range(8))
@@ -43,19 +50,21 @@ def evaluate(export: dict, truth: list[dict]) -> dict:
             l2_p.add((uid, i["id"].rsplit(".", 1)[0]))
             if i["sensitive"]:
                 sens_p.add((uid, i["id"]))
-        if t.get("sensitivePlace"):
-            place_t.add((uid, t["sensitivePlace"]))
-        freq_t |= {(uid, v) for v in t.get("frequentPlaces", [])}
-        for r in t.get("routines", []):
+        conn = providers.get(uid, set()) if providers is not None else {"google_maps", "strava"}
+        if "google_maps" in conn:
+            if t.get("sensitivePlace"):
+                place_t.add((uid, t["sensitivePlace"]))
+            freq_t |= {(uid, v) for v in t.get("frequentPlaces", [])}
+        routine_ids = [i for s in u["signals"] if s["kind"] == "routine" for i in s["interestIds"]]
+        for r in t.get("routines", []) if "strava" in conn else []:
             rout_t.add((uid, r["activity"]))
+            if _covers(routine_ids, ROUTINE_INTERESTS.get(r["activity"], [])):
+                rout_p.add((uid, r["activity"]))
         for s in u["signals"]:
             if s.get("venueId") and s["sensitive"]:
                 place_p.add((uid, s["venueId"]))
-            if s["kind"] == "frequent_place" and s.get("venueId"):
+            if s["kind"] == "frequent_place" and s.get("venueId") and not s["sensitive"]:
                 freq_p.add((uid, s["venueId"]))
-            if s["kind"] == "routine":
-                l2 = {i.rsplit(".", 1)[0] for i in s["interestIds"]}
-                rout_p |= {(uid, a) for a, targets in ACTIVITY_INTERESTS.items() if l2 & set(targets)}
     return {
         "users": len(truth),
         "interests_leaf": _pr(leaf_p, leaf_t),
@@ -64,7 +73,7 @@ def evaluate(export: dict, truth: list[dict]) -> dict:
         "sensitive_places": _pr(place_p, place_t),
         "frequent_places": _pr(freq_p, freq_t),
         # ponytail: a routine counts as found if any routine signal targets the activity's interests.
-        "routines": {k: v for k, v in _pr(rout_p & rout_t, rout_t).items() if k not in ("precision", "predicted")},
+        "routines": {k: v for k, v in _pr(rout_p, rout_t).items() if k not in ("precision", "predicted")},
     }
 
 
@@ -86,8 +95,12 @@ def main(argv: list[str]) -> int:
     a = ap.parse_args(argv)
     results = {}
     for pid in [a.pool] if a.pool else pool_ids():
-        truth = _jsonl(data_dir() / "sim_private" / pid / "ground_truth.jsonl")
-        results[pid] = evaluate(load_export(pid, a.use_ground_truth), truth)
+        truth = load_ground_truth(pid)
+        for uid, sig in ground_truth_signals(pid).items():
+            truth[uid] |= sig
+        providers = {p["userId"]: set(p["connectedProviders"])
+                     for p in _jsonl(data_dir() / "seed" / pid / "personas.jsonl")}
+        results[pid] = evaluate(load_export(pid, a.use_ground_truth), list(truth.values()), providers)
     out = a.out or data_dir() / "sim" / "runs" / a.run_id / "extraction.json"
     out.parent.mkdir(parents=True, exist_ok=True)
     doc = {"runId": a.run_id, "source": "ground_truth" if a.use_ground_truth else "backend_export", "pools": results}

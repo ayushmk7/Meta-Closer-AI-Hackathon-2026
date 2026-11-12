@@ -68,9 +68,19 @@ def test_evaluate_counts():
         {"id": "a.b.d", "weight": 1, "visibility": "shown", "sensitive": False}],
         "signals": [{"kind": "frequent_place", "venueId": "vn_f", "sensitive": False, "interestIds": []},
                     {"kind": "routine", "venueId": None, "sensitive": False,
-                     "interestIds": ["sports_fitness.running.road_running"]}]}]}
+                     "interestIds": ["sports_fitness.running"]}]}]}
     r = evaluate(export, truth)
     assert r["interests_leaf"] == {"tp": 1, "predicted": 2, "actual": 2, "precision": 0.5, "recall": 0.5}
     assert r["interests_level2"]["recall"] == 0.5
     assert r["sensitive_interests"]["recall"] == 0.0 and r["sensitive_places"]["recall"] == 0.0
+    assert r["frequent_places"]["recall"] == 1.0 and r["routines"]["recall"] == 1.0
+
+
+def test_ground_truth_eval_sees_signals(tmp_path):
+    from cg_sim.evalx import main
+
+    out = tmp_path / "x.json"
+    assert main(["--pool", POOL, "--use-ground-truth", "--out", str(out)]) == 0
+    r = json.loads(out.read_text())["pools"][POOL]
+    assert r["sensitive_places"]["actual"] > 0 and r["sensitive_places"]["recall"] == 1.0
     assert r["frequent_places"]["recall"] == 1.0 and r["routines"]["recall"] == 1.0

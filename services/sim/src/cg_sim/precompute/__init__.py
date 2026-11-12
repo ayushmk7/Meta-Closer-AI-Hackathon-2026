@@ -30,11 +30,9 @@ def internal_url() -> str:
 
 def load_export(pool_id: str, use_ground_truth: bool) -> dict:
     if use_ground_truth:
-        from cg_sim.seed.generate import ground_truth_export
+        from cg_sim.seed.export import load_ground_truth_export
 
-        seed, priv = data_dir() / "seed" / pool_id, data_dir() / "sim_private" / pool_id
-        return ground_truth_export(pool_id, _jsonl(seed / "personas.jsonl"), _jsonl(priv / "ground_truth.jsonl"),
-                                   _jsonl(seed / "connectors.jsonl"))
+        return load_ground_truth_export(pool_id)  # signals filled from connected providers
     import httpx
 
     r = httpx.get(f"{internal_url()}/internal/v1/pools/{pool_id}/export", timeout=60)
