@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import copy
 import itertools
+from collections import Counter
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any
@@ -56,6 +57,7 @@ class Store:
     blocks: set[frozenset] = field(default_factory=set)
     nudges: dict[str, dict] = field(default_factory=dict)
     reports: list[dict] = field(default_factory=list)
+    demo_state: dict = field(default_factory=dict)  # DemoState (internal API); defaults set by seed.load
     world: Any = None  # slice C's domain World (cg_api.domain.world.current) when installed; see store.bridge
     directives: dict[str, dict[str, dict]] = field(default_factory=dict)
     applied: dict[str, dict[str, str]] = field(default_factory=dict)
@@ -72,15 +74,23 @@ class Store:
     # ---------- snapshot / reset ----------
     _STATE = ("pool", "demo", "seed_dir", "laya_tables_dir", "users", "records", "activity", "venues", "plans",
               "joins", "meetups", "threads", "approvals", "connections", "blocks", "nudges", "reports",
-              "directives", "applied", "world")  # fmt: skip
+              "directives", "applied", "demo_state", "world")  # fmt: skip
+
+    def _memo(self) -> dict:
+        """deepcopy memo that shares the World's code and config (modules, hooks, params) instead of copying them."""
+        w = self.world
+        if w is None:
+            return {}
+        keep = [v for v in vars(w).values() if not isinstance(v, (dict, list, set))] + [w.params, w.taxonomy]
+        return {id(v): v for v in keep}
 
     def snapshot(self) -> None:
-        self._snapshot = copy.deepcopy({k: getattr(self, k) for k in self._STATE})
+        self._snapshot = copy.deepcopy({k: getattr(self, k) for k in self._STATE}, self._memo())
 
     def reset(self) -> None:
         # One deepcopy of everything, so dicts shared with the domain World stay shared after restore.
         if self._snapshot is not None:
-            for k, v in copy.deepcopy(self._snapshot).items():
+            for k, v in copy.deepcopy(self._snapshot, self._memo()).items():
                 setattr(self, k, v)
         self._ids = itertools.count(1)
         from cg_api.store import bridge
@@ -89,3 +99,8 @@ class Store:
 
 
 store = Store()
+
+# Live counters for /internal/v1/metrics that only the producer can see. Slices increment them, e.g.
+# counters["muse_fallbacks"] += 1, counters["laya_calls"] += 1, counters["laya_decisive"] += 1,
+# counters["booking_fallbacks"] += 1. Not reset by resetDemo (process lifetime).
+counters: Counter[str] = Counter()

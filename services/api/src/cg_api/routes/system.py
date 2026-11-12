@@ -34,9 +34,6 @@ _LIMITS = {
     "meetupStatusBeforeMin": ("meetups", "statusWindowBeforeMin"),
 }
 
-# Live demo state (counterpart, fakeLocation, ...) overrides these; set by the store/demo controls.
-demo_overrides: dict = {}
-
 
 @router.get("/v1/health", operation_id="getHealth")
 def get_health():
@@ -65,14 +62,14 @@ def build_config() -> dict:
             out_modes.append({"mode": mode, "label": m["label"], "poolId": f"pool_{mode}_placeholder",
                               "available": False, "description": "Coming soon"})  # fmt: skip
     d = p["demo"]
+    live = store.demo_state  # setDemoState changes these mid-demo
     demo = {
         "enabled": s.demo_mode,
-        "counterpart": d["counterpartDefault"],
-        "fakeLocation": (store.demo or {}).get("fakeLocation"),
-        "relaxCheckin": d["relaxCheckinDefault"],
-        "simulatedPayments": d["simulatedPayments"],
+        "counterpart": live.get("counterpart", d["counterpartDefault"]),
+        "fakeLocation": live.get("fakeLocation"),
+        "relaxCheckin": live.get("relaxCheckin", d["relaxCheckinDefault"]),
+        "simulatedPayments": live.get("simulatedPayments", d["simulatedPayments"]),
         "stepDelayS": d["stepDelayS"],
-        **demo_overrides,
     }
     return {
         "apiVersion": "2",

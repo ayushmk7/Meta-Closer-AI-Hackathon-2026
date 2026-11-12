@@ -92,12 +92,11 @@ def new_user(persona: dict, synthetic: bool, mode: str, pool_id: str) -> dict:
 
 
 async def load(pool_id: str, reextract: bool = False, job: dict | None = None) -> dict:
-    d = seed_dir(pool_id)
-    data = _read(d)
+    data = _read(seed_dir(pool_id))
     pool, demo = data["pool"], data["demo"]
     mode, maya = pool["mode"], demo["mayaId"]
     store.__init__()  # fresh world
-    store.pool, store.demo, store.seed_dir = pool, demo, str(d)
+    store.pool, store.demo, store.seed_dir = pool, demo, str(seed_dir(pool_id))
     store.venues = {v["venueId"]: v for v in data["venues"]}
     ports.extractor.venue = lambda vid: store.venues.get(vid)  # late-bound: survives reset and reload
     for persona in data["personas"]:
@@ -125,6 +124,16 @@ async def load(pool_id: str, reextract: bool = False, job: dict | None = None) -
                 jid = f"jn_{plan['planId'].removeprefix('pl_')}_{k}"
                 store.joins[jid] = {"joinId": jid, "planId": plan["planId"], "userId": uid, "status": "interested",
                                     "createdAt": pool.get("generatedAt") or ANCHOR.strftime("%Y-%m-%dT%H:%M:%SZ")}  # fmt: skip
+    d = get_settings().params["demo"]
+    store.demo_state = {
+        "counterpart": d["counterpartDefault"],
+        "liveUserId": demo["liveUserId"],
+        "forcedYes": d["forcedYesDefault"],
+        "relaxCheckin": d["relaxCheckinDefault"],
+        "failNextBooking": False,
+        "simulatedPayments": d["simulatedPayments"],
+        "fakeLocation": demo["fakeLocation"],
+    }
     _maybe_tables(pool["poolId"])
     bridge.build()  # slice C's World shares plans/joins/...; must run before the snapshot
     store.snapshot()
@@ -134,7 +143,7 @@ async def load(pool_id: str, reextract: bool = False, job: dict | None = None) -
         "venues": len(store.venues),
         "plans": len(store.plans),
     }
-    log.info("seed loaded from %s: %s", d, summary)
+    log.info("seed loaded from %s: %s", store.seed_dir, summary)
     return summary
 
 

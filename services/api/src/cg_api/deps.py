@@ -13,9 +13,20 @@ from cg_api.store import Store, store
 _USER_ID = re.compile(r"^u_[a-z0-9]+$")
 
 
+def _known(uid: str) -> bool:
+    """In the loaded store, or in the live domain World (the same people once the bridge has run)."""
+    if uid in store.users:
+        return True
+    try:
+        from cg_api.domain import world
+    except ImportError:
+        return False
+    return world.current is not None and uid in world.current.users
+
+
 def current_user(x_cg_user: Annotated[str | None, Header()] = None) -> str:
     """Demo identity (CONTRACTS §2). Missing, malformed or unknown -> 401."""
-    if not x_cg_user or not _USER_ID.match(x_cg_user) or x_cg_user not in store.users:
+    if not x_cg_user or not _USER_ID.match(x_cg_user) or not _known(x_cg_user):
         raise ApiError(401, "unauthenticated", "Pick a demo user to continue.")
     return x_cg_user
 

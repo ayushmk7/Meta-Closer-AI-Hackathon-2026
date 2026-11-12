@@ -58,15 +58,21 @@ def opt_out(uid: User):
 async def get_setup(uid: User, base: Base):
     u = require_opted_in(uid)
     interests = sorted(u["interests"].values(), key=lambda i: (-i["weight"], i["id"]))
-    shown = [
-        my_interest(i)["interest"]["label"] for i in interests if i["visibility"] == "shown" and not i["sensitive"]
+    for_copy = [  # Copy drops sensitive/hidden itself (ports.CopyInterest)
+        {
+            "id": i["id"],
+            "label": interest_ref(i["id"])["label"],
+            "visibility": i["visibility"],
+            "sensitive": i["sensitive"],
+        }
+        for i in interests
     ]
     has_records = {r["provider"] for r in store.records.get(uid, [])}
     providers = get_settings().contract("connectors.yaml")["providers"]
     suggested = [p for p, spec in providers.items() if spec["status"] == "available" and p not in u["connectors"]
                  and (p == "device_calendar" or p in has_records)]  # fmt: skip
     return {
-        "museText": await ports.copy.setup_review(uid, shown),
+        "museText": await ports.copy.setup_review(uid, for_copy),
         "proposedInterests": [my_interest(i) for i in interests],
         "signals": [signal_view(s, base) for s in u["signals"].values()],
         "proposedGroupSize": u["groupSize"],
