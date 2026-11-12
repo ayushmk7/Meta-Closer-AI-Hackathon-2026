@@ -1,7 +1,8 @@
 // In-app fake server. Every response starts from `fixtures.json`, which is the 2xx `example` of
 // each operation in contracts/openapi.json (Metro cannot bundle outside the app, so the test
 // tests/common-ground/contract.test.ts keeps the copy in sync: `CG_WRITE_FIXTURES=1 npm test`).
-// ponytail: A1 is a naive stateful world (no timed staging yet); A2 stages forming, steps and reschedule.
+// Staging (A2): timed transitions are timestamps checked on each request (`tick`), never
+// setTimeout, so Node tests drive them with mocked Date and never hang.
 import fixtures from './fixtures.json';
 import type {
   Approval,
@@ -95,10 +96,23 @@ function world() {
     meetups: { [F.getMeetup.meetupId]: clone(F.getMeetup) } as Record<string, Meetup>,
     // Meetups appear in lists only once my join is matched (getMeetup by ID always works).
     visibleMeetups: new Set<string>(),
-    messages: { [F.getMeetup.threadId]: clone(F.listMessages.items) } as Record<string, Message[]>,
-    unread: { [F.getMeetup.threadId]: F.listMessages.items.length } as Record<string, number>,
+    // Muse's intro only; the reschedule reply (fixture ms_0003) arrives after a toMuse message.
+    messages: { [F.getMeetup.threadId]: clone(F.listMessages.items.slice(0, 1)) } as Record<
+      string,
+      Message[]
+    >,
+    unread: { [F.getMeetup.threadId]: 1 } as Record<string, number>,
     connections: clone(F.listConnections.items),
     conversationId: null as string | null,
+    stage: {
+      born: Date.now(),
+      formAt: null as number | null,
+      formedAt: null as number | null,
+      decidedAt: null as number | null,
+      approved: null as boolean | null,
+      rescheduleAt: null as number | null,
+      replied: false,
+    },
   };
 }
 let w = world();
@@ -252,7 +266,12 @@ on('POST', '/v1/muse/ask', () => {
 });
 on('GET', '/v1/feed', () => {
   gate();
-  return { ...clone(F.getFeed), plans: F.getFeed.plans.map((p) => withJoin(w.plans[p.planId]!)) };
+  const busy = visibleMeetups().some((m) => m.status === 'setting_up');
+  return {
+    ...clone(F.getFeed),
+    museStatus: busy ? F.getFeed.museStatus : null,
+    plans: F.getFeed.plans.map((p) => withJoin(w.plans[p.planId]!)),
+  };
 });
 on('POST', '/v1/plans', (_, b) => {
   gate();
@@ -297,12 +316,7 @@ on('POST', '/v1/plans/{id}/join', ([id], b) => {
         };
   if (j.calendar && !j.calendar.key) j.calendar.key = j.joinId;
   w.joins[id] = j;
-  // ponytail: A1 matches the example meetup's plan at once; A2 stages the forming delay.
-  const m = Object.values(w.meetups).find((x) => x.planId === id);
-  if (m) {
-    w.visibleMeetups.add(m.meetupId);
-    Object.assign(j, { status: 'matched', meetupId: m.meetupId, calendar: null });
-  }
+  if (id === F.joinPlan.planId) w.stage.formAt = Date.now() + FORM_MS;
   return j;
 });
 on('DELETE', '/v1/plans/{id}/join', ([id]) => {
@@ -360,6 +374,8 @@ on('POST', '/v1/approvals/{id}/decision', ([id], b) => {
   if (a.status !== 'pending') throw new MockError(409, 'conflict', 'This was already decided.');
   const approve = b?.decision === 'approve';
   a.status = approve ? 'approved' : 'declined';
+  if (m.meetupId === F.getMeetup.meetupId)
+    Object.assign(w.stage, { decidedAt: Date.now(), approved: approve });
   if (a.kind === 'payment') m.cost.myPayment = approve ? 'paid' : 'declined';
   return a;
 });
@@ -403,6 +419,8 @@ on('POST', '/v1/threads/{id}/messages', ([id], b, _, user) => {
     attachments: [],
   };
   list.push(msg);
+  if (msg.toMuse && w.stage.formedAt && w.stage.rescheduleAt == null)
+    w.stage.rescheduleAt = Date.now();
   return msg;
 });
 on('POST', '/v1/threads/{id}/read', ([id]) => {
@@ -412,12 +430,120 @@ on('POST', '/v1/threads/{id}/read', ([id]) => {
 on('POST', '/v1/reports', () => ({ reportId: nextId('rp_') }));
 on('POST', '/v1/blocks', () => undefined);
 
+// ponytail: params.demo.stepDelayS is not in /v1/config yet, so a named constant (its upper bound).
+export const STEP_DELAY_S = 2;
+const D = STEP_DELAY_S * 1000;
+const FORM_MS = 2 * D; // I'm in on pl_0001 -> group forms
+const NOT_FILLED_MS = 30_000; // the seeded join (pl_0002) doesn't fill, with alternatives
+const SEEDED = F.getFeed.plans.find((p) => p.myJoin)?.planId;
+const HOUR = 3_600_000;
+const iso = (ms: number) => new Date(ms).toISOString();
+const phase = (t: number, from: number) =>
+  t < from ? 'queued' : t < from + D ? 'running' : 'done';
+const muse = (stepId: string, kind: string, status: string, label: string, at: number) => ({
+  stepId,
+  kind,
+  status,
+  label,
+  detail: null,
+  approvalId: null,
+  at: iso(at),
+});
+
+// Recompute the staged demo from timestamps: forming, steps ticking, approval -> booked,
+// reschedule after a toMuse message, the seeded join not filling.
+export function tick(t = Date.now()): void {
+  const s = w.stage;
+  const j = w.joins[F.joinPlan.planId];
+  if (j?.status === 'interested' && s.formAt != null && t >= s.formAt) {
+    Object.assign(j, { status: 'matched', meetupId: F.getMeetup.meetupId, calendar: null });
+    s.formedAt = s.formAt;
+    w.visibleMeetups.add(F.getMeetup.meetupId);
+  }
+  const nf = SEEDED ? w.joins[SEEDED] : undefined;
+  if (nf?.status === 'interested' && t >= s.born + NOT_FILLED_MS)
+    Object.assign(nf, { status: 'not_filled', alternatives: ['pl_0003'], calendar: null });
+  const f = s.formedAt;
+  if (f == null) return;
+  const base = F.getMeetup;
+  const m = w.meetups[base.meetupId]!;
+  const steps = clone(base.museSteps);
+  steps.slice(0, 3).forEach((st, i) => (st.status = phase(t, f + i * D)));
+  steps[3]!.status =
+    t < f + 3 * D ? 'queued' : s.approved == null ? 'needs_you' : s.approved ? 'done' : 'skipped';
+  if (s.decidedAt != null) {
+    const d = s.decidedAt;
+    if (s.approved === false)
+      steps.push(
+        muse(
+          'st_mock_hold',
+          'book',
+          'done',
+          'Asked the studio to hold your wheel. You pay there.',
+          d,
+        ),
+      );
+    steps.slice(4, 7).forEach((st, i) => (st.status = phase(t, d + i * D)));
+  }
+  const done = s.decidedAt != null && t >= s.decidedAt + 3 * D;
+  const r = s.rescheduleAt;
+  if (r != null)
+    steps.push(
+      muse(
+        'st_0008',
+        'reschedule',
+        phase(t, r),
+        'Moved it to 11. Everyone is free and the studio has 3 wheels',
+        r,
+      ),
+      muse('st_0009', 'calendar', phase(t, r + D), "Updated everyone's calendar", r),
+    );
+  const shift = r != null && t >= r + D ? HOUR : 0;
+  m.museSteps = steps;
+  m.status = done && (r == null || t >= r + 2 * D) ? 'confirmed' : 'setting_up';
+  m.startsAt = iso(Date.parse(base.startsAt) + shift);
+  m.endsAt = iso(Date.parse(base.endsAt) + shift);
+  if (m.travel) m.travel.leaveBy = iso(Date.parse(base.travel!.leaveBy) + shift);
+  if (m.calendar?.desired !== 'none')
+    m.calendar = { ...base.calendar!, startsAt: m.startsAt, endsAt: m.endsAt };
+  if (done) {
+    m.booking = s.approved
+      ? {
+          status: 'booked',
+          label: 'Booked 3 wheels',
+          provider: 'Simulated booking',
+          confirmationCode: 'HCS-4821',
+        }
+      : {
+          status: 'pay_at_venue',
+          label: 'Pay at the studio',
+          provider: 'Simulated booking',
+          confirmationCode: null,
+        };
+    m.eventLabel = 'Private event · 3 going';
+    if (m.calendar?.desired !== 'none')
+      m.calendar = {
+        ...m.calendar!,
+        desired: 'event',
+        title: base.calendar!.title.replace(/^Hold: /, ''),
+        notes: 'Planned with Muse in Common Ground.',
+      };
+    m.checkinWindow = { opensAt: iso(Date.parse(m.startsAt) - HOUR / 2), closesAt: m.endsAt };
+  }
+  if (r != null && t >= r + 2 * D && !s.replied) {
+    s.replied = true;
+    w.messages[base.threadId]!.push({ ...clone(F.listMessages.items[2]!), createdAt: iso(t) });
+    w.unread[base.threadId] = (w.unread[base.threadId] ?? 0) + 1;
+  }
+}
+
 export async function mockRequest(
   user: string,
   method: string,
   path: string,
   body?: unknown,
 ): Promise<unknown> {
+  tick();
   const [pathname, search = ''] = path.split('?');
   for (const [m, re, handler] of routes) {
     if (m !== method) continue;

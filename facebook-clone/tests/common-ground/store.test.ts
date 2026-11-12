@@ -25,6 +25,7 @@ import {
   start,
   withdraw,
 } from '../../src/features/common-ground/store';
+import { STEP_DELAY_S, mockRequest, resetMock } from '../../src/features/common-ground/mock';
 import type { MuseStep } from '../../src/features/common-ground/types';
 
 let saved: string | null = null;
@@ -71,6 +72,7 @@ test('mergeSteps updates in place by stepId, appends new ones, never reorders', 
 });
 
 test('Common Ground store runs the core loop on the in-app mock', async (t) => {
+  t.mock.timers.enable({ apis: ['Date'], now: Date.parse('2026-11-12T18:00:00Z') });
   await reset();
   await start();
   assert.equal(getState().ready, true);
@@ -129,7 +131,10 @@ test('Common Ground store runs the core loop on the in-app mock', async (t) => {
 
   await t.test('joining the example plan forms its meetup; steps merge live', async () => {
     const j = await join('pl_0001');
-    assert.equal(j!.meetupId, 'mt_0001');
+    assert.equal(j!.status, 'interested');
+    t.mock.timers.tick(10_000);
+    await load.joins();
+    assert.equal(getState().joins.find((x) => x.planId === 'pl_0001')!.meetupId, 'mt_0001');
     await Promise.all([load.meetups(), load.approvals(), load.threads()]);
     s = getState();
     assert.equal(inboxRows(s.threads, true)[0]!.href, '/common-ground/chat/th_0001');
@@ -241,4 +246,64 @@ test('review fixes: retry reruns the action, success clears error, failed start,
   await inFlight;
   assert.ok(!getState().approvals.some((a) => a.approvalId === 'STALE'));
   await reset();
+});
+
+test('staged mock: forms, ticks steps, waits for approval, books, reschedules, not_filled', async (t) => {
+  t.mock.timers.enable({ apis: ['Date'], now: Date.parse('2026-11-12T18:00:00Z') });
+  resetMock();
+  const u = 'u_maya';
+  type Json = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any -- raw mock JSON
+  const call = (m: string, p: string, b?: unknown) => mockRequest(u, m, p, b) as Promise<Json>;
+  const D = STEP_DELAY_S * 1000;
+  const statuses = async () =>
+    ((await call('GET', '/v1/meetups/mt_0001')).museSteps as Json[]).map((s) => s.status);
+  await call('POST', '/v1/optin', { mode: 'city' });
+  await call('POST', '/v1/plans/pl_0001/join', {});
+  assert.equal((await call('GET', '/v1/meetups')).items.length, 0, 'not formed yet');
+  t.mock.timers.tick(2 * D);
+  assert.equal((await call('GET', '/v1/meetups')).items.length, 1, 'formed');
+  assert.deepEqual((await statuses()).slice(0, 2), ['running', 'queued']);
+  t.mock.timers.tick(10 * D);
+  assert.deepEqual(await statuses(), [
+    'done',
+    'done',
+    'done',
+    'needs_you',
+    'queued',
+    'queued',
+    'queued',
+  ]);
+  assert.equal((await call('GET', '/v1/meetups/mt_0001')).status, 'setting_up');
+  await call('POST', '/v1/approvals/ap_0001/decision', { decision: 'approve' });
+  t.mock.timers.tick(D / 2);
+  assert.deepEqual((await statuses()).slice(3, 5), ['done', 'running']);
+  t.mock.timers.tick(3 * D);
+  let m = await call('GET', '/v1/meetups/mt_0001');
+  assert.equal(m.status, 'confirmed');
+  assert.equal(m.booking.status, 'booked');
+  assert.equal(m.calendar.desired, 'event');
+  const start = m.startsAt;
+  await call('POST', '/v1/threads/th_0001/messages', {
+    text: 'Muse, can we do 11?',
+    clientId: 'c1',
+  });
+  t.mock.timers.tick(D);
+  assert.equal((await call('GET', '/v1/meetups/mt_0001')).status, 'setting_up', 'rescheduling');
+  t.mock.timers.tick(2 * D);
+  m = await call('GET', '/v1/meetups/mt_0001');
+  assert.equal(m.status, 'confirmed');
+  assert.equal(Date.parse(m.startsAt) - Date.parse(start), 3_600_000);
+  assert.deepEqual(
+    m.museSteps.slice(-2).map((s: Json) => s.stepId),
+    ['st_0008', 'st_0009'],
+  );
+  const msgs = (await call('GET', '/v1/threads/th_0001/messages')).items as Json[];
+  assert.equal(msgs.at(-1)!.sender.kind, 'muse');
+  t.mock.timers.tick(60_000);
+  const seeded = ((await call('GET', '/v1/joins')).items as Json[]).find(
+    (j) => j.planId === 'pl_0002',
+  )!;
+  assert.equal(seeded.status, 'not_filled');
+  assert.deepEqual(seeded.alternatives, ['pl_0003']);
+  resetMock();
 });
