@@ -151,6 +151,8 @@ def rule_signals(records: list[dict], venue: Callable[[str], dict | None], visit
             "recordIds": [r["recordId"]],
             "observedAt": r["at"],
             "venueId": r.get("venueId"),
+            "placeName": r.get("placeName"),
+            "placeKind": r.get("placeKind"),
         }
         name = (venue(r["venueId"]) or {}).get("name") if r.get("venueId") else r.get("placeName")
         if r["kind"] == "saved_place" and name:
@@ -371,15 +373,14 @@ class Extractor:
 
     async def _gate_signal(self, s: dict, interests: list[dict]) -> dict:
         v = self.venue(s["venueId"]) if s.get("venueId") else None
-        sensitive = bool(v and v.get("sensitive")) or any(self.tax[x]["sensitive"] for x in s["interestIds"])
-        if not sensitive and s["kind"] in ("frequent_place", "saved_place", "post") and (v or s.get("venueId")):
-            state = {
-                "place": {
-                    "placeName": (v or {}).get("name", "unknown"),
-                    "placeKind": (v or {}).get("kind", "unknown"),
-                    "pattern": s["pattern"],
-                }
-            }
+        unresolved = bool(s.get("venueId")) and v is None  # unknown venue: can't check its flag, so fail closed (P4)
+        sensitive = (
+            unresolved or bool(v and v.get("sensitive")) or any(self.tax[x]["sensitive"] for x in s["interestIds"])
+        )
+        name = (v or {}).get("name") or s.get("placeName")
+        if not sensitive and name and s["kind"] in ("frequent_place", "saved_place", "post", "ticket"):
+            kind = (v or {}).get("kind") or s.get("placeKind") or "unknown"
+            state = {"place": {"placeName": name, "placeKind": kind, "pattern": s["pattern"]}}
             sensitive = await self._yes("sensitive_place", state)
         if sensitive:  # a sensitive place hides the interests it produced (P4)
             for i in interests:

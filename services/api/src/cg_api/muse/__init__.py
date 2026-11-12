@@ -10,6 +10,8 @@ import json
 import logging
 import time
 
+import httpx
+
 from cg_api.ports import Unavailable
 
 log = logging.getLogger("cg_api.muse")
@@ -28,6 +30,7 @@ class MuseClient:
         timeout_s: float = 8.0,
     ):
         self.fake, self.model, self.timeout_s = fake, model, timeout_s
+        self.base_url, self.api_key = base_url.rstrip("/"), api_key
         self.calls: dict[str, int] = {}
         self._client = None
         if not fake:
@@ -39,10 +42,19 @@ class MuseClient:
         k = f"{purpose}.{outcome}"
         self.calls[k] = self.calls.get(k, 0) + 1
 
-    async def list_models(self) -> list[str]:
+    def log_models(self) -> list[str]:
+        """GET /models once at startup and log the list (PRD-2 §3.11); never raises."""
         if self.fake:
             return []
-        return [m.id async for m in self._client.models.list()]
+        try:
+            r = httpx.get(f"{self.base_url}/models", headers={"Authorization": f"Bearer {self.api_key}"}, timeout=5)
+            r.raise_for_status()
+            ids = [m["id"] for m in r.json().get("data", [])]
+        except (httpx.HTTPError, ValueError, KeyError, TypeError, AttributeError) as e:
+            log.warning("muse models check failed: %s", e)
+            return []
+        log.info("muse models: %s (using %s%s)", ids, self.model, "" if self.model in ids else ", NOT LISTED")
+        return ids
 
     async def respond(self, purpose, input, *, schema=None, tools=None, effort="low", timeout_s=None) -> dict:
         if self.fake:

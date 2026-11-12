@@ -194,13 +194,21 @@ def test_copy_never_speaks_sensitive_labels_and_keeps_casing():
     spy = Spy()
     asyncio.run(MuseCopy(spy, CONTRACTS).setup_review("u_x", ["Faith & spirituality", "Buddhism"]))
     assert "Faith" not in spy.prompts[0][1] and "Buddhism" not in spy.prompts[0][1]
-    assert asyncio.run(copy.plan_reason(PLAN, ["CrossFit"])) == "For people into CrossFit, at Clay Hour Studio on Saturday."
-    walk = {**PLAN, "title": "Sunday coastal walk at Lands End", "startsAt": "2026-11-15T17:00:00Z",
-            "venue": {"name": "Lands End Trail"}}
+    assert (
+        asyncio.run(copy.plan_reason(PLAN, ["CrossFit"]))
+        == "For people into CrossFit, at Clay Hour Studio on Saturday."
+    )
+    walk = {
+        **PLAN,
+        "title": "Sunday coastal walk at Lands End",
+        "startsAt": "2026-11-15T17:00:00Z",
+        "venue": {"name": "Lands End Trail"},
+    }
     title, text = asyncio.run(copy.nudge("You've been to Lands End Trail 4 times this month", walk))
     assert title == "Lands End Trail on Sunday?"
-    assert text == ("You've been to Lands End Trail 4 times this month. Sunday coastal walk at Lands End is open. "
-                    "Want in?")
+    assert text == (
+        "You've been to Lands End Trail 4 times this month. Sunday coastal walk at Lands End is open. Want in?"
+    )
 
 
 def test_bar_reply_and_sunday_weekend():
@@ -211,3 +219,60 @@ def test_bar_reply_and_sunday_weekend():
     assert bar.reply([card, card], empty) == "Here's what's coming up near you."
     f = bar.keyword_filter("pottery", sunday, CONTRACTS)
     assert bar.reply([card], f) == "I found one that fits: Saturday wheel-throwing drop-in."
+
+
+def test_extraction_fails_closed_on_unknown_venue_and_gates_named_places():
+    visits = [
+        {
+            "recordId": f"cr_m_{i}",
+            "userId": "u_x",
+            "provider": "google_maps",
+            "kind": "place_visit",
+            "at": f"2026-11-0{i}T17:00:00Z",
+            "venueId": "vn_unknown",
+        }
+        for i in range(1, 5)
+    ]
+    named = [
+        {
+            "recordId": "cr_n",
+            "userId": "u_x",
+            "provider": "google_maps",
+            "kind": "saved_place",
+            "at": "2026-11-04T05:12:00Z",
+            "placeName": "Eastside Clinic",
+            "placeKind": "clinic",
+        }
+    ]
+
+    class Laya:
+        def __init__(self):
+            self.asked = []
+
+        async def ask(self, q, state):
+            self.asked.append((q, state))
+            return (0.99, True) if q == "sensitive_place" else (0.5, False)
+
+    laya = Laya()
+    out = asyncio.run(Extractor(FAKE, laya, CONTRACTS).extract("u_x", [], visits + named))
+    assert all(s["sensitive"] and s["visibility"] == "hidden" for s in out["signals"])
+    assert (
+        "sensitive_place",
+        {"place": {"placeName": "Eastside Clinic", "placeKind": "clinic", "pattern": "Saved place"}},
+    ) in laya.asked
+
+
+def test_log_models_never_raises(monkeypatch):
+    import httpx
+
+    muse = MuseClient(fake=False, base_url="http://muse/v1", api_key="k")
+    monkeypatch.setattr(
+        httpx,
+        "get",
+        lambda *a, **k: httpx.Response(
+            200, json={"data": [{"id": "muse-spark-1.3"}]}, request=httpx.Request("GET", a[0])
+        ),
+    )
+    assert muse.log_models() == ["muse-spark-1.3"]
+    monkeypatch.setattr(httpx, "get", lambda *a, **k: (_ for _ in ()).throw(httpx.ConnectError("down")))
+    assert muse.log_models() == []

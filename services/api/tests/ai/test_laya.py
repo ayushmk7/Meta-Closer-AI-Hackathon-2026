@@ -55,3 +55,13 @@ def test_live_client_posts_contract_body_and_times_out(monkeypatch):
     monkeypatch.setattr(httpx, "AsyncClient", lambda **kw: real(transport=httpx.MockTransport(boom), **kw))
     with pytest.raises(laya.LayaUnavailable):
         asyncio.run(c.ask("plan_ok", {"text": "Tea?"}))
+
+
+def test_answer_adapter_odd_shapes_and_score_distribution():
+    crit = ["passing mention", "occasional", "regular hobby", "core part of their life"]
+    assert laya._parse_answer({"probabilities": [0, 0, 1, 0]}, "score", crit) == 2 / 3
+    assert laya._parse_answer({"distribution": {"core part of their life": 1.0}}, "score", crit) == 1.0
+    assert laya._parse_answer({"probabilities": {"yes": 0.9}}) == 0.9
+    for bad in ([0.9], "0.9", None, True, {"p": "x"}):
+        with pytest.raises(laya.LayaUnavailable):
+            laya._parse_answer(bad)

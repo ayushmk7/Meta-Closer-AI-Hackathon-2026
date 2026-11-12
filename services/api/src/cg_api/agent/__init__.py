@@ -189,7 +189,10 @@ class ScriptedRun:
         if code is None:
             self.fail_next_booking = False
             yield self._event_or_new(
-                self._find("book"), "book", status="failed", label=f"{v['name']} is full at {clock(p['startsAt'], True)}"
+                self._find("book"),
+                "book",
+                status="failed",
+                label=f"{v['name']} is full at {clock(p['startsAt'], True)}",
             )
             if not (yield from self._shift(party, "Full")):
                 return

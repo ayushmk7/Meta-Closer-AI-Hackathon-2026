@@ -6,7 +6,11 @@ Nothing here talks to a third party: connectors, booking and payments are simula
 from __future__ import annotations
 
 import hashlib
+import json
 import logging
+import threading
+from functools import cache
+from pathlib import Path
 
 from cg_api.laya import LayaClient
 from cg_api.muse import MuseClient
@@ -27,6 +31,19 @@ def simulated_book(venue: dict, start: str, party: int, *, fail: bool = False) -
     return f"{letters}-{digits}"
 
 
+@cache
+def _seed_venues(data_dir: str) -> dict[str, dict]:
+    out = {}
+    for f in Path(data_dir, "seed").glob("*/venues.jsonl"):
+        out |= {v["venueId"]: v for v in map(json.loads, filter(str.strip, f.read_text().splitlines()))}
+    return out
+
+
+def seed_venue(venue_id: str) -> dict | None:
+    # ponytail: reads data/seed venues directly; swap for slice A's store lookup when it exists
+    return _seed_venues(str(get_settings().data_dir)).get(venue_id)
+
+
 def install(ports) -> None:
     s = get_settings()
     p = s.params
@@ -40,11 +57,13 @@ def install(ports) -> None:
         model=s.muse_model,
         timeout_s=p["muse"]["liveTimeoutS"],
     )
+    threading.Thread(target=ports.muse.log_models, daemon=True).start()  # off the startup path
     ports.copy = MuseCopy(ports.muse, s.contracts_dir)
     ports.extractor = Extractor(
         ports.muse,
         ports.laya,
         s.contracts_dir,
+        venue=seed_venue,
         visits_30d=p["nudges"]["frequentPlaceVisits30d"],
         threshold=p["laya"]["decisiveThreshold"],
         batch_timeout_s=p["muse"]["batchTimeoutS"],

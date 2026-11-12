@@ -88,13 +88,29 @@ def is_decisive(p: float, threshold: float) -> bool:
     return p >= threshold or p <= 1 - threshold
 
 
-def _parse_answer(ans) -> float:
-    # ponytail: exact laya-serve answer fields unconfirmed (plan §4); accept a bare number or the usual keys.
-    if isinstance(ans, (int, float)):
+# Laya answer field mapping, mirrored from the sim's adapter so backend and tables agree. UNVERIFIED (Decisions).
+ANSWER_SCALAR_FIELDS = ("p", "probability", "yes", "value", "expected")  # first numeric one wins
+ANSWER_DIST_FIELDS = ("probabilities", "distribution")  # list over criteria, or {label: p}
+
+
+def _parse_answer(ans, qtype: str = "noul", criteria: list | None = None) -> float:
+    """p (noul) or expected value over criteria (score). Anything unrecognised is LayaUnavailable."""
+    if isinstance(ans, (int, float)) and not isinstance(ans, bool):
         return float(ans)
-    for k in ("p", "probability", "expected", "score", "value"):
-        if isinstance(ans.get(k), (int, float)):
+    if not isinstance(ans, dict):
+        raise LayaUnavailable(f"unrecognised answer {ans!r}")
+    for k in ANSWER_SCALAR_FIELDS:
+        if isinstance(ans.get(k), (int, float)) and not isinstance(ans.get(k), bool):
             return float(ans[k])
+    probs = next((ans[k] for k in ANSWER_DIST_FIELDS if ans.get(k)), None)
+    if qtype == "score" and isinstance(probs, (list, dict)) and criteria:
+        vals = probs if isinstance(probs, list) else [probs.get(c, 0.0) for c in criteria]
+        if len(vals) > 1 and all(isinstance(v, (int, float)) for v in vals):
+            return sum(p * i / (len(vals) - 1) for i, p in enumerate(vals))
+    if qtype == "noul" and isinstance(probs, dict):
+        yes = probs.get("yes", probs.get("true"))
+        if isinstance(yes, (int, float)):
+            return float(yes)
     raise LayaUnavailable(f"unrecognised answer {ans!r}")
 
 
@@ -139,8 +155,8 @@ class LayaClient:
             async with httpx.AsyncClient(timeout=self.timeout_s) as c:
                 r = await c.post(f"{self.url}/v1/systemone", json=body)
                 r.raise_for_status()
-                p = _parse_answer(r.json()["answers"][question])
-        except (httpx.HTTPError, KeyError, ValueError, LayaUnavailable) as e:
+                p = _parse_answer(r.json()["answers"][question], q["type"], q.get("criteria"))
+        except (httpx.HTTPError, KeyError, TypeError, AttributeError, ValueError, LayaUnavailable) as e:
             self.calls["failed"] += 1
             if self.calls["failed"] > 0.05 * (self.calls["failed"] + self.calls["live"]):  # CONTRACTS Decisions
                 log.error("laya fallbacks above 5%%: %s (check the answer-field adapter)", self.calls)

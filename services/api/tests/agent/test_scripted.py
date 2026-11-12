@@ -66,8 +66,14 @@ def test_booking_failure_is_visible_then_rescheduled_in_order():
     for a in [e["approval"] for e in list(r.start()) if e["type"] == "approval"]:
         list(r.decide(a["approvalId"], "approved"))
     tail = [(s["kind"], s["status"]) for s in r.steps if s["kind"] != "payment"][3:]
-    assert tail == [("book", "failed"), ("reschedule", "done"), ("book", "done"), ("calendar", "done"),
-                    ("event", "done"), ("reminder", "done")]
+    assert tail == [
+        ("book", "failed"),
+        ("reschedule", "done"),
+        ("book", "done"),
+        ("calendar", "done"),
+        ("event", "done"),
+        ("reminder", "done"),
+    ]
     labels = [s["label"] for s in r.steps]
     assert "Clay Hour Studio is full at 10 AM" in labels
     assert "Full at 10, so I moved it to 11; everyone's still free" in labels
