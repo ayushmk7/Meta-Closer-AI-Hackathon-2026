@@ -157,3 +157,17 @@ def test_p4_sensitive_place_fails_closed(api):
     maya = next(u for u in ex["users"] if u["userId"] == "u_maya")
     [e] = [x for x in maya["signals"] if x["venueId"] == "vn_sunset_meditation"]
     assert e["sensitive"] and e["visibility"] == "hidden"
+
+
+def test_setup_with_interests_hides_sensitive_from_copy(api):
+    opt_in(api)
+    u = store.users["u_maya"]
+    u["interests"]["arts_crafts.ceramics.wheel_throwing"] = {
+        "id": "arts_crafts.ceramics.wheel_throwing", "weight": 0.7, "visibility": "shown", "sensitive": False,
+        "source": "activity"}  # fmt: skip
+    u["interests"]["identity_values.faith.buddhism"] = {
+        "id": "identity_values.faith.buddhism", "weight": 0.9, "visibility": "hidden", "sensitive": True,
+        "source": "connector"}  # fmt: skip
+    s = api("getSetup").json()
+    assert "wheel throwing" in s["museText"].lower() and "buddhism" not in s["museText"].lower()
+    assert len(s["proposedInterests"]) == 2  # owner still sees both

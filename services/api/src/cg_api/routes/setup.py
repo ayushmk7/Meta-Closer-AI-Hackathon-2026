@@ -8,6 +8,7 @@ from fastapi import APIRouter, Response
 from pydantic import BaseModel, Field
 
 from cg_api import seed
+from cg_api.contracts import interest_ref
 from cg_api.deps import Base, User
 from cg_api.errors import ApiError
 from cg_api.ports import ports
