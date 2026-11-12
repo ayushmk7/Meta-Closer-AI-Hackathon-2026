@@ -1,6 +1,13 @@
 // Chat: one-for-one copy of the Messenger detail branch (src/features/messenger/Screen.tsx).
-import { useRef } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, View } from 'react-native';
+import { useRef, useState } from 'react';
+import {
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  View,
+} from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import {
   Button,
@@ -16,8 +23,8 @@ import {
 } from '../../ui/native';
 import { api } from './api';
 import { act, getState, load, sendMessage, setState, useCg } from './store';
-import type { Meetup, Message } from './types';
-import { Banners, NotFound, PersonAvatar, personName, usePoll, when } from './ui';
+import type { GroupSize, Meetup, Message } from './types';
+import { Banners, GroupSizePicker, NotFound, PersonAvatar, personName, usePoll, when } from './ui';
 
 const time = (iso: string) =>
   new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
@@ -33,6 +40,95 @@ const meetupStatus = (m?: Meetup) =>
       ? when(m.startsAt)
       : 'Confirmed'
     : (STATUS[m?.status ?? ''] ?? '');
+
+// openapi.yaml planMeetup: `note` maxLength. A schema bound, not a params.yaml tunable.
+const NOTE_MAX = 280;
+
+// "Plan something": an optional note for Muse, plus a size range in group threads.
+export function PlanForm({ threadId, group }: { threadId: string; group: boolean }) {
+  const c = useColors();
+  const limits = useCg((s) => s.config?.limits);
+  const me = useCg((s) => s.me);
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState('');
+  const min = limits?.groupSizeMin ?? 2;
+  const max = Math.min(
+    limits?.groupSizeMax ?? 8,
+    me?.capabilities?.maxGroupSize ?? limits?.groupSizeMax ?? 8,
+  );
+  const clamp = (n: number) => Math.max(min, Math.min(max, n));
+  const [size, setSize] = useState<GroupSize>(() => ({
+    min: clamp(me?.groupSize.min ?? min),
+    max: clamp(me?.groupSize.max ?? max),
+  }));
+
+  if (!open)
+    return (
+      <View style={{ paddingHorizontal: 10, paddingTop: 10 }}>
+        <Button
+          title="Plan something"
+          icon="calendar-outline"
+          secondary
+          onPress={() => setOpen(true)}
+        />
+      </View>
+    );
+  const ask = async () => {
+    setBusy(true);
+    const body = { note: note.trim() || undefined, size: group ? size : undefined };
+    // The note stays in the form if the call fails, so nothing typed is lost.
+    if (await act(() => api.planMeetup(threadId, body))) {
+      setOpen(false);
+      setNote('');
+    }
+    setBusy(false);
+    await load.threads();
+  };
+  return (
+    <View
+      style={{
+        margin: 10,
+        marginBottom: 0,
+        padding: 12,
+        gap: 10,
+        borderRadius: 8,
+        backgroundColor: c.input,
+      }}
+    >
+      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+        <Label accessibilityRole="header" style={{ flex: 1, fontWeight: '700' }}>
+          Plan something with Muse
+        </Label>
+        <IconButton name="close" label="Close planning" onPress={() => setOpen(false)} />
+      </View>
+      <Input
+        multiline
+        maxLength={NOTE_MAX}
+        accessibilityLabel="Anything in mind?"
+        placeholder="Anything in mind? Something outdoors on Saturday…"
+        value={note}
+        onChangeText={setNote}
+        editable={!busy}
+        style={{ maxHeight: 96, backgroundColor: c.card }}
+      />
+      {group && (
+        <View>
+          <Muted>How many people?</Muted>
+          <GroupSizePicker value={size} min={min} max={max} onChange={setSize} />
+        </View>
+      )}
+      {busy ? (
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 44 }}>
+          <ActivityIndicator color={c.blue} />
+          <Muted>Muse is finding options…</Muted>
+        </View>
+      ) : (
+        <Button title="Ask Muse" icon="sparkles" onPress={() => void ask()} />
+      )}
+    </View>
+  );
+}
 
 export default function ChatScreen() {
   const c = useColors();
@@ -80,10 +176,6 @@ export default function ChatScreen() {
   const send = () => {
     if (!text.trim()) return;
     void sendMessage(threadId, text.trim());
-  };
-  const plan = async () => {
-    await act(() => api.planMeetup(threadId));
-    await load.threads();
   };
 
   const attachments = (m: Message) =>
@@ -252,14 +344,7 @@ export default function ChatScreen() {
         })}
       </ScrollView>
       {!activeId ? (
-        <View style={{ paddingHorizontal: 10, paddingTop: 10 }}>
-          <Button
-            title="Plan something"
-            icon="calendar-outline"
-            secondary
-            onPress={() => void plan()}
-          />
-        </View>
+        <PlanForm threadId={threadId} group={thread.kind !== 'direct'} />
       ) : meetups[activeId]?.status === 'proposing' ? (
         <Muted style={{ paddingHorizontal: 16, paddingTop: 10 }}>Muse is finding options…</Muted>
       ) : null}
