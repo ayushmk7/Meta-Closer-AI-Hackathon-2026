@@ -9,6 +9,7 @@ import math
 import random
 from collections import Counter
 from datetime import datetime, timedelta
+from statistics import median_low
 from zoneinfo import ZoneInfo
 
 from cg_matching.types import (
@@ -88,6 +89,12 @@ def build_vectors(pool: PoolSnapshot, params: Params) -> Vectors:
                 key = ".".join(parts[:depth])
                 v[key] = max(v.get(key, 0.0), i["weight"] * f ** (len(parts) - depth))
         out[uid] = v
+    if params["matching"]["idf"] and out:
+        # Rare shared interests count more. Smoothed so an interest everyone has still weighs 1.
+        df = Counter(k for v in out.values() for k in v)
+        n = len(out)
+        idf = {k: math.log((1 + n) / (1 + c)) + 1 for k, c in df.items()}
+        out = {uid: {k: w * idf[k] for k, w in v.items()} for uid, v in out.items()}
     return out
 
 
@@ -98,11 +105,25 @@ def _cos(a: dict[str, float], b: dict[str, float]) -> float:
 
 
 def candidates(pool: PoolSnapshot, vectors: Vectors, params: Params) -> dict[str, list[tuple[str, float]]]:
+    """Pair affinity: cosine after hard filters (age bands, trust floor, blocks either way); top knnK >= minCosine.
+    ponytail: O(n^2) over the pool; fine at 300 users, numpy sparse matmul if pools reach ~5k."""
     m = params["matching"]
-    ids = sorted(vectors)
-    out = {}
+    bands = set(m["ageBands"])
+    users = pool.users
+    ids = sorted(
+        u for u in vectors if u in users and users[u].get("trustFloorOk") is not False and vectors[u]
+    )
+
+    def ok(a: str, b: str) -> bool:
+        ua, ub = users[a], users[b]
+        if b in ua["blockedIds"] or a in ub["blockedIds"]:
+            return False
+        # Bands outside matching.ageBands (30_34) only pair within their own band.
+        return ua["ageBand"] == ub["ageBand"] or (ua["ageBand"] in bands and ub["ageBand"] in bands)
+
+    out: dict[str, list[tuple[str, float]]] = {u: [] for u in sorted(users)}
     for a in ids:
-        scored = [(b, round(_cos(vectors[a], vectors[b]), 6)) for b in ids if b != a]
+        scored = [(b, round(_cos(vectors[a], vectors[b]), 6)) for b in ids if b != a and ok(a, b)]
         scored = sorted((s for s in scored if s[1] >= m["minCosine"]), key=lambda s: (-s[1], s[0]))
         out[a] = scored[: m["knnK"]]
     return out
@@ -248,6 +269,44 @@ def _slot(dt: datetime) -> tuple[str, str]:
     return _DAYS[lt.weekday()], ("morning" if lt.hour < 12 else "afternoon" if lt.hour < 17 else "evening")
 
 
+def _home(u: dict) -> tuple[float, float]:
+    return u["homeLocation"]["lat"], u["homeLocation"]["lng"]
+
+
+def _met(pool: PoolSnapshot, state: MatchState) -> set[frozenset[str]]:
+    pairs = {frozenset((uid, m)) for uid, u in pool.users.items() for m in u["metIds"]}
+    return pairs | {frozenset(p) for p in state.met_pairs}
+
+
+def _blocked(pool: PoolSnapshot, state: MatchState) -> set[frozenset[str]]:
+    pairs = {frozenset((uid, b)) for uid, u in pool.users.items() for b in u["blockedIds"]}
+    return pairs | {frozenset(p) for p in state.blocked_pairs}
+
+
+def _joined(plan: Plan, pool: PoolSnapshot, state: MatchState) -> list[str]:
+    """Everyone already in, join order: seed joins, then the export's live joins, then state.open_joins."""
+    return list(
+        dict.fromkeys(
+            [*plan.seed_join_ids, *pool.joined(plan.plan_id), *state.open_joins.get(plan.plan_id, [])]
+        )
+    )
+
+
+def _target_vector(plan: Plan, params: Params) -> dict[str, float]:
+    f = params["matching"]["parentWeightFactor"]
+    v: dict[str, float] = {}
+    for t in plan.target_interest_ids:
+        parts = t.split(".")
+        for depth in range(len(parts), 0, -1):
+            k = ".".join(parts[:depth])
+            v[k] = max(v.get(k, 0.0), f ** (len(parts) - depth))
+    return v
+
+
+def _related(a: str, b: str) -> bool:
+    return a == b or a.startswith(b + ".") or b.startswith(a + ".")
+
+
 def rank_plans(
     pool: PoolSnapshot,
     plans: list[Plan],
@@ -258,44 +317,126 @@ def rank_plans(
     params: Params,
     rng: random.Random,
 ) -> dict[str, list[PlanScore]]:
-    """ponytail: M0 naive port of the sim adapter."""
-    exposures = dict(state.exposures)
-    cap = params["plans"]["exposureCapPerDay"]
-    boost = params["matching"]["isolationBoost"]
-    f = params["feed"]
-    met = {x for pair in state.met_pairs for x in pair}
-    iso = {uid for uid, u in pool.users.items() if not u["metIds"] and uid not in met}
-    out: dict[str, list[PlanScore]] = {}
+    """Per user, best first, at most feed.size. Three passes:
+
+    1. Hard filters and base score per (user, plan): p_join x p_show x fit x travel penalty x signal x isolation.
+    2. Fill likelihood per plan: (joined + sum of p_join of the top exposureCap scorers who have the plan in their
+       top feed.size) / size.min. Plans below plans.fillLikelihoodFloor are dropped for everyone.
+    3. Global greedy allocation, highest score first (ties: isolated first, then rng), under the per-plan exposure
+       cap (minus today's state.exposures) and each user's feed.size / maxPerActivityType / maxPerScene caps.
+       The isolation boost therefore acts across users: isolated people win contested exposure slots.
+    """
+    pp, m, f = params["plans"], params["matching"], params["feed"]
+    cap, boost = pp["exposureCapPerDay"], m["isolationBoost"]
+    buffer_min = params["calendar"]["minFreeBufferMin"]
+    met = _met(pool, state)
+    iso = {uid for uid in pool.users if not any(uid in pair for pair in met)}
+    joined = {p.plan_id: _joined(p, pool, state) for p in plans}
+    targets = {p.plan_id: _target_vector(p, params) for p in plans}
+
+    # Pass 1
+    rows: dict[str, list[dict]] = {}
     for uid in sorted(pool.users):
         u, vec = pool.users[uid], vectors.get(uid, {})
+        rows[uid] = []
+        if u.get("trustFloorOk") is False or not vec:
+            continue
         slots = {(s["day"], s["part"]) for s in u["availability"]}
-        scored = []
+        gmin, gmax = u["groupSize"]["min"], u["groupSize"]["max"]
+        vis = [s for s in u["signals"] if s["visibility"] == "shown" and not s["sensitive"]]
         for p in plans:
-            if uid in p.seed_join_ids:
+            v = venues.get(p.venue_id)
+            if v is None or v.sensitive or uid in joined[p.plan_id]:
+                continue
+            if p.invitee_ids and uid not in p.invitee_ids:
+                continue
+            if p.size_max < gmin or p.size_min > gmax:
                 continue
             if u["busy"]:
-                if _busy_conflict(u["busy"], p.starts_at, p.ends_at, params["calendar"]["minFreeBufferMin"]):
+                if _busy_conflict(u["busy"], p.starts_at, p.ends_at, buffer_min):
                     continue
             elif _slot(p.starts_at) not in slots:
                 continue
-            v = venues[p.venue_id]
-            minutes = min(
-                travel_minutes((u["homeLocation"]["lat"], u["homeLocation"]["lng"]), v.location, m, params)
-                for m in u["travel"]["modes"]
-            )
+            minutes = min(travel_minutes(_home(u), v.location, mode, params) for mode in u["travel"]["modes"])
             if minutes > u["travel"]["maxMinutes"]:
                 continue
-            fit = max((vec.get(t, 0.0) for t in p.target_interest_ids), default=0.0)
-            if fit <= 0 or exposures.get(p.plan_id, 0) >= cap:
+            fit = _cos(vec, targets[p.plan_id])
+            if fit <= 0:
                 continue
-            score = fit * tables.p_join(uid, p.activity_type) * ((1 + boost) if uid in iso else 1.0)
-            shared = [t for t in p.target_interest_ids if vec.get(t)][: params["privacy"]["sharedCoarseMax"]]
-            scored.append(PlanScore(uid, p.plan_id, round(score, 6), shared, minutes, {"fit": round(fit, 6)}))
-        scored.sort(key=lambda s: (-s.score, s.plan_id))
-        out[uid] = scored[: f["size"]]
-        for s in out[uid]:
-            exposures[s.plan_id] = exposures.get(s.plan_id, 0) + 1
+            pj, ps = tables.p_join(uid, p.activity_type), tables.p_show(uid, p.activity_type)
+            # ponytail: linear travel penalty, 1.0 at the door down to 0.5 at the user's limit.
+            travel_pen = 1 - 0.5 * minutes / max(u["travel"]["maxMinutes"], 1)
+            sig = [
+                s["signalId"]
+                for s in vis
+                if s.get("venueId") == p.venue_id
+                or any(_related(i, t) for i in s["interestIds"] for t in p.target_interest_ids)
+            ]
+            base = pj * ps * fit * travel_pen * ((1 + m["signalBoost"]) if sig else 1.0)
+            base *= (1 + boost) if uid in iso else 1.0
+            shared = list(
+                dict.fromkeys(l2 for t in p.target_interest_ids if (l2 := _prefix(t, 2)) and vec.get(l2))
+            )
+            rows[uid].append(
+                {
+                    "plan": p,
+                    "base": base,
+                    "fit": fit,
+                    "p_join": pj,
+                    "p_show": ps,
+                    "minutes": minutes,
+                    "signal_ids": sig,
+                    "shared": shared[: params["privacy"]["sharedCoarseMax"]],
+                }
+            )
+
+    # Pass 2
+    interest: dict[
+        str, list[tuple[float, float]]
+    ] = {}  # planId -> [(base, p_join)] from users ranking it top-K
+    for rs in rows.values():
+        for r in sorted(rs, key=lambda r: (-r["base"], r["plan"].plan_id))[: f["size"]]:
+            interest.setdefault(r["plan"].plan_id, []).append((r["base"], r["p_join"]))
+    fill = {}
+    for p in plans:
+        top = sorted(interest.get(p.plan_id, []), reverse=True)[:cap]
+        fill[p.plan_id] = min(1.0, (len(joined[p.plan_id]) + sum(pj for _, pj in top)) / max(p.size_min, 1))
+
+    # Pass 3
+    cands = [
+        (r["base"] * fill[pid], uid in iso, rng.random(), uid, r)
+        for uid, rs in rows.items()
+        for r in rs
+        if fill[pid := r["plan"].plan_id] >= pp["fillLikelihoodFloor"]
+    ]
+    cands.sort(key=lambda c: (-c[0], not c[1], c[2], c[3]))
+    left = {p.plan_id: cap - state.exposures.get(p.plan_id, 0) for p in plans}
+    out: dict[str, list[PlanScore]] = {uid: [] for uid in rows}
+    by_type: dict[str, Counter[str]] = {uid: Counter() for uid in rows}
+    by_scene: dict[str, Counter[str]] = {uid: Counter() for uid in rows}
+    for score, isolated, _, uid, r in cands:
+        p = r["plan"]
+        if left[p.plan_id] <= 0 or len(out[uid]) >= f["size"]:
+            continue
+        if by_type[uid][p.activity_type] >= f["maxPerActivityType"]:
+            continue
+        if p.scene_id and by_scene[uid][p.scene_id] >= f["maxPerScene"]:
+            continue
+        left[p.plan_id] -= 1
+        by_type[uid][p.activity_type] += 1
+        if p.scene_id:
+            by_scene[uid][p.scene_id] += 1
+        debug = {k: round(r[k], 6) for k in ("fit", "p_join", "p_show")} | {
+            "fill": round(fill[p.plan_id], 6),
+            "isolated": isolated,
+            "signal_ids": r["signal_ids"],
+        }
+        out[uid].append(PlanScore(uid, p.plan_id, round(score, 6), r["shared"], r["minutes"], debug))
     return out
+
+
+def _shared_l2(pool: PoolSnapshot) -> dict[str, set[str]]:
+    return {uid: set(_level_weights(u, 2)) for uid, u in pool.users.items()}
 
 
 def form_groups(
@@ -308,33 +449,110 @@ def form_groups(
     params: Params,
     rng: random.Random,
 ) -> FormResult:
-    """ponytail: M0 naive greedy max-min groups; seat priority isolated, then earliest join."""
-    cand = {a: dict(lst) for a, lst in cands.items()}
-    blocked = {frozenset(x) for x in state.blocked_pairs}
-    for uid, u in pool.users.items():
-        blocked |= {frozenset((uid, b)) for b in u.get("blockedIds", [])}
+    """Seat priority picks who gets the seats; then a max-min-pairwise split into groups.
+
+    Seats = min(eligible, state.venue_capacity[venue]). Priority: isolated (no met connections), then most often
+    left unseated (state.seat_history), then earliest join. Groups: as few as fit within size.max, sizes balanced,
+    never below the stranger minimum (groups.metSizeMin when everyone in the group has met). Each member's own
+    groupSize.max is respected. Groups of 3+ need every member to share >= minSharedWithOthers level-2 interests
+    with >= minOthers others; a violator is swapped for the best waiting person or dropped.
+    """
+    g = params["groups"]
+    hi = min(plan.size_max, g["sizeMax"])
+    met, blocked = _met(pool, state), _blocked(pool, state)
+    l2 = _shared_l2(pool)
+    aff = {a: dict(lst) for a, lst in cands.items()}
+    order = {u: k for k, u in enumerate(dict.fromkeys(interested_ids))}
+    elig = [u for u in order if u in pool.users and pool.users[u].get("trustFloorOk") is not False]
+    iso = {u for u in elig if not any(u in pair for pair in met)}
+    queue = sorted(elig, key=lambda u: (u not in iso, -state.seat_history.get(u, 0), order[u]))
+    seats = min(len(queue), state.venue_capacity.get(plan.venue_id, len(queue)))
 
     def pair(a: str, b: str) -> float:
         if frozenset((a, b)) in blocked:
             return -1.0
-        return max(cand.get(a, {}).get(b, 0.0), cand.get(b, {}).get(a, 0.0)) * tables.p_meet_again(a, b)
+        return max(aff.get(a, {}).get(b, 0.0), aff.get(b, {}).get(a, 0.0)) * tables.p_meet_again(a, b)
 
-    order = {u: k for k, u in enumerate(dict.fromkeys(interested_ids))}
-    queue = sorted(order, key=lambda u: (bool(pool.users.get(u, {}).get("metIds")), order[u]))
-    lo, hi = plan.size_min, plan.size_max
-    groups, unseated = [], []
-    while len(queue) >= lo:
-        group = [queue.pop(0)]
-        while len(group) < hi and queue:
-            best = max(queue, key=lambda c: (min(pair(c, g) for g in group), -order[c]))
-            if min(pair(best, g) for g in group) < 0:
+    def umax(u: str) -> int:
+        return pool.users[u]["groupSize"]["max"]
+
+    def lo(group: list[str]) -> int:
+        all_met = all(frozenset((a, b)) in met for i, a in enumerate(group) for b in group[i + 1 :])
+        return max(plan.size_min, g["metSizeMin"] if all_met else g["strangerSizeMin"])
+
+    def shares_ok(m: str, group: list[str]) -> bool:
+        need = min(g["minOthers"], len(group) - 1)
+        return sum(len(l2[m] & l2[o]) >= g["minSharedWithOthers"] for o in group if o != m) >= need
+
+    def worst(group: list[str]) -> float:
+        return min((pair(a, b) for i, a in enumerate(group) for b in group[i + 1 :]), default=0.0)
+
+    # Split size: plan cap, lowered to the median member's own max so the split fits most people.
+    split = min(hi, median_low([umax(u) for u in queue[:seats]] or [hi]))
+    k = max(1, -(-seats // split))  # ceil
+    while k > 1 and seats // k < g["strangerSizeMin"]:
+        k -= 1
+    sizes = [seats // k + (i < seats % k) for i in range(k)]
+    groups: list[list[str]] = []
+    # Seats go by priority: candidates come from the next free seats' worth of the queue; someone further
+    # back steps in only when nobody in that window can join (blocked, size preference).
+    rest, placed = list(queue), 0
+    for size in sizes:
+        if not rest or placed >= seats:
+            break
+        group = [rest.pop(0)]
+        while len(group) < size and rest and placed + len(group) < seats:
+            n = len(group) + 1
+            fits = [c for c in rest if umax(c) >= n and all(umax(x) >= n for x in group)]
+            fits = [c for c in fits if min(pair(c, x) for x in group) >= 0]
+            if not fits:
                 break
+            window = set(rest[: seats - placed - len(group)])
+            near = [c for c in fits if c in window]
+            best = (
+                max(near, key=lambda c: (min(pair(c, x) for x in group), -queue.index(c)))
+                if near
+                else fits[0]
+            )
             group.append(best)
-            queue.remove(best)
-        if len(group) < lo:
+            rest.remove(best)
+        placed += len(group)
+        groups.append(group)
+    waiting = rest
+
+    # ponytail: one pass of pairwise swaps between groups that raises the lower of the two minima. A real
+    # local search (repeat until no gain) if group quality on big plans ever matters.
+    for gi, ga in enumerate(groups):
+        for gb in groups[gi + 1 :]:
+            for ia, a in enumerate(ga):
+                for ib, b in enumerate(gb):
+                    na, nb = ga[:ia] + [b] + ga[ia + 1 :], gb[:ib] + [a] + gb[ib + 1 :]
+                    if min(worst(na), worst(nb)) > min(worst(ga), worst(gb)):
+                        ga[ia], gb[ib] = b, a
+                        a = b  # keep scanning with the swapped-in member
+
+    out, unseated = [], []
+    for group in groups:
+        while len(group) >= 3 and (bad := [x for x in group if not shares_ok(x, group)]):
+            drop = max(bad, key=lambda x: queue.index(x))  # lowest priority violator goes
+            group.remove(drop)
+            swap = next(
+                (
+                    c
+                    for c in waiting
+                    if min((pair(c, x) for x in group), default=0) >= 0
+                    and umax(c) >= len(group) + 1
+                    and shares_ok(c, [*group, c])
+                ),
+                None,
+            )
+            unseated.append(drop)
+            if swap:
+                waiting.remove(swap)
+                group.append(swap)
+        if len(group) < lo(group):
             unseated += group
             continue
-        mp = min(pair(a, b) for i, a in enumerate(group) for b in group[i + 1 :])
-        groups.append(GroupResult(plan.plan_id, group, round(mp, 6)))
-    unseated += queue
-    return FormResult(groups, sorted(unseated, key=order.get))
+        out.append(GroupResult(plan.plan_id, sorted(group, key=order.get), round(worst(group), 6)))
+    unseated += waiting
+    return FormResult(out, sorted(dict.fromkeys(unseated), key=order.get))
