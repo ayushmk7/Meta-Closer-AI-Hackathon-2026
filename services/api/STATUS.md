@@ -1,5 +1,5 @@
 # backend status
-Milestone: M1 slice A (platform) done; C/D handlers pending
+Milestone: slice A M2 (platform) done
 
 ## Done
 - 2026-11-12 M0 scaffold: two listeners (public 0.0.0.0:8000, internal 127.0.0.1:9001) in one process; refuses to start without DEMO_MODE=1; `X-CG-User` identity (401 envelope); every public and internal operation answers with its openapi example, or one synthesised from the schema for the 19 public + 15 internal operations without an inline example (contract v2.0.0).
@@ -7,6 +7,10 @@ Milestone: M1 slice A (platform) done; C/D handlers pending
 - Contract tests validate every response against both OpenAPI files; P9 test (no internal path on the public listener).
 - 2026-11-12 M1 slice A: in-memory store, seed load (schema-validated, background job, `cg-api-load-seed`), tiny built-in seed (`cg_api/seed/tiny`, used when `data/seed/<pool>` is absent), static avatars and venue photos (`/static/avatars|venues/<file>`), `getMe`, `updateMe`, `setInterestVisibility`, `removeInterest`, `optIn`, `optOut`, `getSetup`, `completeSetup`, `listConnectors`, `connectConnector`, `disconnectConnector`, `listSignals`, `setSignalVisibility`, `deleteSignal`, `syncCalendar`, `internalHealth`, `listPools`, `exportPool` (validates against pool_export.schema.json on the real sim seed), `loadSeed`, `getJob`, `reloadLayaTables`, `resetDemo`. Realtime hub (`cg_api.realtime.emit`) pushes to `/v1/ws`.
 - Real seed (cg-sim pool_sf_city: 301 people, 80 venues, 92 plans) loads in about 1 s with stub extraction; reset in 0.04 s.
+
+- 2026-11-12 Slice A M2: `getDemoState`/`setDemoState` (`config.demo` follows it live), `advanceMeetup` (leave_by, window_open, completed), `poolGraph` (cg_matching candidates + Leiden scenes; group/met/friendship edges), `liveMetrics`.
+- 2026-11-12 Store and slice C's domain World are one world (`cg_api/store/bridge.py`), checked end to end against #16 in `tests/platform/test_bridge.py`, which skips until `cg_api.domain` is on the branch.
+- 2026-11-12 Real seed (data/seed/pool_sf_city, 301 people), stub extraction: load 1.3 s; p95 getMe 3 ms, getSetup 5 ms, export 34 ms, graph 55 ms (first call, then cached), metrics 2 ms, reset 47 ms.
 
 ## Decisions
 - 2026-11-12 FastAPI + uvicorn, two `uvicorn.Server`s under one asyncio loop (`cg-api`).
@@ -25,10 +29,16 @@ Milestone: M1 slice A (platform) done; C/D handlers pending
 
 - 2026-11-12 `ports.extractor.venue` is a venue-ID lookup into the loaded seed (`store.venues.get`): the stub default and `seed.load` both bind it, so the sensitive-venue check never fails open (P4).
 
+- 2026-11-12 Bridge: the domain World (`cg_api.domain.world.current`) owns plans, joins, meetups, threads, approvals, connections (frozenset pair keys), blocks and reports; the store aliases the same objects. A owns users, interests, signals and busy blocks, and `bridge.sync(uid)` / `bridge.changed(uid, *events)` project them into the World after every A change. `World.emit` is forwarded to `cg_api.realtime`. Reset deep-copies store and World together, so the aliases survive.
+- 2026-11-12 `ports.CopyInterest` = `{id, label, visibility, sensitive}`. `Copy.plan_reason(plan, shared)`, `Copy.setup_review(uid, interests)` and `Copy.intro(first_names, shared, plan)` take `list[CopyInterest]`, and Copy drops sensitive and hidden ones itself (`ports.safe_labels`). `Copy.nudge` returns `(title, text)`.
+- 2026-11-12 Demo state lives in `store.demo_state` (DemoState shape); slices read it, e.g. `store.demo_state["failNextBooking"]` (whoever consumes it sets it back to False).
+- 2026-11-12 Producer-only metric counts: increment `cg_api.store.counters` with `muse_fallbacks`, `laya_calls`, `laya_decisive` and `booking_fallbacks`.
+
 ## Needs
 - none
 
 ## Known gaps
-- `getDemoState`, `setDemoState`, `advanceMeetup`, `poolGraph`, `liveMetrics`, `regeneratePlans`, `triggerNudge`, `formPlan` are still example fallthrough (M2, or slice C).
+- `regeneratePlans`, `triggerNudge`, `formPlan` are slice C (example fallthrough until #16).
+- One pool at a time: `optIn` into the other pool → 409; switching = `loadSeed` for that pool.
 - Stub extractor returns no interests, so feeds are thin until slice D's fake extraction lands.
 - Synthesised examples use placeholder strings (`"x"`) for free-text and unpatterned IDs; they validate but are not realistic.
