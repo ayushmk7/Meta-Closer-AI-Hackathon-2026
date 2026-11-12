@@ -180,3 +180,16 @@ def test_check_requires_every_file(committed, tmp_path):
     root = _copy(committed, tmp_path, EVENT)
     (root / f"seed/{EVENT}/plans.jsonl").unlink()
     assert any("plans.jsonl: missing" in e for e in check_pool(root, EVENT))
+
+
+@pytest.mark.parametrize("pool_id", [CITY, EVENT])
+def test_demo_plans_use_leiden_scene_ids(committed, pool_id):
+    from cg_sim.seed.export import load_ground_truth_export
+    from cg_sim.seed.generate import _leiden_scenes
+
+    scene_of = _leiden_scenes(load_ground_truth_export(pool_id, committed, with_signals=False), SEED)
+    demo = json.loads((committed / "seed" / pool_id / "demo.json").read_text())
+    plans = {p["planId"]: p for p in map(json.loads, (committed / "seed" / pool_id / "plans.jsonl").read_text().splitlines())}
+    for pid in (demo["heroPlanId"], demo["nudgePlanId"], demo["featuredPlanIds"][2]):
+        p = plans[pid]
+        assert p["sceneId"] in {scene_of[u] for u in p["seedJoinIds"]}, pid
