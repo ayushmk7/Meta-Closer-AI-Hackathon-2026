@@ -2,10 +2,17 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+import re
+from pathlib import Path
 
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from fastapi.responses import FileResponse
+
+from cg_api import realtime
 from cg_api.deps import User
+from cg_api.errors import ApiError
 from cg_api.settings import get_settings
+from cg_api.store import store
 
 router = APIRouter()
 
@@ -60,9 +67,10 @@ def build_config() -> dict:
     demo = {
         "enabled": s.demo_mode,
         "counterpart": d["counterpartDefault"],
-        "fakeLocation": None,
+        "fakeLocation": (store.demo or {}).get("fakeLocation"),
         "relaxCheckin": d["relaxCheckinDefault"],
         "simulatedPayments": d["simulatedPayments"],
+        "stepDelayS": d["stepDelayS"],
         **demo_overrides,
     }
     return {
@@ -79,14 +87,34 @@ def get_config(_: User):
     return build_config()
 
 
+_STATIC = {"avatars": "avatars", "venues": "venue_photos"}
+_NAME = re.compile(r"^[a-z0-9_]+\.(png|jpe?g)$")
+
+
+@router.get("/static/{kind}/{name}", name="static")
+def static(kind: str, name: str):
+    """Seed avatars and venue photos of the loaded pool. Names are checked, so no path escapes the seed folder."""
+    if kind not in _STATIC or not _NAME.match(name) or not store.seed_dir:
+        raise ApiError(404, "not_found", "That isn't here anymore.")
+    path = Path(store.seed_dir) / _STATIC[kind] / name
+    if not path.is_file():
+        raise ApiError(404, "not_found", "That isn't here anymore.")
+    return FileResponse(path, headers={"Cache-Control": "public, max-age=3600"})
+
+
 @router.websocket("/v1/ws", name="realtime")
-async def realtime(ws: WebSocket, user: str = ""):
-    # ponytail: accept + pong only; the M2 hub (cg_api.realtime) pushes RealtimeEvent frames.
+async def ws_realtime(ws: WebSocket, user: str = ""):
+    if user not in store.users:
+        await ws.close(code=4401)
+        return
     await ws.accept()
+    realtime.connect(user, ws)
     try:
         while True:
             msg = await ws.receive_json()
-            if msg.get("type") == "ping":
+            if isinstance(msg, dict) and msg.get("type") == "ping":
                 await ws.send_json({"type": "pong"})
     except WebSocketDisconnect:
         pass
+    finally:
+        realtime.disconnect(user, ws)
