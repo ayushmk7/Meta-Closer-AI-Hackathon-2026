@@ -166,7 +166,11 @@
                       "lng": -122.4689
                     },
                     "relaxCheckin": true,
-                    "simulatedPayments": true
+                    "simulatedPayments": true,
+                    "stepDelayS": [
+                      1,
+                      2
+                    ]
                   }
                 }
               }
@@ -3066,6 +3070,15 @@
               "simulatedPayments": {
                 "type": "boolean",
                 "description": "When true, approval sheets say no real money moves."
+              },
+              "stepDelayS": {
+                "description": "params.demo.stepDelayS: [min, max] seconds between visible Muse steps. Optional; clients default to 2.",
+                "type": "array",
+                "items": {
+                  "type": "number"
+                },
+                "minItems": 2,
+                "maxItems": 2
               }
             }
           }
