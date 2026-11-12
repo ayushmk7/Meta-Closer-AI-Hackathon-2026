@@ -248,16 +248,20 @@ def prompts(w: World, viewer: str) -> list[str]:
     return out[: w.params["feed"]["promptChips"]]
 
 
-def feed(w: World, viewer: str) -> dict:
-    require_opted_in(w, viewer)
-    size = w.params["feed"]["size"]
+def _ordered(w: World, viewer: str) -> list[str]:
+    """Featured plans first for Maya in DEMO_MODE (shown even if a hard filter drops them), then rank_plans order."""
     ranked = [pid for pid in w.match.rank(w, viewer) if pid in w.plans and visible(w, viewer, w.plans[pid])]
     lead: list[str] = []
     if w.demo_mode and w.params["feed"]["demoPinFeatured"] and viewer == w.demo.get("mayaId"):
         lead = [
             pid for pid in w.demo.get("featuredPlanIds", []) if pid in w.plans and w.plans[pid]["status"] != "cancelled"
         ]
-    ids = list(dict.fromkeys(lead + ranked))[:size]
+    return list(dict.fromkeys(lead + ranked))
+
+
+def feed(w: World, viewer: str) -> dict:
+    require_opted_in(w, viewer)
+    ids = _ordered(w, viewer)[: w.params["feed"]["size"]]
     now = w.now()
     return {
         "generatedAt": iso(now),
@@ -271,5 +275,4 @@ def feed(w: World, viewer: str) -> dict:
 def ranked_cards(w: World, viewer: str) -> list[dict]:
     """Every visible ranked plan as a PlanCard (the Muse bar filters these)."""
     require_opted_in(w, viewer)
-    ids = [pid for pid in w.match.rank(w, viewer) if pid in w.plans and visible(w, viewer, w.plans[pid])]
-    return [card(w, viewer, w.plans[pid]) for pid in ids]
+    return [card(w, viewer, w.plans[pid]) for pid in _ordered(w, viewer)]
