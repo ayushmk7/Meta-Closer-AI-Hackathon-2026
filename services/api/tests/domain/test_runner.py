@@ -135,3 +135,16 @@ def test_intro_and_starters_at_formation(world):
     assert [i["id"] for i in runner.group_interests(world, ["u_maya", "u_dan", "u_rosa"])] == [
         "arts_crafts.ceramics.wheel_throwing"
     ]
+
+
+def test_cancelled_event_cancels_and_posts_alternatives(world):
+    mt = formed(world)
+    runner.apply(
+        world, mt, {"type": "cancelled", "reason": "I couldn't find a time that works, so I cancelled this one."}
+    )
+    v = meetups.view(world, "u_maya", mt)
+    assert v["status"] == "cancelled" and v["calendar"]["desired"] == "none"
+    last = chat.list_messages(world, "u_dan", v["threadId"])[-1]
+    assert last["sender"]["kind"] == "muse" and last["text"].startswith("I couldn't find a time")
+    assert [a for a in last["attachments"] if a["kind"] == "plan"] == [{"kind": "plan", "planId": "pl_hero2"}]
+    assert meetups.list_meetups(world, "u_maya") == []

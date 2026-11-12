@@ -65,3 +65,13 @@ def crowd(w: World, viewer: str, plan: dict, capacity: int) -> dict:
 def others_visible(w: World, viewer: str, user_ids: list[str]) -> list[str]:
     """P9: blocked people disappear from the blocker's responses (and vice versa)."""
     return [u for u in user_ids if u != viewer and not w.blocked(viewer, u)]
+
+
+def copy_interest(w: World, ref: dict) -> dict:
+    """ports.CopyInterest for an already-filtered InterestRef; Copy drops sensitive ones from its text again."""
+    return {
+        "id": ref["id"],
+        "label": ref["label"],
+        "visibility": "shown",
+        "sensitive": w.taxonomy[ref["id"]]["sensitive"],
+    }

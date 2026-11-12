@@ -12,7 +12,7 @@ from collections import deque
 from collections.abc import Iterable
 
 from cg_api import ports
-from cg_api.domain import approvals, chat, meetups, privacy
+from cg_api.domain import approvals, chat, meetups, plans, privacy
 from cg_api.domain.world import World, iso
 from cg_api.domain.world import _spawn as world_spawn
 
@@ -67,12 +67,33 @@ def apply(w: World, meetup_id: str, ev: dict) -> None:
         m["eventLabel"] = ev["eventLabel"]
         meetups.set_status(w, meetup_id, "confirmed")
         return
+    elif t == "cancelled":
+        cancel(w, meetup_id, ev.get("reason") or "I had to cancel this one.")
+        return
     else:
         log.info("runner: skipping unknown event %s", t)
         return
     if t != "step":
         for uid in meetups.going(m):
             w.emit(uid, "meetup.updated", meetups.view(w, uid, meetup_id))
+
+
+def cancel(w: World, meetup_id: str, reason: str) -> None:
+    """Meetup -> cancelled (directives -> none), then Muse posts the reason and alternatives everyone may see."""
+    m = w.meetups[meetup_id]
+    if m["status"] == "cancelled":
+        return
+    people = meetups.going(m)
+    meetups.set_status(w, meetup_id, "cancelled")
+    alts = None
+    for uid in people:  # only plans visible to every member (invite plans stay private)
+        ids = [a["planId"] for a in plans.detail(w, uid, w.plans[m["planId"]])["alternatives"]]
+        alts = ids if alts is None else [i for i in alts if i in ids]
+    alts = alts or []
+    text = reason + (" Here are some similar plans." if alts else "")
+    chat.post(w, m["threadId"], "muse", None, text, [{"kind": "plan", "planId": pid} for pid in alts])
+    for uid in people:
+        w.emit(uid, "thread.updated", chat.thread_view(w, uid, w.threads[m["threadId"]]))
 
 
 async def drive(w: World, meetup_id: str, events: Iterable[dict]) -> None:
@@ -134,8 +155,7 @@ async def post_intro(w: World, meetup_id: str) -> None:
     shared = group_interests(w, people)
     plan = {**w.plans[m["planId"]], "venueName": w.venues[m["venueId"]]["name"]}
     try:
-        # ponytail: labels until bplat's Copy takes interest objects; `shared` is already privacy-filtered
-        text, starters = await ports.ports.copy.intro(names, [i["label"] for i in shared], plan)
+        text, starters = await ports.ports.copy.intro(names, [privacy.copy_interest(w, i) for i in shared], plan)
     except Exception:
         log.warning("runner: intro copy failed for %s; using template", meetup_id)
         text = f"{', '.join(names)}, meet each other! I'm handling the booking and the calendar."

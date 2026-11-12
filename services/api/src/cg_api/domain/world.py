@@ -8,7 +8,6 @@ sibling modules, never stored.
 from __future__ import annotations
 
 import asyncio
-import itertools
 from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
@@ -120,10 +119,11 @@ class World:
     runs: dict[str, Any] = field(default_factory=dict)  # meetupId -> D's ScriptedRun
     run_queues: dict[str, Any] = field(default_factory=dict)  # meetupId -> deque of pending run items
     events: list[tuple[str, str, dict]] = field(default_factory=list)  # (userId, type, data) for the realtime hub
-    _seq: dict[str, itertools.count] = field(default_factory=lambda: defaultdict(lambda: itertools.count(1)))
+    _seq: dict[str, int] = field(default_factory=lambda: defaultdict(int))  # plain ints: World is deepcopied
 
     def next_id(self, prefix: str) -> str:
-        return f"{prefix}{next(self._seq[prefix]):04d}"
+        self._seq[prefix] += 1
+        return f"{prefix}{self._seq[prefix]:04d}"
 
     def emit(self, user_id: str, type_: str, data: dict | None = None) -> None:
         self.events.append((user_id, type_, data or {}))

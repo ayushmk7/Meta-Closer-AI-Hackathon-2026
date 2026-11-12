@@ -141,8 +141,7 @@ async def warm_reasons(w: World, viewer: str, plan_ids: list[str]) -> None:
             continue
         shared = privacy.crowd(w, viewer, p, capacity(w, p))["sharedWithYou"]
         try:
-            # ponytail: labels until bplat's Copy takes interest objects
-            text = await ports.ports.copy.plan_reason(p, [s["interest"]["label"] for s in shared])
+            text = await ports.ports.copy.plan_reason(p, [privacy.copy_interest(w, s["interest"]) for s in shared])
         except Exception:
             log.warning("plan_reason copy failed for %s; leaving it blank", pid)
             text = ""
