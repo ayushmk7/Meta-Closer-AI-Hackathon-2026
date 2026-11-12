@@ -148,3 +148,42 @@ def test_cancelled_event_cancels_and_posts_alternatives(world):
     assert last["sender"]["kind"] == "muse" and last["text"].startswith("I couldn't find a time")
     assert [a for a in last["attachments"] if a["kind"] == "plan"] == [{"kind": "plan", "planId": "pl_hero2"}]
     assert meetups.list_meetups(world, "u_maya") == []
+
+
+def test_copy_gets_interest_objects_that_survive_fail_closed_filter(world, monkeypatch):
+    """Copy drops anything that isn't a shown, non-sensitive CopyInterest; ours must survive, or text goes blank."""
+    import asyncio
+
+    from cg_api import ports
+    from cg_api.domain import plans
+
+    seen = {}
+
+    async def plan_reason(plan, shared):
+        seen["reason"] = ports.safe_labels(shared)
+        return "ok"
+
+    async def intro(names, shared, plan):
+        seen["intro"] = ports.safe_labels(shared)
+        return "hi", ["a", "b", "c"]
+
+    monkeypatch.setattr(ports.ports.copy, "plan_reason", plan_reason)
+    monkeypatch.setattr(ports.ports.copy, "intro", intro)
+    asyncio.run(plans.warm_reasons(world, "u_maya", ["pl_hero"]))
+    world.on_formed = runner.start
+    formed(world)
+    assert seen == {"reason": ["Ceramics", "Board games", "Hiking"], "intro": ["Wheel throwing"]}
+
+
+def test_refunds_then_cancel_after_double_booking_failure(world):
+    pytest.importorskip("cg_api.agent")
+    world.on_formed, world.on_decided = runner.start, runner.decided
+    mt = formed(world)
+    world.venues["vn_clay"]["booking"]["capacityPerSlot"] = 2  # room vanished after the availability check
+    for a in list(world.approvals.values()):
+        approvals.decide(world, a["userId"], a["approvalId"], "approve")
+    m = meetups.view(world, "u_maya", mt)
+    kinds = [s["kind"] for s in m["museSteps"]]
+    assert m["status"] == "cancelled" and kinds[-1] == "cancel" and "refund" in kinds
+    assert m["cost"]["myPayment"] == "not_needed" and m["calendar"]["desired"] == "none"
+    assert "cancelled this one" in chat.list_messages(world, "u_dan", m["threadId"])[-1]["text"]
