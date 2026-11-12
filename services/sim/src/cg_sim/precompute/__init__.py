@@ -5,6 +5,10 @@
 activity.parquet: every user x every activity type (join_activity -> p_join, show_up -> p_show; one Laya
 call per state since both questions share it). meet_again.parquet: union of each user's top
 params.sim.candidatesPerUser candidates, user_a < user_b. manifest.json alongside.
+
+Output: data/laya_tables/<pool>/ (backend loads it) only from the backend export. --use-ground-truth
+tables are derived from sim_private, so they go to data/sim/laya_gt/<pool>/ (sim/MC only) and never
+trigger a backend reload (PRD-3 §2).
 """
 
 from __future__ import annotations
@@ -125,10 +129,11 @@ def run(pool_id: str, fake: bool, use_ground_truth: bool, out: Path | None = Non
               file=sys.stderr)
     client = laya.LayaClient(fake=fake)
     act_rows, meet_rows = build_tables(export, load_activity(pool_id), client)
-    manifest = write_tables(out or data_dir() / "laya_tables" / pool_id, pool_id, export, act_rows, meet_rows,
+    default = data_dir() / ("sim/laya_gt" if use_ground_truth else "laya_tables") / pool_id
+    manifest = write_tables(out or default, pool_id, export, act_rows, meet_rows,
                             "fake" if fake else client.model)
     print(f"[{pool_id}] {manifest['rows']} questionsVersion {manifest['questionsVersion']}")
-    if reload:
+    if reload and not use_ground_truth:
         reload_backend(pool_id)
     return manifest
 
@@ -138,7 +143,7 @@ def main(argv: list[str]) -> int:
     ap.add_argument("--pool", choices=pool_ids(), help="default: every pool")
     ap.add_argument("--fake-laya", action="store_true", help="contract hash rule instead of LAYA_URL")
     ap.add_argument("--use-ground-truth", action="store_true", help="build the export from data/sim_private")
-    ap.add_argument("--out", type=Path, help="output dir (single pool only); default data/laya_tables/<pool>")
+    ap.add_argument("--out", type=Path, help="output dir (single pool only); default data/laya_tables/<pool>, data/sim/laya_gt/<pool> with --use-ground-truth")
     ap.add_argument("--no-reload", action="store_true", help="skip POST /internal/v1/laya-tables/reload")
     a = ap.parse_args(argv)
     fake = a.fake_laya or os.environ.get("LAYA_FAKE") == "1"

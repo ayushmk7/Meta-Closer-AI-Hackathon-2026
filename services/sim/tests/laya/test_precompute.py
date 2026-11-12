@@ -76,11 +76,17 @@ def test_evaluate_counts():
     assert r["frequent_places"]["recall"] == 1.0 and r["routines"]["recall"] == 1.0
 
 
-def test_ground_truth_eval_sees_signals(tmp_path):
-    from cg_sim.evalx import main
 
-    out = tmp_path / "x.json"
-    assert main(["--pool", POOL, "--use-ground-truth", "--out", str(out)]) == 0
-    r = json.loads(out.read_text())["pools"][POOL]
-    assert r["sensitive_places"]["actual"] > 0 and r["sensitive_places"]["recall"] == 1.0
-    assert r["frequent_places"]["recall"] == 1.0 and r["routines"]["recall"] == 1.0
+def test_evaluate_misses_dropped_signals():
+    """Truth has 2 sensitive places and 2 routines; export drops one of each -> recall 0.5, exact counts."""
+    truth = [{"userId": u, "interests": [], "sensitivePlace": f"vn_s{u}", "frequentPlaces": [],
+              "routines": [{"activity": "run"}]} for u in ("u1", "u2")]
+    sig = [{"kind": "frequent_place", "venueId": "vn_su1", "sensitive": True, "interestIds": []},
+           {"kind": "routine", "venueId": None, "sensitive": False, "interestIds": ["sports_fitness.running"]}]
+    export = {"users": [{"userId": "u1", "interests": [], "signals": sig}, {"userId": "u2", "interests": [], "signals": []}]}
+    r = evaluate(export, truth, {"u1": {"google_maps", "strava"}, "u2": {"google_maps", "strava"}})
+    assert r["sensitive_places"] == {"tp": 1, "predicted": 1, "actual": 2, "precision": 1.0, "recall": 0.5}
+    assert r["routines"] == {"tp": 1, "actual": 2, "recall": 0.5}
+    # u2 without providers: its truth is unobservable, so not counted
+    r = evaluate(export, truth, {"u1": {"google_maps", "strava"}, "u2": set()})
+    assert r["sensitive_places"]["recall"] == 1.0 and r["routines"]["actual"] == 1
