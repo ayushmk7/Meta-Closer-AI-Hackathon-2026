@@ -190,7 +190,7 @@ def test_form_min_shared_with_others(params):
     assert res.unseated_ids == ["u_odd"] and len(res.groups[0].member_ids) == 3
 
 
-def test_shared_interests_and_plan_overlap():
+def test_shared_interests_and_plan_overlap(params):
     a = user(
         "u_a",
         {
@@ -217,8 +217,8 @@ def test_shared_interests_and_plan_overlap():
     ]
     assert cgm.shared_interests(pool, "u_a", "u_b", 2, 1) == ["arts_crafts.ceramics"]
     p = cgm.Plan.from_record(plan())
-    assert cgm.plan_overlap(pool, "u_a", p, ["u_b"], 2, 3) == []  # below crowdMinCount
-    assert cgm.plan_overlap(pool, "u_a", p, ["u_a", "u_b", "u_c"], 2, 3) == [
+    assert cgm.plan_overlap(pool, "u_a", p, ["u_b"], 2, 3, params=params) == []  # below crowdMinCount
+    assert cgm.plan_overlap(pool, "u_a", p, ["u_a", "u_b", "u_c"], 2, 3, params=params) == [
         ("arts_crafts.ceramics", 2),
         ("food_drink.coffee_tea", 1),
     ]

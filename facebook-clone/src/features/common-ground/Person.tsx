@@ -1,73 +1,87 @@
+// Public profile (PRD-1 §8.7). Only reachable when the connection has canViewProfile.
 import { useEffect, useState } from 'react';
-import { View } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
-import { Busy, Button, Card, go, Label, Muted, Page } from '../../ui/native';
+import { Alert, View } from 'react-native';
+import { router, useLocalSearchParams } from 'expo-router';
+import { Button, Card, IconButton, Label, Muted, Page } from '../../ui/native';
 import { api } from './api';
-import { useCg } from './store';
-import type { PublicProfile } from './types';
+import { act, load, useCg } from './store';
 import { Banners, InterestChips, NotFound, PersonAvatar, personName } from './ui';
 
-export default function Person() {
-  const { userId } = useLocalSearchParams<{ userId?: string }>();
-  // undefined = loading, null = 403/404 or any error
-  const [profile, setProfile] = useState<PublicProfile | null | undefined>(undefined);
-  const threadId = useCg((s) => s.connections.find((c) => c.person.userId === userId)?.threadId);
+export default function PersonScreen() {
+  const { userId = '' } = useLocalSearchParams<{ userId: string }>();
+  const profile = useCg((s) => s.people[userId]);
+  const connection = useCg((s) => s.connections.find((c) => c.person.userId === userId));
+  const [loaded, setLoaded] = useState(false);
   useEffect(() => {
-    let live = true;
-    setProfile(undefined);
-    if (!userId) return setProfile(null);
-    api.getPerson(userId).then(
-      (p) => live && setProfile(p),
-      () => live && setProfile(null),
-    );
-    return () => {
-      live = false;
-    };
+    void load.person(userId).then(() => setLoaded(true));
   }, [userId]);
 
-  if (profile === undefined) return <Busy />;
+  if (!profile)
+    return (
+      <Page>
+        <Banners />
+        {loaded && <NotFound title="Profile not available" />}
+      </Page>
+    );
+  const name = personName(profile.person);
+  const first = name.split(' ')[0];
+  const more = () =>
+    Alert.alert(name, undefined, [
+      {
+        text: 'Report',
+        onPress: () => void act(() => api.report({ userId, reason: 'other' })),
+      },
+      {
+        text: 'Block',
+        style: 'destructive',
+        onPress: async () => {
+          if (await act(() => api.block(userId).then(() => true))) {
+            void load.connections();
+            router.back();
+          }
+        },
+      },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  const together = profile.meetupsTogether ?? connection?.meetupsTogether ?? 0;
   return (
     <Page>
       <Banners />
-      {!profile ? (
-        <NotFound title="Profile not available" />
-      ) : (
-        <Card style={{ borderRadius: 0 }}>
-          <View style={{ padding: 16, gap: 10 }}>
-            <PersonAvatar person={profile.person} size={96} />
-            <View>
-              <Label
-                accessibilityRole="header"
-                style={{ fontSize: 25, lineHeight: 31, fontWeight: '800' }}
-              >
-                {personName(profile.person)}
-              </Label>
-              {!!profile.neighborhood && <Muted>{profile.neighborhood}</Muted>}
-            </View>
-            {!!profile.bio && <Label>{profile.bio}</Label>}
-            {profile.sharedInterests.length > 0 && (
-              <View style={{ gap: 8, paddingTop: 6 }}>
-                <Label accessibilityRole="header" style={{ fontSize: 19, fontWeight: '700' }}>
-                  You both like
-                </Label>
-                <InterestChips interests={profile.sharedInterests} />
-              </View>
-            )}
-            {!!profile.meetupsTogether && (
-              <Muted>
-                {profile.meetupsTogether} meetup{profile.meetupsTogether === 1 ? '' : 's'} together
-              </Muted>
-            )}
-            {threadId && (
-              <Button
-                title="Message"
-                icon="chatbubble-ellipses-outline"
-                onPress={() => go(`/common-ground/chat/${threadId}`)}
-              />
-            )}
+      <Card style={{ padding: 16, gap: 12 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+          <PersonAvatar person={profile.person} size={72} />
+          <View style={{ flex: 1 }}>
+            <Label accessibilityRole="header" style={{ fontSize: 22, fontWeight: '800' }}>
+              {name}
+            </Label>
+            {!!profile.neighborhood && <Muted>{profile.neighborhood}</Muted>}
           </View>
-        </Card>
-      )}
+          <IconButton
+            name="ellipsis-horizontal"
+            label={`More options for ${name}`}
+            onPress={more}
+          />
+        </View>
+        {!!profile.bio && <Label>{profile.bio}</Label>}
+        <Muted>
+          {together
+            ? `${together} ${together === 1 ? 'meetup' : 'meetups'} together`
+            : 'You met through Common Ground'}
+        </Muted>
+        {profile.sharedInterests.length > 0 && (
+          <>
+            <Label style={{ fontWeight: '700' }}>You both like</Label>
+            <InterestChips interests={profile.sharedInterests} />
+          </>
+        )}
+        {connection?.canPlanAgain && (
+          <Button
+            title="Plan something again"
+            accessibilityLabel={`Plan something again with ${first}`}
+            onPress={() => router.navigate(`/common-ground?with=${encodeURIComponent(userId)}`)}
+          />
+        )}
+      </Card>
     </Page>
   );
 }
