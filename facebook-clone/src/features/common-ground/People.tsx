@@ -263,7 +263,15 @@ export default function People() {
         </Card>
       )}
 
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 4 }}>
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 8,
+          paddingVertical: 4,
+          paddingHorizontal: 16,
+        }}
+      >
         <Label accessibilityRole="header" style={[heading, { flex: 1 }]}>
           Today's people
         </Label>
