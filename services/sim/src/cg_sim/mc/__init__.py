@@ -23,6 +23,11 @@ ABLATIONS = {
     "maxPerActivityType=4": {"feed.maxPerActivityType": 4},
     "exposureCapPerDay=20": {"plans.exposureCapPerDay": 20},
     "exposureCapPerDay=80": {"plans.exposureCapPerDay": 80},
+    # At the default cap (40/day) no plan hits the cap in this pool, so isolationBoost has nothing to reorder;
+    # these three show the boost where exposure is contested.
+    "exposureCapPerDay=10": {"plans.exposureCapPerDay": 10},
+    "exposureCapPerDay=10,isolationBoost=0": {"plans.exposureCapPerDay": 10, "matching.isolationBoost": 0.0},
+    "exposureCapPerDay=10,isolationBoost=1": {"plans.exposureCapPerDay": 10, "matching.isolationBoost": 1.0},
     "isolationBoost=0": {"matching.isolationBoost": 0.0},
     "isolationBoost=1": {"matching.isolationBoost": 1.0},
     "formLeadHours=12": {"plans.formLeadHours": 12},
