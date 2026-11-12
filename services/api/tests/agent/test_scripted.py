@@ -86,7 +86,8 @@ def test_no_room_stops_before_payments_and_never_claims_booked():
     ids = count(1)
     r = ScriptedRun("mt_1", HERO, small, PEOPLE, "2026-11-12T18:12:00Z", lambda p: f"{p}_{next(ids)}")
     ev = list(r.start())
-    assert steps(ev)[2:] == [("check_availability", "failed"), ("reschedule", "failed")]
+    assert steps(ev)[2:] == [("check_availability", "failed"), ("reschedule", "failed"), ("cancel", "done")]
+    assert ev[-1]["type"] == "cancelled"  # never a stuck timeline
     assert not any(e["type"] in ("approval", "payment", "confirmed") for e in ev)
     assert [e["booking"]["status"] for e in ev if e["type"] == "booking"] == ["failed"]
     assert not any("Confirmation" in (s["detail"] or "") for s in r.steps)

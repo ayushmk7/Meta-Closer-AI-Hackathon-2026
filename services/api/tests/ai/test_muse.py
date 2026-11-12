@@ -36,6 +36,10 @@ VENUES = {
 }
 
 
+def ok(label):
+    return {"label": label, "visibility": "shown", "sensitive": False}
+
+
 class Spy:
     """A live-looking Muse that records every prompt and answers with a fixed JSON."""
 
@@ -51,14 +55,14 @@ class Spy:
 
 def test_fake_copy_is_templated_and_bounded():
     copy = MuseCopy(FAKE)
-    text, starters = asyncio.run(copy.intro(["Maya", "Rosa", "Dan"], ["Wheel throwing"], PLAN))
+    text, starters = asyncio.run(copy.intro(["Maya", "Rosa", "Dan"], [ok("Wheel throwing")], PLAN))
     assert text == (
         "Maya, Rosa and Dan, meet each other! You're all into wheel throwing. See you Saturday at Clay "
         "Hour Studio. I'm handling the booking and the calendar."
     )
     assert len(starters) == 3 and all(len(s) < 90 for s in starters)
     assert len(asyncio.run(copy.plan_title({**PLAN, "title": "x" * 99}))) == 60
-    assert len(asyncio.run(copy.plan_reason(PLAN, ["Ceramics"]))) <= 160
+    assert len(asyncio.run(copy.plan_reason(PLAN, [ok("Ceramics")]))) <= 160
     assert FAKE.calls == {"copy.intro.fake": 1, "copy.title.fake": 1, "copy.reason.fake": 1}
     a = approval_copy(PLAN, {"name": "Clay Hour Studio", "booking": {"payAtVenueAllowed": True}})
     assert a["detail"] == "Muse pays Clay Hour Studio for your seat on Saturday, 10 AM to 12 PM."
@@ -187,15 +191,15 @@ def test_stalled_muse_costs_one_timeout_not_retries():
 
 def test_copy_never_speaks_sensitive_labels_and_keeps_casing():
     copy = MuseCopy(FAKE, CONTRACTS)
-    said = asyncio.run(copy.setup_review("u_x", ["Ceramics", "Faith & spirituality", "AI and ML"]))
+    said = asyncio.run(copy.setup_review("u_x", [ok("Ceramics"), ok("Faith & spirituality"), ok("AI and ML")]))
     assert said == "I noticed you're into ceramics and AI and ML. I'll look for small plans around those."
     hidden = [{"interest": {"label": "Sourdough"}, "visibility": "hidden", "sensitive": False}]
     assert "Sourdough" not in asyncio.run(copy.setup_review("u_x", hidden))
     spy = Spy()
-    asyncio.run(MuseCopy(spy, CONTRACTS).setup_review("u_x", ["Faith & spirituality", "Buddhism"]))
+    asyncio.run(MuseCopy(spy, CONTRACTS).setup_review("u_x", [ok("Faith & spirituality"), ok("Buddhism")]))
     assert "Faith" not in spy.prompts[0][1] and "Buddhism" not in spy.prompts[0][1]
     assert (
-        asyncio.run(copy.plan_reason(PLAN, ["CrossFit"]))
+        asyncio.run(copy.plan_reason(PLAN, [ok("CrossFit")]))
         == "For people into CrossFit, at Clay Hour Studio on Saturday."
     )
     walk = {
@@ -276,3 +280,11 @@ def test_log_models_never_raises(monkeypatch):
     assert muse.log_models() == ["muse-spark-1.3"]
     monkeypatch.setattr(httpx, "get", lambda *a, **k: (_ for _ in ()).throw(httpx.ConnectError("down")))
     assert muse.log_models() == []
+
+
+def test_labels_fail_closed_without_flags():
+    copy = MuseCopy(FAKE, CONTRACTS)
+    flagged = {"label": "Running", "visibility": "shown", "sensitive": True}  # Laya said yes; taxonomy doesn't
+    unknown = {"label": "Hiking", "visibility": "shown"}  # no sensitive flag: don't speak
+    said = asyncio.run(copy.setup_review("u_x", [ok("Ceramics"), "Running", flagged, unknown]))
+    assert said == "I noticed you're into ceramics. I'll look for small plans around those."

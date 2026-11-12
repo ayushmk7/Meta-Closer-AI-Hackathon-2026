@@ -90,19 +90,19 @@ def lc(label: str) -> str:
 
 
 def safe_labels(items: list, sensitive: set[str]) -> list[str]:
-    """Labels safe to speak: drops hidden or sensitive interest dicts and any sensitive taxonomy label (P4)."""
+    """Labels safe to speak (P4), fail closed: only interest dicts saying visibility "shown" and sensitive false.
+    Bare strings and dicts missing a flag are dropped: Laya or Muse can flag an interest the taxonomy doesn't."""
     out = []
     for i in items:
-        if isinstance(i, dict):
-            if i.get("visibility") == "hidden" or i.get("sensitive"):
-                continue
-            i = i.get("label") or (i.get("interest") or {}).get("label", "")
-        if i and i not in sensitive:
-            out.append(i)
+        if not isinstance(i, dict) or i.get("visibility") != "shown" or i.get("sensitive") is not False:
+            continue
+        label = i.get("label") or (i.get("interest") or {}).get("label", "")
+        if label and label not in sensitive:
+            out.append(label)
     return out
 
 
-def _when(title: str, iso: str) -> str:
+def on_day(title: str, iso: str) -> str:
     """ " on Saturday", unless the title already says the day."""
     d = day(iso) if iso else ""
     return f" on {d}" if d and d.lower() not in title.lower() else ""
@@ -166,7 +166,7 @@ def nudge(signal_label: str, plan: dict) -> tuple[str, str]:
     """(title, text), e.g. ("Lands End Trail on Sunday?", "You've been to ... Sunday coastal walk is open. Want in?")"""
     p = public_plan(plan)
     title = f"{p['venue'] or p['title']} on {day(p['startsAt'])}?" if p["startsAt"] else f"{p['title']}?"
-    return title[:80], f"{signal_label}. {p['title'] or 'A plan'}{_when(p['title'], p['startsAt'])} is open. Want in?"[
+    return title[:80], f"{signal_label}. {p['title'] or 'A plan'}{on_day(p['title'], p['startsAt'])} is open. Want in?"[
         :160
     ]
 
@@ -229,7 +229,7 @@ class MuseCopy:
             "copy.title", "Write a plan title, at most 60 characters.", public_plan(plan), plan_title(plan), 60
         )
 
-    async def plan_reason(self, plan: dict, shared_labels: list[str]) -> str:
+    async def plan_reason(self, plan: dict, shared_labels: list[dict]) -> str:
         shared_labels = safe_labels(shared_labels, self.sensitive)
         facts = {"plan": public_plan(plan), "sharedInterests": shared_labels}
         return await self._text(
@@ -240,8 +240,8 @@ class MuseCopy:
             160,
         )
 
-    async def setup_review(self, user_id: str, interest_labels: list) -> str:
-        # user_id is deliberately not sent; labels may be strings or MyInterest-like dicts
+    async def setup_review(self, user_id: str, interest_labels: list[dict]) -> str:
+        # user_id is deliberately not sent; items are MyInterest/shared-interest dicts with visibility + sensitive
         labels = safe_labels(interest_labels, self.sensitive)
         return await self._text(
             "copy.setup",

@@ -11,6 +11,7 @@
   {"type": "reschedule", "startsAt", "endsAt"}
   {"type": "calendar", "desired": "event"}               write every attendee's directive
   {"type": "confirmed", "eventLabel"}                    meetup -> confirmed
+  {"type": "cancelled", "reason"}                        meetup -> cancelled; caller posts alternatives in the thread
 
 Steps with `forUserId` (payments) are shown only to that user: nobody learns who declined (P6). P11 is enforced
 here: `book` never runs while any prepaid attendee is undecided, and no payment completes without an approval or
@@ -200,7 +201,8 @@ class ScriptedRun:
             if code is None:
                 yield self._step("book", "failed", f"{v['name']} is full at {clock(self.plan['startsAt'], True)} too")
                 yield self._booking("failed", "Couldn't book it", None)
-                return  # ponytail: cancel with alternatives or a `change` approval lands with the M2 tool agent
+                yield from self._cancel()
+                return
         yield self._event_or_new(
             self._find("book"),
             "book",
@@ -230,7 +232,8 @@ class ScriptedRun:
         if shift > timedelta(minutes=self.reschedule_window_min) or simulated_book(v, later, party) is None:
             yield self._step("reschedule", "failed", f"Couldn't find another time at {v['name']} today")
             yield self._booking("failed", "Couldn't book it", None)
-            return False  # ponytail: outside the bounds needs a `change` approval (M2)
+            yield from self._cancel()
+            return False
         old = clock(p["startsAt"])
         self.plan = {**p, "startsAt": later, "endsAt": _iso(_dt(p["endsAt"]) + shift)}
         yield self._step(
@@ -238,6 +241,17 @@ class ScriptedRun:
         )
         yield {"type": "reschedule", "startsAt": self.plan["startsAt"], "endsAt": self.plan["endsAt"]}
         return True
+
+    def _cancel(self) -> Iterator[dict]:
+        """Never leave a stuck timeline (D4): refund anyone paid, cancel, and let the caller post alternatives."""
+        # ponytail: a `change` approval offering other times replaces this with the M2 tool agent
+        amount = money((self.plan.get("cost") or {}).get("perPersonCents", 0))
+        for uid, how in self.decided.items():
+            if how == "paid":
+                yield self._step("refund", "done", f"Refunded your {amount}", for_user=uid)
+        reason = f"I couldn't find a time that works at {self.venue['name']}, so I cancelled this one."
+        yield self._step("cancel", "done", f"{reason} Similar plans are in the chat.")
+        yield {"type": "cancelled", "reason": reason}
 
     def _finish(self) -> Iterator[dict]:
         # ponytail: done on write; "done when every attendee applied it" needs syncCalendar acks from slice A (M2)

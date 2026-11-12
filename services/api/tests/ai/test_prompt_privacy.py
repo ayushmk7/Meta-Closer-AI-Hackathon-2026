@@ -3,7 +3,7 @@
 import asyncio
 from pathlib import Path
 
-from test_muse import PLAN, Spy
+from test_muse import PLAN, Spy, ok
 
 from cg_api.laya import LayaClient, render
 from cg_api.muse.copy import MuseCopy
@@ -23,11 +23,11 @@ def test_copy_prompts_whitelist_plan_fields():
         "interested": ["u_0125"],
         "venue": {**PLAN["venue"], "location": {"lat": 37.7595}},
     }
-    asyncio.run(copy.intro(["Maya", "Rosa"], ["Wheel throwing"], leaky))
-    asyncio.run(copy.plan_reason(leaky, ["Ceramics"]))
+    asyncio.run(copy.intro(["Maya", "Rosa"], [ok("Wheel throwing")], leaky))
+    asyncio.run(copy.plan_reason(leaky, [ok("Ceramics")]))
     asyncio.run(copy.plan_title(leaky))
     asyncio.run(copy.nudge("You've been to Lands End 4 times", leaky))
-    asyncio.run(copy.setup_review("u_0125", ["Ceramics"]))
+    asyncio.run(copy.setup_review("u_0125", [ok("Ceramics")]))
     assert len(spy.prompts) == 5
     for _, prompt in spy.prompts:
         assert not [s for s in SECRETS if s in prompt], prompt

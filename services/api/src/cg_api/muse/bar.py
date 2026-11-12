@@ -15,7 +15,7 @@ from urllib.parse import unquote_plus
 
 from cg_api.laya import load_questions
 from cg_api.muse import Unavailable
-from cg_api.muse.copy import TZ, _when, local
+from cg_api.muse.copy import TZ, local, on_day
 from cg_api.muse.extract import taxonomy
 
 DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
@@ -194,7 +194,7 @@ def reply(plans: list[dict], f: dict) -> str:
         return "Here's what's coming up near you."
     first = plans[0]
     if len(plans) == 1:
-        return f"I found one that fits: {first['title']}{_when(first['title'], first['startsAt'])}."
+        return f"I found one that fits: {first['title']}{on_day(first['title'], first['startsAt'])}."
     count = (first.get("crowd") or {}).get("interestedCount", 0)
     tail = f" {first['title']} already has {count} people in." if count >= 2 else ""
     return f"I found {len(plans)} plans that fit.{tail}"
