@@ -30,6 +30,7 @@ import { STEP_DELAY_S, mockRequest, resetMock } from '../../src/features/common-
 import {
   handleEvent,
   hooks,
+  pollFast,
   startRealtime,
   stopRealtime,
 } from '../../src/features/common-ground/realtime';
@@ -432,4 +433,26 @@ test('realtime: a socket that opens then drops backs off, refetches at most once
   assert.ok(sockets.length <= 5, `${sockets.length} sockets in 10 s`);
   assert.ok(feeds <= 1, `${feeds} refetches`);
   assert.equal(maxInFlight, 1);
+});
+
+test('mock: other plans get their own detail; no steps before formation; fast poll shows the group forming', async (t) => {
+  t.mock.timers.enable({ apis: ['Date'], now: Date.parse('2026-11-12T18:00:00Z') });
+  await reset();
+  await start();
+  await optIn('city');
+  const walk = (await mockRequest('u_maya', 'GET', '/v1/plans/pl_0003')) as Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any -- raw mock JSON
+  assert.doesNotMatch(walk.description + walk.museWillHandle.join(), /wheel|clay|\$35/i);
+  assert.equal(walk.because[0].signalId, 'si_0001');
+  const early = (await mockRequest('u_maya', 'GET', '/v1/meetups/mt_0001')) as Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any -- raw mock JSON
+  assert.deepEqual(early.museSteps, []);
+
+  await load.plan('pl_0001');
+  await join('pl_0001');
+  t.mock.timers.tick(STEP_DELAY_S * 2000);
+  await pollFast();
+  const s = getState();
+  assert.equal(s.plans.pl_0001!.myJoin?.status, 'matched');
+  assert.equal(s.joins.find((j) => j.planId === 'pl_0001')!.meetupId, 'mt_0001');
+  assert.ok(s.meetups.mt_0001);
+  await reset();
 });

@@ -45,6 +45,8 @@ const F = fixtures as unknown as {
   listMessages: { items: Message[] };
 };
 const now = () => new Date().toISOString();
+const iso = (ms: number) => new Date(ms).toISOString();
+
 let seq = 0;
 const nextId = (prefix: string) => `${prefix}mock${(++seq).toString().padStart(3, '0')}`;
 
@@ -60,12 +62,32 @@ const notFound = () => new MockError(404, 'not_found', "This isn't available any
 
 // Plan details: getPlan's example, plus every other card (feed, Muse bar) with the same extras.
 const detailOf = (card: PlanCard): PlanDetail => {
-  const { planId: _p, title: _t, ...extras } = clone(F.getPlan);
+  const extras = clone(F.getPlan);
   const directions = {
     apple: `https://maps.apple.com/?daddr=${card.venue.location.lat},${card.venue.location.lng}&dirflg=r`,
     google: `https://www.google.com/maps/dir/?api=1&destination=${card.venue.location.lat},${card.venue.location.lng}&travelmode=transit`,
   };
-  return { ...extras, ...clone(card), alternatives: [], directions };
+  // Plan-specific detail derived from the card, never the pottery example's copy.
+  const prepaid = card.cost.kind === 'prepaid';
+  return {
+    ...extras,
+    ...clone(card),
+    description: card.reason,
+    museWillHandle: [
+      ...(prepaid ? [`Ask you before paying ${card.cost.label}`] : []),
+      'Add it to your calendar',
+      'Open a group chat with an intro',
+      'Remind you when to leave',
+    ],
+    safety: [
+      'Public place',
+      `Groups of ${card.size.min} or more`,
+      'Share your plan with a friend in one tap',
+    ],
+    formsAt: iso(Date.parse(card.startsAt) - 86_400_000),
+    alternatives: [],
+    directions,
+  };
 };
 
 function world() {
@@ -93,7 +115,11 @@ function world() {
     plans,
     joins,
     nudges: clone(F.listNudges.items),
-    meetups: { [F.getMeetup.meetupId]: clone(F.getMeetup) } as Record<string, Meetup>,
+    // No steps until the group forms (tick builds the timeline from then on).
+    meetups: { [F.getMeetup.meetupId]: { ...clone(F.getMeetup), museSteps: [] } } as Record<
+      string,
+      Meetup
+    >,
     // Meetups appear in lists only once my join is matched (getMeetup by ID always works).
     visibleMeetups: new Set<string>(),
     // Muse's intro only; the reschedule reply (fixture ms_0003) arrives after a toMuse message.
@@ -437,7 +463,6 @@ let D = STEP_DELAY_S * 1000;
 const NOT_FILLED_MS = 30_000; // the seeded join (pl_0002) doesn't fill, with alternatives
 const SEEDED = F.getFeed.plans.find((p) => p.myJoin)?.planId;
 const HOUR = 3_600_000;
-const iso = (ms: number) => new Date(ms).toISOString();
 const phase = (t: number, from: number) =>
   t < from ? 'queued' : t < from + D ? 'running' : 'done';
 const muse = (stepId: string, kind: string, status: string, label: string, at: number) => ({

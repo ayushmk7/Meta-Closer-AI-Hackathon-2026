@@ -41,8 +41,20 @@ export function handleEvent(e: RealtimeEvent): void {
 }
 
 // Fast: things that change while you watch. Slow: lists that refresh in the background.
+// While Muse is gathering people, the join (and its open plan) can flip to matched any second.
+const gathering = async () => {
+  const waiting = getState().joins.filter((j) => j.status === 'interested');
+  if (!waiting.length) return;
+  await Promise.all([
+    load.joins(),
+    ...waiting.filter((j) => getState().plans[j.planId]).map((j) => load.plan(j.planId)),
+  ]);
+  const s = getState();
+  if (s.joins.some((j) => j.meetupId && !s.meetups[j.meetupId])) await load.meetups();
+};
 export const pollFast = () =>
   Promise.all([
+    gathering(),
     load.approvals(),
     load.threads(),
     ...Object.values(getState().meetups)
