@@ -19,3 +19,21 @@ Shared (read-only for other slices): `contracts.py` (paths, params, modes, taxon
 
 Paths come from `CG_DATA_DIR` and `CG_CONTRACTS_DIR` (default: the repo's `data/` and `contracts/`).
 Dependencies are declared once here; ask the sim lead to add more.
+
+## Ground-truth API (read-only, `cg_sim.seed.export`)
+
+Stand-in for `GET /internal/v1/pools/{id}/export` (`--use-ground-truth`). Reads the committed files, writes nothing.
+
+```python
+from cg_sim.seed.export import load_ground_truth, ground_truth_signals, load_ground_truth_export
+
+load_ground_truth("pool_sf_city")         # {userId: ground_truth.jsonl row}
+ground_truth_signals("pool_sf_city")      # {userId: {"frequentPlaces": [venueId], "routines": [{activity, day, part}],
+                                          #           "sensitivePlace": venueId | None}}  (seeded truth, all users)
+load_ground_truth_export("pool_sf_city")  # pool_export.schema.json dict; users[].signals filled from connected providers:
+                                          #   google_maps -> frequent_place (sensitive place: visibility hidden, sensitive true)
+                                          #   strava -> routine. with_signals=False leaves signals empty.
+```
+
+All take an optional `root` (default `CG_DATA_DIR`). Ground truth lives in `data/sim_private/`: never copy it
+into `data/seed/` or `data/laya_tables/`.
