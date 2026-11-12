@@ -275,22 +275,37 @@ class ScriptedRun:
         party = self._party()
         if new == old:
             return [], f"It's already at {clock(new_start)}.", []
-        in_bounds = (
-            local(new_start).date() == local(p["startsAt"]).date()
-            and abs(new - old) <= timedelta(minutes=self.reschedule_window_min)
-            and all(_free(busy.get(a["userId"], []), new, end) for a in self.attendees)
-            and (not self.needs_booking or simulated_book(v, new_start, party) is not None)
-        )
-        if not in_bounds:
-            # ponytail: a `change` approval to every attendee lands with the M2 tool agent
+        if self.pending:  # approvals name the current time; never let someone OK a time that moved
+            return [], "I can move it once everyone's OK'd the payment.", []
+
+        def fits(start: datetime) -> bool:
+            iso = _iso(start)
             return (
-                [],
-                (
-                    f"I can't move it to {clock(new_start, True)} on my own. I can shift it by up to "
-                    f"{self.reschedule_window_min // 60} hours on the same day when everyone's free and there's room."
-                ),
-                [],
+                local(iso).date() == local(p["startsAt"]).date()
+                and abs(start - old) <= timedelta(minutes=self.reschedule_window_min)
+                and all(_free(busy.get(a["userId"], []), start, start + (end - new)) for a in self.attendees)
+                and (not self.needs_booking or simulated_book(v, iso, party) is not None)
             )
+
+        if not fits(new):
+            # ponytail: a `change` approval to every attendee lands with the M2 tool agent
+            w = self.reschedule_window_min
+            slots = [old + timedelta(minutes=k) for k in range(-w, w + 1, 30) if k]
+            slot = min((x for x in slots if fits(x)), key=lambda x: abs(x - new), default=None)
+            far = abs(new - old) > timedelta(minutes=w) or local(new_start).date() != local(p["startsAt"]).date()
+            lead = (
+                f"{clock(new_start)} is too far for me to move it on my own."
+                if far
+                else (
+                    f"{clock(new_start)} doesn't work for everyone."  # never who is busy (P6)
+                )
+            )
+            tail = (
+                f" {clock(_iso(slot))} works for everyone; want that?"
+                if slot
+                else (" I couldn't find another time today that works for everyone.")
+            )
+            return [], lead + tail, []
         n0 = len(self.steps)
         old_label = clock(p["startsAt"])
         self.plan = {**p, "startsAt": new_start, "endsAt": _iso(end)}
@@ -324,6 +339,19 @@ _TIME = re.compile(r"\b(\d{1,2})(?::(\d{2}))?\s*(a\.?m\.?|p\.?m\.?)?(?=\W|$)", r
 _SHIFT = re.compile(r"\b(an|one|1|half an|30 min(?:utes)?)\s*(hour)?\s*(later|earlier)\b", re.IGNORECASE)
 
 
+_CUE_BEFORE = re.compile(r"\b(at|to|do|move|for|make it|start|starting|by|around|instead of)\s*$")
+_NOT_TIME_AFTER = re.compile(r"\s*(hours?|hrs?|mins?|minutes|friends?|people|guests?|of us|wheels?|spots?|seats?|\$)")
+
+
+def _is_time(t: str, x: re.Match) -> bool:
+    """A number is a time only with a cue: am/pm, :mm, o'clock, or a verb like "at/do/move" right before it."""
+    if int(x[1]) > 23 or t[: x.start()].endswith("$") or _NOT_TIME_AFTER.match(t[x.end() :]):
+        return False
+    if x[2] or x[3] or t[x.end() :].lstrip().startswith("o'clock"):
+        return True
+    return bool(_CUE_BEFORE.search(t[: x.start()]))
+
+
 def parse_time_change(text: str, current_start: str) -> str | None:
     """New start (UTC ISO) for "11", "11am", "11:30", "noon", "an hour later"; same local day. None if no time.
     A bare hour picks the am/pm reading closest to the current start."""
@@ -336,14 +364,7 @@ def parse_time_change(text: str, current_start: str) -> str | None:
     if re.search(r"\bnoon\b", t):
         h, mi = 12, 0
     else:
-        hit = next(
-            (
-                x
-                for x in _TIME.finditer(t)
-                if x[1] and int(x[1]) <= 23 and not re.match(r"\s*(people|wheels?|of us)", t[x.end() :])
-            ),
-            None,
-        )
+        hit = next((x for x in _TIME.finditer(t) if _is_time(t, x)), None)
         if not hit:
             return None
         h, mi, ampm = int(hit[1]), int(hit[2] or 0), (hit[3] or "").replace(".", "")

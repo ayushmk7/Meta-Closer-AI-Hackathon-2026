@@ -151,15 +151,20 @@ def test_parse_time_change():
         "Muse make it 9": "2026-11-14T17:00:00Z",
         "Muse can 3 of us bring friends?": None,
         "Muse what should I bring?": None,
+        "Muse can I bring 2 friends?": None,
+        "Muse is it 2 hours long?": None,
+        "Muse is it 10 minutes from BART?": None,
+        "Muse is it $35 each?": None,
+        "Muse, is 4 ok?": None,
+        "Muse move it to 1pm": "2026-11-14T21:00:00Z",
+        "Muse 11 o'clock?": "2026-11-14T19:00:00Z",
     }
     for text, want in cases.items():
         assert parse_time_change(text, start) == want, text
 
 
 def test_reschedule_in_bounds_rebooks_and_replies():
-    r = run()
-    for a in [e["approval"] for e in list(r.start()) if e["type"] == "approval"]:
-        list(r.decide(a["approvalId"], "approved"))
+    r = _confirmed()
     events, reply, ids = r.reschedule_to("2026-11-14T19:00:00Z", {})
     kinds = [(e["type"], e.get("step", {}).get("kind")) for e in events]
     assert kinds == [
@@ -179,12 +184,28 @@ def test_reschedule_in_bounds_rebooks_and_replies():
     )
 
 
-def test_reschedule_out_of_bounds_changes_nothing():
+def _confirmed():
+    r = run()
+    for a in [e["approval"] for e in list(r.start()) if e["type"] == "approval"]:
+        list(r.decide(a["approvalId"], "approved"))
+    return r
+
+
+def test_reschedule_refused_while_payments_pending():
     r = run()
     list(r.start())
+    assert r.reschedule_to("2026-11-14T19:00:00Z", {}) == ([], "I can move it once everyone's OK'd the payment.", [])
+    assert r.plan["startsAt"] == HERO["startsAt"]
+
+
+def test_reschedule_out_of_bounds_changes_nothing_and_offers_a_slot():
+    r = _confirmed()
     busy = {"u_0125": [{"start": "2026-11-14T19:00:00Z", "end": "2026-11-14T20:00:00Z"}]}
-    for when, b in [("2026-11-14T19:00:00Z", busy), ("2026-11-15T18:00:00Z", {}), ("2026-11-14T23:00:00Z", {})]:
-        n = len(r.steps)
-        events, reply, ids = r.reschedule_to(when, b)
-        assert events == [] and ids == [] and len(r.steps) == n and reply.startswith("I can't move it")
+    n = len(r.steps)
+    events, reply, ids = r.reschedule_to("2026-11-14T19:00:00Z", busy)
+    assert (events, ids, len(r.steps)) == ([], [], n)
+    assert reply == "11 doesn't work for everyone. 12 works for everyone; want that?"
+    assert "u_0125" not in reply and "Rosa" not in reply  # never who is busy (P6)
+    events, reply, _ = r.reschedule_to("2026-11-14T23:00:00Z", {})
+    assert events == [] and reply == "3 is too far for me to move it on my own. 12 works for everyone; want that?"
     assert r.plan["startsAt"] == HERO["startsAt"]
