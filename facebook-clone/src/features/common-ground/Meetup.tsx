@@ -19,11 +19,14 @@ import StepTimeline from './StepTimeline';
 import VenueMap from './VenueMap';
 import { api } from './api';
 import { act, currentLocation, leaveMeetup, load, setState, getState, useCg } from './store';
-import type { Attendee, Feedback, Meetup } from './types';
+import { TZ, type Attendee, type Feedback, type Meetup } from './types';
 import { Banners, InterestChips, NotFound, PersonAvatar, personName, usePoll, when } from './ui';
 
 const time = (iso: string) =>
-  new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: TZ });
+// Day in the plan's timezone (CONTRACTS Decisions), not the phone's.
+const day = (d: Date | string, opts: Intl.DateTimeFormatOptions = {}) =>
+  new Date(d).toLocaleDateString('en-US', { ...opts, timeZone: TZ });
 const firstName = (a: Attendee) =>
   a.person.profileVisibility === 'private'
     ? personName(a.person).split(' ')[0]!
@@ -395,9 +398,7 @@ export default function MeetupScreen() {
       {(dayOf || canCheckIn) && (
         <Section
           title={
-            new Date(m.startsAt).toDateString() === new Date().toDateString()
-              ? 'Today'
-              : new Date(m.startsAt).toLocaleDateString('en-US', { weekday: 'long' })
+            day(m.startsAt) === day(new Date()) ? 'Today' : day(m.startsAt, { weekday: 'long' })
           }
         >
           {dayOf && (

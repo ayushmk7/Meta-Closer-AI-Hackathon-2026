@@ -240,7 +240,10 @@ test('the day-of section is titled by weekday when it is not today', async () =>
   m.startsAt = new Date(Date.now() + 2 * 86_400_000).toISOString();
   m.endsAt = new Date(Date.now() + 2 * 86_400_000 + 3_600_000).toISOString();
   const { text } = await show(m);
-  const weekday = new Date(m.startsAt).toLocaleDateString('en-US', { weekday: 'long' });
+  const weekday = new Date(m.startsAt).toLocaleDateString('en-US', {
+    weekday: 'long',
+    timeZone: 'America/Los_Angeles',
+  });
   expect(text()).toContain(`"${weekday}"`);
   expect(text()).not.toContain('"Today"');
 });
