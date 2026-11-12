@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import json
+
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
-from cg_api.deps import User
+from cg_api.deps import User, current_user
+from cg_api.errors import ApiError
 from cg_api.settings import get_settings
 
 router = APIRouter()
@@ -63,6 +66,7 @@ def build_config() -> dict:
         "fakeLocation": None,
         "relaxCheckin": d["relaxCheckinDefault"],
         "simulatedPayments": d["simulatedPayments"],
+        "stepDelayS": d["stepDelayS"],
         **demo_overrides,
     }
     return {
@@ -80,13 +84,26 @@ def get_config(_: User):
 
 
 @router.websocket("/v1/ws", name="realtime")
-async def realtime(ws: WebSocket, user: str = ""):
+async def ws_realtime(ws: WebSocket, user: str = ""):
+    try:
+        current_user(user)  # same identity rule as REST
+    except ApiError:
+        await ws.close(code=1008)  # policy violation
+        return
     # ponytail: accept + pong only; the M2 hub (cg_api.realtime) pushes RealtimeEvent frames.
     await ws.accept()
     try:
         while True:
-            msg = await ws.receive_json()
-            if msg.get("type") == "ping":
+            if _frame(await ws.receive_text()).get("type") == "ping":
                 await ws.send_json({"type": "pong"})
     except WebSocketDisconnect:
         pass
+
+
+def _frame(text: str) -> dict:
+    """Client frames are untrusted: anything but a JSON object is ignored."""
+    try:
+        msg = json.loads(text)
+    except ValueError:
+        return {}
+    return msg if isinstance(msg, dict) else {}

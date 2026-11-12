@@ -11,16 +11,13 @@ dependencies = [
     "referencing>=0.35",
     "httpx>=0.27",
     "openai>=1.60",
-    # cg_matching's own deps, pinned here too so the lock does not move when the path dep lands.
+    # cg_matching's own deps, listed here too so services/api pins the same versions.
     "numpy>=2.0",
     "pyarrow>=17",
     "igraph>=0.11",
     "leidenalg>=0.10",
+    "cg-matching",
 ]
-
-[project.optional-dependencies]
-# ponytail: optional until slice B's packages/matching lands on this branch's base; then move to dependencies.
-matching = ["cg-matching"]
 
 [project.scripts]
 cg-api = "cg_api.cli:main"

@@ -10,12 +10,11 @@ Milestone: M0 skeleton (done), M1 slice A next
 - 2026-11-12 FastAPI + uvicorn, two `uvicorn.Server`s under one asyncio loop (`cg-api`).
 - 2026-11-12 Route auto-discovery: any module in `cg_api/routes/` (public) or `cg_api/internal/` (internal) exposing `router = APIRouter()` is mounted. Set `operation_id=<spec operationId>` on each route; operations without a handler fall through to the spec example (logged as `example fallthrough`). `app.py` is frozen after M0.
 - 2026-11-12 Ports (`cg_api/ports.py`): `Muse`, `Laya`, `Extractor`, `Copy`, `AgentRunner` Protocols on `cg_api.ports.ports`; stubs by default (StubMuse raises `Unavailable` so callers run their D4 fallback). Slice D installs real ones via `cg_api.providers.install(ports)`.
-- 2026-11-12 `cg_matching` (slice B, `packages/matching`) is an optional extra (`uv sync --extra matching`) via a uv path source, imported lazily through `ports.matching()` (raises `Unavailable` when absent). Becomes a hard dependency once B lands on the base. The lock was generated against a placeholder `cg-matching` with deps numpy, pyarrow, pyyaml, igraph, leidenalg.
-- 2026-11-12 Ownership check runs with `--base origin/cg/contracts/v2-plans` until v2 contracts are on main.
+- 2026-11-12 `cg_matching` 0.2.0 (slice B, `packages/matching`, merged #13) is a uv path dependency, pinned in `uv.lock`; imported lazily through `ports.matching()` (raises `Unavailable` if missing).
+- 2026-11-12 Branch tracks origin/main (v2 contracts #12, Decisions #15 merged in).
+- 2026-11-12 `/v1/ws` applies the REST identity rule to `?user=` (close 1008 otherwise) and ignores non-object frames.
 
 ## Needs
-- needs: slice B — `packages/matching/pyproject.toml` named `cg-matching`, deps within numpy/pyarrow/pyyaml/igraph/leidenalg (else A re-locks services/api).
-- needs: human — merge `cg/contracts/v2-plans` and `cg/sim/m0-seed-v2` to main.
 
 ## Known gaps
 - Synthesised examples use placeholder strings (`"x"`) for free-text and unpatterned IDs; they validate but are not realistic.
