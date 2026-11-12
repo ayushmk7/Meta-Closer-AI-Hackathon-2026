@@ -32,7 +32,7 @@ Shaded bands: 95% interval over seeds at flake x join = 1.0 x 1.0.
 
 ## Robustness: Common Ground vs greedy across sweep cells
 
-Seed-paired 95% interval of the difference per cell. A claim needs better in every cell.
+Seed-paired 95% interval of the difference per cell. A claim needs better in every cell. Not evidence: fake Laya with world model `tables` (Common Ground ranks on the same p_show/p_join the world draws from); back it with a `--world truth` run.
 
 | Metric | CG better | unclear | CG worse | claim |
 | --- | --- | --- | --- | --- |
@@ -41,7 +41,7 @@ Seed-paired 95% interval of the difference per cell. A claim needs better in eve
 | People with >= 1 friendship, week 8 | 0 | 0 | 25 | no |
 | Plan fill rate | 0 | 0 | 25 | no |
 | Join-to-meetup rate | 0 | 0 | 25 | no |
-| Show-up rate | 25 | 0 | 0 | yes |
+| Show-up rate | 25 | 0 | 0 | not evidence |
 | Gini of friend counts | 0 | 0 | 25 | no |
 | Median days to first meetup | 0 | 0 | 25 | no |
 | Low-outgoing seated at least once | 0 | 0 | 25 | no |

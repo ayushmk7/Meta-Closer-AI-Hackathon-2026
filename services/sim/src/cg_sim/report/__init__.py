@@ -103,11 +103,16 @@ def render(run_dir) -> str:
     c = ci95([r[key] for r in base if at("common_ground", center)(r)])
     verdicts = [_verdict(*paired(base, key, at("common_ground", ci), at("greedy", ci))[1:], hb) for ci in cells_run]
     wins, losses = verdicts.count(1), verdicts.count(-1)
+    # The policy ranks on the same p_join/p_show that the `tables` world draws outcomes from; with fake (hash)
+    # Laya that is reading the dice, so no claim from such a run counts as evidence.
+    evidence = not (cfg["fakeLaya"] and cfg["world"] == "tables")
+    caveat = "" if evidence else (" Not evidence: fake Laya with world model `tables` (Common Ground ranks on the "
+                                  "same p_show/p_join the world draws from); back it with a `--world truth` run.")
     L += ["## Headline", ""]
     if wins == len(cells_run):
         L += [f"**Common Ground leaves {c[0]:.0%} of low-outgoing people isolated at week 8 versus {g[0]:.0%} for "
               f"greedy, in all {len(cells_run)} sweep cells** (center cell, 95% intervals over seeds: "
-              f"{_fmt(*c)} vs {_fmt(*g)})."]
+              f"{_fmt(*c)} vs {_fmt(*g)}).{caveat}"]
     else:
         L += [f"No claim: Common Ground is better than greedy on \"{label.lower()}\" in {wins} of "
               f"{len(cells_run)} cells and worse in {losses}. Center cell: Common Ground {_fmt(*c)}, "
@@ -122,11 +127,12 @@ def render(run_dir) -> str:
         L.append(f"| {label} | " + " | ".join(_fmt(*ci95([r[key] for r in base if at(p, center)(r)]), pct)
                                             for p in pols) + " |")
     L += ["", "## Robustness: Common Ground vs greedy across sweep cells", "",
-          "Seed-paired 95% interval of the difference per cell. A claim needs better in every cell.", "",
+          "Seed-paired 95% interval of the difference per cell. A claim needs better in every cell."
+          + caveat, "",
           "| Metric | CG better | unclear | CG worse | claim |", "| --- | --- | --- | --- | --- |"]
     for key, label, hb in METRICS:
         v = [_verdict(*paired(base, key, at("common_ground", ci), at("greedy", ci))[1:], hb) for ci in cells_run]
-        claim = "yes" if v.count(1) == len(v) else "no"
+        claim = ("yes" if evidence else "not evidence") if v.count(1) == len(v) else "no"
         L.append(f"| {label} | {v.count(1)} | {v.count(0)} | {v.count(-1)} | {claim} |")
 
     abl = defaultdict(list)
