@@ -108,7 +108,17 @@ function world() {
   return {
     config: clone(F.getConfig),
     // Starts before setup so the setup flow is reachable; optIn/completeSetup flip these.
-    me: { ...clone(F.getMe), optedIn: false, setupComplete: false } as Me,
+    me: {
+      ...clone(F.getMe),
+      optedIn: false,
+      setupComplete: false,
+      // Not in the openapi example (fixtures must match it); private progress for the demo.
+      rewards: {
+        confirmedMeetups: 0,
+        streakWeeks: 0,
+        nextUnlock: { unlockId: 'create_plans', label: 'Create your own plans', remaining: 1 },
+      },
+    } as Me,
     setup: clone(F.getSetup),
     connectors: clone(F.listConnectors.items),
     signals: clone(F.getSetup.signals),
