@@ -106,6 +106,7 @@ test('the mock answers every operation with a body that carries every required k
   await call('POST', '/v1/optin', { mode: 'city' });
   await call('POST', '/v1/plans/pl_0001/join', {});
   t.mock.timers.tick(60_000); // the staged group forms and Muse finishes its steps
+  t.mock.timers.tick(3 * 86_400_000); // ... and the meetup is over, so it can be shared
   const meetup = (await call('GET', '/v1/meetups')) as Json;
   assert.equal(meetup.items.length, 1);
   const ids: Record<string, string> = {
@@ -118,6 +119,7 @@ test('the mock answers every operation with a body that carries every required k
     approvalId: 'ap_0001',
     userId: 'u_0042',
     threadId: 'th_0001',
+    shareId: 'sh_0001',
   };
   const bodies: Record<string, unknown> = {
     updateMe: { neighborhood: 'Inner Sunset' },
@@ -147,6 +149,9 @@ test('the mock answers every operation with a body that carries every required k
     sendMessage: { text: 'Hi', clientId: 'c_1' },
     report: { userId: 'u_0042', reason: 'other' },
     block: { userId: 'u_0042' },
+    shareMeetup: { caption: 'Bowls all round' },
+    likeShare: { liked: true },
+    verifyAttendee: { code: 'DANI42' },
   };
   // Destructive calls last so earlier ones still find their resources.
   const last = [

@@ -11,6 +11,10 @@ import {
   getState,
   inboxRows,
   join,
+  likeShare,
+  planLikeThis,
+  shareMeetup,
+  verifyAttendee,
   load,
   mergeStep,
   mergeSteps,
@@ -455,5 +459,49 @@ test('mock: other plans get their own detail; no steps before formation; fast po
   assert.equal(s.plans.pl_0001!.myJoin?.status, 'matched');
   assert.equal(s.joins.find((j) => j.planId === 'pl_0001')!.meetupId, 'mt_0001');
   assert.ok(s.meetups.mt_0001);
+  await reset();
+});
+
+test('shares and verify: optimistic like, share needs a finished meetup, verify, plan like this', async (t) => {
+  t.mock.timers.enable({ apis: ['Date'], now: Date.parse('2026-11-12T18:00:00Z') });
+  await reset();
+  await start();
+  await optIn('city');
+  await load.shares();
+  assert.equal(getState().shares.length, 8);
+  assert.ok(getState().shares.every((x) => !('person' in x) && !('userId' in x)));
+  await load.shares({ neighborhood: 'Mission' });
+  assert.ok(getState().shares.every((x) => x.venue.neighborhood === 'Mission'));
+  await load.shares();
+
+  const liking = likeShare('sh_0001', true);
+  assert.equal(getState().shares[0]!.likes, 13, 'optimistic');
+  await liking;
+  assert.deepEqual([getState().shares[0]!.likes, getState().shares[0]!.likedByMe], [13, true]);
+
+  await join('pl_0001');
+  t.mock.timers.tick(10_000);
+  await load.meetup('mt_0001');
+  assert.equal(getState().meetups.mt_0001!.verifyCode, 'MAYA42');
+  assert.equal(await shareMeetup('mt_0001', 'Bowls!'), undefined, 'not over yet');
+  setState({ error: null });
+  assert.equal((await verifyAttendee('mt_0001', 'maya42'))?.reason, 'self');
+  const v = await verifyAttendee('mt_0001', 'DANI42');
+  assert.equal(v?.accepted, true);
+  const atts = getState().meetups.mt_0001!.attendees;
+  assert.equal(atts.find((a) => a.isMe)!.verified, true);
+  assert.equal(atts.filter((a) => a.verified).length, 2);
+
+  t.mock.timers.tick(3 * 86_400_000);
+  await load.meetup('mt_0001');
+  assert.equal(getState().meetups.mt_0001!.status, 'completed');
+  const mine = await shareMeetup('mt_0001', 'Bowls!');
+  assert.equal(mine?.mine, true);
+  assert.equal(getState().shares[0]!.shareId, mine!.shareId);
+
+  // Maya cannot create plans in the fixture, so it goes through the Muse bar.
+  const r = await planLikeThis(getState().shares.find((x) => x.shareId === 'sh_0002')!);
+  assert.ok(r && 'conversationId' in r);
+  assert.equal(getState().shares.find((x) => x.shareId === 'sh_0002')!.likedByMe, true);
   await reset();
 });

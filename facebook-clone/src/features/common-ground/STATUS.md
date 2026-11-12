@@ -10,6 +10,8 @@ Milestone: v2 M2 device layer (A2, `cg/ios/v2-m2-device`)
 
 ## Decisions
 
+- 2026-11-13 Batch 2 core (B1): shares and verify in types/api/mock/store; stub props frozen: `ShareCard({share})`, `ShareMeetup({m})`, `VerifyButton({m})`, `FeedbackExtras({value, onChange})` (rating/tags go into `sendFeedback`); `planLikeThis(share)` likes, then `createPlan` if `canCreatePlans` else `askMuse`. Mock verify accepts any code but my own (`MAYA42`), since each phone runs its own mock. Mock meetup completes after its end time. Reset demo clears `common-ground-quests:v1`.
+
 - 2026-11-12 `fixtures.json` is a verbatim copy of every 2xx `example` in `contracts/openapi.json` (Metro cannot bundle outside the app). `contract.test.ts` fails if it drifts; regenerate with `CG_WRITE_FIXTURES=1 npm test`.
 - 2026-11-12 Mock world starts not opted in and before setup. Staging (timestamps checked per request, step delay = max of `config.demo.stepDelayS`, 2 s when absent): I'm in on `pl_0001` forms `mt_0001` after 2 steps; steps tick; payment waits as `needs_you`; approve -> book, calendar, reminder tick -> `confirmed`, booked, Facebook Event label, calendar `event`; decline -> pay at the studio; a `toMuse` message -> reschedule steps `st_0008/9`, start +1 h, Muse reply in chat; the seeded `pl_0002` join turns `not_filled` (alternative `pl_0003`) after 30 s. `getMeetup`/`getThread` by ID always work.
 - 2026-11-12 Realtime: WS per CONTRACTS §6 with 1/2/4/8/15 s backoff and refresh after reconnect; with the socket down, polls approvals, threads and `setting_up` meetups at `pollIntervalS` (1 s on the mock) and feed, joins, nudges at `feedRefreshS`.

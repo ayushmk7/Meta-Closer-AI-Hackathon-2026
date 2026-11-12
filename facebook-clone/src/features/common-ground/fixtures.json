@@ -300,6 +300,26 @@
         "connectedAt": null,
         "lastSyncAt": null,
         "signalCount": 0
+      },
+      {
+        "provider": "luma",
+        "label": "Luma",
+        "reads": "Events you RSVP'd to.",
+        "status": "not_connected",
+        "simulated": true,
+        "connectedAt": null,
+        "lastSyncAt": null,
+        "signalCount": 0
+      },
+      {
+        "provider": "beli",
+        "label": "Beli",
+        "reads": "Restaurants you rated and want to try.",
+        "status": "not_connected",
+        "simulated": true,
+        "connectedAt": null,
+        "lastSyncAt": null,
+        "signalCount": 0
       }
     ]
   },
@@ -924,6 +944,88 @@
     "checkinWindow": null,
     "feedbackDue": false,
     "eventLabel": null
+  },
+  "verifyAttendee": {
+    "accepted": true,
+    "person": {
+      "userId": "u_0042",
+      "displayName": "Daniel Okafor",
+      "initials": "DO",
+      "avatarUrl": "http://localhost:8000/static/avatars/u_0042.png",
+      "profileVisibility": "public"
+    }
+  },
+  "shareMeetup": {
+    "shareId": "sh_0001",
+    "activityType": "ceramics_studio",
+    "caption": "Three strangers, three lopsided bowls. Coming back next week.",
+    "venue": {
+      "venueId": "vn_hayes_clay",
+      "name": "Hayes Clay Studio",
+      "neighborhood": "Hayes Valley"
+    },
+    "groupSize": 3,
+    "happenedOn": "2026-11-14",
+    "photoUrl": "http://localhost:8000/static/venues/vn_hayes_clay.jpg",
+    "likes": 0,
+    "likedByMe": false,
+    "mine": true,
+    "promptText": "Wheel-throwing drop-in at Hayes Clay Studio this weekend"
+  },
+  "listShares": {
+    "items": [
+      {
+        "shareId": "sh_0001",
+        "activityType": "ceramics_studio",
+        "caption": "Three strangers, three lopsided bowls. Coming back next week.",
+        "venue": {
+          "venueId": "vn_hayes_clay",
+          "name": "Hayes Clay Studio",
+          "neighborhood": "Hayes Valley"
+        },
+        "groupSize": 3,
+        "happenedOn": "2026-11-14",
+        "photoUrl": "http://localhost:8000/static/venues/vn_hayes_clay.jpg",
+        "likes": 12,
+        "likedByMe": false,
+        "mine": false,
+        "promptText": "Wheel-throwing drop-in at Hayes Clay Studio this weekend"
+      },
+      {
+        "shareId": "sh_0002",
+        "activityType": "climbing_session",
+        "caption": "Nobody finished the purple V3. Tacos after.",
+        "venue": {
+          "venueId": "vn_basalt_bouldering",
+          "name": "Basalt Bouldering",
+          "neighborhood": "SoMa"
+        },
+        "groupSize": 4,
+        "happenedOn": "2026-11-08",
+        "photoUrl": "http://localhost:8000/static/venues/vn_basalt_bouldering.jpg",
+        "likes": 7,
+        "likedByMe": false,
+        "mine": false,
+        "promptText": "Bouldering at Basalt Bouldering this week"
+      }
+    ]
+  },
+  "likeShare": {
+    "shareId": "sh_0001",
+    "activityType": "ceramics_studio",
+    "caption": "Three strangers, three lopsided bowls. Coming back next week.",
+    "venue": {
+      "venueId": "vn_hayes_clay",
+      "name": "Hayes Clay Studio",
+      "neighborhood": "Hayes Valley"
+    },
+    "groupSize": 3,
+    "happenedOn": "2026-11-14",
+    "photoUrl": "http://localhost:8000/static/venues/vn_hayes_clay.jpg",
+    "likes": 13,
+    "likedByMe": true,
+    "mine": false,
+    "promptText": "Wheel-throwing drop-in at Hayes Clay Studio this weekend"
   },
   "decideApproval": {
     "approvalId": "ap_0001",
