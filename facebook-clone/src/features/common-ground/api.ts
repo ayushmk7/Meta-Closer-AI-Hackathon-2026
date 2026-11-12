@@ -1,32 +1,36 @@
 import { mockRequest } from './mock';
 import {
   decoders,
+  type Approval,
+  type CalendarSync,
+  type CalendarSyncResult,
   type CheckinResult,
   type Config,
   type Connection,
-  type DecisionResult,
-  type Density,
-  type Drop,
+  type Connector,
+  type Feed,
   type Feedback,
-  type GroupRequest,
   type GroupSize,
-  type HiItem,
-  type HiResult,
-  type Invite,
+  type Health,
+  type Join,
   type LatLng,
-  type LocationShareState,
-  type MapView,
   type Me,
   type MeUpdate,
   type Meetup,
   type Message,
   type Mode,
+  type MuseReply,
   type MyInterest,
-  type OnboardingComplete,
-  type OnboardingSession,
+  type Nudge,
+  type NudgeSurface,
+  type PlanDetail,
   type PublicProfile,
   type ReportRequest,
+  type Setup,
+  type SetupComplete,
+  type Signal,
   type Thread,
+  type Visibility,
 } from './types';
 
 export class CgError extends Error {
@@ -43,7 +47,13 @@ export class CgError extends Error {
 
 // Literal process.env.EXPO_PUBLIC_* reads so Metro inlines them.
 const BASE = process.env.EXPO_PUBLIC_CG_API_URL;
-export const MOCK: boolean = process.env.EXPO_PUBLIC_CG_MOCK === '1' || !BASE;
+// D5: web always runs on the in-app mock (RN native has no `document`).
+export const MOCK: boolean =
+  process.env.EXPO_PUBLIC_CG_MOCK === '1' || !BASE || typeof document !== 'undefined';
+export const wsUrl = (): string | null =>
+  MOCK || !BASE
+    ? null
+    : `${BASE.replace(/^http/, 'ws')}/v1/ws?user=${encodeURIComponent(getUser())}`;
 
 let user: string | null = null;
 export function setUser(userId: string | null): void {
@@ -57,6 +67,7 @@ const KNOWN = [
   'unauthenticated',
   'not_found',
   'validation_failed',
+  'screened',
   'not_allowed',
   'rate_limited',
   'conflict',
@@ -72,6 +83,7 @@ const BY_STATUS: Record<number, string> = {
   403: 'not_allowed',
   404: 'not_found',
   409: 'conflict',
+  422: 'screened',
   429: 'rate_limited',
 };
 function toError(status: number, json: unknown): CgError {
@@ -139,12 +151,15 @@ async function request<T>(
 }
 const items = <T>(p: Promise<{ items: T[] }>) => p.then((r) => r.items);
 const e = encodeURIComponent;
+const LONG = 30_000; // CONTRACTS §3 rule 9
 
+// One method per openapi.yaml operationId (except the `realtime` WebSocket, see realtime.ts).
 export const api = {
+  getHealth: () => request<Health>('getHealth', 'GET', '/v1/health'),
   getConfig: () => request<Config>('getConfig', 'GET', '/v1/config'),
   getMe: () => request<Me>('getMe', 'GET', '/v1/me'),
   updateMe: (patch: MeUpdate) => request<Me>('updateMe', 'PATCH', '/v1/me', patch),
-  setInterestVisibility: (interestId: string, visibility: 'shown' | 'hidden') =>
+  setInterestVisibility: (interestId: string, visibility: Visibility) =>
     request<MyInterest>('setInterestVisibility', 'PUT', `/v1/me/interests/${e(interestId)}`, {
       visibility,
     }),
@@ -153,46 +168,69 @@ export const api = {
   optIn: (mode: Mode, poolId?: string) =>
     request<Me>('optIn', 'POST', '/v1/optin', { mode, poolId }),
   optOut: () => request<void>('optOut', 'DELETE', '/v1/optin'),
-  startOnboarding: () =>
-    request<OnboardingSession>('startOnboarding', 'POST', '/v1/onboarding/sessions'),
-  sendOnboardingMessage: (sessionId: string, text: string) =>
-    request<OnboardingSession>(
-      'sendOnboardingMessage',
+  getSetup: () => request<Setup>('getSetup', 'GET', '/v1/me/setup'),
+  completeSetup: (body: SetupComplete) =>
+    request<Me>('completeSetup', 'POST', '/v1/me/setup', body),
+  listConnectors: () =>
+    items(request<{ items: Connector[] }>('listConnectors', 'GET', '/v1/connectors')),
+  connectConnector: (provider: string) =>
+    request<Connector>(
+      'connectConnector',
       'POST',
-      `/v1/onboarding/sessions/${e(sessionId)}/messages`,
-      { text },
-      30_000,
+      `/v1/connectors/${e(provider)}`,
+      undefined,
+      LONG,
     ),
-  completeOnboarding: (sessionId: string, body: OnboardingComplete) =>
-    request<Me>(
-      'completeOnboarding',
-      'POST',
-      `/v1/onboarding/sessions/${e(sessionId)}/complete`,
-      body,
+  disconnectConnector: (provider: string) =>
+    request<void>('disconnectConnector', 'DELETE', `/v1/connectors/${e(provider)}`),
+  listSignals: () => items(request<{ items: Signal[] }>('listSignals', 'GET', '/v1/signals')),
+  setSignalVisibility: (signalId: string, visibility: Visibility) =>
+    request<Signal>('setSignalVisibility', 'PUT', `/v1/signals/${e(signalId)}`, { visibility }),
+  deleteSignal: (signalId: string) =>
+    request<void>('deleteSignal', 'DELETE', `/v1/signals/${e(signalId)}`),
+  syncCalendar: (body: CalendarSync) =>
+    request<CalendarSyncResult>('syncCalendar', 'POST', '/v1/calendar/sync', body),
+  askMuse: (text: string, conversationId?: string | null) =>
+    request<MuseReply>('askMuse', 'POST', '/v1/muse/ask', { text, conversationId }, LONG),
+  getFeed: () => request<Feed>('getFeed', 'GET', '/v1/feed'),
+  getPlan: (planId: string) => request<PlanDetail>('getPlan', 'GET', `/v1/plans/${e(planId)}`),
+  createPlan: (text: string, inviteUserIds?: string[]) =>
+    request<PlanDetail>('createPlan', 'POST', '/v1/plans', { text, inviteUserIds }, LONG),
+  joinPlan: (planId: string, body: { size?: GroupSize; plusOne?: boolean } = {}) =>
+    request<Join>('joinPlan', 'POST', `/v1/plans/${e(planId)}/join`, body),
+  withdrawJoin: (planId: string) =>
+    request<void>('withdrawJoin', 'DELETE', `/v1/plans/${e(planId)}/join`),
+  listJoins: () => items(request<{ items: Join[] }>('listJoins', 'GET', '/v1/joins')),
+  listNudges: (surface?: NudgeSurface) =>
+    items(
+      request<{ items: Nudge[] }>(
+        'listNudges',
+        'GET',
+        `/v1/nudges${surface ? `?surface=${e(surface)}` : ''}`,
+      ),
     ),
-  getDensity: (poolId: string) =>
-    request<Density>('getDensity', 'GET', `/v1/pools/${e(poolId)}/density`),
-  getCurrentDrop: () => request<Drop>('getCurrentDrop', 'GET', '/v1/drops/current'),
-  decideSuggestion: (suggestionId: string, decision: 'connect' | 'pass') =>
-    request<DecisionResult>(
-      'decideSuggestion',
-      'POST',
-      `/v1/suggestions/${e(suggestionId)}/decision`,
-      { decision },
-    ),
-  sayHi: (suggestionId: string, text: string) =>
-    request<HiResult>('sayHi', 'POST', `/v1/suggestions/${e(suggestionId)}/hi`, { text }),
-  listHi: () => items(request<{ items: HiItem[] }>('listHi', 'GET', '/v1/hi')),
-  replyHi: (hiId: string, text: string) =>
-    request<Connection>('replyHi', 'POST', `/v1/hi/${e(hiId)}/reply`, { text }),
-  dismissHi: (hiId: string) => request<void>('dismissHi', 'POST', `/v1/hi/${e(hiId)}/dismiss`),
-  requestGroup: (suggestionIds: string[], size: GroupSize) =>
-    request<GroupRequest>('requestGroup', 'POST', '/v1/groups', { suggestionIds, size }),
-  getGroupRequest: (id: string) =>
-    request<GroupRequest>('getGroupRequest', 'GET', `/v1/groups/${e(id)}`),
-  listInvites: () => items(request<{ items: Invite[] }>('listInvites', 'GET', '/v1/invites')),
-  decideInvite: (inviteId: string, decision: 'accept' | 'decline') =>
-    request<Invite>('decideInvite', 'POST', `/v1/invites/${e(inviteId)}/decision`, { decision }),
+  dismissNudge: (nudgeId: string, mute: 'none' | 'signal' = 'none') =>
+    request<void>('dismissNudge', 'POST', `/v1/nudges/${e(nudgeId)}/dismiss`, { mute }),
+  listMeetups: () => items(request<{ items: Meetup[] }>('listMeetups', 'GET', '/v1/meetups')),
+  getMeetup: (meetupId: string) =>
+    request<Meetup>('getMeetup', 'GET', `/v1/meetups/${e(meetupId)}`),
+  leaveMeetup: (meetupId: string, note?: string) =>
+    request<Meetup>('leaveMeetup', 'POST', `/v1/meetups/${e(meetupId)}/leave`, { note }),
+  setMeetupStatus: (meetupId: string, status: 'on_my_way' | 'arrived') =>
+    request<Meetup>('setMeetupStatus', 'PUT', `/v1/meetups/${e(meetupId)}/my-status`, { status }),
+  checkIn: (meetupId: string, location: LatLng, accuracyM?: number) =>
+    request<CheckinResult>('checkIn', 'POST', `/v1/meetups/${e(meetupId)}/checkin`, {
+      location,
+      accuracyM,
+    }),
+  sendFeedback: (meetupId: string, feedback: Feedback) =>
+    request<void>('sendFeedback', 'POST', `/v1/meetups/${e(meetupId)}/feedback`, feedback),
+  listApprovals: () =>
+    items(request<{ items: Approval[] }>('listApprovals', 'GET', '/v1/approvals')),
+  decideApproval: (approvalId: string, decision: 'approve' | 'decline') =>
+    request<Approval>('decideApproval', 'POST', `/v1/approvals/${e(approvalId)}/decision`, {
+      decision,
+    }),
   listConnections: () =>
     items(request<{ items: Connection[] }>('listConnections', 'GET', '/v1/connections')),
   getPerson: (userId: string) =>
@@ -208,42 +246,14 @@ export const api = {
         `/v1/threads/${e(threadId)}/messages${after ? `?after=${e(after)}` : ''}`,
       ),
     ),
-  sendMessage: (threadId: string, text: string, clientId: string) =>
+  sendMessage: (threadId: string, text: string, clientId: string, toMuse = false) =>
     request<Message>('sendMessage', 'POST', `/v1/threads/${e(threadId)}/messages`, {
       text,
       clientId,
+      toMuse,
     }),
   markThreadRead: (threadId: string) =>
     request<void>('markThreadRead', 'POST', `/v1/threads/${e(threadId)}/read`),
-  planMeetup: (threadId: string, body: { size?: GroupSize; note?: string } = {}) =>
-    request<Meetup>('planMeetup', 'POST', `/v1/threads/${e(threadId)}/plan`, body, 30_000),
-  listMeetups: () => items(request<{ items: Meetup[] }>('listMeetups', 'GET', '/v1/meetups')),
-  getMeetup: (meetupId: string) =>
-    request<Meetup>('getMeetup', 'GET', `/v1/meetups/${e(meetupId)}`),
-  voteMeetup: (meetupId: string, votes: { optionId: string; vote: 'yes' | 'no' }[]) =>
-    request<Meetup>('voteMeetup', 'POST', `/v1/meetups/${e(meetupId)}/votes`, { votes }),
-  setMeetupStatus: (meetupId: string, status: 'on_my_way' | 'arrived') =>
-    request<Meetup>('setMeetupStatus', 'PUT', `/v1/meetups/${e(meetupId)}/my-status`, { status }),
-  checkIn: (meetupId: string, location: LatLng) =>
-    request<CheckinResult>('checkIn', 'POST', `/v1/meetups/${e(meetupId)}/checkin`, { location }),
-  sendFeedback: (meetupId: string, feedback: Feedback) =>
-    request<void>('sendFeedback', 'POST', `/v1/meetups/${e(meetupId)}/feedback`, feedback),
-  getMap: () => request<MapView>('getMap', 'GET', '/v1/map'),
-  updateLocation: (location: LatLng) =>
-    request<void>('updateLocation', 'PUT', '/v1/location', {
-      location,
-      capturedAt: new Date().toISOString(),
-    }),
-  setLocationShare: (userId: string, maxPrecision: 'off' | 'neighborhood' | 'exact') =>
-    request<LocationShareState>('setLocationShare', 'PUT', `/v1/location/shares/${e(userId)}`, {
-      maxPrecision,
-    }),
-  setLocationView: (userId: string, precision: 'neighborhood' | 'exact') =>
-    request<LocationShareState>('setLocationView', 'PUT', `/v1/location/views/${e(userId)}`, {
-      precision,
-    }),
-  setGhostMode: (enabled: boolean) =>
-    request<void>('setGhostMode', 'PUT', '/v1/location/ghost', { enabled }),
   report: (body: ReportRequest) =>
     request<{ reportId: string }>('report', 'POST', '/v1/reports', body),
   block: (userId: string) => request<void>('block', 'POST', '/v1/blocks', { userId }),
