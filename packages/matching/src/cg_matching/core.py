@@ -20,7 +20,6 @@ from cg_matching.types import (
     PoolSnapshot,
     Vectors,
     Venue,
-    parse_dt,
 )
 
 # Activity type (laya_questions.yaml#activityTypes) -> level-2 interests a plan of that type targets. Never sensitive.
@@ -192,10 +191,11 @@ def plan_overlap(
     level: int,
     limit: int,
     *,
-    min_count: int = 2,
+    params: Params | None = None,
 ) -> list[tuple[str, int]]:
     """(interest ID at `level`, count of other joined users who have it) for interests the viewer has.
-    Empty below `min_count` joined (pass params.privacy.crowdMinCount)."""
+    Empty below params.privacy.crowdMinCount other joined users (P2). `params` defaults to Params.default()."""
+    min_count = (params or Params.default())["privacy"]["crowdMinCount"]
     others = [j for j in dict.fromkeys(joined_ids) if j != user_id and j in pool.users]
     if len(others) < min_count or user_id not in pool.users:
         return []
@@ -229,10 +229,10 @@ def _open_at(v: Venue, starts: datetime, ends: datetime) -> bool:
     )
 
 
-def _free(u: dict, starts: datetime, ends: datetime, buffer_min: int) -> bool:
-    if u["busy"]:
-        return not _busy_conflict(u["busy"], starts, ends, buffer_min)
-    return _slot(starts) in {(s["day"], s["part"]) for s in u["availability"]}
+def _free(pool: PoolSnapshot, uid: str, starts: datetime, ends: datetime, buffer_min: int) -> bool:
+    if busy := pool.busy[uid]:
+        return not _busy_conflict(busy, starts, ends, buffer_min)
+    return _slot(starts) in {(s["day"], s["part"]) for s in pool.users[uid]["availability"]}
 
 
 def _windows(horizon_start: datetime, params: Params) -> list[datetime]:
@@ -301,7 +301,7 @@ def propose_plans(
         for w in windows:
             if w in taken or not _open_at(v, w, w + timedelta(hours=PLAN_HOURS)):
                 continue
-            free = sum(_free(pool.users[u], w, w + timedelta(hours=PLAN_HOURS), buffer_min) for u in people)
+            free = sum(_free(pool, u, w, w + timedelta(hours=PLAN_HOURS), buffer_min) for u in people)
             if free:
                 scored.append((free, w))
         if not scored:
@@ -381,9 +381,11 @@ def propose_plans(
     return out
 
 
-def _busy_conflict(busy: list[dict], starts: datetime, ends: datetime, buffer_min: int) -> bool:
+def _busy_conflict(
+    busy: list[tuple[datetime, datetime]], starts: datetime, ends: datetime, buffer_min: int
+) -> bool:
     buf = timedelta(minutes=buffer_min)
-    return any(parse_dt(b["start"]) < ends + buf and starts - buf < parse_dt(b["end"]) for b in busy)
+    return any(bs < ends + buf and starts - buf < be for bs, be in busy)
 
 
 def _slot(dt: datetime) -> tuple[str, str]:
@@ -474,8 +476,8 @@ def rank_plans(
                 continue
             if p.size_max < gmin or p.size_min > gmax:
                 continue
-            if u["busy"]:
-                if _busy_conflict(u["busy"], p.starts_at, p.ends_at, buffer_min):
+            if busy := pool.busy[uid]:
+                if _busy_conflict(busy, p.starts_at, p.ends_at, buffer_min):
                     continue
             elif _slot(p.starts_at) not in slots:
                 continue
@@ -619,6 +621,7 @@ def form_groups(
     k = max(1, -(-seats // split))  # ceil
     while k > 1 and seats // k < g["strangerSizeMin"]:
         k -= 1
+    seats = min(seats, k * split)  # k lowered for the stranger minimum must not overflow the cap
     sizes = [seats // k + (i < seats % k) for i in range(k)]
     groups: list[list[str]] = []
     # Seats go by priority: candidates come from the next free seats' worth of the queue; someone further
@@ -647,17 +650,6 @@ def form_groups(
         groups.append(group)
     waiting = rest
 
-    # ponytail: one pass of pairwise swaps between groups that raises the lower of the two minima. A real
-    # local search (repeat until no gain) if group quality on big plans ever matters.
-    for gi, ga in enumerate(groups):
-        for gb in groups[gi + 1 :]:
-            for ia, a in enumerate(ga):
-                for ib, b in enumerate(gb):
-                    na, nb = ga[:ia] + [b] + ga[ia + 1 :], gb[:ib] + [a] + gb[ib + 1 :]
-                    if min(worst(na), worst(nb)) > min(worst(ga), worst(gb)):
-                        ga[ia], gb[ib] = b, a
-                        a = b  # keep scanning with the swapped-in member
-
     out, unseated = [], []
     for group in groups:
         while len(group) >= 3 and (bad := [x for x in group if not shares_ok(x, group)]):
@@ -681,7 +673,7 @@ def form_groups(
             unseated += group
             continue
         out.append(GroupResult(plan.plan_id, sorted(group, key=order.get), round(worst(group), 6)))
-    unseated += waiting
+    unseated += waiting + [u for u in order if u not in elig]  # unknown or under the trust floor
     return FormResult(out, sorted(dict.fromkeys(unseated), key=order.get))
 
 
@@ -705,7 +697,9 @@ def _backfill(plan, fixed, waiting, hi, lo, pair, umax, shares_ok, worst, order)
         waiting.remove(best)
     rank = {u: k for k, u in enumerate(group)} | order
     if len(group) < lo(group):
-        return FormResult([], sorted(waiting, key=order.get))
+        return FormResult(
+            [], [*group, *sorted(waiting, key=order.get)]
+        )  # caller cancels or offers alternatives
     return FormResult(
         [GroupResult(plan.plan_id, sorted(group, key=rank.get), round(worst(group), 6))],
         sorted(waiting, key=order.get),

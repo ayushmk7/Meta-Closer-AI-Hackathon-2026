@@ -76,3 +76,50 @@ def test_backfill_with_fixed_members(params):
     (g,) = res.groups
     assert g.member_ids == ["u_0", "u_1", "u_new"]  # blocked and no-shared-interest people skipped
     assert res.unseated_ids == ["u_blocker", "u_odd"]
+
+
+def test_review_fixes_form_groups(params):
+    # Never above size.max, even when k drops for the stranger minimum (5 people, max 4 -> one group of 4).
+    five = [user(f"u_{i}", MAKER) for i in range(5)]
+    for size in [(3, 4), (3, 3)]:
+        res = _form(params, five, [u["userId"] for u in five], p=plan(size=size))
+        assert all(len(g.member_ids) <= size[1] for g in res.groups)
+        assert len(res.unseated_ids) == 5 - sum(len(g.member_ids) for g in res.groups)
+    # Members' own groupSize.max holds for every group (randomised sizes and caps).
+    r = random.Random(0)
+    for _ in range(100):
+        us = [
+            user(f"u_{i}", MAKER, groupSize={"min": 3, "max": r.choice([3, 4, 5, 6])})
+            for i in range(r.randint(3, 14))
+        ]
+        res = _form(params, us, [u["userId"] for u in us], p=plan(size=(3, 6)))
+        caps = {u["userId"]: u["groupSize"]["max"] for u in us}
+        for g in res.groups:
+            assert all(len(g.member_ids) <= caps[m] for m in g.member_ids)
+        assert sorted([m for g in res.groups for m in g.member_ids] + res.unseated_ids) == sorted(caps)
+    # Unknown and under-trust-floor people come back unseated, never lost.
+    us = [user(f"u_{i}", MAKER) for i in range(3)] + [user("u_paused", MAKER, trustFloorOk=False)]
+    res = _form(params, us, ["u_0", "u_paused", "u_1", "u_ghost", "u_2"])
+    assert res.unseated_ids == ["u_paused", "u_ghost"] and len(res.groups[0].member_ids) == 3
+    # A backfill that can't reach the minimum returns the fixed members unseated.
+    us = [user(f"u_{i}", MAKER) for i in range(2)] + [user("u_odd", HIKER)]
+    res = _form(params, us, ["u_odd"], state=cgm.MatchState(fixed_ids={"pl_wheel": ["u_0", "u_1"]}))
+    assert res.groups == [] and res.unseated_ids == ["u_0", "u_1", "u_odd"]
+
+
+def test_overlap_reads_crowd_min_count(params):
+    us = [user(f"u_{i}", MAKER) for i in range(4)]
+    pool = _pool(us)
+    p = cgm.Plan.from_record(plan())
+    strict = cgm.Params(params | {"privacy": params["privacy"] | {"crowdMinCount": 3}})
+    assert cgm.plan_overlap(pool, "u_0", p, ["u_1", "u_2"], 2, 3)  # contract default (2)
+    assert cgm.plan_overlap(pool, "u_0", p, ["u_1", "u_2"], 2, 3, params=strict) == []
+    assert cgm.plan_overlap(pool, "u_0", p, ["u_1", "u_2", "u_3"], 2, 3, params=strict)
+
+
+def test_busy_parsed_once():
+    pool = _pool(
+        [user("u_a", MAKER, busy=[{"start": "2026-11-14T18:00:00Z", "end": "2026-11-14T19:00:00Z"}])]
+    )
+    ((s, e),) = pool.busy["u_a"]
+    assert (e - s).seconds == 3600 and s.tzinfo is not None

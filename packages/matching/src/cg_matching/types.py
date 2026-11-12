@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import dataclasses
+import functools
 import json
+import os
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
@@ -28,6 +30,13 @@ class Params(dict):
     def from_yaml(cls, path: str | Path) -> Params:
         return cls(yaml.safe_load(Path(path).read_text()))
 
+    @staticmethod
+    @functools.cache
+    def default() -> Params:
+        """$CG_CONTRACTS_DIR/params.yaml, else the repo's contracts/ (read once)."""
+        d = os.environ.get("CG_CONTRACTS_DIR") or Path(__file__).resolve().parents[4] / "contracts"
+        return Params.from_yaml(Path(d) / "params.yaml")
+
 
 @dataclass(frozen=True)
 class PoolSnapshot:
@@ -38,6 +47,15 @@ class PoolSnapshot:
     users: dict[str, dict]
     plans: list[dict] = field(default_factory=list)
     generated_at: str = ""
+    busy: dict[str, list[tuple[datetime, datetime]]] = field(init=False, repr=False, compare=False)
+
+    def __post_init__(self):
+        # Parse busy blocks once per snapshot; rank_plans/propose_plans check them per (user, plan).
+        parsed = {
+            uid: [(parse_dt(b["start"]), parse_dt(b["end"])) for b in u["busy"]]
+            for uid, u in self.users.items()
+        }
+        object.__setattr__(self, "busy", parsed)
 
     @classmethod
     def from_export(cls, d: dict) -> PoolSnapshot:
