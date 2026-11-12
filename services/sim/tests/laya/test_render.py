@@ -50,3 +50,24 @@ def test_render_state_is_what_fake_hashes():
     s = laya.render_state("show_up", users=case["users"], activityType=case["activityType"])
     want = int(hashlib.sha256(f"2|show_up|{case['render']}".encode()).hexdigest()[:8], 16) / 0xFFFFFFFF
     assert laya.fake_p("show_up", s) == want
+
+
+def test_noul_dist_without_yes_is_valueerror():
+    with pytest.raises(ValueError):
+        laya._answer_p({"probabilities": {"x": 0.3}}, "noul", None)
+
+
+def test_ask_falls_back_per_answer():
+    class Resp:
+        def raise_for_status(self): ...
+        def json(self): return {"answers": {"show_up": {"probabilities": {"x": 0.3}}, "meet_again": {"p": 0.4}}}
+
+    class Http:
+        def post(self, *a, **k): return Resp()
+
+    class Down:
+        def post(self, *a, **k): raise OSError("down")
+
+    c = laya.LayaClient(fake=False)
+    assert c._ask(Http(), "s", ["show_up", "meet_again"]) == {"show_up": laya.fake_p("show_up", "s"), "meet_again": 0.4}
+    assert c._ask(Down(), "s", ["meet_again"]) == {"meet_again": laya.fake_p("meet_again", "s")}

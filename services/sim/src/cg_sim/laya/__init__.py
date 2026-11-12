@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import hashlib
 import os
+import sys
 from concurrent.futures import ThreadPoolExecutor
 
 from cg_sim.contracts import load_yaml, taxonomy
@@ -97,7 +98,7 @@ def _answer_p(ans: dict | float, qtype: str, criteria: list | None) -> float:
     if qtype == "score" and probs:
         vals = probs if isinstance(probs, list) else [probs.get(c, 0.0) for c in criteria]
         return sum(p * i / (len(vals) - 1) for i, p in enumerate(vals))
-    if qtype == "noul" and isinstance(probs, dict):
+    if qtype == "noul" and isinstance(probs, dict) and isinstance(probs.get("yes", probs.get("true")), (int, float)):
         return float(probs.get("yes", probs.get("true")))
     raise ValueError(f"unrecognised Laya answer: {ans!r}")
 
@@ -120,11 +121,22 @@ class LayaClient:
             q = self.q["questions"][k]
             qs[k] = {"type": q["type"], "instructions": q["instructions"]} | (
                 {"criteria": q["criteria"]} if "criteria" in q else {})
-        r = http.post(f"{self.url}/v1/systemone", json={"model": self.model, "state": state, "questions": qs})
-        r.raise_for_status()
-        answers = r.json()["answers"]
-        return {k: _answer_p(answers[k], self.q["questions"][k]["type"], self.q["questions"][k].get("criteria"))
-                for k in keys}
+        try:
+            r = http.post(f"{self.url}/v1/systemone", json={"model": self.model, "state": state, "questions": qs})
+            r.raise_for_status()
+            answers = r.json()["answers"]
+        except Exception as e:  # noqa: BLE001 - D4: any Laya failure falls back, never kills the batch
+            print(f"laya: request failed ({type(e).__name__}); fake p for {keys}", file=sys.stderr)
+            answers = {}
+        out = {}
+        for k in keys:
+            try:
+                out[k] = _answer_p(answers[k], self.q["questions"][k]["type"], self.q["questions"][k].get("criteria"))
+            except (KeyError, ValueError) as e:
+                if answers:
+                    print(f"laya: bad answer for {k} ({type(e).__name__}); fake p", file=sys.stderr)
+                out[k] = fake_p(k, state, self.q["questionsVersion"])
+        return out
 
     def ask_many(self, batch: list[tuple[str, list[str]]]) -> list[dict[str, float]]:
         if self.fake:
