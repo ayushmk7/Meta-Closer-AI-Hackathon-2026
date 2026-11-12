@@ -75,7 +75,8 @@
         "lng": -122.4689
       },
       "relaxCheckin": true,
-      "simulatedPayments": true
+      "simulatedPayments": true,
+      "stepDelayS": [1, 2]
     }
   },
   "getMe": {

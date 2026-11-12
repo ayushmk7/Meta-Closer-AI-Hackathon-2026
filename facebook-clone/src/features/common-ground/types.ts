@@ -1,5 +1,7 @@
 // Hand-written mirror of contracts/openapi.yaml (v2). Open enums accept any string.
 type Open<T extends string> = T | (string & {});
+// CONTRACTS: every local time is shown in this zone, whatever the phone's setting.
+export const TZ = 'America/Los_Angeles';
 
 export interface LatLng {
   lat: number;
@@ -64,6 +66,7 @@ export interface Config {
     fakeLocation?: LatLng | null;
     relaxCheckin?: boolean;
     simulatedPayments?: boolean;
+    stepDelayS?: number[]; // [min, max] seconds between visible Muse steps
   };
 }
 export interface InterestRef {

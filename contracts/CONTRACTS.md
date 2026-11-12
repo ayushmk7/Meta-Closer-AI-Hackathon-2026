@@ -270,7 +270,7 @@ export interface ResetHook { id: string; run(): Promise<void>; }
 export function createScopedStorage(key: string): StorageAdapter; // key matches /^[a-z0-9-]+:v\d+$/ and is not the core key
 ```
 
-Hooks in `useBadge` and `useRows` are called on every render of their host screen, in registry order, so the number of sources never changes at runtime. On web, `tabs`, `inboxSources` and `eventSources` are ignored and Common Ground contributes a Menu item; its screens run on the in-app mock only.
+Hooks in `useBadge` and `useRows` are called on every render of their host screen, in registry order, so the number of sources never changes at runtime. On web, `inboxSources` and `eventSources` are ignored; `tabs` appear as an extra desktop header destination (human decision 2026-11-12) and Common Ground also contributes a Menu item; its screens run on the in-app mock only.
 
 **App dependency allowlist.** The shell agent installs exactly these with `npx expo install` (SDK 57 versions, all available in Expo Go):
 
@@ -333,3 +333,18 @@ Standard commands (each owner provides its own; the root `Makefile` only calls t
 
 - v2.0.0 (2026-11-12): plans-first redesign after judge feedback. Plans, joins, group formation from joins, the Muse bar, the visible Muse agent (steps, approvals, simulated booking and payments, autonomy settings), connectors and signals, nudges, device calendar sync and directives, travel estimates and directions. Removed the people drop, openers, group requests, voting, the map and location sharing, density and the scene leaderboard. `questionsVersion` 2. New `connectors.yaml` and seed files `connectors.jsonl`, `venues.jsonl`, `plans.jsonl`; `onboarding.jsonl` retired. App allowlist adds `expo-calendar` and `expo-notifications`.
 - v1.0.0 (2026-11-12): initial contracts.
+
+## Decisions (integrator, 2026-11-12)
+
+Resolved open questions from the v2 build. Additive only; nothing renamed or tightened.
+
+- **Timezone.** Every local time (venue hours, plan starts, routines, calendar) is `America/Los_Angeles`.
+- **Plan horizon anchor.** "At least 12 hours after the demo day" means plan `startsAt` >= `2026-11-13T12:00:00-08:00`.
+- **Plan titles.** Producers write at most 60 characters (PRD); the schema's 80 stays as the hard cap.
+- **Nudge plan origin.** `nudgePlanId` has `origin: signal`.
+- **Event pool nudge.** In `pool_evt_closer_together`, `nudgePlanId` is any free plan in the pool window; the "Maya's frequent place" rule applies to `pool_sf_city` only. `u_maya` connector records in a pool without her persona are ignored by the backend.
+- **Demo plans.** `heroPlanId`, `nudgePlanId` and the third featured plan may be hand-built by the sim seed (origin `seed`/`signal`) instead of `propose_plans`; all other seed plans come from `cg_matching.propose_plans`.
+- **Matching stand-in.** Until `packages/matching` lands on main, `services/sim` may use its own `matching_adapter.py` fallback with the §10 signatures (R3 exception). Delete it and depend on `packages/matching` once that merges.
+- **`config.demo.stepDelayS`.** Added as optional; mirrors `params.demo.stepDelayS`.
+- **Laya answer fields.** Still unverified (no `laya-serve` docs here). Each service keeps the field mapping in one `LayaClient` adapter and fails loudly (>5% fallbacks) rather than faking silently.
+
