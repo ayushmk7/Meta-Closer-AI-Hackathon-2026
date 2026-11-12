@@ -1,10 +1,23 @@
+import pytest
+
 from cg_api import contracts
 from cg_api.routes import muse_bar
 
 
+@pytest.fixture(autouse=True)
+def opted_in(public):
+    """C's feed module installs muse_bar.gate/plan_source: the bar needs opted-in users and serves real cards."""
+    muse_bar.clear()
+    assert public.post("/v1/muse/ask", json={"text": "coffee"}).json()["error"]["code"] == "not_opted_in"
+    for u in ("u_maya", "u_0098"):
+        assert public.post("/v1/optin", json={"mode": "city"}, headers={"X-CG-User": u}).status_code == 200
+    yield
+    muse_bar.clear()
+
+
 def test_ask_muse_filters_example_cards_and_validates(public):
     muse_bar.clear()
-    r = public.post("/v1/muse/ask", json={"text": "pottery this weekend"})
+    r = public.post("/v1/muse/ask", json={"text": "pottery"})
     assert r.status_code == 200, r.text
     contracts.validate(contracts.op_by_id("askMuse"), 200, r.json())
     body = r.json()
