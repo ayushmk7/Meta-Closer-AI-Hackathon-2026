@@ -148,7 +148,7 @@ def render(run_dir) -> str:
                     recs.append((d[0], name, d))
             L.append(f"| `{name}` | " + " | ".join(cells_) + " |")
         L += ["", "`isolationBoost` only reorders contested exposures: at the default cap no plan hits "
-              "`exposureCapPerDay`, so its rows are exactly zero; the cap-10 rows show it where it binds.",
+              "`exposureCapPerDay`, so its rows sit at about zero; the cap-10 rows show it where it binds.",
               "", "## Recommended params.yaml changes", ""]
         withheld = [why for bad, why in ((cfg["matching"] != "cg_matching", "Common Ground ran on the matching_adapter fallback"),
                                          (wins != len(cells_run), "the headline has no claim"),
