@@ -6,7 +6,6 @@ Everything here is policy-independent and built once per pool (then shipped to w
 from __future__ import annotations
 
 import copy
-import hashlib
 import json
 import math
 import random
@@ -39,12 +38,6 @@ def day_of(t: datetime) -> int:
     return (t.astimezone(TZ).date() - DAY0.date()).days
 
 
-def fake_p(qv: int, key: str, state: str) -> float:
-    """laya_questions.yaml fake rule. ponytail: `state` is an id string, not the rendered template; switch to
-    S2's renderer (cg_sim.laya) once it lands so values equal the backend's LAYA_FAKE byte for byte."""
-    return int(hashlib.sha256(f"{qv}|{key}|{state}".encode()).hexdigest()[:8], 16) / 0xFFFFFFFF
-
-
 class Tables:
     """LayaTables duck type (.p_join/.p_show/.p_meet_again) over dense arrays."""
 
@@ -63,31 +56,34 @@ class Tables:
         return float(self.pm[self.ui[a], self.ui[b]])
 
 
-def load_tables(pool_id: str, users: list[str], acts: list[str], fake: bool, qv: int) -> Tables:
-    n, na = len(users), len(acts)
+def load_tables(pool_id: str, users: list[str], acts: list[str], fake: bool) -> tuple[Tables, bool]:
+    """(tables, is_fake). fake: S2's precompute.build_tables with the hash LayaClient (render_state inside, so
+    values equal the backend's LAYA_FAKE); else data/laya_tables/<pool>/*.parquet."""
     if fake:
-        pj = np.array([[fake_p(qv, "join_activity", f"{u}|{a}") for a in acts] for u in users])
-        ps = np.array([[fake_p(qv, "show_up", f"{u}|{a}") for a in acts] for u in users])
-        pm = np.zeros((n, n))
-        for i in range(n):
-            for j in range(i + 1, n):
-                pm[i, j] = pm[j, i] = fake_p(qv, "meet_again", f"{users[i]}|{users[j]}")
-        return Tables(users, acts, pj, ps, pm)
-    import pyarrow.parquet as pq
+        from cg_sim import laya, precompute
+        from cg_sim.seed.export import load_ground_truth_export
 
-    d = data_dir() / "laya_tables" / pool_id
+        act_rows, meet_rows = precompute.build_tables(
+            load_ground_truth_export(pool_id), precompute.load_activity(pool_id), laya.LayaClient(fake=True))
+    else:
+        import pyarrow.parquet as pq
+
+        d = data_dir() / "laya_tables" / pool_id
+        act_rows, meet_rows = (pq.read_table(d / f).to_pylist() for f in ("activity.parquet", "meet_again.parquet"))
+        fake = json.loads((d / "manifest.json").read_text())["layaModel"] == "fake"
+    n, na = len(users), len(acts)
     ui, ai = {u: i for i, u in enumerate(users)}, {a: i for i, a in enumerate(acts)}
     pj, ps = np.full((n, na), 0.5), np.full((n, na), 0.5)
-    for r in pq.read_table(d / "activity.parquet").to_pylist():
+    for r in act_rows:
         if r["user_id"] in ui and r["activity_type"] in ai:
             pj[ui[r["user_id"]], ai[r["activity_type"]]] = r["p_join"]
             ps[ui[r["user_id"]], ai[r["activity_type"]]] = r["p_show"]
     pm = np.full((n, n), 0.2)  # ponytail: pairs outside each user's top-K default to a low prior
-    for r in pq.read_table(d / "meet_again.parquet").to_pylist():
+    for r in meet_rows:
         if r["user_a"] in ui and r["user_b"] in ui:
             a, b = ui[r["user_a"]], ui[r["user_b"]]
             pm[a, b] = pm[b, a] = r["p_meet_again"]
-    return Tables(users, acts, pj, ps, pm)
+    return Tables(users, acts, pj, ps, pm), fake
 
 
 @dataclass
@@ -168,7 +164,7 @@ def build(pool_id: str, fake_laya: bool = True, weeks: int | None = None, limit_
     P = len(plans)
 
     acts = sorted({x["activityType"] for x in plans} | set(ma.ACTIVITY_INTERESTS))
-    tables = load_tables(pool_id, users, acts, fake_laya, p["laya"]["questionsVersion"])
+    tables, fake_tables = load_tables(pool_id, users, acts, fake_laya)
     act_i = np.array([tables.ai[x["activityType"]] for x in plans], dtype=int)
 
     vectors = ma.build_vectors(export, p)
@@ -202,9 +198,9 @@ def build(pool_id: str, fake_laya: bool = True, weeks: int | None = None, limit_
                  "lng": v["location"]["lng"]} for v in venues],
         plans=plans, propose_day=propose_day, form_day=form_day, start_day=start_day,
         size_min=np.array([x["size"]["min"] for x in plans]), size_max=np.array([x["size"]["max"] for x in plans]),
-        # ponytail: fake p_join is a hash that ignores interests; real Laya sees them in the state. Scale by fit
-        # in fake mode so an irrelevant impression converts at ~0, as it would with real tables.
-        elig=elig, fit=fit, pj=tables.pj[:, act_i] * (fit if fake_laya else 1.0), ps=tables.ps[:, act_i], pm=tables.pm,
+        # ponytail: fake p_join is a hash of the state, blind to interests; real Laya reads them. Scale by fit
+        # for fake tables so an irrelevant impression converts at ~0, as it would with real tables.
+        elig=elig, fit=fit, pj=tables.pj[:, act_i] * (fit if fake_tables else 1.0), ps=tables.ps[:, act_i], pm=tables.pm,
         tables=tables, export=export,
     )
     # Common Ground carousels via the shared rank_plans, cached per day.
