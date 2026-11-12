@@ -148,3 +148,38 @@ def test_cancelled_event_cancels_and_posts_alternatives(world):
     assert last["sender"]["kind"] == "muse" and last["text"].startswith("I couldn't find a time")
     assert [a for a in last["attachments"] if a["kind"] == "plan"] == [{"kind": "plan", "planId": "pl_hero2"}]
     assert meetups.list_meetups(world, "u_maya") == []
+
+
+def _synthetic_hero(world):
+    for u in ("u_dan", "u_rosa"):
+        world.users[u]["synthetic"] = True
+    world.on_formed, world.on_decided = runner.start, runner.decided
+    return formed(world)
+
+
+def test_join_approve_confirmed_with_synthetic_counterparts(world):
+    """Checkpoint A: Maya joins the hero plan, OKs her $35, and the meetup reaches confirmed."""
+    pytest.importorskip("cg_api.agent")
+    mt = _synthetic_hero(world)
+    mine = approvals.pending(world, "u_maya")
+    assert len(mine) == 1 and approvals.pending(world, "u_dan") == []  # counterparts answered themselves
+    assert meetups.view(world, "u_maya", mt)["status"] == "setting_up"  # never books before Maya decides (P11)
+    approvals.decide(world, "u_maya", mine[0]["approvalId"], "approve")
+    m = meetups.view(world, "u_maya", mt)
+    assert (m["status"], m["booking"]["status"], m["cost"]["myPayment"]) == ("confirmed", "booked", "paid")
+    assert [s["kind"] for s in m["museSteps"]].count("book") == 1
+
+
+def test_live_counterpart_decides_for_themselves(world):
+    pytest.importorskip("cg_api.agent")
+    world.demo.update(counterpart="live", liveUserId="u_dan")
+    mt = _synthetic_hero(world)
+    assert len(approvals.pending(world, "u_dan")) == 1 and approvals.pending(world, "u_rosa") == []
+    assert meetups.view(world, "u_maya", mt)["status"] == "setting_up"
+
+
+def test_forced_yes_off_waits_for_everyone(world):
+    pytest.importorskip("cg_api.agent")
+    world.demo["forcedYes"] = False
+    _synthetic_hero(world)
+    assert len(approvals.pending(world, "u_rosa")) == 1

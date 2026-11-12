@@ -24,6 +24,43 @@ except ImportError:  # ponytail: D's module lands with its PR; until then steps 
     ScriptedRun = None
 
 
+def demo_state(w: World) -> dict:
+    """A's live DemoState (internal API) when this World is the store's, else params/demo.json defaults."""
+    try:
+        from cg_api.store import store
+
+        if store.world is w and store.demo_state:
+            return store.demo_state
+    except ImportError:
+        pass
+    d = w.params["demo"]
+    w.demo.setdefault("forcedYes", d["forcedYesDefault"])
+    w.demo.setdefault("counterpart", d["counterpartDefault"])
+    return w.demo
+
+
+def synthetic_answer(w: World, a: dict) -> None:
+    """PRD-2 §3.9: with forcedYes, synthetic counterparts approve their payments after demo.syntheticDelayS.
+    The live second phone (liveUserId in `live` mode) and real users always decide for themselves (C8)."""
+    ds, uid = demo_state(w), a["userId"]
+    if not w.users[uid].get("synthetic") or not ds.get("forcedYes"):
+        return
+    if ds.get("counterpart") == "live" and uid == ds.get("liveUserId"):
+        return
+
+    def go() -> None:
+        if a["status"] == "pending":
+            approvals.decide(w, uid, a["approvalId"], "approve")
+
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:  # pure tests: answer at once
+        go()
+        return
+    lo, hi = w.params["demo"]["syntheticDelayS"]
+    loop.call_later(random.uniform(lo, hi) if w.demo_mode else 0, go)
+
+
 def _delay(w: World) -> float:
     if not w.demo_mode:
         return 0.0
@@ -38,7 +75,7 @@ def apply(w: World, meetup_id: str, ev: dict) -> None:
     if t == "step":
         meetups.upsert_step(w, meetup_id, ev["step"])
     elif t == "approval":
-        approvals.add(w, dict(ev["approval"]))
+        synthetic_answer(w, approvals.add(w, dict(ev["approval"])))
     elif t == "payment":
         uid, state = ev["userId"], ev["myPayment"]
         if state == "paid":
@@ -170,6 +207,12 @@ async def post_intro(w: World, meetup_id: str) -> None:
     )
 
 
+def _take_fail_next_booking(w: World) -> bool:
+    ds = demo_state(w)
+    fail, ds["failNextBooking"] = bool(ds.get("failNextBooking")), False
+    return fail
+
+
 def start(w: World, meetup_id: str) -> None:
     """World.on_formed: intro first, then one run per new meetup."""
     _enqueue(w, meetup_id, lambda: post_intro(w, meetup_id))
@@ -196,7 +239,7 @@ def start(w: World, meetup_id: str) -> None:
         new_id=lambda prefix: w.next_id(prefix.rstrip("_") + "_"),
         reschedule_window_min=mp["rescheduleWindowMin"],
         approval_expires_hours=mp["approvalExpiresHours"],
-        fail_next_booking=w.demo.pop("failNextBooking", False),
+        fail_next_booking=_take_fail_next_booking(w),
     )
     w.runs[meetup_id] = run
     _enqueue(w, meetup_id, run.start())
