@@ -8,7 +8,13 @@ jest.mock('../../src/core/store', () => ({
 }));
 jest.mock('../../src/data/media', () => ({ imageSource: () => 1 }));
 jest.mock('expo-router', () => ({
-  router: { push: jest.fn(), replace: jest.fn() },
+  router: {
+    push: jest.fn(),
+    replace: jest.fn(),
+    navigate: jest.fn(),
+    back: jest.fn(),
+    canGoBack: () => false,
+  },
   useLocalSearchParams: () => ({}),
   useFocusEffect: (cb) => require('react').useEffect(cb, [cb]),
 }));
