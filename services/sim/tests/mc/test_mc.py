@@ -37,7 +37,7 @@ def test_toy_fixed_seed_regression(toy):
     assert json.dumps(a) == json.dumps(b)  # same seed, same everything (NaN-safe)
     assert len(a["isolatedLowByWeek"]) == toy.weeks + 1 and a["isolatedLowByWeek"][0] == 1.0
     # Pinned on seed v2 (seed 7) + S2 fake tables + S1 adapter fixes (13483b0). Re-pin only when the seed, adapter or engine changes on purpose.
-    assert (a["fillRate"], a["friendShareW8"], a["joinToMeetup"]) == pytest.approx((0.2291667, 0.1, 0.3053435))
+    assert (a["fillRate"], a["friendShareW8"], a["joinToMeetup"]) == pytest.approx((0.28125, 0.1, 0.3354430))
     for k in ("fillRate", "friendShareW8", "isolatedLowW8", "lowSeatedShare"):
         assert 0.0 <= a[k] <= 1.0
 
@@ -47,9 +47,32 @@ def test_policies_share_world_and_streams(toy):
     runs = {p: engine.simulate(toy, p, 1) for p in engine.POLICIES}
     for k, v in snap.items():  # no policy mutates the shared population or inventory
         assert np.array_equal(getattr(toy, k), v)
-    # random streams depend only on (seed, day, purpose), never on the policy
-    assert np.array_equal(engine._rng(1, 5, "join").random(4), engine._rng(1, 5, "join").random(4))
     assert set(runs) == set(engine.POLICIES)
+
+
+def test_policies_get_identical_join_draws(toy, monkeypatch):
+    """Spy on every stream: each (seed, day, purpose) must yield the same draws whichever policy asks."""
+    real = engine._rng
+    draws: dict[str, dict] = {}
+
+    class G:  # records every draw, keyed by stream
+        def __init__(self, policy, seed, day, purpose):
+            self.g, self.k, self.p = real(seed, day, purpose), (seed, day, purpose), policy
+
+        def random(self, shape):
+            x = self.g.random(shape)
+            draws[self.p].setdefault(self.k, []).append(x)
+            return x
+
+    for pol in ("greedy", "common_ground"):
+        draws[pol] = {}
+        monkeypatch.setattr(engine, "_rng", lambda s, d, pu, pol=pol: G(pol, s, d, pu))
+        engine.simulate(toy, pol, 2)
+    g, c = draws["greedy"], draws["common_ground"]
+    joins = [k for k in g if k[2] == "join"]
+    assert len(joins) == toy.days and set(joins) == {k for k in c if k[2] == "join"}
+    for k in set(g) & set(c):  # every stream both policies drew from is bit-identical
+        assert all(np.array_equal(a, b) for a, b in zip(g[k], c[k]))
 
 
 def test_run_report_replay_end_to_end(tmp_path, monkeypatch):

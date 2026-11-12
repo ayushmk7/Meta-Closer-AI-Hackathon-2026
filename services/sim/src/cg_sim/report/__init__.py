@@ -148,7 +148,12 @@ def render(run_dir) -> str:
                     recs.append((d[0], name, d))
             L.append(f"| `{name}` | " + " | ".join(cells_) + " |")
         L += ["", "## Recommended params.yaml changes", ""]
-        if recs:
+        withheld = [why for bad, why in ((cfg["matching"] != "cg_matching", "Common Ground ran on the matching_adapter fallback"),
+                                         (wins != len(cells_run), "the headline has no claim"),
+                                         (cfg["fakeLaya"], "Laya tables are fake")) if bad]
+        if withheld:
+            L.append(f"- Withheld: {'; '.join(withheld)}. The ablation table above is exploratory, not evidence.")
+        elif recs:
             for _, name, d in sorted(recs):
                 L.append(f"- `{name}`: isolated low-outgoing share at week 8 changes by {d[0]:+.1%} "
                          f"(95% [{d[1]:+.1%}, {d[2]:+.1%}]), run `{cfg['runId']}`. Propose via a `cg/contracts/` PR.")

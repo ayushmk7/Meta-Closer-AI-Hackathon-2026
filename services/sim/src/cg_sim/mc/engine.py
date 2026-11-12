@@ -54,7 +54,10 @@ def _carousel(w: World, policy: str, d: int, active: np.ndarray, joined: np.ndar
         return shown
     if policy == "common_ground":
         col = {j: c for c, j in enumerate(active)}
-        ranked = ma.rank_plans(_pool(w, met), [w.plans[j] for j in active], w.vectors, w.venue_by_id, w.tables, {},
+        # Live joiners ride in seedJoinIds: rank_plans then skips plans a person already joined and counts the
+        # joins toward fill likelihood, as the backend does with live plans.
+        plans = [{**w.plans[j], "seedJoinIds": [w.users[i] for i in np.flatnonzero(joined[:, j])]} for j in active]
+        ranked = ma.rank_plans(_pool(w, met), plans, w.vectors, w.venue_by_id, w.tables, {},
                                w.params, random.Random(f"{seed}|{d}"))
         ui, pi = w.tables.ui, {w.plans[j]["planId"]: j for j in active}
         for uid, feed in ranked.items():
