@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import dataclasses
+import functools
 import json
+import os
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
@@ -27,6 +29,19 @@ class Params(dict):
     @classmethod
     def from_yaml(cls, path: str | Path) -> Params:
         return cls(yaml.safe_load(Path(path).read_text()))
+
+    @staticmethod
+    @functools.cache
+    def default() -> Params:
+        """The package's only I/O path, read once: $CG_CONTRACTS_DIR/params.yaml, else the first contracts/params.yaml
+        above this file or the working directory (covers editable and in-repo .venv installs)."""
+        if d := os.environ.get("CG_CONTRACTS_DIR"):
+            return Params.from_yaml(Path(d) / "params.yaml")
+        for root in (Path(__file__).resolve(), Path.cwd().resolve()):
+            for parent in (root, *root.parents):
+                if (f := parent / "contracts" / "params.yaml").is_file():
+                    return Params.from_yaml(f)
+        raise FileNotFoundError("contracts/params.yaml not found; set CG_CONTRACTS_DIR or pass params=")
 
 
 @dataclass(frozen=True)

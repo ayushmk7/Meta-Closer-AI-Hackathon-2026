@@ -191,11 +191,12 @@ def plan_overlap(
     level: int,
     limit: int,
     *,
-    params: Params,
+    params: Params | None = None,
 ) -> list[tuple[str, int]]:
     """(interest ID at `level`, count of other joined users who have it) for interests the viewer has.
-    Empty below params.privacy.crowdMinCount other joined users (P2). `params` is required (kw-only)."""
-    min_count = params["privacy"]["crowdMinCount"]
+    Empty below params.privacy.crowdMinCount other joined users (P2). Pass `params` for the pure path; None falls back to Params.default(), the package's
+    only I/O."""
+    min_count = (params or Params.default())["privacy"]["crowdMinCount"]
     others = [j for j in dict.fromkeys(joined_ids) if j != user_id and j in pool.users]
     if len(others) < min_count or user_id not in pool.users:
         return []

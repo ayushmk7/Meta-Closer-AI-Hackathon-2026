@@ -112,7 +112,7 @@ def test_overlap_reads_crowd_min_count(params):
     pool = _pool(us)
     p = cgm.Plan.from_record(plan())
     strict = cgm.Params(params | {"privacy": params["privacy"] | {"crowdMinCount": 3}})
-    assert cgm.plan_overlap(pool, "u_0", p, ["u_1", "u_2"], 2, 3, params=params)  # contract value (2)
+    assert cgm.plan_overlap(pool, "u_0", p, ["u_1", "u_2"], 2, 3)  # params=None -> Params.default() (2)
     assert cgm.plan_overlap(pool, "u_0", p, ["u_1", "u_2"], 2, 3, params=strict) == []
     assert cgm.plan_overlap(pool, "u_0", p, ["u_1", "u_2", "u_3"], 2, 3, params=strict)
 
@@ -123,3 +123,14 @@ def test_busy_parsed_once():
     )
     ((s, e),) = pool.busy["u_a"]
     assert (e - s).seconds == 3600 and s.tzinfo is not None
+
+
+def test_params_default_matches_contracts(params, monkeypatch, tmp_path):
+    assert cgm.Params.default() == params
+    cgm.Params.default.cache_clear()
+    (tmp_path / "params.yaml").write_text("privacy: {crowdMinCount: 9}\n")
+    monkeypatch.setenv("CG_CONTRACTS_DIR", str(tmp_path))
+    try:
+        assert cgm.Params.default()["privacy"]["crowdMinCount"] == 9
+    finally:
+        cgm.Params.default.cache_clear()
