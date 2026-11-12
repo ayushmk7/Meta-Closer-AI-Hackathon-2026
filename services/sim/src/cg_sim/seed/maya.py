@@ -169,7 +169,6 @@ TZ = ZoneInfo("America/Los_Angeles")
 FREQUENT_VENUE = "vn_lands_end"  # >= 4 visits in the 30 days before REF: drives the nudge
 SAVED_VENUE = "vn_clay_hour"  # the hero plan's studio
 SENSITIVE_VENUE = "vn_sunset_meditation"  # weekly, auto-hidden in the demo
-EVENT_FREQUENT_VENUE = "vn_bedwell_bayfront"  # hackathon-week lunch walks (event pool nudge)
 HACKATHON_DAYS = {date(2026, 11, 11), date(2026, 11, 12), date(2026, 11, 13)}  # off work
 
 
@@ -197,16 +196,12 @@ def busy_blocks(ref: datetime, days: int) -> list[tuple[datetime, datetime]]:
     return [(a, b) for a, b in out if b > ref]
 
 
-def connector_records(ref: datetime, horizon_days: int, iso, event_pool: bool = False) -> list[dict]:
+def connector_records(ref: datetime, horizon_days: int, iso) -> list[dict]:
     rows: list[dict] = []
 
     def add(**kw):
-        rows.append({"recordId": f"cr_maya_{'evt_' if event_pool else ''}{len(rows) + 1:03d}", "userId": MAYA_ID, **kw})
+        rows.append({"recordId": f"cr_maya_{len(rows) + 1:03d}", "userId": MAYA_ID, **kw})
 
-    if event_pool:
-        for d in (date(2026, 11, 9), date(2026, 11, 10), date(2026, 11, 11)):
-            add(provider="google_maps", kind="place_visit", at=iso(_local(d, "12:15")), end=iso(_local(d, "13:00")), venueId=EVENT_FREQUENT_VENUE)
-        return rows
     for d in (date(2026, 10, 18), date(2026, 10, 25), date(2026, 11, 1), date(2026, 11, 8)):
         add(provider="google_maps", kind="place_visit", at=iso(_local(d, "09:10")), end=iso(_local(d, "10:40")), venueId=FREQUENT_VENUE)
     add(provider="google_maps", kind="saved_place", at=iso(_local(date(2026, 11, 3), "21:12")), venueId=SAVED_VENUE)

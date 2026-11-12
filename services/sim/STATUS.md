@@ -19,28 +19,24 @@
   Hero, nudge and one more featured plan are curated, then up to 2 proposals passing Maya's filters.
 - Titles/descriptions: templates (`--fake-muse`), titles <= 60 chars.
 
-## Assumptions in use (confirmed by orchestrator, pending contracts sign-off)
-- Plan horizon anchor = start of 2026-11-13 local + `plans.minLeadHours` (12 h) -> plans start >= 2026-11-13 12:00 PT.
-- Timezone America/Los_Angeles. Plan titles <= 60 chars (schema allows 80). Nudge plans use origin `signal`.
+## Resolved by CONTRACTS.md "Decisions" (2026-11-12)
+- Timezone America/Los_Angeles; plan startsAt >= 2026-11-13T12:00:00-08:00; titles <= 60; nudge origin `signal`.
+- Event-pool nudge: any free plan in the window (frequent-place rule is city only); event pool carries no u_maya records.
+- Hand-built hero / nudge / third featured plans allowed; `matching_adapter.py` fallback allowed until packages/matching lands.
 
 ## Open NEEDS (all slices)
-- S1: `packages/matching` (cg_matching) missing; adapter fallback in use; delete fallback when backend M0 lands (needs contracts-owner sign-off).
-- S1: event-pool `connectors.jsonl` carries u_maya Bedwell Bayfront visits though u_maya is not an event persona; backend must accept cross-pool records (or tell sim to change).
-- S1: contracts owner to confirm the 12 h anchor reading above.
-- S1 needs: contracts-owner sign-off that demo.json hero, nudge and the third featured plan are curated by hand
-  (`seed/plans.py`), not output by propose_plans (PRD-3 §3 / AGENT_RULES R6). The rest of the inventory comes from propose_plans.
+- S1: delete the matching fallback and depend on packages/matching once it merges.
 - S1 needs: backend to confirm `cg_matching.MatchState` keyword fields (adapter assumes snake_case of exposures,
   openJoins, metPairs, blockedPairs, seatHistory) when packages/matching lands.
-- S2 (laya): ground-truth signals API -> delivered (`cg_sim.seed.export`, see README).
-- S3 (mc): rank_plans/form_groups fallbacks delivered; fill likelihood, unbiased exposure order, scene cap, isolated-first, minSharedWithOthers -> delivered.
+- S2 (laya): ground-truth signals API delivered. Laya answer fields unverified (Decisions: one LayaClient adapter, fail loudly).
+- S3 (mc): adapter requests delivered. Note: isolationBoost only bites if MC passes live metPairs into rank_plans.
 - S4 (dashboard): none reported yet.
 
-## Decisions (open for review)
+## Seed decisions
 - Timezone America/Los_Angeles. Plan horizon starts 2026-11-13 00:00 local (demo day) + 12 h minLead.
 - City hero: Sat 2026-11-14 10:00 wheel-throwing at fictional Clay Hour Studio (Hayes Valley), $35 prepaid, size 3-5,
   pre-joined by the private counterpart + one more. Nudge: Sun 9:00 Lands End walk, free, origin `signal`.
-- Event pool: no u_maya persona; Maya's event-pool connectors.jsonl has 3 hackathon-week Bedwell Bayfront Park
-  visits (her frequent place there), so the event nudge plan is at Bedwell. Event hero: Sat 11:00 lunch walk, $14 prepaid.
+- Event pool: no u_maya persona or records. Event nudge: free Sun 9:00 Bedwell Bayfront walk. Event hero: Sat 11:00 lunch walk, $14 prepaid.
 - Maya's calendar: work Mon-Fri 9:00-17:30 (off Nov 11-13, hackathon), busy Mon/Tue/Thu evenings, Sat/Sun afternoons.
 
 ## For other agents
