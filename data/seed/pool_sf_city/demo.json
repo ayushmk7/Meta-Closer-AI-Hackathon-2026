@@ -5,8 +5,8 @@
     "pl_sf_hero_wheel",
     "pl_sf_lands_end_walk",
     "pl_sf_wed_game_night",
-    "pl_builders_001",
-    "pl_builders_002"
+    "pl_camping_volunteering_20261113_00",
+    "pl_eating_out_cooking_20261113_01"
   ],
   "heroPlanId": "pl_sf_hero_wheel",
   "nudgePlanId": "pl_sf_lands_end_walk",
@@ -20,7 +20,7 @@
   ],
   "privateCounterpartId": "u_0125",
   "fakeLocation": {
-    "lat": 37.7594,
-    "lng": -122.4676
+    "lat": 37.75948,
+    "lng": -122.46722
   }
 }
