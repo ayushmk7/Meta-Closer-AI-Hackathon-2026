@@ -54,6 +54,8 @@
   matching.idf, matching.ageBands, matching.leidenResolution (scenes = archetypes), plans.openJoinsMax,
   groups.sizeMax, groups.objective (greedy approximation of max_min_pairwise), venue capacity (unlimited groups
   per plan), O(n^2) candidates, fill likelihood = seed joins + mean p_join x min(eligible, exposure cap).
+  isolationBoost acts across users: capped-exposure allocation priority = U(0,1) x (1 + boost) for isolated users
+  (no metIds in the export and not in state.metPairs); boost 0 = uniform order, no id bias.
   Real-cg_matching branch: dict state -> MatchState(**snake_case keys), str/Path tables -> LayaTables.from_dir.
 - `cg_sim.seed.export.load_ground_truth_export(pool_id)` / `ground_truth_signals(pool_id)`: read-only `--use-ground-truth` API (README).
 - `data/sim_private/<pool>/ground_truth.jsonl`: userId, role, scene, archetypes, interests, noise,

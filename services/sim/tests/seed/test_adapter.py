@@ -129,10 +129,19 @@ def test_rank_diversity_caps():
     assert max(Counter(by[s["plan_id"]]["sceneId"] for s in picked).values()) <= 2
 
 
-def test_rank_isolated_users_get_capped_plans_first():
-    users = [_user("u_a", met=["u_z"]), _user("u_b", met=["u_z"]), _user("u_zz")]  # u_zz isolated, highest id
-    out = _rank(users, [_plan("pl_one")], plans__exposureCapPerDay=1)
-    assert [u for u, ss in out.items() if ss] == ["u_zz"]
+def test_isolation_boost_changes_who_wins_capped_plans():
+    users = [_user(f"u_{i}", met=["u_z"]) for i in range(4)] + [_user("u_iso")]
+
+    def iso_wins(boost, state=None):
+        p = json.loads(json.dumps(params()))
+        p["plans"]["exposureCapPerDay"], p["matching"]["isolationBoost"] = 1, boost
+        return sum(bool(rank_plans({"mode": "city", "users": users}, [_plan("pl_one")], None, VENUES, None,
+                                   state or {}, p, random.Random(seed))["u_iso"]) for seed in range(200))
+
+    off, on = iso_wins(0.0), iso_wins(4.0)
+    assert 20 < off < 60  # ~1/5 of 200 with no boost
+    assert on > 150  # boost makes the isolated user win most contests
+    assert iso_wins(4.0, {"metPairs": [["u_iso", "u_0"]]}) < 60  # live met state: no longer isolated
 
 
 def test_form_groups_min_shared_with_others():

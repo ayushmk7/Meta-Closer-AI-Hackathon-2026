@@ -305,7 +305,8 @@ def rank_plans(pool: dict, plans: list[dict], vectors, venues: dict[str, dict], 
     boost = params["matching"]["isolationBoost"]
     f = params["feed"]
     # Pass 1: hard filters and raw fit per (user, plan).
-    iso = {u["userId"] for u in pool["users"] if not u["metIds"]}
+    met = {x for pair in (state or {}).get("metPairs", []) for x in pair}  # live state beats the export snapshot
+    iso = {u["userId"] for u in pool["users"] if not u["metIds"] and u["userId"] not in met}
     eligible: dict[str, list[dict]] = {}
     for u in pool["users"]:
         uid, vec = u["userId"], vectors.get(u["userId"], {})
@@ -347,10 +348,10 @@ def rank_plans(pool: dict, plans: list[dict], vectors, venues: dict[str, dict], 
         js = pj.get(p["planId"], [])
         expected = len(p.get("seedJoinIds", [])) + (sum(js) / len(js) * min(len(js), cap) if js else 0)
         fill[p["planId"]] = min(1.0, expected / p["size"]["min"])
-    # Pass 2: allocate exposures. Isolated users first (isolationBoost), the rest in rng order (no id bias).
-    order = sorted(eligible)
-    rng.shuffle(order)
-    order.sort(key=lambda uid: uid not in iso)
+    # Pass 2: allocate capped exposures across users. Priority = U(0,1) x (1 + isolationBoost if isolated):
+    # boost 0 = uniform random order (no id bias); higher boost = isolated users win contested plans more often.
+    prio = {uid: rng.random() * ((1 + boost) if uid in iso else 1.0) for uid in sorted(eligible)}
+    order = sorted(eligible, key=lambda uid: (-prio[uid], uid))
     out: dict[str, list[dict]] = {}
     for uid in order:
         scores = []
