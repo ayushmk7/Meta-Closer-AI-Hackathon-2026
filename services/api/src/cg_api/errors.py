@@ -20,6 +20,18 @@ _DEFAULT_CODES = {
 }
 
 
+_COPY = {
+    400: "Something in that request isn't right.",
+    401: "Pick a demo user to continue.",
+    403: "That isn't available to you.",
+    404: "That isn't here anymore.",
+    405: "That isn't something you can do here.",
+    409: "That changed a moment ago. Refresh and try again.",
+    429: "That's a lot at once. Try again in a bit.",
+    503: "That's unavailable right now. Try again in a moment.",
+}
+
+
 class ApiError(Exception):
     def __init__(self, status: int, code: str, message: str, retryable: bool = False, details: dict | None = None):
         super().__init__(message)
@@ -44,7 +56,8 @@ def install(app: FastAPI) -> None:
 
     @app.exception_handler(StarletteHTTPException)
     async def _http(_: Request, e: StarletteHTTPException):
-        return envelope(e.status_code, _DEFAULT_CODES.get(e.status_code, "internal"), str(e.detail))
+        code = _DEFAULT_CODES.get(e.status_code, "internal")
+        return envelope(e.status_code, code, _COPY.get(e.status_code, "Something went wrong. Try again."))
 
     @app.exception_handler(Exception)
     async def _crash(_: Request, e: Exception):
