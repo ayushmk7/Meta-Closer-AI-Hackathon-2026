@@ -107,3 +107,43 @@ test('nothing qualifies: inline note, no navigation', async () => {
   expect(JSON.stringify(tree.toJSON())).toContain('Nothing new right now. Try the Muse bar.');
   await renderer.act(async () => tree.unmount());
 });
+
+test('double tap during feed fetch: one pick, one push', async () => {
+  store.setState({ feed: null, joins: [] });
+  router.push.mockClear();
+  const { tree, btn } = await render(React.createElement(SurpriseButton));
+  await renderer.act(async () => {
+    const press = btn().props.onPress;
+    press();
+    press();
+    await new Promise((r) => setTimeout(r, 50));
+  });
+  expect(router.push).toHaveBeenCalledTimes(1);
+  await renderer.act(async () => tree.unmount());
+});
+
+test('double tap with feed loaded: one push', async () => {
+  await store.load.feed();
+  router.push.mockClear();
+  const { tree, btn } = await render(React.createElement(SurpriseButton));
+  await renderer.act(async () => {
+    const press = btn().props.onPress;
+    press();
+    press();
+  });
+  expect(router.push).toHaveBeenCalledTimes(1);
+  await renderer.act(async () => tree.unmount());
+});
+
+test('feed load fails: no note, no navigation', async () => {
+  const { api } = require('../../src/features/common-ground/api');
+  store.setState({ feed: null });
+  jest.spyOn(api, 'getFeed').mockRejectedValue(new Error('down'));
+  router.push.mockClear();
+  const { tree, btn } = await render(React.createElement(SurpriseButton));
+  await renderer.act(async () => btn().props.onPress());
+  expect(router.push).not.toHaveBeenCalled();
+  expect(JSON.stringify(tree.toJSON())).not.toContain('Nothing new right now');
+  await renderer.act(async () => tree.unmount());
+  store.setState({ error: null });
+});

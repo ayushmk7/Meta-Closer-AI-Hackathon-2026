@@ -1,5 +1,5 @@
 // "Surprise me" (I'm Feeling Lucky): open a random plan from the viewer's own feed. Client-only (CONTRACTS Decisions).
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { Icon, Label, Muted, go, useColors } from '../../ui/native';
@@ -28,14 +28,19 @@ export function pickSurprise(
 export default function SurpriseButton() {
   const c = useColors();
   const [note, setNote] = useState(false);
+  const busy = useRef(false); // one pick, one push per tap burst
   const onPress = async () => {
+    if (busy.current) return;
+    busy.current = true;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     setNote(false);
-    if (!getState().feed) await load.feed();
+    if (!getState().feed) await load.feed(); // never throws; on failure feed stays null and the banner explains
     const s = getState();
-    const p = pickSurprise(s.feed?.plans ?? [], s.joins);
+    const p = s.feed && pickSurprise(s.feed.plans, s.joins);
     if (p) go(`/common-ground/plan/${p.planId}`);
-    else setNote(true);
+    else if (s.feed) setNote(true);
+    // ponytail: after a push, hold the guard 600ms while the route animates in; a focus listener if that misfires.
+    setTimeout(() => (busy.current = false), p ? 600 : 0);
   };
   return (
     <View style={{ paddingHorizontal: 16, gap: 6, alignItems: 'flex-start' }}>
