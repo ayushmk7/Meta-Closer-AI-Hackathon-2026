@@ -61,4 +61,42 @@ def sync_calendar(body: CalendarSync, uid: User):
         if a.ok:
             applied[a.key] = a.desired
     bridge.sync(uid)
-    return {"acceptedBusy": len(blocks), "directives": list(store.directives.get(uid, {}).values())}
+    return {"acceptedBusy": len(blocks), "directives": directives_for(uid)}
+
+
+def directives_for(uid: str) -> list[dict]:
+    """The calendar state this device should have now (CONTRACTS §5 Calendar directive), derived live from the
+    domain's joins and meetups (slice C builds each one; P7: own only, no other names). A `none` is sent only for
+    keys the device still holds, until it reports that it applied it."""
+    applied = store.applied.get(uid, {})
+    out: dict[str, dict] = {}
+    if store.world is not None:
+        from cg_api.domain import joins, meetups
+
+        w = store.world
+        for j in w.joins.values():
+            if j["userId"] != uid:
+                continue
+            d = _tidy(joins.hold(w, j), w.venues[w.plans[j["planId"]]["venueId"]]["name"])
+            if (
+                d is None and applied.get(j["joinId"], "none") != "none"
+            ):  # matched: the meetup's event replaces the hold
+                p = w.plans[j["planId"]]
+                d = {"key": j["joinId"], "desired": "none", "title": p["title"][:120], "startsAt": p["startsAt"],
+                     "endsAt": p["endsAt"]}  # fmt: skip
+            if d is not None:
+                out[d["key"]] = d
+        for m in w.meetups.values():
+            if uid in m.get("members", {}):
+                out[m["meetupId"]] = _tidy(meetups.directive(w, uid, m), w.venues[m["venueId"]]["name"])
+    out.update(store.directives.get(uid, {}))  # explicit writes win
+    return [d for d in out.values() if d["desired"] != "none" or applied.get(d["key"], "none") != "none"]
+
+
+def _tidy(d: dict | None, venue: str) -> dict | None:
+    """Titles already naming the venue get no second " at <venue>" ("Brunch at Nopal Table at Nopal Table").
+    ponytail: patches slice C's title builders at the serving edge; drop once they check this themselves."""
+    suffix = f" at {venue}"
+    if d and d["title"].endswith(suffix) and venue in d["title"][: -len(suffix)]:
+        d = {**d, "title": d["title"][: -len(suffix)]}
+    return d
