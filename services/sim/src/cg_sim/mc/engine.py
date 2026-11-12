@@ -7,12 +7,17 @@ all policies and sweep cells see identical random streams; only decisions differ
 
 from __future__ import annotations
 
+import functools
 import random
 
 import numpy as np
 
 from cg_sim import matching_adapter as ma
 from cg_sim.mc.world import World
+
+# ponytail: runtime memo of the adapter's timestamp parser (75% of rank_plans time; same strings every call).
+# Drop once matching_adapter caches _dt itself.
+ma._dt = functools.cache(ma._dt)
 
 POLICIES = ("random", "greedy", "common_ground")
 # Calibration knob (not a contract param): one day's impression converts at JOIN_DAILY x p_join. At 1/7 almost
@@ -33,8 +38,15 @@ def gini(x) -> float:
     return float((2 * np.arange(1, n + 1) - n - 1) @ x / (n * x.sum()))
 
 
+def _pool(w: World, met: np.ndarray, members=None) -> dict:
+    """The export with live metIds (rank_plans/form_groups read them for isolation priority)."""
+    idx = range(len(w.users)) if members is None else members
+    us = w.export["users"]
+    return {**w.export, "users": [{**us[i], "metIds": [w.users[k] for k in np.flatnonzero(met[i])]} for i in idx]}
+
+
 def _carousel(w: World, policy: str, d: int, active: np.ndarray, joined: np.ndarray, counts: np.ndarray,
-              seed: int) -> np.ndarray:
+              seed: int, met: np.ndarray) -> np.ndarray:
     """bool [n, len(active)]: plans shown to each person today."""
     n, k = len(w.users), w.params["feed"]["size"]
     shown = np.zeros((n, len(active)), bool)
@@ -42,9 +54,12 @@ def _carousel(w: World, policy: str, d: int, active: np.ndarray, joined: np.ndar
         return shown
     if policy == "common_ground":
         col = {j: c for c, j in enumerate(active)}
-        for i, feed in enumerate(w.cg_feed[d]):
-            for j in feed:
-                shown[i, col[j]] = True
+        ranked = ma.rank_plans(_pool(w, met), [w.plans[j] for j in active], w.vectors, w.venue_by_id, w.tables, {},
+                               w.params, random.Random(f"{seed}|{d}"))
+        ui, pi = w.tables.ui, {w.plans[j]["planId"]: j for j in active}
+        for uid, feed in ranked.items():
+            for s in feed:
+                shown[ui[uid], col[pi[s["plan_id"]]]] = True
         return shown
     ok = w.elig[:, active] & ~joined[:, active]
     if policy == "random":
@@ -97,7 +112,7 @@ def simulate(w: World, policy: str, seed: int, flake: float = 1.0, join: float =
     for d in range(days):
         active = np.flatnonzero((w.propose_day <= d) & (w.form_day >= d))
         # 1-2. carousel + joins
-        shown = _carousel(w, policy, d, active, joined, counts, seed)
+        shown = _carousel(w, policy, d, active, joined, counts, seed, met)
         u = _rng(seed, d, "join").random((n, len(active)))
         n_open = open_join.sum(1)
         fatigue = np.clip(1 - n_open / open_max, 0, 1)[:, None]  # documented fatigue: linear to 0 at openJoinsMax
@@ -199,9 +214,7 @@ def _cg_form(w: World, j: int, members: list[int], met: np.ndarray, seed: int, d
     if len(members) < w.size_min[j]:
         return []
     ids = [w.users[i] for i in members]
-    pool = {"poolId": w.pool_id, "mode": w.export["mode"],
-            "users": [{"userId": w.users[i], "metIds": [w.users[k] for k in np.flatnonzero(met[i])], "blockedIds": []}
-                      for i in members]}
+    pool = _pool(w, met, members)
     res = ma.form_groups(w.plans[j], ids, pool, {}, w.tables, {}, w.params, random.Random(f"{seed}|{d}|{j}"))
     ui = w.tables.ui
     return [[ui[m] for m in g["member_ids"]] for g in res["groups"]]

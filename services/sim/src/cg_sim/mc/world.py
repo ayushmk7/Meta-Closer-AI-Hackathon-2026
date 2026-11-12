@@ -110,7 +110,8 @@ class World:
     pm: np.ndarray             # float [n, n]
     tables: Tables
     export: dict               # pool_export used by the adapter (busy stripped)
-    cg_feed: list[list[np.ndarray]] = field(default_factory=list)  # [day][user] -> plan indices
+    vectors: dict = field(default_factory=dict)
+    venue_by_id: dict = field(default_factory=dict)
 
     @property
     def days(self) -> int:
@@ -139,7 +140,6 @@ def build(pool_id: str, fake_laya: bool = True, weeks: int | None = None, limit_
     # ponytail: busy blocks only cover 14 days, so the 8-week sim uses availability slots everywhere.
     export = ground_truth_export(pool_id, personas, truth, [])
     users = [u["userId"] for u in export["users"]]
-    ui = {u: i for i, u in enumerate(users)}
     n = len(users)
     scene_of = {t["userId"]: t["scene"] for t in truth if t["scene"]}
 
@@ -201,17 +201,8 @@ def build(pool_id: str, fake_laya: bool = True, weeks: int | None = None, limit_
         # ponytail: fake p_join is a hash of the state, blind to interests; real Laya reads them. Scale by fit
         # for fake tables so an irrelevant impression converts at ~0, as it would with real tables.
         elig=elig, fit=fit, pj=tables.pj[:, act_i] * (fit if fake_tables else 1.0), ps=tables.ps[:, act_i], pm=tables.pm,
-        tables=tables, export=export,
+        tables=tables, export=export, vectors=vectors, venue_by_id=vby,
     )
-    # Common Ground carousels via the shared rank_plans, cached per day.
-    # ponytail: valid while rank_plans ignores per-user state beyond a per-user scale (fallback: isolation boost
-    # rescales a user's own scores; exposures restart daily). Real cg_matching -> call per day per run instead.
-    for d in range(world.days):
-        active = [j for j in range(P) if propose_day[j] <= d <= form_day[j]]
-        ranked = ma.rank_plans(export, [plans[j] for j in active], vectors, vby, tables, {}, p, random.Random(d))
-        idx = {plans[j]["planId"]: j for j in active}
-        world.cg_feed.append([np.array([idx[s["plan_id"]] for s in ranked.get(u, [])], dtype=int) for u in users])
-    assert all(len(x) == n for x in world.cg_feed) and ui
     return world
 
 
