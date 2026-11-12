@@ -61,7 +61,12 @@ def join(w: World, viewer: str, plan_id: str, size: dict | None = None) -> dict:
         return view(w, j)  # idempotent
     if p["status"] != "open":
         raise Fail(409, "conflict", "This plan isn't taking people anymore.")
-    if size and (size.get("min", 2) > size.get("max", 99) or size.get("min", 2) < 2):
+    if size is not None and not (
+        isinstance(size, dict)
+        and type(size.get("min")) is int
+        and type(size.get("max")) is int
+        and 2 <= size["min"] <= size["max"] <= w.params["groups"]["sizeMax"]
+    ):
         raise Fail(400, "validation_failed", "Group size doesn't look right.")
     open_n = sum(1 for x in w.joins.values() if x["userId"] == viewer and x["status"] == "interested")
     if open_n >= w.params["plans"]["openJoinsMax"]:

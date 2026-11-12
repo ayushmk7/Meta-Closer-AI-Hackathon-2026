@@ -56,7 +56,8 @@ def crowd(w: World, viewer: str, plan: dict, capacity: int) -> dict:
                 shared.append({"interest": w.ref(iid), "count": min(count, real)})
     return {
         "interestedCount": len(js),
-        "spotsLeft": max(0, capacity - len(js)),
+        # spots in the group being gathered, not the venue's whole capacity ("2 spots left", never "35")
+        "spotsLeft": 0 if len(js) >= capacity else plan["size"]["max"] - len(js) % plan["size"]["max"],
         "sharedWithYou": shared[:cap],
     }
 

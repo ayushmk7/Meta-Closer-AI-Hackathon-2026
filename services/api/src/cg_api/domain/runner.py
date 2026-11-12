@@ -8,6 +8,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import random
+from collections import deque
 from collections.abc import Iterable
 
 from cg_api import ports
@@ -49,6 +50,7 @@ def apply(w: World, meetup_id: str, ev: dict) -> None:
         uid = ev["userId"]
         if m["members"][uid]["rsvp"] == "going":
             m["members"][uid]["rsvp"] = "left"
+            chat.cut_off(w, m["threadId"], uid)
             first = privacy.person_card(w, uid)["displayName"].split()[0]
             chat.post(w, m["threadId"], "muse", None, f"{first} can't make this one.")  # nothing more (P6)
             w.emit(uid, "calendar.changed")
@@ -80,16 +82,77 @@ async def drive(w: World, meetup_id: str, events: Iterable[dict]) -> None:
             await asyncio.sleep(_delay(w))
 
 
-def _spawn(w: World, meetup_id: str, events: Iterable[dict]) -> None:
+def _enqueue(w: World, meetup_id: str, item) -> None:
+    """One driver per meetup: items (event iterables or async callables) run strictly in order, never interleaved."""
+    q = w.run_queues.setdefault(meetup_id, deque())
+    q.append(item)
+    if len(q) > 1:
+        return  # the active driver picks it up
     try:
-        asyncio.get_running_loop().create_task(drive(w, meetup_id, events))
-    except RuntimeError:  # no loop (pure tests): run synchronously, no pauses
-        for ev in events:
-            apply(w, meetup_id, ev)
+        asyncio.get_running_loop().create_task(_driver(w, meetup_id))
+    except RuntimeError:  # no loop (pure tests): drain synchronously, no pauses
+        while q:
+            try:
+                if callable(q[0]):
+                    asyncio.run(q[0]())
+                else:
+                    for ev in q[0]:
+                        apply(w, meetup_id, ev)
+            finally:
+                q.popleft()
+
+
+async def _driver(w: World, meetup_id: str) -> None:
+    q = w.run_queues[meetup_id]
+    while q:
+        try:
+            await (q[0]() if callable(q[0]) else drive(w, meetup_id, q[0]))
+        except Exception:
+            log.exception("runner: %s item failed; continuing", meetup_id)
+        finally:
+            q.popleft()
+
+
+def group_interests(w: World, user_ids: list[str]) -> list[dict]:
+    """Full-depth interests every member shares with every other member: safe in one message to all (P1-P4)."""
+    if len(user_ids) < 2:
+        return []
+    first, rest = user_ids[0], user_ids[1:]
+    common = [i for i in privacy.shared_full(w, first, rest[0])]
+    pairs = [(a, b) for k, a in enumerate(user_ids) for b in user_ids[k + 1 :]]
+    ok = {i["id"] for i in common}
+    for a, b in pairs:
+        ok &= {i["id"] for i in privacy.shared_full(w, a, b)}
+    return [i for i in common if i["id"] in ok]
+
+
+async def post_intro(w: World, meetup_id: str) -> None:
+    """Muse's intro and 3 starters in the group thread, at formation (PRD-2 §3.6)."""
+    m = w.meetups[meetup_id]
+    people = meetups.going(m)
+    names = [privacy.person_card(w, u)["displayName"].split()[0] for u in people]
+    shared = group_interests(w, people)
+    plan = {**w.plans[m["planId"]], "venueName": w.venues[m["venueId"]]["name"]}
+    try:
+        # ponytail: labels until bplat's Copy takes interest objects; `shared` is already privacy-filtered
+        text, starters = await ports.ports.copy.intro(names, [i["label"] for i in shared], plan)
+    except Exception:
+        log.warning("runner: intro copy failed for %s; using template", meetup_id)
+        text = f"{', '.join(names)}, meet each other! I'm handling the booking and the calendar."
+        starters = ["What got you into this?", "Been here before?", "Anyone up for food after?"]
+    chat.post(
+        w,
+        m["threadId"],
+        "muse",
+        None,
+        text,
+        [{"kind": "starters", "starters": [s[:89] for s in starters[:3]]}, {"kind": "meetup", "meetupId": meetup_id}],
+    )
 
 
 def start(w: World, meetup_id: str) -> None:
-    """World.on_formed: one run per new meetup."""
+    """World.on_formed: intro first, then one run per new meetup."""
+    _enqueue(w, meetup_id, lambda: post_intro(w, meetup_id))
     if ScriptedRun is None:
         world_spawn(ports.ports.agent.start(meetup_id))
         return
@@ -116,7 +179,7 @@ def start(w: World, meetup_id: str) -> None:
         fail_next_booking=w.demo.pop("failNextBooking", False),
     )
     w.runs[meetup_id] = run
-    _spawn(w, meetup_id, run.start())
+    _enqueue(w, meetup_id, run.start())
 
 
 def decided(w: World, a: dict) -> None:
@@ -125,4 +188,4 @@ def decided(w: World, a: dict) -> None:
     if run is None:
         world_spawn(ports.ports.agent.on_approval(a["approvalId"]))
         return
-    _spawn(w, a["meetupId"], run.decide(a["approvalId"], a["status"]))
+    _enqueue(w, a["meetupId"], run.decide(a["approvalId"], a["status"]))

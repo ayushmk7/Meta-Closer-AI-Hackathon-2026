@@ -118,6 +118,7 @@ class World:
     blocks: set[frozenset] = field(default_factory=set)
     reports: list[dict] = field(default_factory=list)
     runs: dict[str, Any] = field(default_factory=dict)  # meetupId -> D's ScriptedRun
+    run_queues: dict[str, Any] = field(default_factory=dict)  # meetupId -> deque of pending run items
     events: list[tuple[str, str, dict]] = field(default_factory=list)  # (userId, type, data) for the realtime hub
     _seq: dict[str, itertools.count] = field(default_factory=lambda: defaultdict(lambda: itertools.count(1)))
 

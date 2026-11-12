@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+import logging
 from datetime import timedelta
 from zoneinfo import ZoneInfo
 
+from cg_api import ports
 from cg_api.domain import privacy
 from cg_api.domain.world import Fail, World, iso, not_found, parse
 
+log = logging.getLogger("cg_api.domain.plans")
 TZ = ZoneInfo("America/Los_Angeles")  # ponytail: one city; per-pool tz when a second pool lands
 
 
@@ -129,14 +132,21 @@ def because(w: World, viewer: str, plan: dict) -> list[dict]:
     return out
 
 
-def reason(w: World, viewer: str, plan: dict, crowd: dict) -> str:
-    """Template fallback. ponytail: Muse copy (D) via a port when it exists; this stays the fallback."""
-    shared = crowd["sharedWithYou"]
-    if shared:
-        n, label = shared[0]["count"], shared[0]["interest"]["label"].lower()
-        who = "One person" if n == 1 else f"{n} people"
-        return f"{who} who also like {label}, at {w.venues[plan['venueId']]['name']}."[:160]
-    return f"{plan['title']} at {w.venues[plan['venueId']]['name']}."[:160]
+async def warm_reasons(w: World, viewer: str, plan_ids: list[str]) -> None:
+    """Muse's one-line reason per (plan, viewer), cached on the plan (PRD-2 §3.4). Built only from the coarse
+    overlap the viewer may see (Crowd.sharedWithYou), so Copy never gets more than the card shows."""
+    for pid in plan_ids:
+        p = w.plans.get(pid)
+        if not p or viewer in p.setdefault("reasons", {}):
+            continue
+        shared = privacy.crowd(w, viewer, p, capacity(w, p))["sharedWithYou"]
+        try:
+            # ponytail: labels until bplat's Copy takes interest objects
+            text = await ports.ports.copy.plan_reason(p, [s["interest"]["label"] for s in shared])
+        except Exception:
+            log.warning("plan_reason copy failed for %s; leaving it blank", pid)
+            text = ""
+        p["reasons"][viewer] = text[:160]
 
 
 def card(w: World, viewer: str, plan: dict) -> dict:
@@ -157,7 +167,7 @@ def card(w: World, viewer: str, plan: dict) -> dict:
         "crowd": cr,
         "travel": trav,
         "checks": checks(w, viewer, plan, trav, cr),
-        "reason": plan.get("reasons", {}).get(viewer) or reason(w, viewer, plan, cr),
+        "reason": plan.get("reasons", {}).get(viewer, ""),
         "because": because(w, viewer, plan),
         "origin": {"seed": "muse", "signal": "nudge"}.get(plan["origin"], plan["origin"]),
         "status": plan["status"],
@@ -276,3 +286,8 @@ def ranked_cards(w: World, viewer: str) -> list[dict]:
     """Every visible ranked plan as a PlanCard (the Muse bar filters these)."""
     require_opted_in(w, viewer)
     return [card(w, viewer, w.plans[pid]) for pid in _ordered(w, viewer)]
+
+
+def ordered_ids(w: World, viewer: str, limit: int | None = None) -> list[str]:
+    require_opted_in(w, viewer)
+    return _ordered(w, viewer)[:limit]

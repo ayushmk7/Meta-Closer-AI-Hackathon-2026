@@ -2,7 +2,7 @@
 
 import pytest
 
-from cg_api.domain import approvals, joins, meetups, runner
+from cg_api.domain import approvals, chat, joins, meetups, runner
 from cg_api.domain.world import Fail
 
 
@@ -87,3 +87,51 @@ def test_scripted_run_end_to_end(world):
         approvals.decide(world, a["userId"], a["approvalId"], "approve")
     m = meetups.view(world, "u_maya", mt)
     assert m["status"] == "confirmed" and m["cost"]["myPayment"] == "paid" and m["booking"]["status"] == "booked"
+
+
+def _steps(tag, n):
+    for k in range(n):
+        yield {
+            "type": "step",
+            "step": {
+                "stepId": f"st_{tag}{k}",
+                "kind": "book",
+                "status": "done",
+                "label": f"{tag}{k}",
+                "detail": None,
+                "approvalId": None,
+                "at": "2026-11-12T18:00:00Z",
+            },
+        }
+
+
+def test_one_driver_per_meetup_never_interleaves(world):
+    import asyncio
+
+    mt = formed(world)
+    world.params["demo"]["stepDelayS"] = [0.01, 0.01]
+
+    async def go():
+        runner._enqueue(world, mt, _steps("a", 3))
+        runner._enqueue(world, mt, _steps("b", 3))  # e.g. a second approval decided mid-run
+        while world.run_queues[mt]:
+            await asyncio.sleep(0.01)
+
+    asyncio.run(go())
+    assert [s["label"] for s in world.meetups[mt]["steps"]] == ["a0", "a1", "a2", "b0", "b1", "b2"]
+
+
+def test_intro_and_starters_at_formation(world):
+    world.on_formed = runner.start
+    mt = formed(world)
+    th = world.meetups[mt]["threadId"]
+    for viewer in ("u_maya", "u_rosa"):
+        intro = chat.list_messages(world, viewer, th)[0]
+        assert intro["sender"]["kind"] == "muse"
+        starters = next(a for a in intro["attachments"] if a["kind"] == "starters")["starters"]
+        assert len(starters) == 3 and all(len(s) < 90 for s in starters)
+    # only what everyone shares goes in a message to everyone (Maya/Dan's coastal hikes is not Rosa's)
+    assert "hik" not in intro["text"].lower()
+    assert [i["id"] for i in runner.group_interests(world, ["u_maya", "u_dan", "u_rosa"])] == [
+        "arts_crafts.ceramics.wheel_throwing"
+    ]

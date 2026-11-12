@@ -232,3 +232,38 @@ def test_auto_spend_limit(world):
     world.users["u_dan"]["museSettings"]["spendWithoutAskingCents"] = 5000
     approvals.pay(world, mt, "u_dan", 3500)
     assert world.meetups[mt]["members"]["u_dan"]["payment"] == "paid"
+
+
+def test_join_size_must_be_ints(world):
+    for bad in ({"min": "a", "max": 3}, {"min": 1, "max": 3}, {"min": 4, "max": 3}, "big"):
+        with pytest.raises(Fail) as e:
+            joins.join(world, "u_maya", "pl_walk", bad)
+        assert e.value.status == 400
+
+
+def test_spots_count_the_group_not_the_venue(world):
+    joins.join(world, "u_kai", "pl_walk")  # walk: 3 to 6 people at a 40-person trail
+    assert plans.card(world, "u_maya", world.plans["pl_walk"])["crowd"]["spotsLeft"] == 5
+
+
+def test_left_member_is_read_only_and_gets_nothing_new(world):
+    mt = joins.join(world, "u_maya", "pl_hero")["meetupId"]
+    th = world.meetups[mt]["threadId"]
+    meetups.leave(world, "u_rosa", mt)
+    with pytest.raises(Fail) as e:
+        chat.send(world, "u_rosa", th, "still here", "c9")
+    assert e.value.status == 403
+    chat.send(world, "u_dan", th, "see you all", "c10")
+    assert "see you all" not in [m["text"] for m in chat.list_messages(world, "u_rosa", th)]
+    assert not [
+        d for u, t, d in world.events if u == "u_rosa" and t == "message.created" and d["text"] == "see you all"
+    ]
+
+
+def test_reason_comes_from_copy_and_never_echoes_the_venue(world):
+    import asyncio
+
+    asyncio.run(plans.warm_reasons(world, "u_maya", ["pl_hero", "pl_walk"]))
+    hero = plans.card(world, "u_maya", world.plans["pl_hero"])["reason"]
+    walk = plans.card(world, "u_maya", world.plans["pl_walk"])["reason"]
+    assert hero and "Clay Hour Studio" not in hero and "Lands End" not in walk

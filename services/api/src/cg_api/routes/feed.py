@@ -4,19 +4,21 @@ from fastapi import APIRouter
 
 from cg_api.deps import User
 from cg_api.domain import plans, world
-from cg_api.domain.http import call
+from cg_api.domain.http import call, warm
 
 router = APIRouter()
 
 
 @router.get("/v1/feed", operation_id="getFeed")
 async def get_feed(user: User):
+    await warm(user, lambda w: plans.ordered_ids(w, user, w.params["feed"]["size"]))
     return call("getFeed", plans.feed, user)
 
 
 async def _plan_source(user: str) -> list[dict]:
     if world.current is None:
         return await _example_cards(user)
+    await warm(user, lambda w: plans.ordered_ids(w, user))
     return call("askMuse", plans.ranked_cards, user)
 
 

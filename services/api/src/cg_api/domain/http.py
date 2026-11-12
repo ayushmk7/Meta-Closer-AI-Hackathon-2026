@@ -25,3 +25,14 @@ def call(operation_id: str, fn: Callable[..., Any], *args: Any) -> Any:
 
 def items(fn: Callable[..., list]) -> Callable[..., dict]:
     return lambda w, *a: {"items": fn(w, *a)}
+
+
+async def warm(user: str, plan_ids: Callable[..., list[str]] | list[str]) -> None:
+    """Fill Muse's per-viewer reasons before cards are built (no-op without a world or before opt-in)."""
+    w = world.current
+    if w is None or not w.users.get(user, {}).get("optedIn"):
+        return
+    from cg_api.domain import plans
+
+    ids = plan_ids(w) if callable(plan_ids) else plan_ids
+    await plans.warm_reasons(w, user, ids)

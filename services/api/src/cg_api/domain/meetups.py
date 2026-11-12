@@ -272,6 +272,7 @@ def leave(w: World, viewer: str, meetup_id: str) -> dict:
     me = m["members"][viewer]
     if me["rsvp"] == "going":
         me["rsvp"] = "left"
+        chat.cut_off(w, m["threadId"], viewer)
         first = privacy.person_card(w, viewer)["displayName"].split()[0]
         chat.post(w, m["threadId"], "muse", None, f"{first} can't make it.")
         for uid in going(m):

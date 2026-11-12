@@ -10,7 +10,9 @@ from cg_api.domain.world import Fail, World, iso, not_found
 TO_MUSE = re.compile(r"^\s*muse\b", re.I)
 
 
-def _visible(w: World, viewer: str, msg: dict) -> bool:
+def _visible(w: World, viewer: str, msg: dict, t: dict, idx: int) -> bool:
+    if idx >= t.get("cutoff", {}).get(viewer, idx + 1):  # left the meetup: nothing new after that
+        return False
     if msg.get("onlyFor") and msg["onlyFor"] != viewer:
         return False
     uid = msg["sender"].get("userId")
@@ -31,13 +33,22 @@ def get(w: World, viewer: str, thread_id: str) -> dict:
 
 
 def messages(w: World, viewer: str, t: dict) -> list[dict]:
-    return [m for m in t["messages"] if _visible(w, viewer, m)]
+    return [m for k, m in enumerate(t["messages"]) if _visible(w, viewer, m, t, k)]
+
+
+def cut_off(w: World, thread_id: str, user_id: str) -> None:
+    """After leaving: keep history up to now, deliver nothing newer."""
+    w.threads[thread_id].setdefault("cutoff", {})[user_id] = len(w.threads[thread_id]["messages"])
 
 
 def thread_view(w: World, viewer: str, t: dict) -> dict:
     msgs = messages(w, viewer, t)
     read = t["readUpTo"].get(viewer, 0)
-    unread = sum(1 for m in t["messages"][read:] if _visible(w, viewer, m) and m["sender"].get("userId") != viewer)
+    unread = sum(
+        1
+        for k, m in enumerate(t["messages"])
+        if k >= read and _visible(w, viewer, m, t, k) and m["sender"].get("userId") != viewer
+    )
     return {
         "threadId": t["threadId"],
         "kind": "group",
@@ -93,7 +104,7 @@ def post(
         msg["onlyFor"] = only_for
     t["messages"].append(msg)
     for uid in t["members"]:
-        if _visible(w, uid, msg):
+        if _visible(w, uid, msg, t, len(t["messages"]) - 1):
             w.emit(uid, "message.created", message_view(uid, msg))
             w.emit(uid, "thread.updated", thread_view(w, uid, t))
     return msg
@@ -108,7 +119,15 @@ def send(
     to_muse: bool = False,
 ) -> dict:
     t = get(w, viewer, thread_id)
-    if not text or not text.strip() or len(text) > w.params["messages"]["maxChars"] or not client_id:
+    if viewer in t.get("cutoff", {}):
+        raise Fail(403, "not_allowed", "You left this plan, so this chat is read-only.")
+    if (
+        not isinstance(text, str)
+        or not isinstance(client_id, str)
+        or not text.strip()
+        or len(text) > w.params["messages"]["maxChars"]
+        or not client_id
+    ):
         raise Fail(400, "validation_failed", "That message can't be sent.")
     dup = next(
         (m for m in t["messages"] if m["clientId"] == client_id and m["sender"].get("userId") == viewer),

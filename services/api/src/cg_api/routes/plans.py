@@ -4,7 +4,7 @@ from fastapi import APIRouter
 
 from cg_api.deps import User
 from cg_api.domain import plans
-from cg_api.domain.http import call
+from cg_api.domain.http import call, warm
 
 router = APIRouter()
 
@@ -16,4 +16,5 @@ def _detail(w, user: str, plan_id: str) -> dict:
 
 @router.get("/v1/plans/{planId}", operation_id="getPlan")
 async def get_plan(planId: str, user: User):
+    await warm(user, [planId])
     return call("getPlan", _detail, user, planId)
