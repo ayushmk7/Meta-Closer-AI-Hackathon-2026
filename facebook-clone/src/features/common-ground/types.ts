@@ -1,4 +1,4 @@
-// Hand-written mirror of common-ground-prds/contracts/openapi.yaml (v1). Open enums accept any string.
+// Hand-written mirror of contracts/openapi.yaml (v1). Open enums accept any string.
 type Open<T extends string> = T | (string & {});
 
 export interface LatLng {

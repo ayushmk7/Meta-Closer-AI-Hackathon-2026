@@ -7,7 +7,7 @@ import { mockRequest, resetMock } from '../../src/features/common-ground/mock';
 
 type Json = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any -- walking raw JSON
 const spec: Json = JSON.parse(
-  readFileSync(path.resolve('../common-ground-prds/contracts/openapi.json'), 'utf8'),
+  readFileSync(path.resolve('../contracts/openapi.json'), 'utf8'),
 );
 const ops = Object.values(spec.paths as Json).flatMap((methods: Json) =>
   Object.values(methods),

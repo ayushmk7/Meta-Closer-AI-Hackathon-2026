@@ -1,7 +1,7 @@
 # Common Ground — Frontend-only build plan (mock-first, ponytail)
 
 Repo root: `/Users/ayush/Downloads/My Projects/Hackathons/Meta-Closer-AI-Hackathon-2026`
-App: `<root>/facebook-clone` (all paths below are relative to it unless absolute). Specs: `<root>/common-ground-prds`.
+App: `<root>/facebook-clone` (all paths below are relative to it unless absolute). Specs: `<root>`.
 
 The plan is based on a read of the PRDs, contracts and clone source. Nothing was built or run except two read-only probes (Node version, and whether `tsx` can load `react-native`).
 
@@ -9,8 +9,8 @@ The plan is based on a read of the PRDs, contracts and clone source. Nothing was
 
 ### Mismatches between the PRDs and the repo
 
-1. **Contracts path.** PRDs say `contracts/...` at repo root. They actually live at `<root>/common-ground-prds/contracts/`. From a test in `facebook-clone/tests/common-ground/`, the spec is `path.resolve('../common-ground-prds/contracts/openapi.json')` (tests run with cwd `facebook-clone`, as `tests/state.test.ts` already assumes).
-2. **No backend tooling.** `make mock-api`, `scripts/check_ownership.py` and the Makefile live in `common-ground-prds/`, and its `app` target `cd facebook-clone` is wrong from there. There is no `services/`. Ignore Prism; the in-app mock is the only data source.
+1. **Contracts path.** (Resolved 2026-11-12: specs moved to repo root.) PRDs say `contracts/...` at repo root. They actually live at `<root>/contracts/`. From a test in `facebook-clone/tests/common-ground/`, the spec is `path.resolve('../contracts/openapi.json')` (tests run with cwd `facebook-clone`, as `tests/state.test.ts` already assumes).
+2. **No backend tooling.** (Layout resolved 2026-11-12; `services/` still pending.) `make mock-api`, `scripts/check_ownership.py` and the Makefile lived in `common-ground-prds/`, and its `app` target `cd facebook-clone` is wrong from there. There is no `services/`. Ignore Prism; the in-app mock is the only data source.
 3. **Dependencies are not installed.** `react-native-maps`, `expo-location`, `expo-blur` and `expo-haptics` are absent from `node_modules`.
 4. **`npm test` cannot load React Native.** It runs `tsx --test`, and `tests/features.test.ts` imports `src/extensions/registry.ts`. I confirmed `tsx -e "require('react-native')"` crashes. So everything statically reachable from `feature.ts` (`feature.ts`, `store.ts`, `api.ts`, `mock.ts`, `types.ts`) must not import `react-native`, `expo-*`, `@/ui/native`, `@/platform/scopedStorage` or AsyncStorage at module top level. Use a lazy `require()` inside functions, with the same eslint-disable comment `src/data/media.ts` uses.
 5. **Jest has no `@/` alias.** `jest.config.cjs` has no `moduleNameMapper`. Code inside `src/features/common-ground/` uses relative imports (`../../ui/native`), as every clone feature does. Only `src/app/**` route files use `@/features/...`.
@@ -89,7 +89,7 @@ Source of truth: `src/ui/tokens.ts`, `src/ui/native.tsx`, `docs/VISUAL_SPEC.md`.
 
 **Brief (paste as prompt):**
 
-Work in `/Users/ayush/Downloads/My Projects/Hackathons/Meta-Closer-AI-Hackathon-2026/facebook-clone`. Implement PRD-4 steps 1–8 (`../common-ground-prds/docs/common-ground/PRD-4-facebook-shell.md`, with types copied verbatim from `../common-ground-prds/contracts/CONTRACTS.md` §11). Build no Common Ground UI and create nothing under `src/features/common-ground`, `src/app/common-ground` or `tests/common-ground`. Use the smallest diffs possible and change no existing behaviour.
+Work in `/Users/ayush/Downloads/My Projects/Hackathons/Meta-Closer-AI-Hackathon-2026/facebook-clone`. Implement PRD-4 steps 1–8 (`../docs/common-ground/PRD-4-facebook-shell.md`, with types copied verbatim from `../contracts/CONTRACTS.md` §11). Build no Common Ground UI and create nothing under `src/features/common-ground`, `src/app/common-ground` or `tests/common-ground`. Use the smallest diffs possible and change no existing behaviour.
 
 Files to change:
 
@@ -143,7 +143,7 @@ Done when `npm test`, `npm run test:native`, `npm run typecheck`, `npm run lint`
 
 **Brief (paste as prompt):**
 
-Work in `/Users/ayush/Downloads/My Projects/Hackathons/Meta-Closer-AI-Hackathon-2026/facebook-clone`. Read `../common-ground-prds/docs/common-ground/PRD-1-ios-common-ground.md` §3–6 and §9, `../common-ground-prds/contracts/CONTRACTS.md` §2, §3, §5, §7 and §11, `../common-ground-prds/contracts/openapi.json`, and `AGENT_RULES.md` R7 and R12.
+Work in `/Users/ayush/Downloads/My Projects/Hackathons/Meta-Closer-AI-Hackathon-2026/facebook-clone`. Read `../docs/common-ground/PRD-1-ios-common-ground.md` §3–6 and §9, `../contracts/CONTRACTS.md` §2, §3, §5, §7 and §11, `../contracts/openapi.json`, and `AGENT_RULES.md` R7 and R12.
 
 There is no backend. Build the data foundation and placeholder screens so five UI agents can work in parallel on disjoint files. The exported API below is frozen; implement it exactly.
 
@@ -171,7 +171,7 @@ Hard rules:
 - Scripted world:
   - **Config:** the spec example with `demo: { enabled: true, fakeLocation: { lat: 37.7694, lng: -122.4862 }, counterpart: 'synthetic', relaxCheckin: true }` and `features.realtime: false`, `leaderboard: false`, `unlocks: false`.
   - **Me:** starts `optedIn: false`. `optIn` sets mode and pool. `u_0042` gets `displayName: 'Daniel Okafor'`.
-  - **Onboarding:** `startOnboarding` returns the example. Each `sendOnboardingMessage` appends the user message and a canned Muse reply. After the third user turn, `status` is `review` with about 7 `proposedInterests` across 3 categories; one is `sensitive: true, visibility: 'hidden'` (pick a real sensitive node from `../common-ground-prds/contracts/taxonomy.yaml`). Also return `proposedGroupSize` and `proposedAvailability`. `completeOnboarding` returns Me.
+  - **Onboarding:** `startOnboarding` returns the example. Each `sendOnboardingMessage` appends the user message and a canned Muse reply. After the third user turn, `status` is `review` with about 7 `proposedInterests` across 3 categories; one is `sensitive: true, visibility: 'hidden'` (pick a real sensitive node from `../contracts/taxonomy.yaml`). Also return `proposedGroupSize` and `proposedAvailability`. `completeOnboarding` returns Me.
   - **Density:** `totalLooking: 214`, 6–8 hex bins around SF.
   - **Drop:** 5 cards. `sg_0001` is Daniel Okafor (public, `u_0042`). One card is private (`displayName: null`, `avatarUrl: null`). All have `hiAvailable: true`, at most 3 level-2 interests and a reason.
   - **`decideSuggestion`:** `pass` returns `passed`. `connect` on `sg_0001` returns `connected` with a Connection (`cn_0001`, `th_0001`) and creates the thread with the Muse intro and `starters` attachment from the spec example, plus a tray item with `reason: 'not_met'`. `connect` on any other card returns `connect_sent`.
@@ -329,7 +329,7 @@ export const fromNow: (iso: string) => string;
 - **`src/extensions/registry.ts`** — import `commonGroundFeature` and append it last (PRD-4 step 9).
 - **Node tests in `tests/common-ground/`:**
   - `contract.test.ts`
-    - Walk every `paths.*.*.responses.2xx...example` in `../common-ground-prds/contracts/openapi.json` through `decoders[operationId]`; assert no throw and that known fields are preserved.
+    - Walk every `paths.*.*.responses.2xx...example` in `../contracts/openapi.json` through `decoders[operationId]`; assert no throw and that known fields are preserved.
     - Unknown fields, enum values and attachment kinds do not throw.
     - Every `mockRequest` response for the main GETs has the schema's required keys.
   - `store.test.ts`
@@ -609,4 +609,4 @@ Work in `/Users/ayush/Downloads/My Projects/Hackathons/Meta-Closer-AI-Hackathon-
 - /Users/ayush/Downloads/My Projects/Hackathons/Meta-Closer-AI-Hackathon-2026/facebook-clone/src/ui/Shell.tsx
 - /Users/ayush/Downloads/My Projects/Hackathons/Meta-Closer-AI-Hackathon-2026/facebook-clone/src/extensions/registry.ts (and `types.ts` beside it)
 - /Users/ayush/Downloads/My Projects/Hackathons/Meta-Closer-AI-Hackathon-2026/facebook-clone/src/features/messenger/Screen.tsx (visual reference; also `secondary/Screen.tsx` and `settings/Screen.tsx`)
-- /Users/ayush/Downloads/My Projects/Hackathons/Meta-Closer-AI-Hackathon-2026/common-ground-prds/contracts/openapi.json (with `docs/common-ground/PRD-1-ios-common-ground.md` and `contracts/CONTRACTS.md`)
+- /Users/ayush/Downloads/My Projects/Hackathons/Meta-Closer-AI-Hackathon-2026/contracts/openapi.json (with `docs/common-ground/PRD-1-ios-common-ground.md` and `contracts/CONTRACTS.md`)
