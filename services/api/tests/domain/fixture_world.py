@@ -1,12 +1,14 @@
 """A tiny hand-built world: Maya, four others, two venues, three plans. Fixed clock."""
 
-import pathlib
 from datetime import UTC, datetime
 
 import pytest
-from cg_api.domain.world import World, load_params, load_taxonomy
 
-CONTRACTS = pathlib.Path(__file__).resolve().parents[4] / "contracts"
+from cg_api.domain import stubs
+from cg_api.domain.world import World, load_params, load_taxonomy
+from cg_api.settings import get_settings
+
+CONTRACTS = get_settings().contracts_dir
 NOW = datetime(2026, 11, 12, 18, 0, tzinfo=UTC)
 
 
@@ -43,7 +45,14 @@ SECRET_SIGNAL = "SECRET clinic visits"
 
 @pytest.fixture
 def world():
+    return make_world(stubs)
+
+
+def make_world(match):
     w = World(
+        match=match,
+        on_formed=lambda w, mt: None,  # agent runs are tested on their own (test_runner.py)
+        on_decided=lambda w, a: None,
         params=load_params(CONTRACTS / "params.yaml"),
         taxonomy=load_taxonomy(CONTRACTS / "taxonomy.yaml"),
         demo={"mayaId": "u_maya", "featuredPlanIds": ["pl_walk", "pl_hero"]},

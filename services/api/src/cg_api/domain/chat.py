@@ -19,11 +19,7 @@ def _visible(w: World, viewer: str, msg: dict) -> bool:
 
 def message_view(viewer: str, msg: dict) -> dict:
     out = {k: v for k, v in msg.items() if k != "onlyFor"}
-    out["attachments"] = [
-        a
-        for a in msg["attachments"]
-        if a.get("kind") != "approval" or msg.get("onlyFor") == viewer
-    ]
+    out["attachments"] = [a for a in msg["attachments"] if a.get("kind") != "approval" or msg.get("onlyFor") == viewer]
     return out
 
 
@@ -41,19 +37,12 @@ def messages(w: World, viewer: str, t: dict) -> list[dict]:
 def thread_view(w: World, viewer: str, t: dict) -> dict:
     msgs = messages(w, viewer, t)
     read = t["readUpTo"].get(viewer, 0)
-    unread = sum(
-        1
-        for m in t["messages"][read:]
-        if _visible(w, viewer, m) and m["sender"].get("userId") != viewer
-    )
+    unread = sum(1 for m in t["messages"][read:] if _visible(w, viewer, m) and m["sender"].get("userId") != viewer)
     return {
         "threadId": t["threadId"],
         "kind": "group",
         "title": t["title"],
-        "participants": [
-            privacy.person_card(w, u)
-            for u in privacy.others_visible(w, viewer, t["members"])
-        ],
+        "participants": [privacy.person_card(w, u) for u in privacy.others_visible(w, viewer, t["members"])],
         "lastMessage": message_view(viewer, msgs[-1]) if msgs else None,
         "unreadCount": unread,
         "updatedAt": msgs[-1]["createdAt"]
@@ -66,15 +55,11 @@ def thread_view(w: World, viewer: str, t: dict) -> dict:
 
 
 def list_threads(w: World, viewer: str) -> list[dict]:
-    ts = [
-        thread_view(w, viewer, t) for t in w.threads.values() if viewer in t["members"]
-    ]
+    ts = [thread_view(w, viewer, t) for t in w.threads.values() if viewer in t["members"]]
     return sorted(ts, key=lambda t: t["updatedAt"], reverse=True)
 
 
-def list_messages(
-    w: World, viewer: str, thread_id: str, after: str | None = None
-) -> list[dict]:
+def list_messages(w: World, viewer: str, thread_id: str, after: str | None = None) -> list[dict]:
     msgs = messages(w, viewer, get(w, viewer, thread_id))
     if after:
         idx = next((i for i, m in enumerate(msgs) if m["messageId"] == after), None)
@@ -123,19 +108,10 @@ def send(
     to_muse: bool = False,
 ) -> dict:
     t = get(w, viewer, thread_id)
-    if (
-        not text
-        or not text.strip()
-        or len(text) > w.params["messages"]["maxChars"]
-        or not client_id
-    ):
+    if not text or not text.strip() or len(text) > w.params["messages"]["maxChars"] or not client_id:
         raise Fail(400, "validation_failed", "That message can't be sent.")
     dup = next(
-        (
-            m
-            for m in t["messages"]
-            if m["clientId"] == client_id and m["sender"].get("userId") == viewer
-        ),
+        (m for m in t["messages"] if m["clientId"] == client_id and m["sender"].get("userId") == viewer),
         None,
     )
     if dup:

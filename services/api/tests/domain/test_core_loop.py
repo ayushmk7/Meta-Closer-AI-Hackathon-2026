@@ -2,18 +2,17 @@
 
 import pytest
 import yaml
+
 from cg_api.domain import approvals, chat, joins, meetups, people, plans
 from cg_api.domain.world import Fail
-from fixture_world import CONTRACTS
+from domain.fixture_world import CONTRACTS
 
 jsonschema = pytest.importorskip("jsonschema")
 SPEC = yaml.safe_load((CONTRACTS / "openapi.yaml").read_text())
 
 
 def check(obj, schema_name):
-    jsonschema.Draft202012Validator(
-        {**SPEC, "$ref": f"#/components/schemas/{schema_name}"}
-    ).validate(obj)
+    jsonschema.Draft202012Validator({**SPEC, "$ref": f"#/components/schemas/{schema_name}"}).validate(obj)
     return obj
 
 
@@ -32,8 +31,7 @@ def test_feed_pins_featured_and_validates(world):
     hero = f["plans"][1]
     assert (
         hero["cost"]["label"] == "$35 per person"
-        and {"kind": "cost", "ok": True, "label": "$35 · Muse can book it"}
-        in hero["checks"]
+        and {"kind": "cost", "ok": True, "label": "$35 · Muse can book it"} in hero["checks"]
     )
     assert hero["crowd"]["interestedCount"] == 2 and hero["crowd"]["spotsLeft"] == 3
     assert f["prompts"] == ["Ceramics", "Hiking", "Board games"]
@@ -57,10 +55,7 @@ def test_plan_detail(world):
         }
     ]
     assert "Ask you before paying $35" in d["museWillHandle"]
-    assert (
-        d["directions"]["apple"]
-        == "https://maps.apple.com/?daddr=37.7765,-122.4241&dirflg=r"
-    )
+    assert d["directions"]["apple"] == "https://maps.apple.com/?daddr=37.7765,-122.4241&dirflg=r"
 
 
 def test_join_idempotent_withdraw_and_rejoin(world):
@@ -95,9 +90,7 @@ def test_hero_forms_at_min_and_meetup_validates(world):
     ]
     assert m["calendar"]["desired"] == "hold" and m["travel"]["leaveBy"] < m["startsAt"]
     assert len(people.list_connections(world, "u_maya")) == 2
-    assert (
-        plans.feed(world, "u_maya")["museStatus"] == "Muse is setting up 1 plan for you"
-    )
+    assert plans.feed(world, "u_maya")["museStatus"] == "Muse is setting up 1 plan for you"
     with pytest.raises(Fail) as e:
         joins.join(world, "u_kai", "pl_hero")
     assert e.value.status == 409
@@ -125,9 +118,7 @@ def test_unseated_become_not_filled(world):
 
 def test_steps_append_and_machine(world):
     mt = joins.join(world, "u_maya", "pl_hero")["meetupId"]
-    s = meetups.add_step(
-        world, mt, "group_chat", "Opened your group chat", status="done"
-    )
+    s = meetups.add_step(world, mt, "group_chat", "Opened your group chat", status="done")
     s2 = meetups.add_step(world, mt, "book", "Book 3 wheels")
     meetups.update_step(world, mt, s2["stepId"], status="running")
     with pytest.raises(ValueError):
@@ -136,9 +127,7 @@ def test_steps_append_and_machine(world):
         s["stepId"],
         s2["stepId"],
     ]
-    assert (
-        sum(1 for u, t, _ in world.events if t == "meetup.step" and u == "u_rosa") == 3
-    )
+    assert sum(1 for u, t, _ in world.events if t == "meetup.step" and u == "u_rosa") == 3
 
 
 def test_chat_thread_and_to_muse(world):
@@ -148,10 +137,7 @@ def test_chat_thread_and_to_muse(world):
     th = world.meetups[mt]["threadId"]
     m = check(chat.send(world, "u_dan", th, "Muse, can we do 11?", "c1"), "Message")
     assert m["toMuse"] and seen == [m["messageId"]]
-    assert (
-        chat.send(world, "u_dan", th, "Muse, can we do 11?", "c1")["messageId"]
-        == m["messageId"]
-    )
+    assert chat.send(world, "u_dan", th, "Muse, can we do 11?", "c1")["messageId"] == m["messageId"]
     t = check(chat.thread_view(world, "u_maya", world.threads[th]), "Thread")
     assert t["unreadCount"] == 1 and [p["userId"] for p in t["participants"]] == [
         "u_dan",
@@ -166,13 +152,8 @@ def test_chat_thread_and_to_muse(world):
 def test_leave_tells_group_only_cant_make_it(world):
     mt = joins.join(world, "u_maya", "pl_hero")["meetupId"]
     m = meetups.leave(world, "u_rosa", mt)
-    assert [a["rsvp"] for a in m["attendees"] if a["isMe"]] == ["left"] and m[
-        "calendar"
-    ]["desired"] == "none"
-    assert (
-        chat.list_messages(world, "u_maya", world.meetups[mt]["threadId"])[-1]["text"]
-        == "Rosa can't make it."
-    )
+    assert [a["rsvp"] for a in m["attendees"] if a["isMe"]] == ["left"] and m["calendar"]["desired"] == "none"
+    assert chat.list_messages(world, "u_maya", world.meetups[mt]["threadId"])[-1]["text"] == "Rosa can't make it."
 
 
 def test_approval_machine_and_money_gate(world):
@@ -201,9 +182,7 @@ def test_approval_machine_and_money_gate(world):
     )
     check(approvals.view(a), "Approval")
     assert a["expiresAt"] == "2026-11-13T06:00:00Z"  # now + 12 h, before formsAt
-    assert [x["approvalId"] for x in approvals.pending(world, "u_maya")] == [
-        a["approvalId"]
-    ]
+    assert [x["approvalId"] for x in approvals.pending(world, "u_maya")] == [a["approvalId"]]
     with pytest.raises(Fail) as e:
         approvals.pay(world, mt, "u_maya", 3500)
     assert e.value.status == 403
@@ -219,22 +198,16 @@ def test_approval_machine_and_money_gate(world):
     assert e.value.status == 409
     # the approval attachment is only in the approver's view
     th = world.meetups[mt]["threadId"]
-    assert any(
-        x.get("approvalId")
-        for m in chat.list_messages(world, "u_maya", th)
-        for x in m["attachments"]
-    )
+    assert any(x.get("approvalId") for m in chat.list_messages(world, "u_maya", th) for x in m["attachments"])
     assert not any(
-        x.get("kind") == "approval"
-        for m in chat.list_messages(world, "u_dan", th)
-        for x in m["attachments"]
+        x.get("kind") == "approval" for m in chat.list_messages(world, "u_dan", th) for x in m["attachments"]
     )
 
 
 def test_approval_expiry(world):
     from datetime import timedelta
 
-    from fixture_world import NOW
+    from domain.fixture_world import NOW
 
     mt = joins.join(world, "u_maya", "pl_hero")["meetupId"]
     a = approvals.create(
@@ -251,10 +224,7 @@ def test_approval_expiry(world):
     )
     world.now = lambda: NOW + timedelta(days=1)
     assert approvals.pending(world, "u_rosa") == []
-    assert (
-        a["status"] == "expired"
-        and world.meetups[mt]["members"]["u_rosa"]["payment"] == "declined"
-    )
+    assert a["status"] == "expired" and world.meetups[mt]["members"]["u_rosa"]["payment"] == "declined"
 
 
 def test_auto_spend_limit(world):

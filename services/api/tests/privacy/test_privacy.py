@@ -3,9 +3,10 @@
 import json
 
 import pytest
+from domain.fixture_world import SECRET_SIGNAL
+
 from cg_api.domain import approvals, chat, joins, meetups, people, plans
 from cg_api.domain.world import Fail
-from fixture_world import SECRET_SIGNAL
 
 
 def everything(w, viewer):
@@ -18,11 +19,7 @@ def everything(w, viewer):
         people.list_connections(w, viewer),
         approvals.pending(w, viewer),
     ]
-    out += [
-        plans.detail(w, viewer, p)
-        for p in w.plans.values()
-        if plans.visible(w, viewer, p)
-    ]
+    out += [plans.detail(w, viewer, p) for p in w.plans.values() if plans.visible(w, viewer, p)]
     for t in w.threads.values():
         if viewer in t["members"]:
             out.append(chat.list_messages(w, viewer, t["threadId"]))
@@ -49,14 +46,8 @@ def test_p1_overlap_only(world):
         "Party games",
         "identity_values",
     ):
-        assert leak not in dump, (
-            leak
-        )  # Dan's/Rosa's non-shared or Maya's hidden interests
-    dan = next(
-        a
-        for a in meetups.list_meetups(world, "u_maya")[0]["attendees"]
-        if a["person"]["userId"] == "u_dan"
-    )
+        assert leak not in dump, leak  # Dan's/Rosa's non-shared or Maya's hidden interests
+    dan = next(a for a in meetups.list_meetups(world, "u_maya")[0]["attendees"] if a["person"]["userId"] == "u_dan")
     assert {i["id"] for i in dan["sharedInterests"]} == {
         "arts_crafts.ceramics.wheel_throwing",
         "outdoors.hiking.coastal_hikes",
@@ -74,16 +65,11 @@ def test_p2_no_identities_before_formation(world):
 def test_p2_crowd_empty_with_one_other(world):
     joins.join(world, "u_dan", "pl_walk")
     joins.join(world, "u_maya", "pl_walk")
-    assert (
-        plans.card(world, "u_maya", world.plans["pl_walk"])["crowd"]["sharedWithYou"]
-        == []
-    )
+    assert plans.card(world, "u_maya", world.plans["pl_walk"])["crowd"]["sharedWithYou"] == []
 
 
 def test_p2_crowd_coarse_and_capped(world):
-    shared = plans.card(world, "u_maya", world.plans["pl_hero"])["crowd"][
-        "sharedWithYou"
-    ]
+    shared = plans.card(world, "u_maya", world.plans["pl_hero"])["crowd"]["sharedWithYou"]
     assert shared and all(s["interest"]["level"] == 2 for s in shared)
     assert len(shared) <= world.params["privacy"]["sharedCoarseMax"]
     assert {s["interest"]["id"] for s in shared} <= {
@@ -96,18 +82,13 @@ def test_p2_crowd_coarse_and_capped(world):
 def test_p2_shared_full_capped(world):
     world.params["privacy"]["sharedFullMax"] = 1
     mt = form_hero(world)
-    assert all(
-        len(a["sharedInterests"]) <= 1
-        for a in meetups.view(world, "u_maya", mt)["attendees"]
-    )
+    assert all(len(a["sharedInterests"]) <= 1 for a in meetups.view(world, "u_maya", mt)["attendees"])
 
 
 def test_p3_private_profile(world):
     mt = form_hero(world)
     rosa = next(
-        a["person"]
-        for a in meetups.view(world, "u_maya", mt)["attendees"]
-        if a["person"]["userId"] == "u_rosa"
+        a["person"] for a in meetups.view(world, "u_maya", mt)["attendees"] if a["person"]["userId"] == "u_rosa"
     )
     assert rosa["displayName"] == "Rosa" and rosa["avatarUrl"] is None
     assert "Diaz" not in everything(world, "u_maya")
@@ -130,11 +111,7 @@ def test_p4_sensitive_needs_both_opt_ins(world):
     world.users["u_maya"]["sensitiveOptIn"].add("identity_values")
     assert "buddhism" not in everything(world, "u_maya")  # Dan hasn't opted in
     world.users["u_dan"]["sensitiveOptIn"].add("identity_values")
-    dan = next(
-        a
-        for a in meetups.view(world, "u_maya", mt)["attendees"]
-        if a["person"]["userId"] == "u_dan"
-    )
+    dan = next(a for a in meetups.view(world, "u_maya", mt)["attendees"] if a["person"]["userId"] == "u_dan")
     assert "identity_values.faith.buddhism" in {i["id"] for i in dan["sharedInterests"]}
 
 
@@ -202,29 +179,20 @@ def test_p6_decline_and_leave_invisible(world):
         "u_rosa",
         mt,
     )
-    dump = everything(world, "u_maya") + json.dumps(
-        [d for u, _, d in world.events if u == "u_maya"], default=str
-    )
+    dump = everything(world, "u_maya") + json.dumps([d for u, _, d in world.events if u == "u_maya"], default=str)
     assert "declined" not in dump and a["approvalId"] not in dump
-    texts = [
-        m["text"]
-        for m in chat.list_messages(world, "u_maya", world.meetups[mt]["threadId"])
-    ]
+    texts = [m["text"] for m in chat.list_messages(world, "u_maya", world.meetups[mt]["threadId"])]
     assert texts == ["Rosa can't make it."]
 
 
 def test_p7_owner_only(world):
     j = joins.join(world, "u_maya", "pl_walk")
     form_hero(world)
-    dump = everything(world, "u_dan") + json.dumps(
-        [d for u, _, d in world.events if u != "u_maya"], default=str
-    )
+    dump = everything(world, "u_dan") + json.dumps([d for u, _, d in world.events if u != "u_maya"], default=str)
     for leak in ("Lands End 4 times", "si_0001", "2026-11-19T02:00:00Z", j["joinId"]):
         assert leak not in dump, leak
     for m in meetups.list_meetups(world, "u_maya"):
-        assert "Daniel" not in json.dumps(m["calendar"]) and "Rosa" not in json.dumps(
-            m["calendar"]
-        )
+        assert "Daniel" not in json.dumps(m["calendar"]) and "Rosa" not in json.dumps(m["calendar"])
 
 
 def test_p8_centroid_and_directions(world):

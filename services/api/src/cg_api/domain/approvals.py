@@ -27,12 +27,8 @@ def create(
     m = w.meetups[meetup_id]
     p = w.plans[m["planId"]]
     cap = min(parse(plans.forms_at(w, p)), parse(m["startsAt"]) - timedelta(hours=2))
-    expires = min(
-        w.now() + timedelta(hours=w.params["muse"]["approvalExpiresHours"]), cap
-    )
-    expires = max(
-        expires, w.now() + timedelta(minutes=5)
-    )  # demo forms late; never born expired
+    expires = min(w.now() + timedelta(hours=w.params["muse"]["approvalExpiresHours"]), cap)
+    expires = max(expires, w.now() + timedelta(minutes=5))  # demo forms late; never born expired
     a = {
         "approvalId": w.next_id("ap_"),
         "meetupId": meetup_id,
@@ -48,16 +44,16 @@ def create(
         "fallback": fallback,
         "expiresAt": iso(expires),
     }
+    return add(w, a)
+
+
+def add(w: World, a: dict) -> dict:
+    """Store an approval (from `create` or D's ScriptedRun), tell its owner, post it inline in their thread view."""
     w.approvals[a["approvalId"]] = a
-    w.emit(user_id, "approval.requested", view(a))
+    w.emit(a["userId"], "approval.requested", view(a))
+    thread = w.meetups[a["meetupId"]]["threadId"]
     chat.post(
-        w,
-        m["threadId"],
-        "muse",
-        None,
-        title,
-        [{"kind": "approval", "approvalId": a["approvalId"]}],
-        only_for=user_id,
+        w, thread, "muse", None, a["title"], [{"kind": "approval", "approvalId": a["approvalId"]}], only_for=a["userId"]
     )
     return a
 
@@ -72,9 +68,7 @@ def _settle(w: World, a: dict, status: str) -> None:
     a["status"] = status
     m = w.meetups[a["meetupId"]]
     if a["kind"] == "payment":
-        m["members"][a["userId"]]["payment"] = (
-            "pending_approval" if status == "approved" else "declined"
-        )
+        m["members"][a["userId"]]["payment"] = "pending_approval" if status == "approved" else "declined"
     for s in m["steps"]:
         if s["approvalId"] == a["approvalId"] and s["status"] == "needs_you":
             meetups.update_step(w, m["meetupId"], s["stepId"], status="running")
@@ -84,11 +78,7 @@ def _settle(w: World, a: dict, status: str) -> None:
 
 def pending(w: World, viewer: str) -> list[dict]:
     expire(w)
-    mine = [
-        a
-        for a in w.approvals.values()
-        if a["userId"] == viewer and a["status"] == "pending"
-    ]
+    mine = [a for a in w.approvals.values() if a["userId"] == viewer and a["status"] == "pending"]
     return [view(a) for a in sorted(mine, key=lambda a: a["approvalId"])]
 
 
@@ -107,9 +97,7 @@ def decide(w: World, viewer: str, approval_id: str, decision: str) -> dict:
 
 def can_pay(w: World, meetup_id: str, user_id: str, amount_cents: int) -> bool:
     """P11: an approved payment approval from that user for at least this amount, or within auto-spend."""
-    if amount_cents <= w.users[user_id]["museSettings"].get(
-        "spendWithoutAskingCents", 0
-    ):
+    if amount_cents <= w.users[user_id]["museSettings"].get("spendWithoutAskingCents", 0):
         return True
     return any(
         a["meetupId"] == meetup_id

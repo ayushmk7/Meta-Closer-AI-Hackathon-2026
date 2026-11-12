@@ -32,9 +32,7 @@ def create(w: World, plan: dict, joins: list[dict]) -> str:
         "steps": [],
         "eventLabel": None,
         "booking": {
-            "status": "not_booked"
-            if w.venues[plan["venueId"]]["booking"]["kind"] != "none"
-            else "not_needed",
+            "status": "not_booked" if w.venues[plan["venueId"]]["booking"]["kind"] != "none" else "not_needed",
             "label": "Not booked yet",
             "provider": "Simulated booking",
             "confirmationCode": None,
@@ -104,9 +102,33 @@ def going(m: dict) -> list[str]:
 # --- steps (D's agent calls these; every transition emits meetup.step) ---------------------------
 
 
+try:  # D's filter once cg_api.agent is on the base; same rule inline until then
+    from cg_api.agent import visible_steps
+except ImportError:
+
+    def visible_steps(steps: list[dict], viewer_id: str) -> list[dict]:
+        """Shared steps plus only my own payment step (P6), without the internal field."""
+        return [
+            {k: v for k, v in s.items() if k != "forUserId"} for s in steps if s.get("forUserId") in (None, viewer_id)
+        ]
+
+
 def _emit_step(w: World, m: dict, step: dict) -> None:
     for uid in going(m):
-        w.emit(uid, "meetup.step", {"meetupId": m["meetupId"], "step": dict(step)})
+        for s in visible_steps([step], uid):
+            w.emit(uid, "meetup.step", {"meetupId": m["meetupId"], "step": s})
+
+
+def upsert_step(w: World, meetup_id: str, step: dict) -> None:
+    """Append, or replace by stepId (D's ScriptedRun events). Order is never changed."""
+    m = w.meetups[meetup_id]
+    old = next((s for s in m["steps"] if s["stepId"] == step["stepId"]), None)
+    if old:
+        old.clear()
+        old.update(step)
+    else:
+        m["steps"].append(dict(step))
+    _emit_step(w, m, step)
 
 
 def add_step(
@@ -140,11 +162,7 @@ def update_step(w: World, meetup_id: str, step_id: str, **changes) -> dict:
     if new != step["status"] and new not in STEP_NEXT.get(step["status"], set()):
         raise ValueError(f"step {step_id}: {step['status']} -> {new} not allowed")
     step.update(
-        {
-            k: v
-            for k, v in changes.items()
-            if k in ("status", "label", "detail", "approvalId")
-        },
+        {k: v for k, v in changes.items() if k in ("status", "label", "detail", "approvalId")},
         at=iso(w.now()),
     )
     _emit_step(w, m, step)
@@ -179,17 +197,11 @@ def directive(w: World, viewer: str, m: dict) -> dict:
     return {
         "key": m["meetupId"],
         "desired": desired,
-        "title": (
-            f"Hold: {m['title']} at {v['name']}"
-            if desired == "hold"
-            else f"{m['title']} at {v['name']}"
-        )[:120],
+        "title": (f"Hold: {m['title']} at {v['name']}" if desired == "hold" else f"{m['title']} at {v['name']}")[:120],
         "startsAt": m["startsAt"],
         "endsAt": m["endsAt"],
         "location": f"{v['name']}, {v.get('address', '')}".rstrip(", "),
-        "notes": "Muse is setting this up."
-        if desired == "hold"
-        else "Muse set this up. Details are in Common Ground.",
+        "notes": "Muse is setting this up." if desired == "hold" else "Muse set this up. Details are in Common Ground.",
     }
 
 
@@ -200,9 +212,7 @@ def view(w: World, viewer: str, meetup_id: str) -> dict:
     trav = plans.travel(w, viewer, venue)
     start = parse(m["startsAt"])
     if trav:
-        leave = start - timedelta(
-            minutes=trav["minutes"] + w.params["travel"]["leaveByBufferMin"]
-        )
+        leave = start - timedelta(minutes=trav["minutes"] + w.params["travel"]["leaveByBufferMin"])
         trav = {**trav, "leaveBy": iso(leave), "directions": plans.directions(venue)}
     ck = w.params["checkin"]
     window = None
@@ -235,11 +245,9 @@ def view(w: World, viewer: str, meetup_id: str) -> dict:
             }
             for u in people
         ],
-        "museSteps": [dict(s) for s in m["steps"]],
+        "museSteps": visible_steps(m["steps"], viewer),
         "approvals": [
-            approvals.view(a)
-            for a in w.approvals.values()
-            if a["meetupId"] == meetup_id and a["userId"] == viewer
+            approvals.view(a) for a in w.approvals.values() if a["meetupId"] == meetup_id and a["userId"] == viewer
         ],
         "booking": dict(m["booking"]),
         "cost": {**plans.cost_view(plan["cost"]), "myPayment": me["payment"]},
@@ -252,15 +260,8 @@ def view(w: World, viewer: str, meetup_id: str) -> dict:
 
 
 def list_meetups(w: World, viewer: str) -> list[dict]:
-    ms = [
-        m
-        for m in w.meetups.values()
-        if viewer in m["members"] and m["status"] != "cancelled"
-    ]
-    return [
-        view(w, viewer, m["meetupId"])
-        for m in sorted(ms, key=lambda m: (m["startsAt"], m["meetupId"]))
-    ]
+    ms = [m for m in w.meetups.values() if viewer in m["members"] and m["status"] != "cancelled"]
+    return [view(w, viewer, m["meetupId"]) for m in sorted(ms, key=lambda m: (m["startsAt"], m["meetupId"]))]
 
 
 def leave(w: World, viewer: str, meetup_id: str) -> dict:

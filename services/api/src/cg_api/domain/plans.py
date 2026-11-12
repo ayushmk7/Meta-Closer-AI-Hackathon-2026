@@ -8,9 +8,7 @@ from zoneinfo import ZoneInfo
 from cg_api.domain import privacy
 from cg_api.domain.world import Fail, World, iso, not_found, parse
 
-TZ = ZoneInfo(
-    "America/Los_Angeles"
-)  # ponytail: one city; per-pool tz when a second pool lands
+TZ = ZoneInfo("America/Los_Angeles")  # ponytail: one city; per-pool tz when a second pool lands
 
 
 def money(cents: int) -> str:
@@ -28,15 +26,9 @@ def cost_view(cost: dict) -> dict:
 
 
 def venue_view(w: World, v: dict) -> dict:
-    out = {
-        k: v[k]
-        for k in ("venueId", "name", "neighborhood", "address", "location", "kind")
-        if k in v
-    }
+    out = {k: v[k] for k in ("venueId", "name", "neighborhood", "address", "location", "kind") if k in v}
     photo = v.get("photo")
-    out["photoUrl"] = (
-        f"{w.base_url}/static/venues/{photo.rsplit('/', 1)[-1]}" if photo else None
-    )
+    out["photoUrl"] = f"{w.base_url}/static/venues/{photo.rsplit('/', 1)[-1]}" if photo else None
     return out
 
 
@@ -64,18 +56,13 @@ def travel(w: World, viewer: str, venue: dict) -> dict | None:
     modes = (w.users[viewer].get("travel") or {}).get("modes") or ["transit"]
     dest = (venue["location"]["lat"], venue["location"]["lng"])
     best = min(
-        (
-            (w.match.travel_minutes(w.centroid(viewer), dest, m, w.params), m)
-            for m in modes
-        ),
+        ((w.match.travel_minutes(w.centroid(viewer), dest, m, w.params), m) for m in modes),
         default=None,
     )
     if not best:
         return None
     mins, mode = best
-    label = {"walk": "walk", "bike": "bike", "transit": "transit", "drive": "car"}.get(
-        mode, mode
-    )
+    label = {"walk": "walk", "bike": "bike", "transit": "transit", "drive": "car"}.get(mode, mode)
     return {
         "mode": mode,
         "minutes": mins,
@@ -86,14 +73,10 @@ def travel(w: World, viewer: str, venue: dict) -> dict | None:
 def _fits(w: World, viewer: str, plan: dict) -> bool:
     buf = timedelta(minutes=w.params["calendar"]["minFreeBufferMin"])
     s, e = parse(plan["startsAt"]) - buf, parse(plan["endsAt"]) + buf
-    return not any(
-        parse(b["start"]) < e and parse(b["end"]) > s for b in w.users[viewer]["busy"]
-    )
+    return not any(parse(b["start"]) < e and parse(b["end"]) > s for b in w.users[viewer]["busy"])
 
 
-def checks(
-    w: World, viewer: str, plan: dict, trav: dict | None, crowd: dict
-) -> list[dict]:
+def checks(w: World, viewer: str, plan: dict, trav: dict | None, crowd: dict) -> list[dict]:
     day = parse(plan["startsAt"]).astimezone(TZ).strftime("%A")
     fits = _fits(w, viewer, plan)
     out = [
@@ -104,12 +87,8 @@ def checks(
         }
     ]
     if trav:
-        max_min = (w.users[viewer].get("travel") or {}).get("maxMinutes") or w.params[
-            "travel"
-        ]["defaultMaxMinutes"]
-        out.append(
-            {"kind": "travel", "ok": trav["minutes"] <= max_min, "label": trav["label"]}
-        )
+        max_min = (w.users[viewer].get("travel") or {}).get("maxMinutes") or w.params["travel"]["defaultMaxMinutes"]
+        out.append({"kind": "travel", "ok": trav["minutes"] <= max_min, "label": trav["label"]})
     left = crowd["spotsLeft"]
     out.append(
         {
@@ -137,9 +116,7 @@ def because(w: World, viewer: str, plan: dict) -> list[dict]:
         if s.get("visibility") != "shown" or s.get("sensitive"):
             continue
         hits = s.get("venueId") == plan["venueId"] or any(
-            i == t or i.startswith(t + ".")
-            for i in s.get("interestIds", [])
-            for t in targets
+            i == t or i.startswith(t + ".") for i in s.get("interestIds", []) for t in targets
         )
         if hits:
             out.append(
@@ -158,9 +135,7 @@ def reason(w: World, viewer: str, plan: dict, crowd: dict) -> str:
     if shared:
         n, label = shared[0]["count"], shared[0]["interest"]["label"].lower()
         who = "One person" if n == 1 else f"{n} people"
-        return f"{who} who also like {label}, at {w.venues[plan['venueId']]['name']}."[
-            :160
-        ]
+        return f"{who} who also like {label}, at {w.venues[plan['venueId']]['name']}."[:160]
     return f"{plan['title']} at {w.venues[plan['venueId']]['name']}."[:160]
 
 
@@ -176,9 +151,7 @@ def card(w: World, viewer: str, plan: dict) -> dict:
         "venue": venue_view(w, venue),
         "startsAt": plan["startsAt"],
         "endsAt": plan["endsAt"],
-        "durationMin": int(
-            (parse(plan["endsAt"]) - parse(plan["startsAt"])).total_seconds() // 60
-        ),
+        "durationMin": int((parse(plan["endsAt"]) - parse(plan["startsAt"])).total_seconds() // 60),
         "cost": cost_view(plan["cost"]),
         "size": plan["size"],
         "crowd": cr,
@@ -186,20 +159,14 @@ def card(w: World, viewer: str, plan: dict) -> dict:
         "checks": checks(w, viewer, plan, trav, cr),
         "reason": plan.get("reasons", {}).get(viewer) or reason(w, viewer, plan, cr),
         "because": because(w, viewer, plan),
-        "origin": {"seed": "muse", "signal": "nudge"}.get(
-            plan["origin"], plan["origin"]
-        ),
+        "origin": {"seed": "muse", "signal": "nudge"}.get(plan["origin"], plan["origin"]),
         "status": plan["status"],
-        "myJoin": {"joinId": j["joinId"], "status": j["status"]}
-        if j and j["status"] != "withdrawn"
-        else None,
+        "myJoin": {"joinId": j["joinId"], "status": j["status"]} if j and j["status"] != "withdrawn" else None,
     }
 
 
 def forms_at(w: World, plan: dict) -> str:
-    return iso(
-        parse(plan["startsAt"]) - timedelta(hours=w.params["plans"]["formLeadHours"])
-    )
+    return iso(parse(plan["startsAt"]) - timedelta(hours=w.params["plans"]["formLeadHours"]))
 
 
 def directions(venue: dict) -> dict:
@@ -214,9 +181,7 @@ def detail(w: World, viewer: str, plan: dict) -> dict:
     venue = w.venues[plan["venueId"]]
     booking = venue["booking"]
     amt = money(plan["cost"]["perPersonCents"])
-    handle = [
-        "No booking needed" if booking["kind"] == "none" else "Book it for the group"
-    ]
+    handle = ["No booking needed" if booking["kind"] == "none" else "Book it for the group"]
     if plan["cost"]["kind"] == "prepaid":
         handle.append(f"Ask you before paying {amt}")
     handle += [
@@ -261,14 +226,9 @@ def muse_status(w: World, viewer: str) -> str | None:
     setting = sum(
         1
         for m in w.meetups.values()
-        if m["status"] == "setting_up"
-        and m["members"].get(viewer, {}).get("rsvp") == "going"
+        if m["status"] == "setting_up" and m["members"].get(viewer, {}).get("rsvp") == "going"
     )
-    asks = sum(
-        1
-        for a in w.approvals.values()
-        if a["userId"] == viewer and a["status"] == "pending"
-    )
+    asks = sum(1 for a in w.approvals.values() if a["userId"] == viewer and a["status"] == "pending")
     if asks:
         return f"Muse needs your OK on {asks} thing{'s' if asks != 1 else ''}"
     if setting:
@@ -291,21 +251,11 @@ def prompts(w: World, viewer: str) -> list[str]:
 def feed(w: World, viewer: str) -> dict:
     require_opted_in(w, viewer)
     size = w.params["feed"]["size"]
-    ranked = [
-        pid
-        for pid in w.match.rank(w, viewer)
-        if pid in w.plans and visible(w, viewer, w.plans[pid])
-    ]
+    ranked = [pid for pid in w.match.rank(w, viewer) if pid in w.plans and visible(w, viewer, w.plans[pid])]
     lead: list[str] = []
-    if (
-        w.demo_mode
-        and w.params["feed"]["demoPinFeatured"]
-        and viewer == w.demo.get("mayaId")
-    ):
+    if w.demo_mode and w.params["feed"]["demoPinFeatured"] and viewer == w.demo.get("mayaId"):
         lead = [
-            pid
-            for pid in w.demo.get("featuredPlanIds", [])
-            if pid in w.plans and w.plans[pid]["status"] != "cancelled"
+            pid for pid in w.demo.get("featuredPlanIds", []) if pid in w.plans and w.plans[pid]["status"] != "cancelled"
         ]
     ids = list(dict.fromkeys(lead + ranked))[:size]
     now = w.now()
@@ -316,3 +266,10 @@ def feed(w: World, viewer: str) -> dict:
         "prompts": prompts(w, viewer),
         "plans": [card(w, viewer, w.plans[pid]) for pid in ids],
     }
+
+
+def ranked_cards(w: World, viewer: str) -> list[dict]:
+    """Every visible ranked plan as a PlanCard (the Muse bar filters these)."""
+    require_opted_in(w, viewer)
+    ids = [pid for pid in w.match.rank(w, viewer) if pid in w.plans and visible(w, viewer, w.plans[pid])]
+    return [card(w, viewer, w.plans[pid]) for pid in ids]

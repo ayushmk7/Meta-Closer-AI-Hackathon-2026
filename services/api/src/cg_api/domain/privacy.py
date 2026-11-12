@@ -19,12 +19,8 @@ def person_card(w: World, user_id: str) -> dict:
     return {
         "userId": user_id,
         "displayName": first if private else u["displayName"],
-        "initials": first[:1].upper()
-        if private
-        else u.get("initials") or first[:1].upper(),
-        "avatarUrl": None
-        if private or not avatar
-        else f"{w.base_url}/static/avatars/{avatar.rsplit('/', 1)[-1]}",
+        "initials": first[:1].upper() if private else u.get("initials") or first[:1].upper(),
+        "avatarUrl": None if private or not avatar else f"{w.base_url}/static/avatars/{avatar.rsplit('/', 1)[-1]}",
         "profileVisibility": "private" if private else "public",
     }
 
@@ -55,14 +51,8 @@ def crowd(w: World, viewer: str, plan: dict, capacity: int) -> dict:
     shared = []
     if len(others) >= w.params["privacy"]["crowdMinCount"]:
         for iid, count in w.match.plan_overlap(w, viewer, plan, others, 2, cap):
-            real = sum(
-                1 for o in others if _allowed(w, viewer, o, iid)
-            )  # recount; never trust a bigger number
-            if (
-                w.taxonomy.get(iid, {}).get("level") == 2
-                and iid in _usable(w, viewer)
-                and real
-            ):
+            real = sum(1 for o in others if _allowed(w, viewer, o, iid))  # recount; never trust a bigger number
+            if w.taxonomy.get(iid, {}).get("level") == 2 and iid in _usable(w, viewer) and real:
                 shared.append({"interest": w.ref(iid), "count": min(count, real)})
     return {
         "interestedCount": len(js),

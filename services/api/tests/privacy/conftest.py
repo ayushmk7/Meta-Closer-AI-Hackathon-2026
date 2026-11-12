@@ -1,7 +1,10 @@
-import pathlib
-import sys
+import pytest
+from domain.fixture_world import make_world
 
-HERE = pathlib.Path(__file__).parent
-sys.path[:0] = [str(HERE.parents[1] / "src"), str(HERE.parent / "domain")]
+from cg_api.domain import matching, stubs
 
-from fixture_world import world  # noqa: E402,F401  (pytest fixture)
+
+@pytest.fixture(params=[stubs, matching], ids=["stubs", "cg_matching"])
+def world(request):
+    """Privacy must hold whichever matching implementation answers (matching falls back to stubs if absent)."""
+    return make_world(request.param)

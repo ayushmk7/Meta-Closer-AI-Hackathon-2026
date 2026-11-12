@@ -49,15 +49,8 @@ def view(w: World, j: dict, with_plan: bool = False) -> dict:
 
 def list_joins(w: World, viewer: str) -> list[dict]:
     plans.require_opted_in(w, viewer)
-    js = [
-        j
-        for j in w.joins.values()
-        if j["userId"] == viewer and j["status"] != "withdrawn"
-    ]
-    return [
-        view(w, j, with_plan=True)
-        for j in sorted(js, key=lambda j: (j["createdAt"], j["joinId"]), reverse=True)
-    ]
+    js = [j for j in w.joins.values() if j["userId"] == viewer and j["status"] != "withdrawn"]
+    return [view(w, j, with_plan=True) for j in sorted(js, key=lambda j: (j["createdAt"], j["joinId"]), reverse=True)]
 
 
 def join(w: World, viewer: str, plan_id: str, size: dict | None = None) -> dict:
@@ -70,11 +63,7 @@ def join(w: World, viewer: str, plan_id: str, size: dict | None = None) -> dict:
         raise Fail(409, "conflict", "This plan isn't taking people anymore.")
     if size and (size.get("min", 2) > size.get("max", 99) or size.get("min", 2) < 2):
         raise Fail(400, "validation_failed", "Group size doesn't look right.")
-    open_n = sum(
-        1
-        for x in w.joins.values()
-        if x["userId"] == viewer and x["status"] == "interested"
-    )
+    open_n = sum(1 for x in w.joins.values() if x["userId"] == viewer and x["status"] == "interested")
     if open_n >= w.params["plans"]["openJoinsMax"]:
         raise Fail(
             429,
@@ -82,9 +71,7 @@ def join(w: World, viewer: str, plan_id: str, size: dict | None = None) -> dict:
             "You're in a lot of plans already. Wait for one to fill first.",
         )
     if j:  # re-join after withdrawing: same join, fresh place in the queue
-        j.update(
-            status="interested", createdAt=iso(w.now()), size=size, alternatives=[]
-        )
+        j.update(status="interested", createdAt=iso(w.now()), size=size, alternatives=[])
     else:
         j = w._raw_join(p, viewer, created=iso(w.now()), size=size)
     n = len(w.active_joins(plan_id))
@@ -94,9 +81,7 @@ def join(w: World, viewer: str, plan_id: str, size: dict | None = None) -> dict:
     for other in w.active_joins(plan_id):
         if other["userId"] != viewer:
             w.emit(other["userId"], "feed.updated")
-    if p["status"] == "full" or (
-        w.demo_mode and w.params["plans"]["demoFormAtMin"] and n >= p["size"]["min"]
-    ):
+    if p["status"] == "full" or (w.demo_mode and w.params["plans"]["demoFormAtMin"] and n >= p["size"]["min"]):
         form(w, plan_id)
     return view(w, j)
 
@@ -137,9 +122,7 @@ def form(w: World, plan_id: str) -> list[str]:
     for uid in unseated:
         j = by_user[uid]
         j["status"] = "not_filled"
-        j["alternatives"] = [
-            a["planId"] for a in plans.detail(w, uid, p)["alternatives"]
-        ]
+        j["alternatives"] = [a["planId"] for a in plans.detail(w, uid, p)["alternatives"]]
         w.emit(uid, "join.updated", view(w, j))
         w.emit(uid, "calendar.changed")
     for mt in created:

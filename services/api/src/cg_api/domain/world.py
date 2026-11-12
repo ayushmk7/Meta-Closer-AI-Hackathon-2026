@@ -7,6 +7,7 @@ sibling modules, never stored.
 
 from __future__ import annotations
 
+import asyncio
 import itertools
 from collections import defaultdict
 from dataclasses import dataclass, field
@@ -15,7 +16,23 @@ from pathlib import Path
 from typing import Any, Callable
 
 import yaml
-from cg_api.domain import stubs
+
+from cg_api import ports
+from cg_api.domain import matching
+
+
+def _spawn(coro) -> None:
+    """Run an agent coroutine on the live loop; outside one (pure tests) drop it."""
+    try:
+        asyncio.get_running_loop().create_task(coro)
+    except RuntimeError:
+        coro.close()
+
+
+def _runner():
+    from cg_api.domain import runner  # cycle: runner -> world
+
+    return runner
 
 
 class Fail(Exception):
@@ -51,9 +68,7 @@ def load_taxonomy(path: Path) -> dict[str, dict]:
     """id -> {id, label, path, level, sensitive} for every node."""
     out: dict[str, dict] = {}
 
-    def walk(
-        nodes: dict, prefix: list[str], labels: list[str], sensitive: bool
-    ) -> None:
+    def walk(nodes: dict, prefix: list[str], labels: list[str], sensitive: bool) -> None:
         for slug, node in nodes.items():
             node = node if isinstance(node, dict) else {"label": node}
             ids, lbls = [*prefix, slug], [*labels, node["label"]]
@@ -83,20 +98,14 @@ class World:
     demo_mode: bool = True
     base_url: str = "http://localhost:8000"
     now: Callable[[], datetime] = lambda: datetime.now(UTC)
-    # ponytail: matching/AI calls go through this namespace; swap for cg_api.ports adapters once A lands.
-    match: Any = stubs
-    on_formed: Callable[["World", str], None] = lambda w, mt: (
-        None
-    )  # D: start the Muse agent run
-    on_to_muse: Callable[["World", dict], None] = lambda w, msg: (
-        None
-    )  # D: handle a toMuse message
-    on_decided: Callable[["World", dict], None] = lambda w, ap: (
-        None
-    )  # D: continue/fallback after a decision
-    on_left: Callable[["World", str, str], None] = lambda w, mt, uid: (
-        None
-    )  # D: backfill, continue or cancel
+    match: Any = matching  # cg_matching via ports, `stubs` when it isn't installed
+    # Hooks into D's agent (domain.runner drives ScriptedRun); tests swap in plain callables.
+    on_formed: Callable[["World", str], None] = lambda w, mt: _runner().start(w, mt)
+    on_decided: Callable[["World", dict], None] = lambda w, a: _runner().decided(w, a)
+    on_to_muse: Callable[["World", dict], None] = lambda w, m: _spawn(
+        ports.ports.agent.on_message(m["threadId"], m["messageId"])
+    )
+    on_left: Callable[["World", str, str], None] = lambda w, mt, uid: None  # M2: backfill, continue or cancel
 
     users: dict[str, dict] = field(default_factory=dict)
     venues: dict[str, dict] = field(default_factory=dict)
@@ -108,12 +117,9 @@ class World:
     connections: dict[frozenset, dict] = field(default_factory=dict)
     blocks: set[frozenset] = field(default_factory=set)
     reports: list[dict] = field(default_factory=list)
-    events: list[tuple[str, str, dict]] = field(
-        default_factory=list
-    )  # (userId, type, data) for the realtime hub
-    _seq: dict[str, itertools.count] = field(
-        default_factory=lambda: defaultdict(lambda: itertools.count(1))
-    )
+    runs: dict[str, Any] = field(default_factory=dict)  # meetupId -> D's ScriptedRun
+    events: list[tuple[str, str, dict]] = field(default_factory=list)  # (userId, type, data) for the realtime hub
+    _seq: dict[str, itertools.count] = field(default_factory=lambda: defaultdict(lambda: itertools.count(1)))
 
     def next_id(self, prefix: str) -> str:
         return f"{prefix}{next(self._seq[prefix]):04d}"
@@ -143,9 +149,7 @@ class World:
         """P8: travel uses the neighborhood centroid, never the home point."""
         hood = self.users[user_id].get("neighborhood")
         pts = [
-            u["homeLocation"]
-            for u in self.users.values()
-            if u.get("neighborhood") == hood and u.get("homeLocation")
+            u["homeLocation"] for u in self.users.values() if u.get("neighborhood") == hood and u.get("homeLocation")
         ]
         if not pts:
             loc = self.users[user_id].get("homeLocation") or {
@@ -153,9 +157,7 @@ class World:
                 "lng": -122.4194,
             }
             return loc["lat"], loc["lng"]
-        return sum(p["lat"] for p in pts) / len(pts), sum(p["lng"] for p in pts) / len(
-            pts
-        )
+        return sum(p["lat"] for p in pts) / len(pts), sum(p["lng"] for p in pts) / len(pts)
 
     # --- loading -------------------------------------------------------------------------------
 
@@ -167,9 +169,7 @@ class World:
             "busy": [],  # owner-only [{start, end}]
             "optedIn": False,
             "museSettings": {
-                "spendWithoutAskingCents": self.params["muse"][
-                    "spendWithoutAskingCentsDefault"
-                ],
+                "spendWithoutAskingCents": self.params["muse"]["spendWithoutAskingCentsDefault"],
                 "calendarHolds": self.params["muse"]["calendarHoldsDefault"],
             },
             **persona,
@@ -186,9 +186,7 @@ class World:
                 self._raw_join(p, uid, created=rec.get("createdAt") or iso(self.now()))
         return p
 
-    def _raw_join(
-        self, plan: dict, user_id: str, created: str, size: dict | None = None
-    ) -> dict:
+    def _raw_join(self, plan: dict, user_id: str, created: str, size: dict | None = None) -> dict:
         j = {
             "joinId": self.next_id("jn_"),
             "planId": plan["planId"],
@@ -204,19 +202,15 @@ class World:
 
     def active_joins(self, plan_id: str) -> list[dict]:
         """Joins that are in (interested or matched), earliest first."""
-        js = [
-            j
-            for j in self.joins.values()
-            if j["planId"] == plan_id and j["status"] in ("interested", "matched")
-        ]
+        js = [j for j in self.joins.values() if j["planId"] == plan_id and j["status"] in ("interested", "matched")]
         return sorted(js, key=lambda j: (j["createdAt"], j["joinId"]))
 
     def join_of(self, user_id: str, plan_id: str) -> dict | None:
         return next(
-            (
-                j
-                for j in self.joins.values()
-                if j["userId"] == user_id and j["planId"] == plan_id
-            ),
+            (j for j in self.joins.values() if j["userId"] == user_id and j["planId"] == plan_id),
             None,
         )
+
+
+# The single live instance. A's store sets it on seed load / reset; routes read it via `domain.http`.
+current: World | None = None
