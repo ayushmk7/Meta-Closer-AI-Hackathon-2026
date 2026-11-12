@@ -359,6 +359,12 @@ svg {
   margin: 0 auto;
   padding: 28px 24px 48px;
 }
+.narrow-page.cg-page {
+  display: flex;
+  flex-direction: column;
+  height: calc(100dvh - var(--header));
+  padding-bottom: 24px;
+}
 .empty-state {
   text-align: center;
   padding: 52px 24px;
@@ -2879,6 +2885,10 @@ svg {
   }
   .narrow-page > .page-title {
     padding: 0 12px;
+  }
+  .narrow-page.cg-page {
+    height: calc(100dvh - var(--header) - 58px - env(safe-area-inset-bottom));
+    padding: 0;
   }
   .narrow-page .page-title p {
     font-size: 13px;

@@ -1,13 +1,14 @@
-import React, { type ReactNode } from 'react';
+import React, { type ComponentProps, type ReactNode } from 'react';
 import { Image, Pressable, View, StyleSheet } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { router, usePathname } from 'expo-router';
+import { router, usePathname, type Href } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useDemo } from '../core/store';
 import { imageSource } from '../data/media';
+import { tabs as contributedTabs } from '../extensions/registry';
 import { Avatar, Busy, go, Icon, IconButton, Label, useColors } from './native';
 
-const tabs = [
+const coreTabs = [
   { href: '/', name: 'Home', icon: 'home-outline', active: 'home' },
   { href: '/friends', name: 'Friends', icon: 'people-outline', active: 'people' },
   { href: '/marketplace', name: 'Marketplace', icon: 'storefront-outline', active: 'storefront' },
@@ -19,6 +20,25 @@ const tabs = [
   },
   { href: '/menu', name: 'Menu', icon: 'menu-outline', active: 'menu' },
 ] as const;
+type ShellTab = {
+  href: string;
+  name: string;
+  icon: string;
+  active: string;
+  useBadge?: () => number;
+};
+const tabs = coreTabs.reduce<ShellTab[]>((list, tab) => {
+  list.push(tab);
+  for (const extra of contributedTabs.filter((item) => item.after === tab.href))
+    list.push({
+      href: extra.href,
+      name: extra.label,
+      icon: extra.icon,
+      active: extra.activeIcon,
+      useBadge: extra.useBadge,
+    });
+  return list;
+}, []);
 
 export default function Shell({ children }: { children: ReactNode }) {
   const demo = useDemo();
@@ -26,6 +46,8 @@ export default function Shell({ children }: { children: ReactNode }) {
   const path = usePathname();
   const insets = useSafeAreaInsets();
   const topLevel = tabs.some((tab) => tab.href === path);
+  // Badge hooks run every render, in registry order, before any early return.
+  const badges = tabs.map((tab) => tab.useBadge?.() ?? 0);
   if (!demo.ready) return <Busy />;
   const person = demo.person(demo.seed.viewerId);
   const titles: Record<string, string> = {
@@ -44,7 +66,10 @@ export default function Shell({ children }: { children: ReactNode }) {
     events: 'Events',
     privacy: 'Privacy Checkup',
   };
-  const title = titles[path.split('/')[1]] ?? 'Facebook';
+  const title =
+    contributedTabs.find((tab) => path.startsWith(`${tab.href}/`))?.label ??
+    titles[path.split('/')[1]] ??
+    'Facebook';
   return (
     <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: c.card }}>
       <StatusBar style={demo.state.settings.theme === 'dark' ? 'light' : 'dark'} />
@@ -140,12 +165,13 @@ export default function Shell({ children }: { children: ReactNode }) {
             paddingTop: 4,
           }}
         >
-          {tabs.map((tab) => {
+          {tabs.map((tab, index) => {
             const active = path === tab.href;
+            const badge = tab.href === '/notifications' ? demo.unreadCount : badges[index];
             return (
               <Pressable
                 key={tab.href}
-                onPress={() => router.navigate(tab.href)}
+                onPress={() => router.navigate(tab.href as Href)}
                 accessibilityRole="tab"
                 accessibilityLabel={tab.name}
                 accessibilityState={{ selected: active }}
@@ -159,11 +185,11 @@ export default function Shell({ children }: { children: ReactNode }) {
               >
                 <View>
                   <Icon
-                    name={active ? tab.active : tab.icon}
+                    name={(active ? tab.active : tab.icon) as ComponentProps<typeof Icon>['name']}
                     size={26}
                     color={active ? c.blue : c.secondary}
                   />
-                  {tab.href === '/notifications' && demo.unreadCount > 0 && (
+                  {badge > 0 && (
                     <View
                       style={{
                         position: 'absolute',
@@ -177,12 +203,13 @@ export default function Shell({ children }: { children: ReactNode }) {
                       <Label
                         style={{ color: '#fff', fontSize: 10, lineHeight: 16, fontWeight: '700' }}
                       >
-                        {demo.unreadCount}
+                        {badge}
                       </Label>
                     </View>
                   )}
                 </View>
                 <Label
+                  numberOfLines={1}
                   style={{
                     color: active ? c.blue : c.secondary,
                     fontSize: 9,

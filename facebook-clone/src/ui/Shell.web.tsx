@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { router, usePathname, type Href } from 'expo-router';
 import { useDemo } from '../core/store';
+import { tabs } from '../extensions/registry';
 import { imageUri } from '../data/media';
 import { Avatar, Icon, IconButton, Nav } from './Controls.web';
 import { NotificationList } from '../features/notifications/index.web';
@@ -14,7 +15,10 @@ const primary = [
   ['/video', 'Video', 'video'],
   ['/marketplace', 'Marketplace', 'marketplace'],
   ['/groups', 'Groups', 'groups'],
-];
+].flatMap((tab) => [
+  tab,
+  ...tabs.filter((t) => t.after === tab[0]).map((t) => [t.href, t.label, t.activeIcon]),
+]);
 const rail = [
   ['/friends', 'Friends', 'friends'],
   ['/memories', 'Memories', 'memories'],

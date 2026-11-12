@@ -2,10 +2,12 @@ import React, { useEffect, useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { useDemo } from '../../core/store';
+import { inboxSources } from '../../extensions/registry';
 import {
   Avatar,
   Card,
   Empty,
+  ExternalRowItem,
   go,
   IconButton,
   Input,
@@ -24,6 +26,8 @@ export default function MessengerScreen() {
   const [text, setText] = useState('');
   const [query, setQuery] = useState('');
   const scroll = useRef<ScrollView>(null);
+  // Called unconditionally in registry order; the source count never changes at runtime.
+  const sources = inboxSources.map((source) => ({ ...source, rows: source.useRows() }));
   const listing = demo.seed.listings.find((item) => item.id === listingId);
   useEffect(() => {
     setText(listing ? `Hi, is ${listing.title.toLowerCase()} still available?` : '');
@@ -49,6 +53,18 @@ export default function MessengerScreen() {
               onChangeText={setQuery}
             />
           </View>
+          {sources
+            .filter((source) => source.rows.length > 0)
+            .map((source) => (
+              <View key={source.id}>
+                <Label style={{ fontSize: 17, fontWeight: '700', padding: 16 }}>
+                  {source.label}
+                </Label>
+                {source.rows.map((row) => (
+                  <ExternalRowItem key={row.id} row={row} />
+                ))}
+              </View>
+            ))}
           {contactIds
             .filter((personId) =>
               demo.person(personId).name.toLowerCase().includes(query.toLowerCase().trim()),

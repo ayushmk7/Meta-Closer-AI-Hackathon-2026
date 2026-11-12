@@ -17,6 +17,7 @@ const aliases: Record<string, string> = {
   images: 'photo',
   happy: 'feeling',
   open: 'comment',
+  map: 'location',
 };
 const paths: Record<string, string> = {
   home: 'M3 10.5 12 3l9 7.5V21h-6v-7H9v7H3Z',

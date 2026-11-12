@@ -23,6 +23,7 @@ import { router, type Href } from 'expo-router';
 import { useDemo } from '../core/store';
 import { imageSource } from '../data/media';
 import { themes } from './tokens';
+import type { ExternalRow } from '../extensions/types';
 
 export const go = (href: string) => router.push(href as Href);
 export function useKeyboardOffset() {
@@ -86,6 +87,52 @@ export function Avatar({
         />
       )}
     </View>
+  );
+}
+// ponytail: one row layout shared by Messenger inbox sources and Events event sources.
+export function ExternalRowItem({ row }: { row: ExternalRow }) {
+  const c = useColors();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={row.title}
+      onPress={() => go(row.href)}
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 16,
+        paddingVertical: 13,
+        gap: 12,
+      }}
+    >
+      {row.imageUri ? (
+        <Image
+          source={{ uri: row.imageUri }}
+          style={{ width: 54, height: 54, borderRadius: 27, backgroundColor: c.input }}
+        />
+      ) : (
+        <View
+          style={{
+            width: 54,
+            height: 54,
+            borderRadius: 27,
+            backgroundColor: c.input,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Label style={{ fontWeight: '700', fontSize: 17 }}>{row.initials}</Label>
+        </View>
+      )}
+      <View style={{ flex: 1 }}>
+        <Label style={{ fontWeight: '700', fontSize: 16 }}>{row.title}</Label>
+        <Muted numberOfLines={1}>{row.subtitle}</Muted>
+      </View>
+      {!!row.time && <Muted>{row.time}</Muted>}
+      {row.unread && (
+        <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: c.blue }} />
+      )}
+    </Pressable>
   );
 }
 export function Button({

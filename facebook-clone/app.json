@@ -14,7 +14,17 @@
       "bundler": "metro",
       "output": "single"
     },
-    "plugins": ["expo-router", "expo-asset", "expo-font"],
+    "plugins": [
+      "expo-router",
+      "expo-asset",
+      "expo-font",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Common Ground uses your location to show friends who share theirs with you."
+        }
+      ]
+    ],
     "experiments": {
       "typedRoutes": true
     }

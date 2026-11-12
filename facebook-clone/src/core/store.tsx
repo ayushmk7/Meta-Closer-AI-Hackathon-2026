@@ -10,6 +10,7 @@ import React, {
   type ReactNode,
 } from 'react';
 import { seed } from '../data/seed';
+import { resetHooks } from '../extensions/registry';
 import { storage } from '../platform/storage';
 import { clearOwnedPhotos, reconcileOwnedPhotos } from '../platform/photo';
 import { createPersistence } from './persistence';
@@ -223,6 +224,15 @@ export function DemoProvider({ children }: { children: ReactNode }) {
               setError(
                 'Demo state was reset, but some demo photo files could not be removed. Try resetting again to clean them up.',
               );
+            }
+            for (const hook of resetHooks) {
+              try {
+                await hook.run();
+              } catch {
+                setError(
+                  `Demo was reset, but ${hook.id} data could not be cleared. Try resetting again.`,
+                );
+              }
             }
           } catch {
             const failure = new Error(

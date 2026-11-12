@@ -40,4 +40,41 @@ export interface FeatureDefinition {
   homeSections?: HomeSection[];
   composerActions?: ComposerAction[];
   postActions?: PostAction[];
+  tabs?: TabItem[]; // at most one per feature; native bottom bar only
+  inboxSources?: InboxSource[]; // rows merged into the Messenger chat list (native)
+  eventSources?: EventSource[]; // rows merged into the Events screen (native)
+  resetHooks?: ResetHook[]; // run by Settings > Reset demo, after the core reset
+}
+export interface TabItem {
+  id: string;
+  label: string; // short: one word
+  href: string; // e.g. '/common-ground'
+  icon: string; // Ionicons name, inactive
+  activeIcon: string; // Ionicons name, active
+  after: '/' | '/friends' | '/marketplace' | '/notifications'; // position in the bar
+  useBadge?: () => number; // hook; 0 hides the badge
+}
+export interface ExternalRow {
+  id: string;
+  title: string;
+  subtitle: string;
+  time?: string; // already formatted for display
+  imageUri?: string | null; // remote or local URI; null shows initials
+  initials?: string;
+  unread?: boolean;
+  href: string; // in-app route
+}
+export interface InboxSource {
+  id: string;
+  label: string;
+  useRows(): ExternalRow[];
+}
+export interface EventSource {
+  id: string;
+  label: string;
+  useRows(): ExternalRow[];
+}
+export interface ResetHook {
+  id: string;
+  run(): Promise<void>;
 }

@@ -3,11 +3,13 @@ import { Image, Pressable, View } from 'react-native';
 import { useLocalSearchParams, usePathname } from 'expo-router';
 import { useDemo } from '../../core/store';
 import { imageSource } from '../../data/media';
+import { eventSources } from '../../extensions/registry';
 import {
   Button,
   Card,
   Chips,
   Empty,
+  ExternalRowItem,
   go,
   Icon,
   Label,
@@ -22,6 +24,8 @@ export default function SecondaryScreen() {
   const c = useColors();
   const path = usePathname().split('/')[1];
   const { event: eventId } = useLocalSearchParams<{ event?: string }>();
+  // Called unconditionally in registry order; the source count never changes at runtime.
+  const sources = eventSources.map((source) => ({ ...source, rows: source.useRows() }));
   const [groupId, setGroupId] = useState(demo.seed.groups[0]?.id ?? '');
   const titles: Record<string, string> = {
     video: 'Video',
@@ -152,6 +156,18 @@ export default function SecondaryScreen() {
           </View>
         </Card>
       )}
+      {path === 'events' &&
+        !eventId &&
+        sources
+          .filter((source) => source.rows.length > 0)
+          .map((source) => (
+            <Card key={source.id}>
+              <Label style={{ fontSize: 17, fontWeight: '700', padding: 16 }}>{source.label}</Label>
+              {source.rows.map((row) => (
+                <ExternalRowItem key={row.id} row={row} />
+              ))}
+            </Card>
+          ))}
       {path === 'events' &&
         demo.seed.events
           .filter((event) => !eventId || event.id === eventId)
