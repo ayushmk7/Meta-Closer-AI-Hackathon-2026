@@ -9,17 +9,36 @@ from __future__ import annotations
 
 import asyncio
 import contextvars
+import socket
 from collections import defaultdict
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 import yaml
 
 from cg_api.domain import matching
 
 request_base: contextvars.ContextVar[str | None] = contextvars.ContextVar("cg_request_base", default=None)
+
+
+def public_base() -> str:
+    """One base for /static URLs, fixed at startup: CG_API_HOST when it names an address, else this machine's LAN IP.
+    Never taken from a request's Host header, which any client can set (P10: other phones would load from it)."""
+    from cg_api.settings import get_settings
+
+    s = get_settings()
+    host = s.api_host
+    if host in ("", "0.0.0.0", "::"):
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sk:
+                sk.connect(("10.255.255.255", 1))  # UDP connect sends nothing; it only picks the outbound interface
+                host = sk.getsockname()[0]
+        except OSError:
+            host = "127.0.0.1"
+    return f"http://{host}:{s.api_port}"
 
 
 def _spawn(coro) -> None:
@@ -103,15 +122,15 @@ class World:
     taxonomy: dict[str, dict]
     demo: dict = field(default_factory=dict)  # demo.json
     demo_mode: bool = True
-    base_url: str = "http://localhost:8000"
+    base_url: str = field(default_factory=public_base)
     now: Callable[[], datetime] = lambda: datetime.now(UTC)
     match: Any = matching  # cg_matching via ports, `stubs` when it isn't installed
     # Hooks into D's agent (domain.runner drives ScriptedRun); tests swap in plain callables.
-    on_formed: Callable[["World", str], None] = lambda w, mt: _runner().start(w, mt)
-    on_decided: Callable[["World", dict], None] = lambda w, a: _runner().decided(w, a)
-    on_to_muse: Callable[["World", dict], None] = lambda w, m: _runner().to_muse(w, m)
-    on_approval: Callable[["World", dict], None] = lambda w, a: _synthetic().on_approval(w, a)  # D: counterparts
-    on_left: Callable[["World", str, str], None] = lambda w, mt, uid: None  # M2: backfill, continue or cancel
+    on_formed: Callable[[World, str], None] = lambda w, mt: _runner().start(w, mt)
+    on_decided: Callable[[World, dict], None] = lambda w, a: _runner().decided(w, a)
+    on_to_muse: Callable[[World, dict], None] = lambda w, m: _runner().to_muse(w, m)
+    on_approval: Callable[[World, dict], None] = lambda w, a: _synthetic().on_approval(w, a)  # D: counterparts
+    on_left: Callable[[World, str, str], None] = lambda w, mt, uid: None  # M2: backfill, continue or cancel
 
     users: dict[str, dict] = field(default_factory=dict)
     venues: dict[str, dict] = field(default_factory=dict)
@@ -143,7 +162,7 @@ class World:
         return u
 
     def base(self) -> str:
-        """Base for /static URLs: the current request's host, else `base_url` (background tasks copy it)."""
+        """The current request's base when it is one of this machine's addresses (http.REQUEST_BASE), else startup."""
         return request_base.get() or self.base_url
 
     def blocked(self, a: str, b: str) -> bool:

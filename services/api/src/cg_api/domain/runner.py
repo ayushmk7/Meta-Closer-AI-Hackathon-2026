@@ -8,6 +8,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import random
+import re
 from collections import deque
 from collections.abc import Iterable
 
@@ -15,6 +16,7 @@ from cg_api import ports
 from cg_api.domain import approvals, chat, meetups, plans, privacy
 from cg_api.domain.world import World, iso
 from cg_api.domain.world import _spawn as world_spawn
+from cg_api.domain.world import parse as parse_iso
 
 log = logging.getLogger("cg_api.domain.runner")
 
@@ -232,6 +234,22 @@ def decided(w: World, a: dict) -> None:
     _enqueue(w, a["meetupId"], run.decide(a["approvalId"], a["status"]))
 
 
+_DAYS = ("monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday", "tomorrow")
+
+
+def _change_request(text: str, current_day: str = "") -> str | None:
+    """Changes outside Muse's own bounds (CONTRACTS §5): a different day, another venue, cancelling.
+    ponytail: keyword match; `change` approvals (M2) turn these into real asks."""
+    t = text.lower()
+    if any(w in t for w in ("cancel", "call it off")):
+        return "Cancelling"
+    if day := next((d for d in _DAYS if d != current_day and re.search(rf"\b{d}\b", t)), None):
+        return f"Moving it to {day.capitalize()}"
+    if re.search(r"\b(somewhere else|another (place|venue|spot)|different (place|venue|spot))\b", t):
+        return "Changing the venue"
+    return None
+
+
 async def _to_muse(w: World, msg: dict) -> None:
     """One toMuse turn: D's rules decide (time change or question), C applies the events and posts Muse's reply."""
     from cg_api import agent
@@ -246,13 +264,14 @@ async def _to_muse(w: World, msg: dict) -> None:
     if new_start and run is not None and hasattr(run, "reschedule_to"):
         busy = {a["userId"]: w.users[a["userId"]]["busy"] for a in run.attendees}
         events, reply, step_ids = run.reschedule_to(new_start, busy)
-        for ev in events:
-            apply(w, m["meetupId"], ev)
+        await drive(w, m["meetupId"], events)  # steps tick at demo.stepDelayS, like the formation run
+    elif change := _change_request(msg["text"], parse_iso(start).astimezone(plans.TZ).strftime("%A").lower()):
+        reply = f"{change} needs everyone's OK. I can't send that ask yet, so check with the group here."
     elif hasattr(agent, "answer_question"):
         plan = (
             run.plan if run is not None else {**w.plans[m["planId"]], "startsAt": m["startsAt"], "endsAt": m["endsAt"]}
         )
-        reply = agent.answer_question(plan, w.venues[m["venueId"]])
+        reply = "Here's the plan: " + agent.answer_question(plan, w.venues[m["venueId"]])
     else:
         log.warning("runner: no toMuse handler in cg_api.agent yet; %s unanswered", msg["messageId"])
         return

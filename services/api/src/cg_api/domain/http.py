@@ -2,8 +2,12 @@
 
 from __future__ import annotations
 
+import ipaddress
 import logging
-from typing import Any, Callable
+import socket
+from collections.abc import Callable
+from functools import lru_cache
+from typing import Any
 
 from fastapi import Depends, Request
 
@@ -14,14 +18,27 @@ from cg_api.errors import ApiError
 log = logging.getLogger("cg_api.domain")
 
 
+@lru_cache(maxsize=64)
+def _ours(host: str) -> bool:
+    """True only for localhost or a literal IP bound on this machine. No DNS, so a spoofed name never passes."""
+    if host == "localhost":
+        return True
+    try:
+        ip = ipaddress.ip_address(host.strip("[]"))
+        with socket.socket(socket.AF_INET6 if ip.version == 6 else socket.AF_INET) as sk:
+            sk.bind((str(ip), 0))
+        return True
+    except (ValueError, OSError):
+        return False
+
+
 async def _use_request_base(request: Request) -> None:
-    base = str(request.base_url).rstrip("/")
-    world.request_base.set(base)
-    if world.current is not None:  # last host seen: fallback for requests outside these routers (askMuse)
-        world.current.base_url = base
+    """The phone's own LAN address works for its static URLs; any other Host header is ignored (P10)."""
+    host = request.url.hostname or ""
+    world.request_base.set(str(request.base_url).rstrip("/") if _ours(host) else None)
 
 
-# Router-level dependency: static URLs use the host the phone used (LAN), never a hardcoded localhost.
+# Router-level dependency on every C route.
 REQUEST_BASE = [Depends(_use_request_base)]
 
 

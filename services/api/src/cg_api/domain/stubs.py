@@ -13,7 +13,7 @@ if TYPE_CHECKING:
     from cg_api.domain.world import World
 
 
-def _usable(w: "World", uid: str) -> dict[str, float]:
+def _usable(w: World, uid: str) -> dict[str, float]:
     """Visible interest weights, expanded to ancestors (level 2 and 3)."""
     out: dict[str, float] = {}
     for i in w.users[uid]["interests"]:
@@ -26,14 +26,14 @@ def _usable(w: "World", uid: str) -> dict[str, float]:
     return out
 
 
-def _sensitive_ok(w: "World", a: str, b: str, interest_id: str) -> bool:
+def _sensitive_ok(w: World, a: str, b: str, interest_id: str) -> bool:
     if not w.taxonomy.get(interest_id, {}).get("sensitive", True):
         return True
     cat = interest_id.split(".")[0]
     return cat in w.users[a]["sensitiveOptIn"] and cat in w.users[b]["sensitiveOptIn"]
 
 
-def shared_interests(w: "World", a: str, b: str, level: int, limit: int) -> list[str]:
+def shared_interests(w: World, a: str, b: str, level: int, limit: int) -> list[str]:
     ia, ib = _usable(w, a), _usable(w, b)
     ids = [k for k in ia.keys() & ib.keys() if len(k.split(".")) <= level and _sensitive_ok(w, a, b, k)]
     # deepest first so level 3 wins over its parent, then combined weight, then id
@@ -46,7 +46,7 @@ def shared_interests(w: "World", a: str, b: str, level: int, limit: int) -> list
 
 
 def plan_overlap(
-    w: "World", uid: str, plan: dict, joined_ids: list[str], level: int, limit: int
+    w: World, uid: str, plan: dict, joined_ids: list[str], level: int, limit: int
 ) -> list[tuple[str, int]]:
     if len(joined_ids) < w.params["privacy"]["crowdMinCount"]:
         return []
@@ -64,7 +64,7 @@ def travel_minutes(origin: tuple[float, float], dest: tuple[float, float], mode:
     return math.ceil(km * t["detourFactor"] / t["speedsKmh"][mode] * 60 + t["overheadMin"][mode])
 
 
-def rank(w: "World", uid: str) -> list[str]:
+def rank(w: World, uid: str) -> list[str]:
     """Plan IDs best first: target-interest fit, then soonest. ponytail: no Laya, no fill model."""
     mine = _usable(w, uid)
 
@@ -75,7 +75,7 @@ def rank(w: "World", uid: str) -> list[str]:
     return [p["planId"] for p in sorted(plans, key=lambda p: (-fit(p), p["startsAt"], p["planId"]))]
 
 
-def form_groups(w: "World", plan: dict, interested_ids: list[str]) -> tuple[list[list[str]], list[str]]:
+def form_groups(w: World, plan: dict, interested_ids: list[str]) -> tuple[list[list[str]], list[str]]:
     """Seat in join order, skipping anyone blocked with a seated member. One group, up to size.max."""
     seated: list[str] = []
     for uid in interested_ids:
