@@ -201,7 +201,24 @@ def travel_minutes(origin: dict, dest: dict, mode: str, params: dict) -> int:
 # not in the signature), no minSharedWithOthers rule. Real cg_matching replaces all of it when importable.
 
 
-def _params_obj():  # pragma: no cover
+def _state_obj(state):
+    """dict (camelCase or snake_case keys) -> cg_matching.MatchState; contract objects pass through.
+    ponytail: assumes MatchState takes snake_case keyword fields; confirm with backend when it lands."""
+    if isinstance(state, _cgm.MatchState):
+        return state
+    import re
+
+    return _cgm.MatchState(**{re.sub(r"(?<!^)([A-Z])", r"_\1", k).lower(): v for k, v in (state or {}).items()})
+
+
+def _tables_obj(tables):
+    """Path to data/laya_tables/<pool>/ -> LayaTables.from_dir; LayaTables, None or a duck-typed fake pass through."""
+    from pathlib import Path
+
+    return _cgm.LayaTables.from_dir(Path(tables)) if isinstance(tables, (str, Path)) else tables
+
+
+def _params_obj():
     from pathlib import Path
 
     from cg_sim.contracts import contracts_dir
@@ -274,11 +291,12 @@ def _slot(starts: datetime) -> tuple[str, str]:
 def rank_plans(pool: dict, plans: list[dict], vectors, venues: dict[str, dict], tables, state: dict,
                params: dict, rng: random.Random) -> dict[str, list[dict]]:
     """Per user: plans passing calendar + travel hard filters, best first, at most feed.size."""
-    if HAVE_MATCHING:  # pragma: no cover
+    if HAVE_MATCHING:
         snap = _cgm.PoolSnapshot.from_export(pool)
-        out = _cgm.rank_plans(snap, [_cgm.Plan.from_record(p) for p in plans], vectors,
-                              {k: _cgm.Venue.from_record(v) for k, v in venues.items()}, tables, state,
-                              _params_obj(), rng)
+        prm = _params_obj()
+        out = _cgm.rank_plans(snap, [_cgm.Plan.from_record(p) for p in plans], vectors or _cgm.build_vectors(snap, prm),
+                              {k: _cgm.Venue.from_record(v) for k, v in venues.items()}, _tables_obj(tables),
+                              _state_obj(state), prm, rng)
         return {u: [_to_dict(s) for s in ss] for u, ss in out.items()}
     vectors = vectors or build_vectors(pool, params)
     exposures = dict((state or {}).get("exposures", {}))
@@ -293,6 +311,10 @@ def rank_plans(pool: dict, plans: list[dict], vectors, venues: dict[str, dict], 
         uid, vec = u["userId"], vectors.get(u["userId"], {})
         slots = {(s["day"], s["part"]) for s in u["availability"]}
         rows = eligible[uid] = []
+        if u.get("trustFloorOk") is False:  # trust.floor: no feed
+            continue
+        vis = [x for x in u.get("signals", []) if x["visibility"] == "shown" and not x["sensitive"]]
+        sig_venues, sig_interests = {x["venueId"] for x in vis}, {i for x in vis for i in x["interestIds"]}
         for p in plans:
             if uid in p.get("seedJoinIds", []):
                 continue
@@ -312,7 +334,8 @@ def rank_plans(pool: dict, plans: list[dict], vectors, venues: dict[str, dict], 
             p_join = tables.p_join(uid, p["activityType"]) if tables is not None else 1.0
             shared = [t for t in p["targetInterestIds"] if vec.get(t)][: params["privacy"]["sharedCoarseMax"]]
             rows.append({"plan": p, "fit": fit, "p_join": p_join, "minutes": minutes, "shared": shared,
-                         "isolated": uid in iso})
+                         "isolated": uid in iso,
+                         "signal": p["venueId"] in sig_venues or bool(sig_interests & set(p["targetInterestIds"]))})
     # Fill likelihood. ponytail: expected joins = seed joins + mean p_join x min(eligible, exposure cap);
     # swap for the Laya-table estimate when cg_matching lands.
     pj: dict[str, list[float]] = {}
@@ -336,6 +359,7 @@ def rank_plans(pool: dict, plans: list[dict], vectors, venues: dict[str, dict], 
             if fill[pid] < params["plans"]["fillLikelihoodFloor"] or exposures.get(pid, 0) >= cap:
                 continue
             score = r["fit"] * r["p_join"] * fill[pid] * ((1 + boost) if r["isolated"] else 1.0)
+            score *= (1 + params["matching"]["signalBoost"]) if r["signal"] else 1.0
             scores.append((round(score, 6), pid, r))
         scores.sort(key=lambda x: (-x[0], x[1]))
         by_type: Counter[str] = Counter()
@@ -361,9 +385,9 @@ def form_groups(plan: dict, interested_ids: list[str], pool: dict, cands: dict[s
                 tables, state: dict, params: dict, rng: random.Random) -> dict:
     """Greedy max-min-pairwise groups of size.min..size.max. interested_ids in join order.
     Seat priority: isolated (no metIds) first, then earliest join."""
-    if HAVE_MATCHING:  # pragma: no cover
+    if HAVE_MATCHING:
         res = _cgm.form_groups(_cgm.Plan.from_record(plan), interested_ids, _cgm.PoolSnapshot.from_export(pool),
-                               cands, tables, state, _params_obj(), rng)
+                               cands, _tables_obj(tables), _state_obj(state), _params_obj(), rng)
         return _to_dict(res)
     users = {u["userId"]: u for u in pool["users"]}
     cand = {a: dict(lst) for a, lst in cands.items()}

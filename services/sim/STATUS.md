@@ -27,6 +27,10 @@
 - S1: `packages/matching` (cg_matching) missing; adapter fallback in use; delete fallback when backend M0 lands (needs contracts-owner sign-off).
 - S1: event-pool `connectors.jsonl` carries u_maya Bedwell Bayfront visits though u_maya is not an event persona; backend must accept cross-pool records (or tell sim to change).
 - S1: contracts owner to confirm the 12 h anchor reading above.
+- S1 needs: contracts-owner sign-off that demo.json hero, nudge and the third featured plan are curated by hand
+  (`seed/plans.py`), not output by propose_plans (PRD-3 §3 / AGENT_RULES R6). The rest of the inventory comes from propose_plans.
+- S1 needs: backend to confirm `cg_matching.MatchState` keyword fields (adapter assumes snake_case of exposures,
+  openJoins, metPairs, blockedPairs, seatHistory) when packages/matching lands.
 - S2 (laya): ground-truth signals API -> delivered (`cg_sim.seed.export`, see README).
 - S3 (mc): rank_plans/form_groups fallbacks delivered; fill likelihood, unbiased exposure order, scene cap, isolated-first, minSharedWithOthers -> delivered.
 - S4 (dashboard): none reported yet.
@@ -43,8 +47,14 @@
 - `cg_matching` not available yet; `cg_sim.matching_adapter` falls back to naive dict-in/dict-out stand-ins:
   `propose_plans`, `travel_minutes`, `build_vectors`, `candidates`, `rank_plans`, `form_groups` (same argument
   order as CONTRACTS §10; pool = pool_export dict; results are PlanScore / FormResult-shaped dicts with snake_case keys).
-  Fallback ceilings: O(n^2) candidates, greedy max-min groups (minSharedWithOthers by pruning), unlimited groups per plan,
-  fill likelihood = seed joins + mean p_join x min(eligible, exposure cap).
+  Fallback honours: feed.size/maxPerActivityType/maxPerScene, plans.exposureCapPerDay/fillLikelihoodFloor,
+  calendar.minFreeBufferMin, travel.*, matching.isolationBoost/signalBoost/parentWeightFactor/knnK/minCosine,
+  groups.minSharedWithOthers/minOthers/seatPriority, trust.floor (trustFloorOk), blocked pairs, P4 (sensitive skipped).
+  Fallback ceilings (interim MC numbers understate/misstate common_ground until cg_matching lands):
+  matching.idf, matching.ageBands, matching.leidenResolution (scenes = archetypes), plans.openJoinsMax,
+  groups.sizeMax, groups.objective (greedy approximation of max_min_pairwise), venue capacity (unlimited groups
+  per plan), O(n^2) candidates, fill likelihood = seed joins + mean p_join x min(eligible, exposure cap).
+  Real-cg_matching branch: dict state -> MatchState(**snake_case keys), str/Path tables -> LayaTables.from_dir.
 - `cg_sim.seed.export.load_ground_truth_export(pool_id)` / `ground_truth_signals(pool_id)`: read-only `--use-ground-truth` API (README).
 - `data/sim_private/<pool>/ground_truth.jsonl`: userId, role, scene, archetypes, interests, noise,
   frequentPlaces, routines, sensitivePlace. `latent.jsonl`: outgoingness, flakiness, lowOutgoing, existingFriends.

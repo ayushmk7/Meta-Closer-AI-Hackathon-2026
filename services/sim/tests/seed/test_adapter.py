@@ -142,3 +142,89 @@ def test_form_groups_min_shared_with_others():
     res = form_groups(_plan("pl_x", size=(3, 4)), ["u_d", "u_a", "u_b", "u_c"], pool, cands, None, {}, params(),
                       random.Random(1))
     assert [g["member_ids"] for g in res["groups"]] == [["u_a", "u_b", "u_c"]] and res["unseated_ids"] == ["u_d"]
+
+
+def test_rank_signal_boost_orders_signal_venue_first():
+    u = _user("u_a")
+    u["signals"] = [{"signalId": "si_1", "provider": "google_maps", "kind": "frequent_place", "interestIds": [],
+                     "venueId": "vn_y", "strength": 0.8, "visibility": "shown", "sensitive": False}]
+    venues = dict(VENUES, vn_y=VENUES["vn_x"])
+    plans = [_plan("pl_a", scene="sc_a"), dict(_plan("pl_b", at="trivia_night", scene="sc_b"), venueId="vn_y")]
+    p = params()
+    out = rank_plans({"mode": "city", "users": [u]}, plans, None, venues, None, {}, p, random.Random(3))["u_a"]
+    assert [s["plan_id"] for s in out] == ["pl_b", "pl_a"]  # same fit; signal venue wins only via signalBoost
+    u["signals"][0]["sensitive"] = True  # P4: sensitive signals never boost
+    out = rank_plans({"mode": "city", "users": [u]}, plans, None, venues, None, {}, p, random.Random(3))["u_a"]
+    assert [s["plan_id"] for s in out] == ["pl_a", "pl_b"]
+
+
+def test_real_cg_matching_branch_builds_contract_types(monkeypatch, tmp_path):
+    """Stub cg_matching: the adapter must hand it MatchState / LayaTables / Plan objects, and return dicts."""
+    import dataclasses
+    import types
+
+    from cg_sim import matching_adapter as ma
+
+    seen = {}
+
+    @dataclasses.dataclass
+    class MatchState:
+        exposures: dict = dataclasses.field(default_factory=dict)
+        blocked_pairs: list = dataclasses.field(default_factory=list)
+
+    class LayaTables:
+        def __init__(self, path):
+            self.path = path
+
+        @classmethod
+        def from_dir(cls, path):
+            return cls(path)
+
+    @dataclasses.dataclass
+    class PlanScore:
+        user_id: str
+        plan_id: str
+        score: float
+
+    @dataclasses.dataclass
+    class GroupResult:
+        plan_id: str
+        member_ids: list
+        min_pairwise: float
+
+    @dataclasses.dataclass
+    class FormResult:
+        groups: list
+        unseated_ids: list
+
+    wrap = lambda kind: type(kind, (), {"from_record": staticmethod(lambda d: (kind, d))})  # noqa: E731
+
+    def rank(pool, plans, vectors, venues, tables, state, params, rng):
+        seen["rank"] = (plans, venues, tables, state)
+        return {"u_a": [PlanScore("u_a", "pl_x", 1.0)]}
+
+    def form(plan, ids, pool, cands, tables, state, params, rng):
+        seen["form"] = (plan, tables, state)
+        return FormResult([GroupResult("pl_x", ids, 0.5)], [])
+
+    stub = types.SimpleNamespace(
+        MatchState=MatchState, LayaTables=LayaTables, Plan=wrap("Plan"), Venue=wrap("Venue"),
+        PoolSnapshot=type("PoolSnapshot", (), {"from_export": staticmethod(lambda d: "snap")}),
+        Params=type("Params", (), {"from_yaml": staticmethod(lambda p: "params")}),
+        build_vectors=lambda snap, prm: "vectors", rank_plans=rank, form_groups=form,
+    )
+    monkeypatch.setattr(ma, "_cgm", stub)
+    monkeypatch.setattr(ma, "HAVE_MATCHING", True)
+
+    out = ma.rank_plans({}, [{"planId": "pl_x"}], None, {"vn_x": {}}, str(tmp_path),
+                        {"exposures": {"pl_x": 2}, "blockedPairs": [["u_a", "u_b"]]}, {}, random.Random(1))
+    plans, venues, tables, state = seen["rank"]
+    assert out == {"u_a": [{"user_id": "u_a", "plan_id": "pl_x", "score": 1.0}]}
+    assert plans[0][0] == "Plan" and venues["vn_x"][0] == "Venue"
+    assert isinstance(tables, LayaTables) and str(tables.path) == str(tmp_path)
+    assert state == MatchState(exposures={"pl_x": 2}, blocked_pairs=[["u_a", "u_b"]])
+
+    res = ma.form_groups({"planId": "pl_x"}, ["u_a", "u_b"], {}, {}, None, MatchState(), {}, random.Random(1))
+    assert res == {"groups": [{"plan_id": "pl_x", "member_ids": ["u_a", "u_b"], "min_pairwise": 0.5}],
+                   "unseated_ids": []}
+    assert seen["form"][1] is None and seen["form"][2] == MatchState()
