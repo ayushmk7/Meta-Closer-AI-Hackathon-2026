@@ -1,18 +1,62 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "demo.schema.json",
-  "title": "data/seed/<poolId>/demo.json (demo identities, written by the simulation)",
+  "title": "data/seed/<poolId>/demo.json (demo identities and plans, written by the simulation)",
   "type": "object",
-  "required": ["poolId", "mayaId", "featuredIds", "publicFeaturedId", "privateFeaturedId", "liveUserId", "counterpartIds", "fakeLocation"],
+  "required": [
+    "poolId",
+    "mayaId",
+    "featuredPlanIds",
+    "heroPlanId",
+    "nudgePlanId",
+    "liveUserId",
+    "counterpartIds",
+    "fakeLocation"
+  ],
   "additionalProperties": false,
   "properties": {
-    "poolId": { "$ref": "common.schema.json#/$defs/poolId" },
-    "mayaId": { "const": "u_maya" },
-    "featuredIds": { "type": "array", "minItems": 3, "maxItems": 5, "items": { "$ref": "common.schema.json#/$defs/userId" }, "description": "Pinned, in order, into Maya's first drop when DEMO_MODE=1." },
-    "publicFeaturedId": { "$ref": "common.schema.json#/$defs/userId" },
-    "privateFeaturedId": { "$ref": "common.schema.json#/$defs/userId" },
-    "liveUserId": { "$ref": "common.schema.json#/$defs/userId", "description": "Identity the second phone uses. Must also be in featuredIds." },
-    "counterpartIds": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/userId" }, "description": "Personas the synthetic actor drives. Includes every featured ID." },
-    "fakeLocation": { "$ref": "common.schema.json#/$defs/latLng", "description": "Maya's demo location inside the pool." }
+    "poolId": {
+      "$ref": "common.schema.json#/$defs/poolId"
+    },
+    "mayaId": {
+      "const": "u_maya"
+    },
+    "featuredPlanIds": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 8,
+      "items": {
+        "$ref": "common.schema.json#/$defs/planId"
+      },
+      "description": "Pinned, in order, into Maya's first feed when DEMO_MODE=1. Includes heroPlanId and nudgePlanId."
+    },
+    "heroPlanId": {
+      "$ref": "common.schema.json#/$defs/planId",
+      "description": "The plan Maya joins on stage: prepaid (shows the payment approval), matches her top interests, fits her fallback availability, travel under her max."
+    },
+    "nudgePlanId": {
+      "$ref": "common.schema.json#/$defs/planId",
+      "description": "Free plan at the venue of Maya's Google Maps frequent-place record; drives the Home nudge."
+    },
+    "liveUserId": {
+      "$ref": "common.schema.json#/$defs/userId",
+      "description": "Identity the second phone uses. Public profile, shares at least two of Maya's top interests, not yet joined to heroPlanId."
+    },
+    "counterpartIds": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "common.schema.json#/$defs/userId"
+      },
+      "description": "Personas the synthetic actor drives. Includes liveUserId, at least one private profile, and enough people to form heroPlanId with Maya (size.min - 1 or more)."
+    },
+    "privateCounterpartId": {
+      "$ref": "common.schema.json#/$defs/userId",
+      "description": "A private-profile counterpart that ends up in Maya's hero group (shows first-name-only reveal)."
+    },
+    "fakeLocation": {
+      "$ref": "common.schema.json#/$defs/latLng",
+      "description": "Maya's demo check-in location fallback, inside her neighborhood."
+    }
   }
 }

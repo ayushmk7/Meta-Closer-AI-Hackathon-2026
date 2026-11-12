@@ -2,9 +2,9 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Common Ground public API",
-    "version": "1.0.0",
+    "version": "2.0.0",
     "summary": "The only interface between the iOS app and the backend.",
-    "description": "Contract v1. Owned by the human integrator (`contracts/**`). Read `contracts/CONTRACTS.md` first.\n\nRules that apply to every operation:\n- JSON field names are camelCase. Timestamps are ISO 8601 UTC strings ending in `Z`.\n- All IDs are opaque strings. Clients never parse them.\n- Every request carries `X-CG-User` (demo identity). There is no other auth in v1.\n- Additive evolution only: new optional fields, new operations, new enum values.\n  Clients ignore unknown fields and render a neutral fallback for unknown enum values.\n- Errors always use the `Error` envelope.\n- Interest granularity (coarse vs full depth) is decided by the server. Clients render `label` as given.\n- Any number a client needs (limits, intervals, sizes) comes from `GET /v1/config`, never a hardcoded constant.\n"
+    "description": "Contract v2 (plans-first, visible Muse agent, connectors). Owned by the human integrator (`contracts/**`).\nRead `contracts/CONTRACTS.md` first. v2 replaces v1 wholesale; the URL prefix stays `/v1`.\n\nRules that apply to every operation:\n- JSON field names are camelCase. Timestamps are ISO 8601 UTC strings ending in `Z`.\n- All IDs are opaque strings. Clients never parse them.\n- Every request carries `X-CG-User` (demo identity). There is no other auth in v2.\n- Additive evolution only within v2: new optional fields, new operations, new enum values in open enums.\n  Clients ignore unknown fields and render a neutral fallback for unknown enum values.\n- Errors always use the `Error` envelope.\n- Interest granularity (coarse vs full depth) is decided by the server. Clients render `label` as given.\n- Any number a client needs (limits, intervals, sizes) comes from `GET /v1/config`, never a hardcoded constant.\n- Text the user sees (`reason`, `label`, Muse messages, step labels, approval titles) is final copy.\n"
   },
   "servers": [
     {
@@ -25,25 +25,28 @@
       "name": "me"
     },
     {
-      "name": "onboarding"
+      "name": "connectors"
     },
     {
-      "name": "discovery"
+      "name": "muse"
     },
     {
-      "name": "connections"
+      "name": "plans"
     },
     {
-      "name": "chat"
+      "name": "nudges"
     },
     {
       "name": "meetups"
     },
     {
-      "name": "map"
+      "name": "approvals"
     },
     {
-      "name": "community"
+      "name": "people"
+    },
+    {
+      "name": "chat"
     },
     {
       "name": "safety"
@@ -71,7 +74,7 @@
                   "muse": "ok",
                   "laya": "ok",
                   "demoMode": true,
-                  "apiVersion": "1"
+                  "apiVersion": "2"
                 }
               }
             }
@@ -95,30 +98,31 @@
                   "$ref": "#/components/schemas/Config"
                 },
                 "example": {
-                  "apiVersion": "1",
+                  "apiVersion": "2",
                   "features": {
                     "eventMode": true,
-                    "groups": true,
-                    "sayHi": true,
-                    "leaderboard": false,
-                    "unlocks": false,
+                    "connectors": true,
+                    "nudges": true,
+                    "userPlans": true,
+                    "payments": true,
+                    "autonomySettings": false,
+                    "plusOne": false,
                     "checkin": true,
-                    "locationSharing": true,
-                    "density": true,
                     "realtime": true
                   },
                   "limits": {
-                    "dropMax": 5,
+                    "feedMax": 8,
                     "sharedCoarseMax": 3,
                     "sharedFullMax": 8,
-                    "openersPerPersonPerWeek": 1,
-                    "openerMaxChars": 280,
                     "messageMaxChars": 2000,
-                    "groupSizeMin": 2,
+                    "museAskMaxChars": 500,
+                    "groupSizeMin": 3,
                     "groupSizeMax": 8,
-                    "locationMinIntervalS": 30,
+                    "openJoinsMax": 5,
                     "pollIntervalS": 5,
-                    "mapRefreshS": 30,
+                    "feedRefreshS": 60,
+                    "calendarSyncMinIntervalS": 300,
+                    "calendarHorizonDays": 14,
                     "meetupStatusBeforeMin": 60
                   },
                   "modes": [
@@ -127,7 +131,7 @@
                       "label": "San Francisco",
                       "poolId": "pool_sf_city",
                       "available": true,
-                      "description": "People near you in San Francisco",
+                      "description": "Plans near you in San Francisco",
                       "center": {
                         "lat": 37.7749,
                         "lng": -122.4194
@@ -139,7 +143,7 @@
                       "label": "Closer Together AI Hackathon",
                       "poolId": "pool_evt_closer_together",
                       "available": true,
-                      "description": "People at this event, Nov 11 to 13",
+                      "description": "Plans with people at this event, Nov 11 to 13",
                       "center": {
                         "lat": 37.4848,
                         "lng": -122.1484
@@ -158,10 +162,11 @@
                     "enabled": true,
                     "counterpart": "synthetic",
                     "fakeLocation": {
-                      "lat": 37.7694,
-                      "lng": -122.4862
+                      "lat": 37.7639,
+                      "lng": -122.4689
                     },
-                    "relaxCheckin": true
+                    "relaxCheckin": true,
+                    "simulatedPayments": true
                   }
                 }
               }
@@ -176,7 +181,7 @@
           "me"
         ],
         "operationId": "getMe",
-        "summary": "The current user's own Common Ground profile, including private and hidden interests.",
+        "summary": "The current user's own profile, including hidden interests, Muse settings and capabilities.",
         "responses": {
           "200": {
             "description": "OK",
@@ -191,12 +196,13 @@
                   "avatarUrl": "http://localhost:8000/static/avatars/u_maya.jpg",
                   "profileVisibility": "public",
                   "optedIn": true,
+                  "setupComplete": true,
                   "mode": "city",
                   "poolId": "pool_sf_city",
                   "neighborhood": "Inner Sunset",
                   "groupSize": {
-                    "min": 2,
-                    "max": 4
+                    "min": 3,
+                    "max": 5
                   },
                   "availability": [
                     {
@@ -212,7 +218,13 @@
                       "part": "evening"
                     }
                   ],
-                  "ghostMode": false,
+                  "travel": {
+                    "maxMinutes": 35,
+                    "modes": [
+                      "transit",
+                      "walk"
+                    ]
+                  },
                   "interests": [
                     {
                       "interest": {
@@ -228,8 +240,8 @@
                       "weight": 0.82,
                       "visibility": "shown",
                       "sensitive": false,
-                      "source": "activity",
-                      "evidence": "Posted three photos from a coastal hike"
+                      "source": "connector",
+                      "evidence": "4 visits to Lands End Trail in October (Google Maps)"
                     },
                     {
                       "interest": {
@@ -245,7 +257,8 @@
                       "weight": 0.7,
                       "visibility": "shown",
                       "sensitive": false,
-                      "source": "onboarding"
+                      "source": "activity",
+                      "evidence": "Member of SF Clay Collective"
                     },
                     {
                       "interest": {
@@ -264,11 +277,18 @@
                       "source": "activity"
                     }
                   ],
+                  "museSettings": {
+                    "spendWithoutAskingCents": 0,
+                    "autoReschedule": true,
+                    "autoBackfill": true,
+                    "calendarHolds": true,
+                    "leaveByReminders": true
+                  },
                   "capabilities": {
-                    "canHost": false,
-                    "maxGroupSize": 4,
-                    "groupOnly": false,
-                    "dailySlots": 5
+                    "canCreatePlans": false,
+                    "maxGroupSize": 6,
+                    "groupOnly": true,
+                    "openJoinsMax": 5
                   },
                   "unlocks": []
                 }
@@ -321,7 +341,7 @@
           "me"
         ],
         "operationId": "setInterestVisibility",
-        "summary": "Show or hide one of my interests. Hidden interests are never used for overlap.",
+        "summary": "Show or hide one of my interests. Hidden interests are never used for overlap, plans or nudges.",
         "requestBody": {
           "required": true,
           "content": {
@@ -333,7 +353,7 @@
                 ],
                 "properties": {
                   "visibility": {
-                    "$ref": "#/components/schemas/InterestVisibility"
+                    "$ref": "#/components/schemas/Visibility"
                   }
                 }
               }
@@ -378,7 +398,7 @@
           "me"
         ],
         "operationId": "optIn",
-        "summary": "Join a pool. Required before drops, density or matching. Idempotent.",
+        "summary": "Join a pool. Required before setup, connectors, plans and nudges. Idempotent. Switching pools keeps people met and threads.",
         "requestBody": {
           "required": true,
           "content": {
@@ -422,7 +442,7 @@
           "me"
         ],
         "operationId": "optOut",
-        "summary": "Leave the pool. Removes the user from matching and from the internal map.",
+        "summary": "Leave the pool. Withdraws open joins, removes the user from matching and the internal map, deletes signals.",
         "responses": {
           "204": {
             "description": "Left the pool"
@@ -433,33 +453,135 @@
         }
       }
     },
-    "/v1/onboarding/sessions": {
-      "post": {
+    "/v1/me/setup": {
+      "get": {
         "tags": [
-          "onboarding"
+          "me"
         ],
-        "operationId": "startOnboarding",
-        "summary": "Start (or resume) the Muse onboarding chat. Returns Muse's opening messages.",
+        "operationId": "getSetup",
+        "summary": "What Muse picked up from Facebook activity and connected apps, for the setup review. Recomputed after each connect.",
         "responses": {
           "200": {
-            "description": "Session",
+            "description": "Setup review",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/OnboardingSession"
+                  "$ref": "#/components/schemas/Setup"
                 },
                 "example": {
-                  "sessionId": "ob_7f3a",
-                  "status": "chatting",
-                  "messages": [
+                  "museText": "Hi Maya, I'm Muse. From your posts and Google Maps, here's what I think you're into. Hide anything you'd rather keep to yourself.",
+                  "proposedInterests": [
                     {
-                      "messageId": "om_1",
-                      "role": "muse",
-                      "text": "Hi Maya! I already noticed you post a lot about hikes and pottery. What else do you love doing on a free weekend?",
-                      "createdAt": "2026-11-12T18:00:00Z"
+                      "interest": {
+                        "id": "outdoors.hiking.coastal_hikes",
+                        "label": "Coastal hikes",
+                        "path": [
+                          "Outdoors",
+                          "Hiking",
+                          "Coastal hikes"
+                        ],
+                        "level": 3
+                      },
+                      "weight": 0.82,
+                      "visibility": "shown",
+                      "sensitive": false,
+                      "source": "connector",
+                      "evidence": "4 visits to Lands End Trail in October (Google Maps)"
+                    },
+                    {
+                      "interest": {
+                        "id": "arts_crafts.ceramics.wheel_throwing",
+                        "label": "Wheel throwing",
+                        "path": [
+                          "Arts & crafts",
+                          "Ceramics",
+                          "Wheel throwing"
+                        ],
+                        "level": 3
+                      },
+                      "weight": 0.7,
+                      "visibility": "shown",
+                      "sensitive": false,
+                      "source": "activity",
+                      "evidence": "Member of SF Clay Collective"
+                    },
+                    {
+                      "interest": {
+                        "id": "identity_values.faith.buddhism",
+                        "label": "Buddhism",
+                        "path": [
+                          "Identity & values",
+                          "Faith",
+                          "Buddhism"
+                        ],
+                        "level": 3
+                      },
+                      "weight": 0.6,
+                      "visibility": "hidden",
+                      "sensitive": true,
+                      "source": "connector",
+                      "evidence": "Weekly visits to a meditation center (Google Maps)"
                     }
                   ],
-                  "proposedInterests": []
+                  "signals": [
+                    {
+                      "signalId": "si_0001",
+                      "provider": "google_maps",
+                      "kind": "frequent_place",
+                      "label": "4 visits to Lands End Trail in October",
+                      "interests": [
+                        {
+                          "id": "outdoors.hiking",
+                          "label": "Hiking",
+                          "path": [
+                            "Outdoors",
+                            "Hiking"
+                          ],
+                          "level": 2
+                        }
+                      ],
+                      "venue": {
+                        "venueId": "vn_lands_end",
+                        "name": "Lands End Trail",
+                        "neighborhood": "Outer Richmond",
+                        "location": {
+                          "lat": 37.7798,
+                          "lng": -122.5118
+                        },
+                        "kind": "park"
+                      },
+                      "observedAt": "2026-10-31T19:00:00Z",
+                      "visibility": "shown",
+                      "sensitive": false
+                    },
+                    {
+                      "signalId": "si_0002",
+                      "provider": "google_maps",
+                      "kind": "frequent_place",
+                      "label": "Weekly visits to a meditation center",
+                      "interests": [],
+                      "venue": null,
+                      "observedAt": "2026-11-08T17:00:00Z",
+                      "visibility": "hidden",
+                      "sensitive": true
+                    }
+                  ],
+                  "proposedGroupSize": {
+                    "min": 3,
+                    "max": 5
+                  },
+                  "proposedTravel": {
+                    "maxMinutes": 35,
+                    "modes": [
+                      "transit",
+                      "walk"
+                    ]
+                  },
+                  "suggestedProviders": [
+                    "device_calendar",
+                    "google_maps",
+                    "eventbrite"
+                  ]
                 }
               }
             }
@@ -468,75 +590,19 @@
             "$ref": "#/components/responses/Error"
           }
         }
-      }
-    },
-    "/v1/onboarding/sessions/{sessionId}/messages": {
-      "parameters": [
-        {
-          "$ref": "#/components/parameters/SessionId"
-        }
-      ],
+      },
       "post": {
         "tags": [
-          "onboarding"
+          "me"
         ],
-        "operationId": "sendOnboardingMessage",
-        "summary": "Send one user turn. May take several seconds (Muse). Returns only the new messages.",
+        "operationId": "completeSetup",
+        "summary": "Confirm reviewed interests and preferences. Builds the first For you carousel immediately.",
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "required": [
-                  "text"
-                ],
-                "properties": {
-                  "text": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 2000
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "New messages and current state",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OnboardingSession"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        }
-      }
-    },
-    "/v1/onboarding/sessions/{sessionId}/complete": {
-      "parameters": [
-        {
-          "$ref": "#/components/parameters/SessionId"
-        }
-      ],
-      "post": {
-        "tags": [
-          "onboarding"
-        ],
-        "operationId": "completeOnboarding",
-        "summary": "Confirm the reviewed interests and preferences. Creates the first drop.",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/OnboardingComplete"
+                "$ref": "#/components/schemas/SetupComplete"
               }
             }
           }
@@ -558,10 +624,168 @@
         }
       }
     },
-    "/v1/pools/{poolId}/density": {
+    "/v1/connectors": {
+      "get": {
+        "tags": [
+          "connectors"
+        ],
+        "operationId": "listConnectors",
+        "summary": "Every connector with what Muse reads from it and whether it is connected.",
+        "responses": {
+          "200": {
+            "description": "Connectors",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "items"
+                  ],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Connector"
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "items": [
+                    {
+                      "provider": "device_calendar",
+                      "label": "Calendar on this iPhone",
+                      "reads": "When you're busy. Never what your events are.",
+                      "status": "connected",
+                      "simulated": false,
+                      "connectedAt": "2026-11-12T18:00:00Z",
+                      "lastSyncAt": "2026-11-12T18:00:05Z",
+                      "signalCount": 0
+                    },
+                    {
+                      "provider": "google_maps",
+                      "label": "Google Maps",
+                      "reads": "Places you visit often and places you saved.",
+                      "status": "connected",
+                      "simulated": true,
+                      "connectedAt": "2026-11-12T18:00:10Z",
+                      "lastSyncAt": "2026-11-12T18:00:11Z",
+                      "signalCount": 2
+                    },
+                    {
+                      "provider": "strava",
+                      "label": "Strava",
+                      "reads": "Your regular runs and rides: activity, area, day and time.",
+                      "status": "not_connected",
+                      "simulated": true,
+                      "connectedAt": null,
+                      "lastSyncAt": null,
+                      "signalCount": 0
+                    },
+                    {
+                      "provider": "eventbrite",
+                      "label": "Eventbrite",
+                      "reads": "Tickets you hold.",
+                      "status": "not_connected",
+                      "simulated": true,
+                      "connectedAt": null,
+                      "lastSyncAt": null,
+                      "signalCount": 0
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/v1/connectors/{provider}": {
       "parameters": [
         {
-          "name": "poolId",
+          "$ref": "#/components/parameters/Provider"
+        }
+      ],
+      "post": {
+        "tags": [
+          "connectors"
+        ],
+        "operationId": "connectConnector",
+        "summary": "Connect a provider. Simulated providers activate the user's seeded records (no real OAuth in v2).\n`device_calendar` means the app has calendar permission; busy blocks then arrive through `syncCalendar`.\nExtraction re-runs; expect `signals.updated` and `me.updated`.\n",
+        "responses": {
+          "200": {
+            "description": "Connector after connecting",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Connector"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "connectors"
+        ],
+        "operationId": "disconnectConnector",
+        "summary": "Disconnect and delete every signal, busy block and interest evidence derived from this provider.",
+        "responses": {
+          "204": {
+            "description": "Disconnected"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/v1/signals": {
+      "get": {
+        "tags": [
+          "connectors"
+        ],
+        "operationId": "listSignals",
+        "summary": "What Muse noticed from my connected apps and Facebook activity. Owner-only.",
+        "responses": {
+          "200": {
+            "description": "Signals",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "items"
+                  ],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Signal"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/v1/signals/{signalId}": {
+      "parameters": [
+        {
+          "name": "signalId",
           "in": "path",
           "required": true,
           "schema": {
@@ -569,170 +793,12 @@
           }
         }
       ],
-      "get": {
+      "put": {
         "tags": [
-          "discovery"
+          "connectors"
         ],
-        "operationId": "getDensity",
-        "summary": "Anonymous density of people looking. Works before opt-in. Bins under the privacy minimum are never returned.",
-        "responses": {
-          "200": {
-            "description": "Density layer",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Density"
-                },
-                "example": {
-                  "poolId": "pool_sf_city",
-                  "totalLooking": 214,
-                  "minBinCount": 10,
-                  "bins": [
-                    {
-                      "binId": "hx_8828308281fffff",
-                      "count": 23,
-                      "polygon": [
-                        {
-                          "lat": 37.7651,
-                          "lng": -122.4864
-                        },
-                        {
-                          "lat": 37.7689,
-                          "lng": -122.4802
-                        },
-                        {
-                          "lat": 37.7741,
-                          "lng": -122.4821
-                        },
-                        {
-                          "lat": 37.7754,
-                          "lng": -122.4897
-                        },
-                        {
-                          "lat": 37.7716,
-                          "lng": -122.4959
-                        },
-                        {
-                          "lat": 37.7664,
-                          "lng": -122.494
-                        }
-                      ]
-                    }
-                  ]
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        }
-      }
-    },
-    "/v1/drops/current": {
-      "get": {
-        "tags": [
-          "discovery"
-        ],
-        "operationId": "getCurrentDrop",
-        "summary": "Today's suggested people. Empty `cards` with `nextDropAt` when nothing is available.",
-        "responses": {
-          "200": {
-            "description": "Current drop",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Drop"
-                },
-                "example": {
-                  "dropId": "dr_0001",
-                  "poolId": "pool_sf_city",
-                  "generatedAt": "2026-11-12T18:02:00Z",
-                  "expiresAt": "2026-11-13T18:02:00Z",
-                  "nextDropAt": "2026-11-13T18:02:00Z",
-                  "cards": [
-                    {
-                      "suggestionId": "sg_0001",
-                      "person": {
-                        "userId": "u_0042",
-                        "displayName": "Daniel Okafor",
-                        "initials": "DO",
-                        "avatarUrl": "http://localhost:8000/static/avatars/u_0042.png",
-                        "profileVisibility": "public"
-                      },
-                      "distanceBand": "1_3km",
-                      "sharedInterests": [
-                        {
-                          "id": "outdoors.hiking",
-                          "label": "Hiking",
-                          "path": [
-                            "Outdoors",
-                            "Hiking"
-                          ],
-                          "level": 2
-                        },
-                        {
-                          "id": "games.board_games",
-                          "label": "Board games",
-                          "path": [
-                            "Games",
-                            "Board games"
-                          ],
-                          "level": 2
-                        }
-                      ],
-                      "reason": "You both spend weekends on the coast trails and love a long strategy game.",
-                      "state": "open",
-                      "hiAvailable": true
-                    },
-                    {
-                      "suggestionId": "sg_0002",
-                      "person": {
-                        "userId": "u_0117",
-                        "displayName": null,
-                        "initials": "R",
-                        "avatarUrl": null,
-                        "profileVisibility": "private"
-                      },
-                      "distanceBand": "under_1km",
-                      "sharedInterests": [
-                        {
-                          "id": "arts_crafts.ceramics",
-                          "label": "Ceramics",
-                          "path": [
-                            "Arts & crafts",
-                            "Ceramics"
-                          ],
-                          "level": 2
-                        }
-                      ],
-                      "reason": "Another ceramics person a few blocks from you.",
-                      "state": "open",
-                      "hiAvailable": true
-                    }
-                  ]
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        }
-      }
-    },
-    "/v1/suggestions/{suggestionId}/decision": {
-      "parameters": [
-        {
-          "$ref": "#/components/parameters/SuggestionId"
-        }
-      ],
-      "post": {
-        "tags": [
-          "discovery"
-        ],
-        "operationId": "decideSuggestion",
-        "summary": "Private Connect or Pass. A Connect becomes a Connection only when both sides connect.",
+        "operationId": "setSignalVisibility",
+        "summary": "Show or hide a signal. Hidden signals are never used for plans, nudges or \"Because\" lines.",
         "requestBody": {
           "required": true,
           "content": {
@@ -740,15 +806,11 @@
               "schema": {
                 "type": "object",
                 "required": [
-                  "decision"
+                  "visibility"
                 ],
                 "properties": {
-                  "decision": {
-                    "type": "string",
-                    "enum": [
-                      "connect",
-                      "pass"
-                    ]
+                  "visibility": {
+                    "$ref": "#/components/schemas/Visibility"
                   }
                 }
               }
@@ -757,16 +819,83 @@
         },
         "responses": {
           "200": {
-            "description": "Decision recorded",
+            "description": "Updated signal",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/DecisionResult"
+                  "$ref": "#/components/schemas/Signal"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "connectors"
+        ],
+        "operationId": "deleteSignal",
+        "summary": "Delete a signal and stop using it.",
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/v1/calendar/sync": {
+      "post": {
+        "tags": [
+          "connectors"
+        ],
+        "operationId": "syncCalendar",
+        "summary": "Upload device calendar busy blocks (start and end only) and report which calendar directives the app applied.\nSend at most once per config.limits.calendarSyncMinIntervalS while foreground, and right after applying directives.\n",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CalendarSync"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Sync result, including the directives the app should apply now",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CalendarSyncResult"
                 },
                 "example": {
-                  "suggestionId": "sg_0001",
-                  "state": "connected",
-                  "connection": null
+                  "acceptedBusy": 6,
+                  "directives": [
+                    {
+                      "key": "mt_0001",
+                      "desired": "event",
+                      "title": "Wheel-throwing drop-in at Hayes Clay Studio",
+                      "startsAt": "2026-11-14T18:00:00Z",
+                      "endsAt": "2026-11-14T20:00:00Z",
+                      "location": "Hayes Clay Studio, Hayes St, San Francisco",
+                      "notes": "Planned with Muse in Common Ground. Directions: https://maps.apple.com/?daddr=37.7765,-122.4241&dirflg=r"
+                    },
+                    {
+                      "key": "jn_0002",
+                      "desired": "hold",
+                      "title": "Hold: Strategy game night at Long Table Games",
+                      "startsAt": "2026-11-19T03:00:00Z",
+                      "endsAt": "2026-11-19T05:30:00Z",
+                      "location": "Long Table Games, Mission, San Francisco",
+                      "notes": "Muse is gathering people. This hold disappears if the plan doesn't fill."
+                    }
+                  ]
                 }
               }
             }
@@ -777,18 +906,13 @@
         }
       }
     },
-    "/v1/suggestions/{suggestionId}/hi": {
-      "parameters": [
-        {
-          "$ref": "#/components/parameters/SuggestionId"
-        }
-      ],
+    "/v1/muse/ask": {
       "post": {
         "tags": [
-          "discovery"
+          "muse"
         ],
-        "operationId": "sayHi",
-        "summary": "Send one screened opener without waiting for a mutual connect.",
+        "operationId": "askMuse",
+        "summary": "The Muse bar. Free text (\"climb this weekend\", a pasted Google Maps link). Muse answers briefly and returns\nmatching plans, creating one if nothing fits. Takes 2 to 15 s. Pass `conversationId` to keep context.\n",
         "requestBody": {
           "required": true,
           "content": {
@@ -802,7 +926,13 @@
                   "text": {
                     "type": "string",
                     "minLength": 1,
-                    "description": "Max length from config.limits.openerMaxChars"
+                    "description": "Max length from config.limits.museAskMaxChars"
+                  },
+                  "conversationId": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
                   }
                 }
               }
@@ -811,15 +941,113 @@
         },
         "responses": {
           "200": {
-            "description": "Result. `rejected` is a normal outcome, not an error.",
+            "description": "Muse's answer",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HiResult"
+                  "$ref": "#/components/schemas/MuseReply"
                 },
                 "example": {
-                  "hiId": "hi_0001",
-                  "status": "delivered"
+                  "conversationId": "mc_0001",
+                  "reply": {
+                    "messageId": "mm_0002",
+                    "text": "I found two ceramics plans that fit your weekend. Saturday's wheel-throwing drop-in already has 3 people in.",
+                    "createdAt": "2026-11-12T18:10:03Z"
+                  },
+                  "plans": [
+                    {
+                      "planId": "pl_0001",
+                      "title": "Wheel-throwing drop-in",
+                      "activityType": "ceramics_studio",
+                      "venue": {
+                        "venueId": "vn_hayes_clay",
+                        "name": "Hayes Clay Studio",
+                        "neighborhood": "Hayes Valley",
+                        "address": "Hayes St, San Francisco",
+                        "location": {
+                          "lat": 37.7765,
+                          "lng": -122.4241
+                        },
+                        "kind": "studio",
+                        "photoUrl": "http://localhost:8000/static/venues/vn_hayes_clay.jpg"
+                      },
+                      "startsAt": "2026-11-14T18:00:00Z",
+                      "endsAt": "2026-11-14T20:00:00Z",
+                      "durationMin": 120,
+                      "cost": {
+                        "kind": "prepaid",
+                        "perPersonCents": 3500,
+                        "currency": "USD",
+                        "label": "$35 per person"
+                      },
+                      "size": {
+                        "min": 3,
+                        "max": 5
+                      },
+                      "crowd": {
+                        "interestedCount": 3,
+                        "spotsLeft": 2,
+                        "sharedWithYou": [
+                          {
+                            "interest": {
+                              "id": "arts_crafts.ceramics",
+                              "label": "Ceramics",
+                              "path": [
+                                "Arts & crafts",
+                                "Ceramics"
+                              ],
+                              "level": 2
+                            },
+                            "count": 2
+                          }
+                        ]
+                      },
+                      "travel": {
+                        "mode": "transit",
+                        "minutes": 22,
+                        "label": "22 min by transit"
+                      },
+                      "checks": [
+                        {
+                          "kind": "calendar",
+                          "ok": true,
+                          "label": "Fits your Saturday"
+                        },
+                        {
+                          "kind": "travel",
+                          "ok": true,
+                          "label": "22 min by transit"
+                        },
+                        {
+                          "kind": "spots",
+                          "ok": true,
+                          "label": "2 spots left"
+                        },
+                        {
+                          "kind": "cost",
+                          "ok": true,
+                          "label": "$35 · Muse can book it"
+                        }
+                      ],
+                      "reason": "Three people who love ceramics, on your free Saturday morning.",
+                      "because": [
+                        {
+                          "source": "facebook",
+                          "label": "You're in SF Clay Collective",
+                          "signalId": null
+                        }
+                      ],
+                      "origin": "muse",
+                      "status": "open",
+                      "myJoin": null
+                    }
+                  ],
+                  "createdPlanId": null,
+                  "prompts": [
+                    "Something Sunday afternoon",
+                    "Board games this week",
+                    "A coastal walk"
+                  ]
                 }
               }
             }
@@ -830,31 +1058,187 @@
         }
       }
     },
-    "/v1/hi": {
+    "/v1/feed": {
       "get": {
         "tags": [
-          "discovery"
+          "plans"
         ],
-        "operationId": "listHi",
-        "summary": "Openers I received that I have not replied to or dismissed.",
+        "operationId": "getFeed",
+        "summary": "The For you carousel, Muse's live status line and prompt chips. Refetch at config.limits.feedRefreshS.",
         "responses": {
           "200": {
-            "description": "Openers",
+            "description": "Feed",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "items"
+                  "$ref": "#/components/schemas/Feed"
+                },
+                "example": {
+                  "generatedAt": "2026-11-12T18:02:00Z",
+                  "nextRefreshAt": "2026-11-13T18:02:00Z",
+                  "museStatus": "Muse is setting up 1 plan for you",
+                  "prompts": [
+                    "Climb this weekend",
+                    "Pottery",
+                    "A coastal walk",
+                    "Board games"
                   ],
-                  "properties": {
-                    "items": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/HiItem"
+                  "plans": [
+                    {
+                      "planId": "pl_0003",
+                      "title": "Saturday morning coastal walk",
+                      "activityType": "walk",
+                      "venue": {
+                        "venueId": "vn_lands_end",
+                        "name": "Lands End Trail",
+                        "neighborhood": "Outer Richmond",
+                        "address": "680 Point Lobos Ave, San Francisco",
+                        "location": {
+                          "lat": 37.7798,
+                          "lng": -122.5118
+                        },
+                        "kind": "park",
+                        "photoUrl": "http://localhost:8000/static/venues/vn_lands_end.jpg"
+                      },
+                      "startsAt": "2026-11-14T16:30:00Z",
+                      "endsAt": "2026-11-14T18:30:00Z",
+                      "durationMin": 120,
+                      "cost": {
+                        "kind": "free",
+                        "perPersonCents": 0,
+                        "currency": "USD",
+                        "label": "Free"
+                      },
+                      "size": {
+                        "min": 3,
+                        "max": 6
+                      },
+                      "crowd": {
+                        "interestedCount": 5,
+                        "spotsLeft": 1,
+                        "sharedWithYou": [
+                          {
+                            "interest": {
+                              "id": "outdoors.hiking",
+                              "label": "Hiking",
+                              "path": [
+                                "Outdoors",
+                                "Hiking"
+                              ],
+                              "level": 2
+                            },
+                            "count": 4
+                          }
+                        ]
+                      },
+                      "travel": {
+                        "mode": "transit",
+                        "minutes": 24,
+                        "label": "24 min by transit"
+                      },
+                      "checks": [
+                        {
+                          "kind": "calendar",
+                          "ok": true,
+                          "label": "Fits your Saturday"
+                        },
+                        {
+                          "kind": "travel",
+                          "ok": true,
+                          "label": "24 min by transit"
+                        },
+                        {
+                          "kind": "spots",
+                          "ok": true,
+                          "label": "1 spot left"
+                        }
+                      ],
+                      "reason": "Your favorite trail, with four people who also hike the coast.",
+                      "because": [
+                        {
+                          "source": "google_maps",
+                          "label": "You've walked Lands End 4 times this month",
+                          "signalId": "si_0001"
+                        }
+                      ],
+                      "origin": "nudge",
+                      "status": "open",
+                      "myJoin": null
+                    },
+                    {
+                      "planId": "pl_0002",
+                      "title": "Strategy game night",
+                      "activityType": "board_game_night",
+                      "venue": {
+                        "venueId": "vn_long_table",
+                        "name": "Long Table Games",
+                        "neighborhood": "Mission",
+                        "address": "Valencia St, San Francisco",
+                        "location": {
+                          "lat": 37.7599,
+                          "lng": -122.4211
+                        },
+                        "kind": "game_cafe",
+                        "photoUrl": null
+                      },
+                      "startsAt": "2026-11-19T03:00:00Z",
+                      "endsAt": "2026-11-19T05:30:00Z",
+                      "durationMin": 150,
+                      "cost": {
+                        "kind": "pay_at_venue",
+                        "perPersonCents": 800,
+                        "currency": "USD",
+                        "label": "$8 table fee, pay there"
+                      },
+                      "size": {
+                        "min": 4,
+                        "max": 6
+                      },
+                      "crowd": {
+                        "interestedCount": 3,
+                        "spotsLeft": 3,
+                        "sharedWithYou": [
+                          {
+                            "interest": {
+                              "id": "games.board_games",
+                              "label": "Board games",
+                              "path": [
+                                "Games",
+                                "Board games"
+                              ],
+                              "level": 2
+                            },
+                            "count": 3
+                          }
+                        ]
+                      },
+                      "travel": {
+                        "mode": "transit",
+                        "minutes": 31,
+                        "label": "31 min by transit"
+                      },
+                      "checks": [
+                        {
+                          "kind": "calendar",
+                          "ok": true,
+                          "label": "Fits your Wednesday"
+                        },
+                        {
+                          "kind": "travel",
+                          "ok": true,
+                          "label": "31 min by transit"
+                        }
+                      ],
+                      "reason": "Long strategy games with three people who play every week.",
+                      "because": [],
+                      "origin": "muse",
+                      "status": "open",
+                      "myJoin": {
+                        "joinId": "jn_0002",
+                        "status": "interested"
                       }
                     }
-                  }
+                  ]
                 }
               }
             }
@@ -865,18 +1249,13 @@
         }
       }
     },
-    "/v1/hi/{hiId}/reply": {
-      "parameters": [
-        {
-          "$ref": "#/components/parameters/HiId"
-        }
-      ],
+    "/v1/plans": {
       "post": {
         "tags": [
-          "discovery"
+          "plans"
         ],
-        "operationId": "replyHi",
-        "summary": "Reply to an opener. Replying creates a mutual Connection and a thread.",
+        "operationId": "createPlan",
+        "summary": "Propose a plan in my own words (\"anyone want to try the new ramen place Friday?\"), or invite people I've met\n(\"Plan something again\"). Muse turns it into a plan; Laya then Muse screen it. Needs features.userPlans and\nMe.capabilities.canCreatePlans. A screened-out plan returns 422 `screened` with a safe message. The creator is joined automatically.\n",
         "requestBody": {
           "required": true,
           "content": {
@@ -889,7 +1268,15 @@
                 "properties": {
                   "text": {
                     "type": "string",
-                    "minLength": 1
+                    "minLength": 1,
+                    "description": "Max length from config.limits.museAskMaxChars"
+                  },
+                  "inviteUserIds": {
+                    "type": "array",
+                    "description": "Only people I've met (Connection status `met`). With invitees the plan is private to them and may be one-to-one.",
+                    "items": {
+                      "type": "string"
+                    }
                   }
                 }
               }
@@ -898,11 +1285,11 @@
         },
         "responses": {
           "200": {
-            "description": "Connection created",
+            "description": "The created plan",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Connection"
+                  "$ref": "#/components/schemas/PlanDetail"
                 }
               }
             }
@@ -913,21 +1300,139 @@
         }
       }
     },
-    "/v1/hi/{hiId}/dismiss": {
+    "/v1/plans/{planId}": {
       "parameters": [
         {
-          "$ref": "#/components/parameters/HiId"
+          "$ref": "#/components/parameters/PlanId"
         }
       ],
-      "post": {
+      "get": {
         "tags": [
-          "discovery"
+          "plans"
         ],
-        "operationId": "dismissHi",
-        "summary": "Ignore an opener silently. The sender is never told.",
+        "operationId": "getPlan",
+        "summary": "The expanded plan pop-up.",
         "responses": {
-          "204": {
-            "description": "Dismissed"
+          "200": {
+            "description": "Plan detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanDetail"
+                },
+                "example": {
+                  "planId": "pl_0001",
+                  "title": "Wheel-throwing drop-in",
+                  "activityType": "ceramics_studio",
+                  "venue": {
+                    "venueId": "vn_hayes_clay",
+                    "name": "Hayes Clay Studio",
+                    "neighborhood": "Hayes Valley",
+                    "address": "Hayes St, San Francisco",
+                    "location": {
+                      "lat": 37.7765,
+                      "lng": -122.4241
+                    },
+                    "kind": "studio",
+                    "photoUrl": "http://localhost:8000/static/venues/vn_hayes_clay.jpg"
+                  },
+                  "startsAt": "2026-11-14T18:00:00Z",
+                  "endsAt": "2026-11-14T20:00:00Z",
+                  "durationMin": 120,
+                  "cost": {
+                    "kind": "prepaid",
+                    "perPersonCents": 3500,
+                    "currency": "USD",
+                    "label": "$35 per person"
+                  },
+                  "size": {
+                    "min": 3,
+                    "max": 5
+                  },
+                  "crowd": {
+                    "interestedCount": 3,
+                    "spotsLeft": 2,
+                    "sharedWithYou": [
+                      {
+                        "interest": {
+                          "id": "arts_crafts.ceramics",
+                          "label": "Ceramics",
+                          "path": [
+                            "Arts & crafts",
+                            "Ceramics"
+                          ],
+                          "level": 2
+                        },
+                        "count": 2
+                      }
+                    ]
+                  },
+                  "travel": {
+                    "mode": "transit",
+                    "minutes": 22,
+                    "label": "22 min by transit"
+                  },
+                  "checks": [
+                    {
+                      "kind": "calendar",
+                      "ok": true,
+                      "label": "Fits your Saturday"
+                    },
+                    {
+                      "kind": "travel",
+                      "ok": true,
+                      "label": "22 min by transit"
+                    },
+                    {
+                      "kind": "spots",
+                      "ok": true,
+                      "label": "2 spots left"
+                    },
+                    {
+                      "kind": "cost",
+                      "ok": true,
+                      "label": "$35 · Muse can book it"
+                    }
+                  ],
+                  "reason": "Three people who love ceramics, on your free Saturday morning.",
+                  "because": [
+                    {
+                      "source": "facebook",
+                      "label": "You're in SF Clay Collective",
+                      "signalId": null
+                    }
+                  ],
+                  "origin": "muse",
+                  "status": "open",
+                  "myJoin": null,
+                  "description": "A two-hour open wheel session for beginners and regulars. Clay, tools and firing included.",
+                  "museWillHandle": [
+                    "Book wheels for the group",
+                    "Ask you before paying $35",
+                    "Add it to your calendar",
+                    "Open a group chat with an intro",
+                    "Remind you when to leave"
+                  ],
+                  "safety": [
+                    "Public studio",
+                    "Groups of 3 or more",
+                    "Share your plan with a friend in one tap"
+                  ],
+                  "formsAt": "2026-11-13T18:00:00Z",
+                  "alternatives": [
+                    {
+                      "planId": "pl_0004",
+                      "title": "Wheel-throwing drop-in",
+                      "startsAt": "2026-11-15T22:00:00Z"
+                    }
+                  ],
+                  "directions": {
+                    "apple": "https://maps.apple.com/?daddr=37.7765,-122.4241&dirflg=r",
+                    "google": "https://www.google.com/maps/dir/?api=1&destination=37.7765,-122.4241&travelmode=transit"
+                  }
+                }
+              }
+            }
           },
           "default": {
             "$ref": "#/components/responses/Error"
@@ -935,33 +1440,31 @@
         }
       }
     },
-    "/v1/groups": {
+    "/v1/plans/{planId}/join": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/PlanId"
+        }
+      ],
       "post": {
         "tags": [
-          "discovery"
+          "plans"
         ],
-        "operationId": "requestGroup",
-        "summary": "Invite several suggested people to form a small group.",
+        "operationId": "joinPlan",
+        "summary": "I'm in. Private. Idempotent. Fails with 409 `conflict` when full or closed, 429 `rate_limited` above openJoinsMax.",
         "requestBody": {
-          "required": true,
+          "required": false,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "suggestionIds",
-                  "size"
-                ],
                 "properties": {
-                  "suggestionIds": {
-                    "type": "array",
-                    "minItems": 2,
-                    "items": {
-                      "type": "string"
-                    }
-                  },
                   "size": {
                     "$ref": "#/components/schemas/GroupSize"
+                  },
+                  "plusOne": {
+                    "type": "boolean",
+                    "description": "Only when features.plusOne. Muse asks before adding a Facebook friend."
                   }
                 }
               }
@@ -969,23 +1472,34 @@
           }
         },
         "responses": {
-          "202": {
-            "description": "Invites sent. Progress arrives via `group.updated` events or GET.",
+          "200": {
+            "description": "My join",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/GroupRequest"
+                  "$ref": "#/components/schemas/Join"
                 },
                 "example": {
-                  "groupRequestId": "gr_0001",
-                  "status": "inviting",
-                  "invitedCount": 2,
-                  "acceptedCount": 0,
-                  "size": {
-                    "min": 3,
-                    "max": 4
+                  "joinId": "jn_0001",
+                  "planId": "pl_0001",
+                  "status": "interested",
+                  "progress": {
+                    "joined": 3,
+                    "needed": 3
                   },
-                  "threadId": null
+                  "meetupId": null,
+                  "formsAt": "2026-11-13T18:00:00Z",
+                  "createdAt": "2026-11-12T18:11:00Z",
+                  "alternatives": [],
+                  "calendar": {
+                    "key": "jn_0001",
+                    "desired": "hold",
+                    "title": "Hold: Wheel-throwing drop-in at Hayes Clay Studio",
+                    "startsAt": "2026-11-14T18:00:00Z",
+                    "endsAt": "2026-11-14T20:00:00Z",
+                    "location": "Hayes Clay Studio, Hayes St, San Francisco",
+                    "notes": "Muse is gathering people. This hold disappears if the plan doesn't fill."
+                  }
                 }
               }
             }
@@ -994,35 +1508,16 @@
             "$ref": "#/components/responses/Error"
           }
         }
-      }
-    },
-    "/v1/groups/{groupRequestId}": {
-      "parameters": [
-        {
-          "name": "groupRequestId",
-          "in": "path",
-          "required": true,
-          "schema": {
-            "type": "string"
-          }
-        }
-      ],
-      "get": {
+      },
+      "delete": {
         "tags": [
-          "discovery"
+          "plans"
         ],
-        "operationId": "getGroupRequest",
-        "summary": "Current state of a group request.",
+        "operationId": "withdrawJoin",
+        "summary": "Can't make it, before a group forms. Silent; nobody is told. After a group forms use leaveMeetup.",
         "responses": {
-          "200": {
-            "description": "Group request state",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/GroupRequest"
-                }
-              }
-            }
+          "204": {
+            "description": "Withdrawn"
           },
           "default": {
             "$ref": "#/components/responses/Error"
@@ -1030,16 +1525,16 @@
         }
       }
     },
-    "/v1/invites": {
+    "/v1/joins": {
       "get": {
         "tags": [
-          "discovery"
+          "plans"
         ],
-        "operationId": "listInvites",
-        "summary": "Group invites I received.",
+        "operationId": "listJoins",
+        "summary": "My joins that are not withdrawn, newest first. The Your plans list.",
         "responses": {
           "200": {
-            "description": "Invites",
+            "description": "Joins",
             "content": {
               "application/json": {
                 "schema": {
@@ -1051,7 +1546,7 @@
                     "items": {
                       "type": "array",
                       "items": {
-                        "$ref": "#/components/schemas/Invite"
+                        "$ref": "#/components/schemas/Join"
                       }
                     }
                   }
@@ -1065,10 +1560,78 @@
         }
       }
     },
-    "/v1/invites/{inviteId}/decision": {
+    "/v1/nudges": {
+      "get": {
+        "tags": [
+          "nudges"
+        ],
+        "operationId": "listNudges",
+        "summary": "Proactive suggestions from strong signals, for the Plans tab, Facebook Home or Events. Empty before opt-in.",
+        "parameters": [
+          {
+            "name": "surface",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/NudgeSurface"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Nudges",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "items"
+                  ],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Nudge"
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "items": [
+                    {
+                      "nudgeId": "nd_0001",
+                      "title": "Lands End on Saturday?",
+                      "text": "You've walked Lands End 4 times this month. 5 people want a Saturday morning coastal walk crew. Want in?",
+                      "because": [
+                        {
+                          "source": "google_maps",
+                          "label": "You've walked Lands End 4 times this month",
+                          "signalId": "si_0001"
+                        }
+                      ],
+                      "planId": "pl_0003",
+                      "surfaces": [
+                        "plans",
+                        "home"
+                      ],
+                      "createdAt": "2026-11-12T17:00:00Z",
+                      "expiresAt": "2026-11-14T08:00:00Z"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/v1/nudges/{nudgeId}/dismiss": {
       "parameters": [
         {
-          "name": "inviteId",
+          "name": "nudgeId",
           "in": "path",
           "required": true,
           "schema": {
@@ -1078,10 +1641,545 @@
       ],
       "post": {
         "tags": [
-          "discovery"
+          "nudges"
         ],
-        "operationId": "decideInvite",
-        "summary": "Accept or decline a group invite.",
+        "operationId": "dismissNudge",
+        "summary": "Dismiss a nudge. `mute` stops nudges from the same signal (for example, that place).",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "mute": {
+                    "type": "string",
+                    "enum": [
+                      "none",
+                      "signal"
+                    ],
+                    "default": "none"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Dismissed"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/v1/meetups": {
+      "get": {
+        "tags": [
+          "meetups"
+        ],
+        "operationId": "listMeetups",
+        "summary": "My meetups that are not cancelled, soonest first.",
+        "responses": {
+          "200": {
+            "description": "Meetups",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "items"
+                  ],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Meetup"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/v1/meetups/{meetupId}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/MeetupId"
+        }
+      ],
+      "get": {
+        "tags": [
+          "meetups"
+        ],
+        "operationId": "getMeetup",
+        "summary": "One meetup with Muse's steps, my pending approvals, attendees, booking, calendar and travel.",
+        "responses": {
+          "200": {
+            "description": "Meetup",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Meetup"
+                },
+                "example": {
+                  "meetupId": "mt_0001",
+                  "planId": "pl_0001",
+                  "threadId": "th_0001",
+                  "title": "Wheel-throwing drop-in",
+                  "activityType": "ceramics_studio",
+                  "status": "setting_up",
+                  "venue": {
+                    "venueId": "vn_hayes_clay",
+                    "name": "Hayes Clay Studio",
+                    "neighborhood": "Hayes Valley",
+                    "address": "Hayes St, San Francisco",
+                    "location": {
+                      "lat": 37.7765,
+                      "lng": -122.4241
+                    },
+                    "kind": "studio",
+                    "photoUrl": "http://localhost:8000/static/venues/vn_hayes_clay.jpg"
+                  },
+                  "startsAt": "2026-11-14T18:00:00Z",
+                  "endsAt": "2026-11-14T20:00:00Z",
+                  "attendees": [
+                    {
+                      "person": {
+                        "userId": "u_maya",
+                        "displayName": "Maya Chen",
+                        "initials": "MC",
+                        "avatarUrl": "http://localhost:8000/static/avatars/u_maya.jpg",
+                        "profileVisibility": "public"
+                      },
+                      "isMe": true,
+                      "rsvp": "going",
+                      "checkedIn": false,
+                      "status": null,
+                      "sharedInterests": []
+                    },
+                    {
+                      "person": {
+                        "userId": "u_0042",
+                        "displayName": "Daniel Okafor",
+                        "initials": "DO",
+                        "avatarUrl": "http://localhost:8000/static/avatars/u_0042.png",
+                        "profileVisibility": "public"
+                      },
+                      "isMe": false,
+                      "rsvp": "going",
+                      "checkedIn": false,
+                      "status": null,
+                      "sharedInterests": [
+                        {
+                          "id": "arts_crafts.ceramics.wheel_throwing",
+                          "label": "Wheel throwing",
+                          "path": [
+                            "Arts & crafts",
+                            "Ceramics",
+                            "Wheel throwing"
+                          ],
+                          "level": 3
+                        },
+                        {
+                          "id": "outdoors.hiking.coastal_hikes",
+                          "label": "Coastal hikes",
+                          "path": [
+                            "Outdoors",
+                            "Hiking",
+                            "Coastal hikes"
+                          ],
+                          "level": 3
+                        }
+                      ]
+                    },
+                    {
+                      "person": {
+                        "userId": "u_0117",
+                        "displayName": "Rosa",
+                        "initials": "R",
+                        "avatarUrl": null,
+                        "profileVisibility": "private"
+                      },
+                      "isMe": false,
+                      "rsvp": "going",
+                      "checkedIn": false,
+                      "status": null,
+                      "sharedInterests": [
+                        {
+                          "id": "arts_crafts.ceramics.wheel_throwing",
+                          "label": "Wheel throwing",
+                          "path": [
+                            "Arts & crafts",
+                            "Ceramics",
+                            "Wheel throwing"
+                          ],
+                          "level": 3
+                        }
+                      ]
+                    }
+                  ],
+                  "museSteps": [
+                    {
+                      "stepId": "st_0001",
+                      "kind": "group_chat",
+                      "status": "done",
+                      "label": "Opened your group chat",
+                      "detail": null,
+                      "approvalId": null,
+                      "at": "2026-11-12T18:12:00Z"
+                    },
+                    {
+                      "stepId": "st_0002",
+                      "kind": "find_time",
+                      "status": "done",
+                      "label": "Everyone's free Saturday 10 to 12",
+                      "detail": "Checked 3 calendars",
+                      "approvalId": null,
+                      "at": "2026-11-12T18:12:02Z"
+                    },
+                    {
+                      "stepId": "st_0003",
+                      "kind": "check_availability",
+                      "status": "done",
+                      "label": "Hayes Clay Studio has 3 wheels open at 10",
+                      "detail": null,
+                      "approvalId": null,
+                      "at": "2026-11-12T18:12:04Z"
+                    },
+                    {
+                      "stepId": "st_0004",
+                      "kind": "payment",
+                      "status": "needs_you",
+                      "label": "Waiting for you to OK $35",
+                      "detail": "Daniel and Rosa already said yes",
+                      "approvalId": "ap_0001",
+                      "at": "2026-11-12T18:12:05Z"
+                    },
+                    {
+                      "stepId": "st_0005",
+                      "kind": "book",
+                      "status": "queued",
+                      "label": "Book 3 wheels",
+                      "detail": null,
+                      "approvalId": null,
+                      "at": "2026-11-12T18:12:05Z"
+                    },
+                    {
+                      "stepId": "st_0006",
+                      "kind": "calendar",
+                      "status": "queued",
+                      "label": "Add it to everyone's calendar",
+                      "detail": null,
+                      "approvalId": null,
+                      "at": "2026-11-12T18:12:05Z"
+                    },
+                    {
+                      "stepId": "st_0007",
+                      "kind": "reminder",
+                      "status": "queued",
+                      "label": "Remind everyone when to leave",
+                      "detail": null,
+                      "approvalId": null,
+                      "at": "2026-11-12T18:12:05Z"
+                    }
+                  ],
+                  "approvals": [
+                    {
+                      "approvalId": "ap_0001",
+                      "meetupId": "mt_0001",
+                      "kind": "payment",
+                      "status": "pending",
+                      "title": "OK $35 for your wheel?",
+                      "detail": "Muse pays Hayes Clay Studio for your seat on Saturday, 10 AM to 12 PM.",
+                      "amountCents": 3500,
+                      "currency": "USD",
+                      "payee": "Hayes Clay Studio",
+                      "simulated": true,
+                      "fallback": "If you'd rather not, I'll ask the studio to hold your wheel and you can pay there.",
+                      "expiresAt": "2026-11-13T18:00:00Z"
+                    }
+                  ],
+                  "booking": {
+                    "status": "not_booked",
+                    "label": "Not booked yet",
+                    "provider": "Simulated booking",
+                    "confirmationCode": null
+                  },
+                  "cost": {
+                    "kind": "prepaid",
+                    "perPersonCents": 3500,
+                    "currency": "USD",
+                    "label": "$35 per person",
+                    "myPayment": "pending_approval"
+                  },
+                  "calendar": {
+                    "key": "mt_0001",
+                    "desired": "hold",
+                    "title": "Hold: Wheel-throwing drop-in at Hayes Clay Studio",
+                    "startsAt": "2026-11-14T18:00:00Z",
+                    "endsAt": "2026-11-14T20:00:00Z",
+                    "location": "Hayes Clay Studio, Hayes St, San Francisco",
+                    "notes": "Muse is setting this up."
+                  },
+                  "travel": {
+                    "mode": "transit",
+                    "minutes": 22,
+                    "label": "22 min by transit",
+                    "leaveBy": "2026-11-14T17:28:00Z",
+                    "directions": {
+                      "apple": "https://maps.apple.com/?daddr=37.7765,-122.4241&dirflg=r",
+                      "google": "https://www.google.com/maps/dir/?api=1&destination=37.7765,-122.4241&travelmode=transit"
+                    }
+                  },
+                  "checkinWindow": null,
+                  "feedbackDue": false,
+                  "eventLabel": null
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/v1/meetups/{meetupId}/leave": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/MeetupId"
+        }
+      ],
+      "post": {
+        "tags": [
+          "meetups"
+        ],
+        "operationId": "leaveMeetup",
+        "summary": "Can't make it after the group formed. Muse backfills, continues, or cancels with alternatives, and tells the group only \"Maya can't make it\".",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "note": {
+                    "type": "string",
+                    "maxLength": 280
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Meetup after leaving (my rsvp is `left`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Meetup"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/v1/meetups/{meetupId}/my-status": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/MeetupId"
+        }
+      ],
+      "put": {
+        "tags": [
+          "meetups"
+        ],
+        "operationId": "setMeetupStatus",
+        "summary": "Share \"on my way\" or \"arrived\" with the group, from config.limits.meetupStatusBeforeMin before start until the end. No location is sent.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "status"
+                ],
+                "properties": {
+                  "status": {
+                    "$ref": "#/components/schemas/AttendeeStatus"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Meetup",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Meetup"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/v1/meetups/{meetupId}/checkin": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/MeetupId"
+        }
+      ],
+      "post": {
+        "tags": [
+          "meetups"
+        ],
+        "operationId": "checkIn",
+        "summary": "Check in at the venue during the check-in window. One location reading, taken when the user taps.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "location"
+                ],
+                "properties": {
+                  "location": {
+                    "$ref": "#/components/schemas/LatLng"
+                  },
+                  "accuracyM": {
+                    "type": "number",
+                    "minimum": 0
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Check-in result. `accepted=false` is a normal outcome.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckinResult"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/v1/meetups/{meetupId}/feedback": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/MeetupId"
+        }
+      ],
+      "post": {
+        "tags": [
+          "meetups"
+        ],
+        "operationId": "sendFeedback",
+        "summary": "The three post-meetup questions, one answer per other attendee.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Feedback"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Recorded"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/v1/approvals": {
+      "get": {
+        "tags": [
+          "approvals"
+        ],
+        "operationId": "listApprovals",
+        "summary": "My pending approvals across meetups, oldest first.",
+        "responses": {
+          "200": {
+            "description": "Approvals",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "items"
+                  ],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Approval"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/v1/approvals/{approvalId}/decision": {
+      "parameters": [
+        {
+          "name": "approvalId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "post": {
+        "tags": [
+          "approvals"
+        ],
+        "operationId": "decideApproval",
+        "summary": "Approve or decline. Declining runs Muse's in-bounds fallback (the approval's `fallback`). 409 `conflict` once decided or expired.",
         "requestBody": {
           "required": true,
           "content": {
@@ -1095,7 +2193,7 @@
                   "decision": {
                     "type": "string",
                     "enum": [
-                      "accept",
+                      "approve",
                       "decline"
                     ]
                   }
@@ -1106,11 +2204,25 @@
         },
         "responses": {
           "200": {
-            "description": "Invite state after the decision",
+            "description": "Approval after the decision",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Invite"
+                  "$ref": "#/components/schemas/Approval"
+                },
+                "example": {
+                  "approvalId": "ap_0001",
+                  "meetupId": "mt_0001",
+                  "kind": "payment",
+                  "status": "approved",
+                  "title": "OK $35 for your wheel?",
+                  "detail": "Muse pays Hayes Clay Studio for your seat on Saturday, 10 AM to 12 PM.",
+                  "amountCents": 3500,
+                  "currency": "USD",
+                  "payee": "Hayes Clay Studio",
+                  "simulated": true,
+                  "fallback": "If you'd rather not, I'll ask the studio to hold your wheel and you can pay there.",
+                  "expiresAt": "2026-11-13T18:00:00Z"
                 }
               }
             }
@@ -1124,10 +2236,10 @@
     "/v1/connections": {
       "get": {
         "tags": [
-          "connections"
+          "people"
         ],
         "operationId": "listConnections",
-        "summary": "People I have mutually connected with, newest first.",
+        "summary": "People I've been in a formed group with (People you've met), newest first.",
         "responses": {
           "200": {
             "description": "Connections",
@@ -1160,6 +2272,16 @@
                       },
                       "sharedInterests": [
                         {
+                          "id": "arts_crafts.ceramics.wheel_throwing",
+                          "label": "Wheel throwing",
+                          "path": [
+                            "Arts & crafts",
+                            "Ceramics",
+                            "Wheel throwing"
+                          ],
+                          "level": 3
+                        },
+                        {
                           "id": "outdoors.hiking.coastal_hikes",
                           "label": "Coastal hikes",
                           "path": [
@@ -1168,28 +2290,14 @@
                             "Coastal hikes"
                           ],
                           "level": 3
-                        },
-                        {
-                          "id": "games.board_games.strategy_games",
-                          "label": "Strategy board games",
-                          "path": [
-                            "Games",
-                            "Board games",
-                            "Strategy board games"
-                          ],
-                          "level": 3
                         }
                       ],
-                      "threadId": "th_0001",
                       "status": "new",
-                      "connectedAt": "2026-11-12T18:05:00Z",
+                      "meetupsTogether": 0,
+                      "connectedAt": "2026-11-12T18:12:00Z",
                       "firstMetAt": null,
-                      "location": {
-                        "iShare": "off",
-                        "theyShare": "off",
-                        "viewing": "neighborhood"
-                      },
-                      "canViewProfile": true
+                      "canViewProfile": true,
+                      "canPlanAgain": false
                     }
                   ]
                 }
@@ -1210,10 +2318,10 @@
       ],
       "get": {
         "tags": [
-          "connections"
+          "people"
         ],
         "operationId": "getPerson",
-        "summary": "Public profile of a connected person. 403 `not_allowed` for private profiles or non-connections.",
+        "summary": "Public profile of someone I've been in a group with. 403 `not_allowed` for private profiles or anyone else.",
         "responses": {
           "200": {
             "description": "Public profile",
@@ -1237,7 +2345,7 @@
           "chat"
         ],
         "operationId": "listThreads",
-        "summary": "My Common Ground threads, most recent activity first.",
+        "summary": "My Common Ground group chats, most recent activity first.",
         "responses": {
           "200": {
             "description": "Threads",
@@ -1345,16 +2453,22 @@
                         "kind": "muse",
                         "userId": null
                       },
-                      "text": "Maya, meet Daniel. You both hike the coast trails most weekends, and you are both into long strategy games.",
-                      "createdAt": "2026-11-12T18:05:01Z",
+                      "text": "Maya, Daniel and Rosa, meet each other! You're all into wheel throwing, and Saturday's drop-in at Hayes Clay Studio is yours. I'm handling the booking and the calendar.",
+                      "createdAt": "2026-11-12T18:12:01Z",
+                      "clientId": null,
+                      "toMuse": false,
                       "attachments": [
                         {
                           "kind": "starters",
                           "starters": [
-                            "What's your favorite stretch of the coast trail?",
-                            "Which strategy game could you play every week?",
-                            "Ever tried hiking to Lands End at sunrise?"
+                            "What was the first thing you ever made on a wheel?",
+                            "Mugs or bowls?",
+                            "Any favorite coastal trail for after?"
                           ]
+                        },
+                        {
+                          "kind": "meetup",
+                          "meetupId": "mt_0001"
                         }
                       ]
                     },
@@ -1365,9 +2479,33 @@
                         "kind": "user",
                         "userId": "u_0042"
                       },
-                      "text": "Hey Maya! Lands End at sunrise is my favorite thing in the city.",
-                      "createdAt": "2026-11-12T18:06:10Z",
+                      "text": "Hi both! Bowls, always. Muse, can we do 11 instead?",
+                      "createdAt": "2026-11-12T18:14:10Z",
+                      "clientId": null,
+                      "toMuse": true,
                       "attachments": []
+                    },
+                    {
+                      "messageId": "ms_0003",
+                      "threadId": "th_0001",
+                      "sender": {
+                        "kind": "muse",
+                        "userId": null
+                      },
+                      "text": "Done. Everyone's free at 11 and the studio has 3 wheels then, so I moved it. Your calendars are updated.",
+                      "createdAt": "2026-11-12T18:14:16Z",
+                      "clientId": null,
+                      "toMuse": false,
+                      "attachments": [
+                        {
+                          "kind": "muse_steps",
+                          "meetupId": "mt_0001",
+                          "stepIds": [
+                            "st_0008",
+                            "st_0009"
+                          ]
+                        }
+                      ]
                     }
                   ]
                 }
@@ -1384,7 +2522,7 @@
           "chat"
         ],
         "operationId": "sendMessage",
-        "summary": "Send a message. `clientId` makes retries idempotent.",
+        "summary": "Send a message. `clientId` makes retries idempotent. `toMuse` asks Muse to act on it (change time, swap venue, add a note).",
         "requestBody": {
           "required": true,
           "content": {
@@ -1403,6 +2541,11 @@
                   "clientId": {
                     "type": "string",
                     "description": "Client-generated unique ID used for idempotency and optimistic UI."
+                  },
+                  "toMuse": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Also true on the server when the text starts with 'Muse'."
                   }
                 }
               }
@@ -1441,736 +2584,6 @@
         "responses": {
           "204": {
             "description": "Marked read"
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        }
-      }
-    },
-    "/v1/threads/{threadId}/plan": {
-      "parameters": [
-        {
-          "$ref": "#/components/parameters/ThreadId"
-        }
-      ],
-      "post": {
-        "tags": [
-          "meetups"
-        ],
-        "operationId": "planMeetup",
-        "summary": "Ask Muse to propose meetup options for this thread. Options arrive asynchronously.",
-        "requestBody": {
-          "required": false,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "size": {
-                    "$ref": "#/components/schemas/GroupSize"
-                  },
-                  "note": {
-                    "type": "string",
-                    "maxLength": 280,
-                    "description": "Optional free-text hint, e.g. 'something outdoors on Saturday'."
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "202": {
-            "description": "Planning started. Poll GET /v1/meetups/{meetupId} or wait for `meetup.updated`.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Meetup"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        }
-      }
-    },
-    "/v1/meetups": {
-      "get": {
-        "tags": [
-          "meetups"
-        ],
-        "operationId": "listMeetups",
-        "summary": "My meetups that are not cancelled, soonest first.",
-        "responses": {
-          "200": {
-            "description": "Meetups",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "items"
-                  ],
-                  "properties": {
-                    "items": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/Meetup"
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        }
-      }
-    },
-    "/v1/meetups/{meetupId}": {
-      "parameters": [
-        {
-          "$ref": "#/components/parameters/MeetupId"
-        }
-      ],
-      "get": {
-        "tags": [
-          "meetups"
-        ],
-        "operationId": "getMeetup",
-        "summary": "One meetup with its options, votes and attendees.",
-        "responses": {
-          "200": {
-            "description": "Meetup",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Meetup"
-                },
-                "example": {
-                  "meetupId": "mt_0001",
-                  "threadId": "th_0001",
-                  "status": "voting",
-                  "organizerId": "u_maya",
-                  "size": {
-                    "min": 2,
-                    "max": 4
-                  },
-                  "title": null,
-                  "chosenOptionId": null,
-                  "startsAt": null,
-                  "endsAt": null,
-                  "venue": null,
-                  "options": [
-                    {
-                      "optionId": "op_0001",
-                      "activity": "Sunrise walk at Lands End, then coffee",
-                      "venue": {
-                        "venueId": "vn_lands_end",
-                        "name": "Lands End Lookout",
-                        "neighborhood": "Outer Richmond",
-                        "location": {
-                          "lat": 37.7798,
-                          "lng": -122.5118
-                        },
-                        "kind": "park"
-                      },
-                      "startsAt": "2026-11-15T15:30:00Z",
-                      "endsAt": "2026-11-15T17:30:00Z",
-                      "reason": "You both love the coast trail and are free Saturday morning.",
-                      "votes": {
-                        "yes": 1,
-                        "no": 0
-                      },
-                      "myVote": "yes"
-                    },
-                    {
-                      "optionId": "op_0002",
-                      "activity": "Strategy game night",
-                      "venue": {
-                        "venueId": "vn_game_parlor",
-                        "name": "Game Parlor",
-                        "neighborhood": "Mission",
-                        "location": {
-                          "lat": 37.7599,
-                          "lng": -122.4148
-                        },
-                        "kind": "game_cafe"
-                      },
-                      "startsAt": "2026-11-19T03:00:00Z",
-                      "endsAt": "2026-11-19T05:30:00Z",
-                      "reason": "A public game cafe with long tables.",
-                      "votes": {
-                        "yes": 0,
-                        "no": 0
-                      },
-                      "myVote": null
-                    }
-                  ],
-                  "attendees": [
-                    {
-                      "userId": "u_maya",
-                      "rsvp": "yes",
-                      "checkedIn": false,
-                      "status": null
-                    },
-                    {
-                      "userId": "u_0042",
-                      "rsvp": "pending",
-                      "checkedIn": false,
-                      "status": null
-                    }
-                  ],
-                  "checkinWindow": null,
-                  "feedbackDue": false,
-                  "eventLabel": null
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        }
-      }
-    },
-    "/v1/meetups/{meetupId}/votes": {
-      "parameters": [
-        {
-          "$ref": "#/components/parameters/MeetupId"
-        }
-      ],
-      "post": {
-        "tags": [
-          "meetups"
-        ],
-        "operationId": "voteMeetup",
-        "summary": "Vote yes or no on one or more options. Several yes votes are allowed. Replaces my previous votes for the listed options.",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "votes"
-                ],
-                "properties": {
-                  "votes": {
-                    "type": "array",
-                    "minItems": 1,
-                    "items": {
-                      "type": "object",
-                      "required": [
-                        "optionId",
-                        "vote"
-                      ],
-                      "properties": {
-                        "optionId": {
-                          "type": "string"
-                        },
-                        "vote": {
-                          "type": "string",
-                          "enum": [
-                            "yes",
-                            "no"
-                          ]
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Meetup after the vote (may now be `confirmed`)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Meetup"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        }
-      }
-    },
-    "/v1/meetups/{meetupId}/my-status": {
-      "parameters": [
-        {
-          "$ref": "#/components/parameters/MeetupId"
-        }
-      ],
-      "put": {
-        "tags": [
-          "meetups"
-        ],
-        "operationId": "setMeetupStatus",
-        "summary": "Share \"on my way\" or \"arrived\" with the other attendees during the meetup window only.",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "status"
-                ],
-                "properties": {
-                  "status": {
-                    "$ref": "#/components/schemas/AttendeeStatus"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Meetup",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Meetup"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        }
-      }
-    },
-    "/v1/meetups/{meetupId}/checkin": {
-      "parameters": [
-        {
-          "$ref": "#/components/parameters/MeetupId"
-        }
-      ],
-      "post": {
-        "tags": [
-          "meetups"
-        ],
-        "operationId": "checkIn",
-        "summary": "Check in at the venue during the check-in window.",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "location"
-                ],
-                "properties": {
-                  "location": {
-                    "$ref": "#/components/schemas/LatLng"
-                  },
-                  "accuracyM": {
-                    "type": "number",
-                    "minimum": 0
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Check-in result. `accepted=false` is a normal outcome.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CheckinResult"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        }
-      }
-    },
-    "/v1/meetups/{meetupId}/feedback": {
-      "parameters": [
-        {
-          "$ref": "#/components/parameters/MeetupId"
-        }
-      ],
-      "post": {
-        "tags": [
-          "meetups"
-        ],
-        "operationId": "sendFeedback",
-        "summary": "The three post-meetup questions, one answer per other attendee.",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/Feedback"
-              }
-            }
-          }
-        },
-        "responses": {
-          "204": {
-            "description": "Recorded"
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        }
-      }
-    },
-    "/v1/map": {
-      "get": {
-        "tags": [
-          "map"
-        ],
-        "operationId": "getMap",
-        "summary": "Everything the map tab draws. Location precision is already enforced by the server.",
-        "responses": {
-          "200": {
-            "description": "Map view",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MapView"
-                },
-                "example": {
-                  "generatedAt": "2026-11-15T15:10:00Z",
-                  "me": {
-                    "location": {
-                      "lat": 37.7694,
-                      "lng": -122.4862
-                    },
-                    "ghostMode": false
-                  },
-                  "friends": [
-                    {
-                      "userId": "u_0042",
-                      "person": {
-                        "userId": "u_0042",
-                        "displayName": "Daniel Okafor",
-                        "initials": "DO",
-                        "avatarUrl": "http://localhost:8000/static/avatars/u_0042.png",
-                        "profileVisibility": "public"
-                      },
-                      "precision": "neighborhood",
-                      "location": {
-                        "lat": 37.7801,
-                        "lng": -122.49
-                      },
-                      "radiusM": 800,
-                      "sharedInterests": [
-                        {
-                          "id": "outdoors.hiking.coastal_hikes",
-                          "label": "Coastal hikes",
-                          "path": [
-                            "Outdoors",
-                            "Hiking",
-                            "Coastal hikes"
-                          ],
-                          "level": 3
-                        }
-                      ],
-                      "meetupStatus": "on_my_way",
-                      "threadId": "th_0001",
-                      "updatedAt": "2026-11-15T15:08:00Z"
-                    }
-                  ],
-                  "tray": [
-                    {
-                      "userId": "u_0117",
-                      "person": {
-                        "userId": "u_0117",
-                        "displayName": "Rosa",
-                        "initials": "R",
-                        "avatarUrl": null,
-                        "profileVisibility": "private"
-                      },
-                      "reason": "not_met",
-                      "threadId": "th_0002",
-                      "sharedInterests": [
-                        {
-                          "id": "arts_crafts.ceramics.wheel_throwing",
-                          "label": "Wheel throwing",
-                          "path": [
-                            "Arts & crafts",
-                            "Ceramics",
-                            "Wheel throwing"
-                          ],
-                          "level": 3
-                        }
-                      ]
-                    }
-                  ],
-                  "meetups": [
-                    {
-                      "meetupId": "mt_0001",
-                      "title": "Sunrise walk at Lands End",
-                      "venue": {
-                        "venueId": "vn_lands_end",
-                        "name": "Lands End Lookout",
-                        "neighborhood": "Outer Richmond",
-                        "location": {
-                          "lat": 37.7798,
-                          "lng": -122.5118
-                        },
-                        "kind": "park"
-                      },
-                      "startsAt": "2026-11-15T15:30:00Z",
-                      "attendeeCount": 2
-                    }
-                  ]
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        }
-      }
-    },
-    "/v1/location": {
-      "put": {
-        "tags": [
-          "map"
-        ],
-        "operationId": "updateLocation",
-        "summary": "Foreground location update. Send at most once per config.limits.locationMinIntervalS.",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "location",
-                  "capturedAt"
-                ],
-                "properties": {
-                  "location": {
-                    "$ref": "#/components/schemas/LatLng"
-                  },
-                  "accuracyM": {
-                    "type": "number",
-                    "minimum": 0
-                  },
-                  "capturedAt": {
-                    "type": "string",
-                    "format": "date-time"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "204": {
-            "description": "Stored"
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        }
-      }
-    },
-    "/v1/location/shares/{userId}": {
-      "parameters": [
-        {
-          "$ref": "#/components/parameters/UserId"
-        }
-      ],
-      "put": {
-        "tags": [
-          "map"
-        ],
-        "operationId": "setLocationShare",
-        "summary": "The most precise level I share with this connection. Off by default.",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "maxPrecision"
-                ],
-                "properties": {
-                  "maxPrecision": {
-                    "$ref": "#/components/schemas/SharePrecision"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Updated sharing state for this connection",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/LocationShareState"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        }
-      }
-    },
-    "/v1/location/views/{userId}": {
-      "parameters": [
-        {
-          "$ref": "#/components/parameters/UserId"
-        }
-      ],
-      "put": {
-        "tags": [
-          "map"
-        ],
-        "operationId": "setLocationView",
-        "summary": "How precisely I want to view this connection. The server caps it at what they share.",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "precision"
-                ],
-                "properties": {
-                  "precision": {
-                    "$ref": "#/components/schemas/Precision"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Updated sharing state for this connection",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/LocationShareState"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        }
-      }
-    },
-    "/v1/location/ghost": {
-      "put": {
-        "tags": [
-          "map"
-        ],
-        "operationId": "setGhostMode",
-        "summary": "Ghost mode hides my location from everyone until turned off.",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "enabled"
-                ],
-                "properties": {
-                  "enabled": {
-                    "type": "boolean"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "204": {
-            "description": "Updated"
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        }
-      }
-    },
-    "/v1/scenes/leaderboard": {
-      "get": {
-        "tags": [
-          "community"
-        ],
-        "operationId": "getSceneLeaderboard",
-        "summary": "Most active scenes in my pool this week. Ranks scenes, never people.",
-        "responses": {
-          "200": {
-            "description": "Leaderboard",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SceneLeaderboard"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        }
-      }
-    },
-    "/v1/scenes/{sceneId}/follow": {
-      "parameters": [
-        {
-          "name": "sceneId",
-          "in": "path",
-          "required": true,
-          "schema": {
-            "type": "string"
-          }
-        }
-      ],
-      "post": {
-        "tags": [
-          "community"
-        ],
-        "operationId": "followScene",
-        "summary": "Add the scene's top interest to my profile.",
-        "responses": {
-          "200": {
-            "description": "Updated profile",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Me"
-                }
-              }
-            }
           },
           "default": {
             "$ref": "#/components/responses/Error"
@@ -2226,7 +2639,7 @@
           "safety"
         ],
         "operationId": "block",
-        "summary": "Block a person. They disappear from my drops, map and threads. Idempotent.",
+        "summary": "Block a person. We never put you in a group together again; they disappear from my threads and people. Idempotent.",
         "requestBody": {
           "required": true,
           "content": {
@@ -2304,24 +2717,17 @@
           "type": "string"
         }
       },
-      "SessionId": {
-        "name": "sessionId",
+      "Provider": {
+        "name": "provider",
         "in": "path",
         "required": true,
+        "description": "Connector provider ID from `contracts/connectors.yaml`, e.g. `google_maps`.",
         "schema": {
           "type": "string"
         }
       },
-      "SuggestionId": {
-        "name": "suggestionId",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        }
-      },
-      "HiId": {
-        "name": "hiId",
+      "PlanId": {
+        "name": "planId",
         "in": "path",
         "required": true,
         "schema": {
@@ -2364,7 +2770,7 @@
             "example": {
               "error": {
                 "code": "not_found",
-                "message": "That person is no longer available.",
+                "message": "That plan is no longer available.",
                 "retryable": false
               }
             }
@@ -2389,7 +2795,7 @@
             "properties": {
               "code": {
                 "type": "string",
-                "description": "Open enum. Known values: unauthenticated, not_found, validation_failed, not_allowed,\nrate_limited, conflict, not_opted_in, muse_unavailable, laya_unavailable, unavailable, internal.\nClients map unknown codes by HTTP status.\n"
+                "description": "Open enum. Known values: unauthenticated, not_found, validation_failed, screened, not_allowed,\nnot_opted_in, rate_limited, conflict, muse_unavailable, laya_unavailable, unavailable, internal.\nClients map unknown codes by HTTP status.\n"
               },
               "message": {
                 "type": "string",
@@ -2465,7 +2871,7 @@
       },
       "Mode": {
         "type": "string",
-        "description": "Open enum. v1 values; clients hide modes they do not recognise.",
+        "description": "Open enum. Clients hide modes they do not recognise.",
         "enum": [
           "city",
           "event",
@@ -2531,25 +2937,26 @@
               "eventMode": {
                 "type": "boolean"
               },
-              "groups": {
+              "connectors": {
                 "type": "boolean"
               },
-              "sayHi": {
+              "nudges": {
                 "type": "boolean"
               },
-              "leaderboard": {
+              "userPlans": {
                 "type": "boolean"
               },
-              "unlocks": {
+              "payments": {
+                "type": "boolean"
+              },
+              "autonomySettings": {
+                "type": "boolean",
+                "description": "Show the Muse permissions settings. The fields exist in Me regardless."
+              },
+              "plusOne": {
                 "type": "boolean"
               },
               "checkin": {
-                "type": "boolean"
-              },
-              "locationSharing": {
-                "type": "boolean"
-              },
-              "density": {
                 "type": "boolean"
               },
               "realtime": {
@@ -2563,19 +2970,21 @@
               "type": "number"
             },
             "required": [
-              "dropMax",
+              "feedMax",
               "sharedCoarseMax",
-              "openersPerPersonPerWeek",
-              "openerMaxChars",
+              "sharedFullMax",
               "messageMaxChars",
+              "museAskMaxChars",
               "groupSizeMin",
               "groupSizeMax",
-              "locationMinIntervalS",
+              "openJoinsMax",
               "pollIntervalS",
-              "mapRefreshS"
+              "feedRefreshS",
+              "calendarSyncMinIntervalS",
+              "calendarHorizonDays"
             ],
             "properties": {
-              "dropMax": {
+              "feedMax": {
                 "type": "integer"
               },
               "sharedCoarseMax": {
@@ -2584,13 +2993,10 @@
               "sharedFullMax": {
                 "type": "integer"
               },
-              "openersPerPersonPerWeek": {
-                "type": "integer"
-              },
-              "openerMaxChars": {
-                "type": "integer"
-              },
               "messageMaxChars": {
+                "type": "integer"
+              },
+              "museAskMaxChars": {
                 "type": "integer"
               },
               "groupSizeMin": {
@@ -2599,13 +3005,19 @@
               "groupSizeMax": {
                 "type": "integer"
               },
-              "locationMinIntervalS": {
+              "openJoinsMax": {
                 "type": "integer"
               },
               "pollIntervalS": {
                 "type": "integer"
               },
-              "mapRefreshS": {
+              "feedRefreshS": {
+                "type": "integer"
+              },
+              "calendarSyncMinIntervalS": {
+                "type": "integer"
+              },
+              "calendarHorizonDays": {
                 "type": "integer"
               },
               "meetupStatusBeforeMin": {
@@ -2637,7 +3049,7 @@
                 ]
               },
               "fakeLocation": {
-                "description": "When present, the app uses this instead of GPS for everything it sends.",
+                "description": "When present, the app uses this instead of GPS at check-in.",
                 "oneOf": [
                   {
                     "$ref": "#/components/schemas/LatLng"
@@ -2650,6 +3062,10 @@
               "relaxCheckin": {
                 "type": "boolean",
                 "description": "When true the server accepts check-ins outside the geofence and window."
+              },
+              "simulatedPayments": {
+                "type": "boolean",
+                "description": "When true, approval sheets say no real money moves."
               }
             }
           }
@@ -2687,7 +3103,7 @@
           }
         }
       },
-      "InterestVisibility": {
+      "Visibility": {
         "type": "string",
         "enum": [
           "shown",
@@ -2713,7 +3129,7 @@
             "maximum": 1
           },
           "visibility": {
-            "$ref": "#/components/schemas/InterestVisibility"
+            "$ref": "#/components/schemas/Visibility"
           },
           "sensitive": {
             "type": "boolean",
@@ -2721,11 +3137,12 @@
           },
           "source": {
             "type": "string",
+            "description": "Open enum.",
             "enum": [
               "activity",
-              "onboarding",
-              "manual",
-              "scene"
+              "connector",
+              "muse_bar",
+              "manual"
             ]
           },
           "evidence": {
@@ -2740,6 +3157,7 @@
           "day",
           "part"
         ],
+        "description": "Coarse fallback availability, used only when no calendar is connected.",
         "properties": {
           "day": {
             "type": "string",
@@ -2780,26 +3198,88 @@
           }
         }
       },
+      "TravelMode": {
+        "type": "string",
+        "description": "Open enum.",
+        "enum": [
+          "transit",
+          "walk",
+          "bike",
+          "drive"
+        ]
+      },
+      "TravelPrefs": {
+        "type": "object",
+        "required": [
+          "maxMinutes",
+          "modes"
+        ],
+        "properties": {
+          "maxMinutes": {
+            "type": "integer",
+            "minimum": 5
+          },
+          "modes": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "$ref": "#/components/schemas/TravelMode"
+            }
+          }
+        }
+      },
+      "MuseSettings": {
+        "type": "object",
+        "description": "What Muse may do without asking. The settings UI is behind features.autonomySettings; the defaults come from params.muse.",
+        "required": [
+          "spendWithoutAskingCents",
+          "autoReschedule",
+          "autoBackfill",
+          "calendarHolds",
+          "leaveByReminders"
+        ],
+        "properties": {
+          "spendWithoutAskingCents": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "0 = always ask before paying."
+          },
+          "autoReschedule": {
+            "type": "boolean",
+            "description": "Move a plan inside the approved window when everyone stays free and the cost does not rise."
+          },
+          "autoBackfill": {
+            "type": "boolean"
+          },
+          "calendarHolds": {
+            "type": "boolean"
+          },
+          "leaveByReminders": {
+            "type": "boolean"
+          }
+        }
+      },
       "Capabilities": {
         "type": "object",
         "description": "What trust and unlocks allow. The trust score itself is never exposed.",
         "required": [
-          "canHost",
+          "canCreatePlans",
           "maxGroupSize",
           "groupOnly",
-          "dailySlots"
+          "openJoinsMax"
         ],
         "properties": {
-          "canHost": {
+          "canCreatePlans": {
             "type": "boolean"
           },
           "maxGroupSize": {
             "type": "integer"
           },
           "groupOnly": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "true = only groups of 3 or more, never one-to-one."
           },
-          "dailySlots": {
+          "openJoinsMax": {
             "type": "integer"
           }
         }
@@ -2834,10 +3314,12 @@
           "displayName",
           "profileVisibility",
           "optedIn",
+          "setupComplete",
           "interests",
           "groupSize",
           "availability",
-          "ghostMode",
+          "travel",
+          "museSettings",
           "capabilities",
           "unlocks"
         ],
@@ -2858,6 +3340,9 @@
             "$ref": "#/components/schemas/ProfileVisibility"
           },
           "optedIn": {
+            "type": "boolean"
+          },
+          "setupComplete": {
             "type": "boolean"
           },
           "mode": {
@@ -2891,14 +3376,17 @@
               "$ref": "#/components/schemas/AvailabilitySlot"
             }
           },
-          "ghostMode": {
-            "type": "boolean"
+          "travel": {
+            "$ref": "#/components/schemas/TravelPrefs"
           },
           "interests": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/MyInterest"
             }
+          },
+          "museSettings": {
+            "$ref": "#/components/schemas/MuseSettings"
           },
           "capabilities": {
             "$ref": "#/components/schemas/Capabilities"
@@ -2928,6 +3416,12 @@
             "items": {
               "$ref": "#/components/schemas/AvailabilitySlot"
             }
+          },
+          "travel": {
+            "$ref": "#/components/schemas/TravelPrefs"
+          },
+          "museSettings": {
+            "$ref": "#/components/schemas/MuseSettings"
           }
         }
       },
@@ -2938,61 +3432,20 @@
           "private"
         ]
       },
-      "OnboardingMessage": {
+      "Setup": {
         "type": "object",
         "required": [
-          "messageId",
-          "role",
-          "text",
-          "createdAt"
+          "museText",
+          "proposedInterests",
+          "signals",
+          "proposedGroupSize",
+          "proposedTravel",
+          "suggestedProviders"
         ],
         "properties": {
-          "messageId": {
-            "type": "string"
-          },
-          "role": {
+          "museText": {
             "type": "string",
-            "enum": [
-              "muse",
-              "user"
-            ]
-          },
-          "text": {
-            "type": "string"
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time"
-          }
-        }
-      },
-      "OnboardingSession": {
-        "type": "object",
-        "required": [
-          "sessionId",
-          "status",
-          "messages",
-          "proposedInterests"
-        ],
-        "properties": {
-          "sessionId": {
-            "type": "string"
-          },
-          "status": {
-            "type": "string",
-            "description": "`review` means Muse has enough; the client shows proposedInterests for confirmation.",
-            "enum": [
-              "chatting",
-              "review",
-              "complete"
-            ]
-          },
-          "messages": {
-            "type": "array",
-            "description": "On start, the full history. On a send, only the new messages (user echo plus Muse reply).",
-            "items": {
-              "$ref": "#/components/schemas/OnboardingMessage"
-            }
+            "description": "Muse's one or two lines for the review step."
           },
           "proposedInterests": {
             "type": "array",
@@ -3000,24 +3453,33 @@
               "$ref": "#/components/schemas/MyInterest"
             }
           },
+          "signals": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Signal"
+            }
+          },
           "proposedGroupSize": {
             "$ref": "#/components/schemas/GroupSize"
           },
-          "proposedAvailability": {
+          "proposedTravel": {
+            "$ref": "#/components/schemas/TravelPrefs"
+          },
+          "suggestedProviders": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/AvailabilitySlot"
+              "type": "string"
             }
           }
         }
       },
-      "OnboardingComplete": {
+      "SetupComplete": {
         "type": "object",
         "required": [
           "acceptedInterestIds",
           "hiddenInterestIds",
           "groupSize",
-          "availability",
+          "travel",
           "profileVisibility"
         ],
         "properties": {
@@ -3036,6 +3498,9 @@
           "groupSize": {
             "$ref": "#/components/schemas/GroupSize"
           },
+          "travel": {
+            "$ref": "#/components/schemas/TravelPrefs"
+          },
           "availability": {
             "type": "array",
             "items": {
@@ -3050,58 +3515,888 @@
           }
         }
       },
-      "DensityBin": {
+      "ConnectorStatus": {
+        "type": "string",
+        "description": "Open enum.",
+        "enum": [
+          "connected",
+          "not_connected",
+          "coming_soon"
+        ]
+      },
+      "Connector": {
         "type": "object",
         "required": [
-          "binId",
-          "count",
-          "polygon"
+          "provider",
+          "label",
+          "reads",
+          "status",
+          "simulated",
+          "signalCount"
         ],
         "properties": {
-          "binId": {
+          "provider": {
+            "type": "string",
+            "description": "Open enum from contracts/connectors.yaml."
+          },
+          "label": {
             "type": "string"
           },
-          "count": {
-            "type": "integer"
+          "reads": {
+            "type": "string",
+            "description": "Exactly what Muse reads, shown next to the toggle."
           },
-          "polygon": {
+          "status": {
+            "$ref": "#/components/schemas/ConnectorStatus"
+          },
+          "simulated": {
+            "type": "boolean",
+            "description": "true = seeded demo data, no real account."
+          },
+          "connectedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "lastSyncAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "signalCount": {
+            "type": "integer"
+          }
+        }
+      },
+      "Signal": {
+        "type": "object",
+        "description": "Something Muse noticed. Owner-only; never in another user's response.",
+        "required": [
+          "signalId",
+          "provider",
+          "kind",
+          "label",
+          "interests",
+          "observedAt",
+          "visibility",
+          "sensitive"
+        ],
+        "properties": {
+          "signalId": {
+            "type": "string"
+          },
+          "provider": {
+            "type": "string",
+            "description": "A connector provider, or `facebook` for Facebook activity."
+          },
+          "kind": {
+            "type": "string",
+            "description": "Open enum.",
+            "enum": [
+              "frequent_place",
+              "saved_place",
+              "routine",
+              "ticket",
+              "artist",
+              "post",
+              "life_event"
+            ]
+          },
+          "label": {
+            "type": "string"
+          },
+          "interests": {
             "type": "array",
-            "minItems": 3,
             "items": {
-              "$ref": "#/components/schemas/LatLng"
+              "$ref": "#/components/schemas/InterestRef"
+            }
+          },
+          "venue": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Venue"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "observedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "visibility": {
+            "$ref": "#/components/schemas/Visibility"
+          },
+          "sensitive": {
+            "type": "boolean"
+          }
+        }
+      },
+      "Because": {
+        "type": "object",
+        "description": "Why Muse suggested this to me. Owner-only.",
+        "required": [
+          "source",
+          "label"
+        ],
+        "properties": {
+          "source": {
+            "type": "string",
+            "description": "Connector provider, `facebook` or `muse`."
+          },
+          "label": {
+            "type": "string"
+          },
+          "signalId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "BusyBlock": {
+        "type": "object",
+        "required": [
+          "start",
+          "end"
+        ],
+        "properties": {
+          "start": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "end": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "CalendarDirective": {
+        "type": "object",
+        "description": "The calendar state the backend wants on this device for one join or meetup. The app reconciles its own\n\"Common Ground\" calendar to it (none = delete) and reports back in the next syncCalendar. Never contains other people's names.\n",
+        "required": [
+          "key",
+          "desired",
+          "title",
+          "startsAt",
+          "endsAt"
+        ],
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "Stable per join or meetup (its ID)."
+          },
+          "desired": {
+            "type": "string",
+            "enum": [
+              "none",
+              "hold",
+              "event"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "startsAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endsAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "location": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "notes": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "CalendarSync": {
+        "type": "object",
+        "required": [
+          "source",
+          "horizonStart",
+          "horizonEnd",
+          "busy",
+          "applied"
+        ],
+        "properties": {
+          "source": {
+            "type": "string",
+            "enum": [
+              "device_calendar"
+            ]
+          },
+          "horizonStart": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "horizonEnd": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "busy": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BusyBlock"
+            },
+            "description": "Start and end only. Events in the app's own Common Ground calendar are excluded."
+          },
+          "applied": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "key",
+                "desired",
+                "ok"
+              ],
+              "properties": {
+                "key": {
+                  "type": "string"
+                },
+                "desired": {
+                  "type": "string",
+                  "enum": [
+                    "none",
+                    "hold",
+                    "event"
+                  ]
+                },
+                "ok": {
+                  "type": "boolean"
+                }
+              }
             }
           }
         }
       },
-      "Density": {
+      "CalendarSyncResult": {
         "type": "object",
         "required": [
-          "poolId",
-          "totalLooking",
-          "minBinCount",
-          "bins"
+          "acceptedBusy",
+          "directives"
         ],
         "properties": {
-          "poolId": {
-            "type": "string"
-          },
-          "totalLooking": {
+          "acceptedBusy": {
             "type": "integer"
           },
-          "minBinCount": {
-            "type": "integer"
-          },
-          "bins": {
+          "directives": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/DensityBin"
+              "$ref": "#/components/schemas/CalendarDirective"
             }
+          }
+        }
+      },
+      "MuseReply": {
+        "type": "object",
+        "required": [
+          "conversationId",
+          "reply",
+          "plans",
+          "prompts"
+        ],
+        "properties": {
+          "conversationId": {
+            "type": "string"
+          },
+          "reply": {
+            "type": "object",
+            "required": [
+              "messageId",
+              "text",
+              "createdAt"
+            ],
+            "properties": {
+              "messageId": {
+                "type": "string"
+              },
+              "text": {
+                "type": "string"
+              },
+              "createdAt": {
+                "type": "string",
+                "format": "date-time"
+              }
+            }
+          },
+          "plans": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlanCard"
+            }
+          },
+          "createdPlanId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Set when Muse created a new plan from the request; it is also in `plans`."
+          },
+          "prompts": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Follow-up chips."
+          }
+        }
+      },
+      "Venue": {
+        "type": "object",
+        "required": [
+          "venueId",
+          "name",
+          "location",
+          "kind"
+        ],
+        "properties": {
+          "venueId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "neighborhood": {
+            "type": "string"
+          },
+          "address": {
+            "type": "string"
+          },
+          "location": {
+            "$ref": "#/components/schemas/LatLng"
+          },
+          "kind": {
+            "type": "string",
+            "description": "Open enum, e.g. park, cafe, game_cafe, climbing_gym, studio, museum, bar, library."
+          },
+          "photoUrl": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "Cost": {
+        "type": "object",
+        "required": [
+          "kind",
+          "perPersonCents",
+          "currency",
+          "label"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "description": "Open enum. `prepaid` needs a payment approval; `pay_at_venue` never does.",
+            "enum": [
+              "free",
+              "pay_at_venue",
+              "prepaid"
+            ]
+          },
+          "perPersonCents": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "currency": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          }
+        }
+      },
+      "Travel": {
+        "type": "object",
+        "required": [
+          "mode",
+          "minutes",
+          "label"
+        ],
+        "description": "Server estimate from my neighborhood centroid; never from an exact location.",
+        "properties": {
+          "mode": {
+            "$ref": "#/components/schemas/TravelMode"
+          },
+          "minutes": {
+            "type": "integer"
+          },
+          "label": {
+            "type": "string"
+          }
+        }
+      },
+      "Directions": {
+        "type": "object",
+        "description": "Opened only when the user taps. Carries only the venue's public coordinates.",
+        "required": [
+          "apple",
+          "google"
+        ],
+        "properties": {
+          "apple": {
+            "type": "string"
+          },
+          "google": {
+            "type": "string"
+          }
+        }
+      },
+      "PlanCheck": {
+        "type": "object",
+        "required": [
+          "kind",
+          "ok",
+          "label"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "description": "Open enum.",
+            "enum": [
+              "calendar",
+              "travel",
+              "spots",
+              "cost",
+              "weather"
+            ]
+          },
+          "ok": {
+            "type": "boolean"
+          },
+          "label": {
+            "type": "string"
+          }
+        }
+      },
+      "Crowd": {
+        "type": "object",
+        "description": "Who's in, before a group forms. Counts and coarse interests shared with me only. Never names.",
+        "required": [
+          "interestedCount",
+          "spotsLeft",
+          "sharedWithYou"
+        ],
+        "properties": {
+          "interestedCount": {
+            "type": "integer"
+          },
+          "spotsLeft": {
+            "type": "integer"
+          },
+          "sharedWithYou": {
+            "type": "array",
+            "maxItems": 3,
+            "items": {
+              "type": "object",
+              "required": [
+                "interest",
+                "count"
+              ],
+              "properties": {
+                "interest": {
+                  "$ref": "#/components/schemas/InterestRef"
+                },
+                "count": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        }
+      },
+      "PlanStatus": {
+        "type": "string",
+        "description": "Open enum.",
+        "enum": [
+          "open",
+          "full",
+          "closed",
+          "cancelled"
+        ]
+      },
+      "JoinStatus": {
+        "type": "string",
+        "description": "Open enum.",
+        "enum": [
+          "interested",
+          "matched",
+          "not_filled",
+          "withdrawn"
+        ]
+      },
+      "PlanCard": {
+        "type": "object",
+        "required": [
+          "planId",
+          "title",
+          "activityType",
+          "venue",
+          "startsAt",
+          "endsAt",
+          "durationMin",
+          "cost",
+          "size",
+          "crowd",
+          "checks",
+          "reason",
+          "because",
+          "origin",
+          "status"
+        ],
+        "properties": {
+          "planId": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "activityType": {
+            "type": "string",
+            "description": "From laya_questions.yaml#activityTypes. Open enum."
+          },
+          "venue": {
+            "$ref": "#/components/schemas/Venue"
+          },
+          "startsAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endsAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "durationMin": {
+            "type": "integer"
+          },
+          "cost": {
+            "$ref": "#/components/schemas/Cost"
+          },
+          "size": {
+            "$ref": "#/components/schemas/GroupSize"
+          },
+          "crowd": {
+            "$ref": "#/components/schemas/Crowd"
+          },
+          "travel": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Travel"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "checks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlanCheck"
+            }
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 160,
+            "description": "Muse's one-line reason."
+          },
+          "because": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Because"
+            }
+          },
+          "origin": {
+            "type": "string",
+            "description": "Open enum.",
+            "enum": [
+              "muse",
+              "nudge",
+              "user",
+              "invite"
+            ]
+          },
+          "status": {
+            "$ref": "#/components/schemas/PlanStatus"
+          },
+          "myJoin": {
+            "oneOf": [
+              {
+                "type": "object",
+                "required": [
+                  "joinId",
+                  "status"
+                ],
+                "properties": {
+                  "joinId": {
+                    "type": "string"
+                  },
+                  "status": {
+                    "$ref": "#/components/schemas/JoinStatus"
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "PlanDetail": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/PlanCard"
+          },
+          {
+            "type": "object",
+            "required": [
+              "description",
+              "museWillHandle",
+              "safety",
+              "formsAt",
+              "alternatives",
+              "directions"
+            ],
+            "properties": {
+              "description": {
+                "type": "string"
+              },
+              "museWillHandle": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "What Muse does once the group forms."
+              },
+              "safety": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "formsAt": {
+                "type": "string",
+                "format": "date-time",
+                "description": "Fill deadline. Earlier if the plan fills."
+              },
+              "alternatives": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "planId",
+                    "title",
+                    "startsAt"
+                  ],
+                  "properties": {
+                    "planId": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "startsAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              },
+              "directions": {
+                "$ref": "#/components/schemas/Directions"
+              }
+            }
+          }
+        ]
+      },
+      "Feed": {
+        "type": "object",
+        "required": [
+          "generatedAt",
+          "nextRefreshAt",
+          "prompts",
+          "plans"
+        ],
+        "properties": {
+          "generatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "nextRefreshAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "museStatus": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Muse's live status line, e.g. 'Muse is setting up 1 plan for you'."
+          },
+          "prompts": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "plans": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlanCard"
+            }
+          }
+        }
+      },
+      "Join": {
+        "type": "object",
+        "required": [
+          "joinId",
+          "planId",
+          "status",
+          "progress",
+          "formsAt",
+          "createdAt",
+          "alternatives"
+        ],
+        "properties": {
+          "joinId": {
+            "type": "string"
+          },
+          "planId": {
+            "type": "string"
+          },
+          "plan": {
+            "$ref": "#/components/schemas/PlanCard"
+          },
+          "status": {
+            "$ref": "#/components/schemas/JoinStatus"
+          },
+          "progress": {
+            "type": "object",
+            "required": [
+              "joined",
+              "needed"
+            ],
+            "description": "'3 of 4'. `joined` counts everyone in, including me.",
+            "properties": {
+              "joined": {
+                "type": "integer"
+              },
+              "needed": {
+                "type": "integer"
+              }
+            }
+          },
+          "meetupId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Set once matched."
+          },
+          "formsAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "alternatives": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Plan IDs suggested when not_filled."
+          },
+          "calendar": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/CalendarDirective"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "NudgeSurface": {
+        "type": "string",
+        "description": "Open enum.",
+        "enum": [
+          "plans",
+          "home",
+          "events"
+        ]
+      },
+      "Nudge": {
+        "type": "object",
+        "required": [
+          "nudgeId",
+          "title",
+          "text",
+          "because",
+          "planId",
+          "surfaces",
+          "createdAt",
+          "expiresAt"
+        ],
+        "properties": {
+          "nudgeId": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "because": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Because"
+            }
+          },
+          "planId": {
+            "type": "string"
+          },
+          "surfaces": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NudgeSurface"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       },
       "PersonCard": {
         "type": "object",
-        "description": "How another user appears anywhere in the app. For private profiles the server sends\n`displayName: null` and `avatarUrl: null` until a mutual connect, then first name only.\n",
+        "description": "How another user appears. People appear only after a group forms. For private profiles the server sends\nfirst name only and `avatarUrl: null`.\n",
         "required": [
           "userId",
           "initials",
@@ -3131,479 +4426,178 @@
           }
         }
       },
-      "DistanceBand": {
+      "MuseStepStatus": {
         "type": "string",
         "description": "Open enum.",
         "enum": [
-          "under_1km",
-          "1_3km",
-          "3_10km",
-          "over_10km"
+          "queued",
+          "running",
+          "done",
+          "needs_you",
+          "failed",
+          "skipped"
         ]
       },
-      "DropCard": {
+      "MuseStep": {
         "type": "object",
+        "description": "One visible thing Muse did or will do for a meetup. Steps are appended, never reordered.",
         "required": [
-          "suggestionId",
-          "person",
-          "distanceBand",
-          "sharedInterests",
-          "reason",
-          "state",
-          "hiAvailable"
+          "stepId",
+          "kind",
+          "status",
+          "label",
+          "at"
         ],
         "properties": {
-          "suggestionId": {
+          "stepId": {
             "type": "string"
           },
-          "person": {
-            "$ref": "#/components/schemas/PersonCard"
-          },
-          "distanceBand": {
-            "$ref": "#/components/schemas/DistanceBand"
-          },
-          "sharedInterests": {
-            "type": "array",
-            "maxItems": 3,
-            "description": "Coarse level only (level 2) before a mutual connect.",
-            "items": {
-              "$ref": "#/components/schemas/InterestRef"
-            }
-          },
-          "reason": {
+          "kind": {
             "type": "string",
-            "maxLength": 160,
-            "description": "Muse's one-line reason."
-          },
-          "state": {
-            "type": "string",
-            "description": "My own view only. `passed` is visible to the person who passed, nobody else.",
+            "description": "Open enum.",
             "enum": [
-              "open",
-              "connect_sent",
-              "connected",
-              "passed",
-              "expired"
+              "group_chat",
+              "find_time",
+              "choose_venue",
+              "check_availability",
+              "payment",
+              "book",
+              "calendar",
+              "event",
+              "reminder",
+              "reschedule",
+              "backfill",
+              "cancel",
+              "refund"
             ]
           },
-          "hiAvailable": {
-            "type": "boolean"
-          }
-        }
-      },
-      "Drop": {
-        "type": "object",
-        "required": [
-          "dropId",
-          "poolId",
-          "generatedAt",
-          "expiresAt",
-          "nextDropAt",
-          "cards"
-        ],
-        "properties": {
-          "dropId": {
+          "status": {
+            "$ref": "#/components/schemas/MuseStepStatus"
+          },
+          "label": {
             "type": "string"
           },
-          "poolId": {
-            "type": "string"
-          },
-          "generatedAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "expiresAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "nextDropAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "cards": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/DropCard"
-            }
-          }
-        }
-      },
-      "DecisionResult": {
-        "type": "object",
-        "required": [
-          "suggestionId",
-          "state"
-        ],
-        "properties": {
-          "suggestionId": {
-            "type": "string"
-          },
-          "state": {
-            "type": "string",
-            "enum": [
-              "connect_sent",
-              "connected",
-              "passed",
-              "expired"
-            ]
-          },
-          "connection": {
-            "description": "Present when this decision completed a mutual connect.",
-            "oneOf": [
-              {
-                "$ref": "#/components/schemas/Connection"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          }
-        }
-      },
-      "HiResult": {
-        "type": "object",
-        "required": [
-          "hiId",
-          "status"
-        ],
-        "properties": {
-          "hiId": {
+          "detail": {
             "type": [
               "string",
               "null"
             ]
           },
-          "status": {
-            "type": "string",
-            "enum": [
-              "delivered",
-              "rejected"
+          "approvalId": {
+            "type": [
+              "string",
+              "null"
             ]
           },
-          "rejectionReason": {
-            "type": "string",
-            "description": "Open enum.",
-            "enum": [
-              "screened",
-              "limit",
-              "not_allowed"
-            ]
-          }
-        }
-      },
-      "HiItem": {
-        "type": "object",
-        "required": [
-          "hiId",
-          "from",
-          "sharedInterests",
-          "text",
-          "receivedAt"
-        ],
-        "properties": {
-          "hiId": {
-            "type": "string"
-          },
-          "from": {
-            "$ref": "#/components/schemas/PersonCard"
-          },
-          "sharedInterests": {
-            "type": "array",
-            "description": "Coarse level only.",
-            "items": {
-              "$ref": "#/components/schemas/InterestRef"
-            }
-          },
-          "text": {
-            "type": "string"
-          },
-          "receivedAt": {
+          "at": {
             "type": "string",
             "format": "date-time"
           }
         }
       },
-      "GroupRequest": {
+      "Approval": {
         "type": "object",
         "required": [
-          "groupRequestId",
+          "approvalId",
+          "meetupId",
+          "kind",
           "status",
-          "invitedCount",
-          "acceptedCount",
-          "size"
-        ],
-        "properties": {
-          "groupRequestId": {
-            "type": "string"
-          },
-          "status": {
-            "type": "string",
-            "description": "Open enum.",
-            "enum": [
-              "inviting",
-              "formed",
-              "fallback_1to1",
-              "failed"
-            ]
-          },
-          "invitedCount": {
-            "type": "integer"
-          },
-          "acceptedCount": {
-            "type": "integer"
-          },
-          "size": {
-            "$ref": "#/components/schemas/GroupSize"
-          },
-          "threadId": {
-            "type": [
-              "string",
-              "null"
-            ]
-          }
-        }
-      },
-      "Invite": {
-        "type": "object",
-        "required": [
-          "inviteId",
-          "from",
-          "sharedInterests",
-          "size",
-          "status",
+          "title",
+          "detail",
+          "simulated",
+          "fallback",
           "expiresAt"
         ],
         "properties": {
-          "inviteId": {
+          "approvalId": {
             "type": "string"
           },
-          "from": {
-            "$ref": "#/components/schemas/PersonCard"
+          "meetupId": {
+            "type": "string"
           },
-          "sharedInterests": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/InterestRef"
-            }
-          },
-          "size": {
-            "$ref": "#/components/schemas/GroupSize"
+          "kind": {
+            "type": "string",
+            "description": "Open enum. `payment` = Muse wants to pay; `change` = a change outside what I approved; `plus_one`.",
+            "enum": [
+              "payment",
+              "change",
+              "plus_one"
+            ]
           },
           "status": {
             "type": "string",
             "enum": [
               "pending",
-              "accepted",
+              "approved",
               "declined",
               "expired"
-            ]
-          },
-          "expiresAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "threadId": {
-            "type": [
-              "string",
-              "null"
-            ]
-          }
-        }
-      },
-      "SharePrecision": {
-        "type": "string",
-        "enum": [
-          "exact",
-          "neighborhood",
-          "off"
-        ]
-      },
-      "Precision": {
-        "type": "string",
-        "enum": [
-          "exact",
-          "neighborhood"
-        ]
-      },
-      "LocationShareState": {
-        "type": "object",
-        "required": [
-          "iShare",
-          "theyShare",
-          "viewing"
-        ],
-        "properties": {
-          "iShare": {
-            "$ref": "#/components/schemas/SharePrecision"
-          },
-          "theyShare": {
-            "$ref": "#/components/schemas/SharePrecision"
-          },
-          "viewing": {
-            "$ref": "#/components/schemas/Precision",
-            "description": "My view preference. The effective precision is the coarser of this and theyShare."
-          }
-        }
-      },
-      "Connection": {
-        "type": "object",
-        "required": [
-          "connectionId",
-          "person",
-          "sharedInterests",
-          "threadId",
-          "status",
-          "connectedAt",
-          "location",
-          "canViewProfile"
-        ],
-        "properties": {
-          "connectionId": {
-            "type": "string"
-          },
-          "person": {
-            "$ref": "#/components/schemas/PersonCard"
-          },
-          "sharedInterests": {
-            "type": "array",
-            "description": "Full depth after a mutual connect, capped by config.limits.sharedFullMax.",
-            "items": {
-              "$ref": "#/components/schemas/InterestRef"
-            }
-          },
-          "threadId": {
-            "type": "string"
-          },
-          "status": {
-            "type": "string",
-            "enum": [
-              "new",
-              "met"
-            ]
-          },
-          "connectedAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "firstMetAt": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "format": "date-time"
-          },
-          "location": {
-            "$ref": "#/components/schemas/LocationShareState"
-          },
-          "canViewProfile": {
-            "type": "boolean"
-          }
-        }
-      },
-      "PublicProfile": {
-        "type": "object",
-        "required": [
-          "person",
-          "sharedInterests"
-        ],
-        "properties": {
-          "person": {
-            "$ref": "#/components/schemas/PersonCard"
-          },
-          "bio": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "neighborhood": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "sharedInterests": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/InterestRef"
-            }
-          },
-          "meetupsTogether": {
-            "type": "integer"
-          }
-        }
-      },
-      "Thread": {
-        "type": "object",
-        "required": [
-          "threadId",
-          "kind",
-          "title",
-          "participants",
-          "unreadCount",
-          "updatedAt"
-        ],
-        "properties": {
-          "threadId": {
-            "type": "string"
-          },
-          "kind": {
-            "type": "string",
-            "enum": [
-              "direct",
-              "group"
             ]
           },
           "title": {
             "type": "string"
           },
-          "participants": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/PersonCard"
-            }
+          "detail": {
+            "type": "string"
           },
-          "lastMessage": {
-            "oneOf": [
-              {
-                "$ref": "#/components/schemas/Message"
-              },
-              {
-                "type": "null"
-              }
+          "amountCents": {
+            "type": [
+              "integer",
+              "null"
             ]
           },
-          "unreadCount": {
-            "type": "integer"
-          },
-          "updatedAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "activeMeetupId": {
+          "currency": {
             "type": [
               "string",
               "null"
             ]
+          },
+          "payee": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "simulated": {
+            "type": "boolean",
+            "description": "true = no real money moves (demo)."
+          },
+          "fallback": {
+            "type": "string",
+            "description": "What Muse does if I decline or let it expire."
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       },
-      "MessageSender": {
+      "Booking": {
         "type": "object",
         "required": [
-          "kind"
+          "status",
+          "label",
+          "provider"
         ],
         "properties": {
-          "kind": {
+          "status": {
             "type": "string",
-            "description": "Open enum. `muse` messages are styled as Muse; `system` as small centered notes.",
+            "description": "Open enum.",
             "enum": [
-              "user",
-              "muse",
-              "system"
+              "not_needed",
+              "not_booked",
+              "holding",
+              "booked",
+              "pay_at_venue",
+              "failed"
             ]
           },
-          "userId": {
+          "label": {
+            "type": "string"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "confirmationCode": {
             "type": [
               "string",
               "null"
@@ -3611,154 +4605,55 @@
           }
         }
       },
-      "MessageAttachment": {
-        "type": "object",
-        "description": "Open union keyed by `kind`. Clients render known kinds and skip unknown ones.\n- starters: conversation starter chips (tapping one fills the composer).\n- meetup: a meetup card for `meetupId`; the client fetches the meetup.\n",
-        "required": [
-          "kind"
-        ],
-        "properties": {
-          "kind": {
-            "type": "string"
+      "MeetupCost": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Cost"
           },
-          "starters": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "meetupId": {
-            "type": "string"
-          }
-        }
-      },
-      "Message": {
-        "type": "object",
-        "required": [
-          "messageId",
-          "threadId",
-          "sender",
-          "text",
-          "createdAt",
-          "attachments"
-        ],
-        "properties": {
-          "messageId": {
-            "type": "string"
-          },
-          "threadId": {
-            "type": "string"
-          },
-          "sender": {
-            "$ref": "#/components/schemas/MessageSender"
-          },
-          "text": {
-            "type": "string"
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "clientId": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "attachments": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/MessageAttachment"
-            }
-          }
-        }
-      },
-      "Venue": {
-        "type": "object",
-        "required": [
-          "venueId",
-          "name",
-          "location",
-          "kind"
-        ],
-        "properties": {
-          "venueId": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "neighborhood": {
-            "type": "string"
-          },
-          "location": {
-            "$ref": "#/components/schemas/LatLng"
-          },
-          "kind": {
-            "type": "string",
-            "description": "Open enum, e.g. park, cafe, game_cafe, climbing_gym, studio, museum, bar, library."
-          }
-        }
-      },
-      "MeetupOption": {
-        "type": "object",
-        "required": [
-          "optionId",
-          "activity",
-          "venue",
-          "startsAt",
-          "endsAt",
-          "reason",
-          "votes"
-        ],
-        "properties": {
-          "optionId": {
-            "type": "string"
-          },
-          "activity": {
-            "type": "string"
-          },
-          "venue": {
-            "$ref": "#/components/schemas/Venue"
-          },
-          "startsAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "endsAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "reason": {
-            "type": "string"
-          },
-          "votes": {
+          {
             "type": "object",
             "required": [
-              "yes",
-              "no"
+              "myPayment"
             ],
             "properties": {
-              "yes": {
-                "type": "integer"
-              },
-              "no": {
-                "type": "integer"
+              "myPayment": {
+                "type": "string",
+                "description": "Open enum.",
+                "enum": [
+                  "not_needed",
+                  "pending_approval",
+                  "paid",
+                  "pay_at_venue",
+                  "declined"
+                ]
               }
             }
-          },
-          "myVote": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "enum": [
-              "yes",
-              "no",
-              null
-            ]
           }
-        }
+        ]
+      },
+      "MeetupTravel": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Travel"
+          },
+          {
+            "type": "object",
+            "required": [
+              "leaveBy",
+              "directions"
+            ],
+            "properties": {
+              "leaveBy": {
+                "type": "string",
+                "format": "date-time",
+                "description": "The app schedules a local notification at this time when museSettings.leaveByReminders."
+              },
+              "directions": {
+                "$ref": "#/components/schemas/Directions"
+              }
+            }
+          }
+        ]
       },
       "AttendeeStatus": {
         "type": "string",
@@ -3770,20 +4665,24 @@
       "Attendee": {
         "type": "object",
         "required": [
-          "userId",
+          "person",
+          "isMe",
           "rsvp",
-          "checkedIn"
+          "checkedIn",
+          "sharedInterests"
         ],
         "properties": {
-          "userId": {
-            "type": "string"
+          "person": {
+            "$ref": "#/components/schemas/PersonCard"
+          },
+          "isMe": {
+            "type": "boolean"
           },
           "rsvp": {
             "type": "string",
             "enum": [
-              "yes",
-              "no",
-              "pending"
+              "going",
+              "left"
             ]
           },
           "checkedIn": {
@@ -3798,6 +4697,13 @@
                 "type": "null"
               }
             ]
+          },
+          "sharedInterests": {
+            "type": "array",
+            "description": "Full depth, capped by config.limits.sharedFullMax. Empty for me.",
+            "items": {
+              "$ref": "#/components/schemas/InterestRef"
+            }
           }
         }
       },
@@ -3805,85 +4711,102 @@
         "type": "object",
         "required": [
           "meetupId",
+          "planId",
           "threadId",
+          "title",
+          "activityType",
           "status",
-          "organizerId",
-          "size",
-          "options",
+          "venue",
+          "startsAt",
+          "endsAt",
           "attendees",
+          "museSteps",
+          "approvals",
+          "booking",
+          "cost",
           "feedbackDue"
         ],
         "properties": {
           "meetupId": {
             "type": "string"
           },
+          "planId": {
+            "type": "string"
+          },
           "threadId": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "activityType": {
             "type": "string"
           },
           "status": {
             "type": "string",
             "description": "Open enum.",
             "enum": [
-              "proposing",
-              "voting",
+              "setting_up",
               "confirmed",
               "completed",
               "cancelled"
             ]
           },
-          "organizerId": {
-            "type": "string"
-          },
-          "size": {
-            "$ref": "#/components/schemas/GroupSize"
-          },
-          "title": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "chosenOptionId": {
-            "type": [
-              "string",
-              "null"
-            ]
+          "venue": {
+            "$ref": "#/components/schemas/Venue"
           },
           "startsAt": {
-            "type": [
-              "string",
-              "null"
-            ],
+            "type": "string",
             "format": "date-time"
           },
           "endsAt": {
-            "type": [
-              "string",
-              "null"
-            ],
+            "type": "string",
             "format": "date-time"
-          },
-          "venue": {
-            "oneOf": [
-              {
-                "$ref": "#/components/schemas/Venue"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "options": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/MeetupOption"
-            }
           },
           "attendees": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/Attendee"
             }
+          },
+          "museSteps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MuseStep"
+            }
+          },
+          "approvals": {
+            "type": "array",
+            "description": "My approvals for this meetup, any status.",
+            "items": {
+              "$ref": "#/components/schemas/Approval"
+            }
+          },
+          "booking": {
+            "$ref": "#/components/schemas/Booking"
+          },
+          "cost": {
+            "$ref": "#/components/schemas/MeetupCost"
+          },
+          "calendar": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/CalendarDirective"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "travel": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/MeetupTravel"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "checkinWindow": {
             "oneOf": [
@@ -3917,7 +4840,7 @@
               "string",
               "null"
             ],
-            "description": "Label of the private Event Muse created, e.g. 'Private event · 2 going'."
+            "description": "Label of the private Facebook Event Muse created, e.g. 'Private event · 3 going'."
           }
         }
       },
@@ -3981,228 +4904,248 @@
           }
         }
       },
-      "FriendPin": {
+      "Connection": {
         "type": "object",
+        "description": "Someone I've been in a formed group with.",
         "required": [
-          "userId",
+          "connectionId",
           "person",
-          "precision",
-          "location",
-          "radiusM",
           "sharedInterests",
-          "threadId",
-          "updatedAt"
+          "status",
+          "meetupsTogether",
+          "connectedAt",
+          "canViewProfile",
+          "canPlanAgain"
         ],
         "properties": {
-          "userId": {
+          "connectionId": {
             "type": "string"
           },
           "person": {
             "$ref": "#/components/schemas/PersonCard"
           },
-          "precision": {
-            "$ref": "#/components/schemas/Precision"
-          },
-          "location": {
-            "$ref": "#/components/schemas/LatLng",
-            "description": "For `neighborhood` this is the neighborhood centroid, never the real position."
-          },
-          "radiusM": {
-            "type": "number",
-            "description": "0 for exact; draw a circle of this radius otherwise."
-          },
           "sharedInterests": {
             "type": "array",
-            "maxItems": 3,
+            "description": "Full depth, capped by config.limits.sharedFullMax.",
             "items": {
               "$ref": "#/components/schemas/InterestRef"
             }
           },
-          "meetupStatus": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "new",
+              "met"
+            ],
+            "description": "`met` after a meetup that counts (params.checkin.meetupCountsWhen)."
+          },
+          "meetupsTogether": {
+            "type": "integer"
+          },
+          "connectedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "firstMetAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "canViewProfile": {
+            "type": "boolean"
+          },
+          "canPlanAgain": {
+            "type": "boolean",
+            "description": "true once `met`: can be invited with createPlan.inviteUserIds."
+          }
+        }
+      },
+      "PublicProfile": {
+        "type": "object",
+        "required": [
+          "person",
+          "sharedInterests"
+        ],
+        "properties": {
+          "person": {
+            "$ref": "#/components/schemas/PersonCard"
+          },
+          "bio": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "neighborhood": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "sharedInterests": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InterestRef"
+            }
+          },
+          "meetupsTogether": {
+            "type": "integer"
+          }
+        }
+      },
+      "Thread": {
+        "type": "object",
+        "required": [
+          "threadId",
+          "kind",
+          "title",
+          "participants",
+          "unreadCount",
+          "updatedAt"
+        ],
+        "properties": {
+          "threadId": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "group",
+              "direct"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "participants": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PersonCard"
+            }
+          },
+          "lastMessage": {
             "oneOf": [
               {
-                "$ref": "#/components/schemas/AttendeeStatus"
+                "$ref": "#/components/schemas/Message"
               },
               {
                 "type": "null"
               }
             ]
           },
-          "threadId": {
-            "type": "string"
+          "unreadCount": {
+            "type": "integer"
           },
           "updatedAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "meetupId": {
+            "type": [
+              "string",
+              "null"
+            ]
           }
         }
       },
-      "TrayItem": {
+      "MessageSender": {
         "type": "object",
         "required": [
-          "userId",
-          "person",
-          "reason",
-          "threadId",
-          "sharedInterests"
+          "kind"
         ],
         "properties": {
+          "kind": {
+            "type": "string",
+            "description": "Open enum. `muse` messages are styled as Muse; `system` as small centered notes.",
+            "enum": [
+              "user",
+              "muse",
+              "system"
+            ]
+          },
           "userId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "MessageAttachment": {
+        "type": "object",
+        "description": "Open union keyed by `kind`. Clients render known kinds and skip unknown ones.\n- starters: conversation starter chips (tapping one fills the composer).\n- meetup: a meetup card for `meetupId`; the client fetches the meetup.\n- muse_steps: a compact progress card for `stepIds` of `meetupId`.\n- approval: an inline approval for `approvalId` (only in the approver's view).\n- plan: a plan card for `planId`.\n",
+        "required": [
+          "kind"
+        ],
+        "properties": {
+          "kind": {
             "type": "string"
           },
-          "person": {
-            "$ref": "#/components/schemas/PersonCard"
+          "starters": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           },
-          "reason": {
-            "type": "string",
-            "description": "Open enum.",
-            "enum": [
-              "not_sharing",
-              "not_met",
-              "ghost"
-            ]
+          "meetupId": {
+            "type": "string"
+          },
+          "stepIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "approvalId": {
+            "type": "string"
+          },
+          "planId": {
+            "type": "string"
+          }
+        }
+      },
+      "Message": {
+        "type": "object",
+        "required": [
+          "messageId",
+          "threadId",
+          "sender",
+          "text",
+          "createdAt",
+          "attachments"
+        ],
+        "properties": {
+          "messageId": {
+            "type": "string"
           },
           "threadId": {
             "type": "string"
           },
-          "sharedInterests": {
-            "type": "array",
-            "maxItems": 3,
-            "items": {
-              "$ref": "#/components/schemas/InterestRef"
-            }
-          }
-        }
-      },
-      "MeetupPin": {
-        "type": "object",
-        "required": [
-          "meetupId",
-          "title",
-          "venue",
-          "startsAt",
-          "attendeeCount"
-        ],
-        "properties": {
-          "meetupId": {
+          "sender": {
+            "$ref": "#/components/schemas/MessageSender"
+          },
+          "text": {
             "type": "string"
           },
-          "title": {
-            "type": "string"
-          },
-          "venue": {
-            "$ref": "#/components/schemas/Venue"
-          },
-          "startsAt": {
+          "createdAt": {
             "type": "string",
             "format": "date-time"
           },
-          "attendeeCount": {
-            "type": "integer"
-          }
-        }
-      },
-      "MapView": {
-        "type": "object",
-        "required": [
-          "generatedAt",
-          "me",
-          "friends",
-          "tray",
-          "meetups"
-        ],
-        "properties": {
-          "generatedAt": {
-            "type": "string",
-            "format": "date-time"
+          "clientId": {
+            "type": [
+              "string",
+              "null"
+            ]
           },
-          "me": {
-            "type": "object",
-            "required": [
-              "ghostMode"
-            ],
-            "properties": {
-              "location": {
-                "oneOf": [
-                  {
-                    "$ref": "#/components/schemas/LatLng"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ]
-              },
-              "ghostMode": {
-                "type": "boolean"
-              }
-            }
+          "toMuse": {
+            "type": "boolean"
           },
-          "friends": {
+          "attachments": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/FriendPin"
-            }
-          },
-          "tray": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/TrayItem"
-            }
-          },
-          "meetups": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/MeetupPin"
-            }
-          }
-        }
-      },
-      "SceneLeaderboard": {
-        "type": "object",
-        "required": [
-          "poolId",
-          "weekOf",
-          "scenes"
-        ],
-        "properties": {
-          "poolId": {
-            "type": "string"
-          },
-          "weekOf": {
-            "type": "string",
-            "format": "date"
-          },
-          "scenes": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "required": [
-                "sceneId",
-                "label",
-                "topInterests",
-                "meetupsThisWeek",
-                "following"
-              ],
-              "properties": {
-                "sceneId": {
-                  "type": "string"
-                },
-                "label": {
-                  "type": "string"
-                },
-                "topInterests": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/InterestRef"
-                  }
-                },
-                "meetupsThisWeek": {
-                  "type": "integer"
-                },
-                "following": {
-                  "type": "boolean"
-                }
-              }
+              "$ref": "#/components/schemas/MessageAttachment"
             }
           }
         }
@@ -4251,7 +5194,7 @@
         "properties": {
           "type": {
             "type": "string",
-            "description": "Open enum. v1 values and what the client should refetch:\nmessage.created (Message) -> append or refetch thread messages;\nthread.updated (Thread) -> refetch /v1/threads;\nconnection.created (Connection) -> refetch /v1/connections and /v1/map;\ndrop.updated ({dropId}) -> refetch /v1/drops/current;\nhi.received (HiItem) -> refetch /v1/hi;\ninvite.received (Invite) -> refetch /v1/invites;\ngroup.updated (GroupRequest) -> refetch the group request;\nmeetup.updated (Meetup) -> refetch the meetup and /v1/map;\nmap.updated ({}) -> refetch /v1/map;\nme.updated ({}) -> refetch /v1/me and /v1/config.\n"
+            "description": "Open enum. Values and what the client should refetch (CONTRACTS.md §6):\nfeed.updated ({}) -> /v1/feed;\njoin.updated (Join) -> /v1/joins;\nmeetup.updated (Meetup) -> that meetup and /v1/meetups;\nmeetup.step ({meetupId, step}) -> merge the step, or refetch that meetup;\napproval.requested (Approval) -> /v1/approvals and that meetup;\nnudge.created (Nudge) -> /v1/nudges;\nmessage.created (Message) -> append or refetch thread messages;\nthread.updated (Thread) -> /v1/threads;\nconnection.created (Connection) -> /v1/connections;\ncalendar.changed ({}) -> call syncCalendar;\nsignals.updated ({}) -> /v1/signals, /v1/me/setup;\nme.updated ({}) -> /v1/me and /v1/config.\n"
           },
           "eventId": {
             "type": "string"

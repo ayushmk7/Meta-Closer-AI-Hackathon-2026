@@ -12,4 +12,4 @@
 | `services/sim/`, `services/dashboard/` | Seed data, Laya simulation, backend-only dashboard (PRD-3) |
 | `data/` | Seed, Laya tables and simulation runs (PRD-3) |
 
-Common Ground is a people-first Facebook feature: Muse introduces people who want friends, reveals only what they share, and plans the first meetup.
+Common Ground is a plans-first Facebook feature for people who want friends: tell Muse what you want to do, tap I'm in, and Muse forms the group and handles the logistics (time, booking, payment with your OK, calendar, chat, directions) while you just show up. Connected apps like Google Maps and your calendar let Muse suggest plans at the moments you'd want company.

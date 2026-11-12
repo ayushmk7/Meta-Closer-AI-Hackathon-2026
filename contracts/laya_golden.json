@@ -1,5 +1,5 @@
 {
-  "questionsVersion": 1,
+  "questionsVersion": 2,
   "note": "Reference renders of laya_questions.yaml states. Both services must reproduce 'render' byte for byte.",
   "cases": [
     {
@@ -122,128 +122,6 @@
       "render": "Person B.\nNeighborhood: Outer Richmond. Age band: 26_29.\nPrefers groups of 2 to 6. Free: sat morning.\nInterests (strongest first): Coastal hikes (0.90), Strategy board games (0.60).\nRecent activity: none."
     },
     {
-      "name": "connect_state",
-      "question": "connect",
-      "users": {
-        "A": {
-          "neighborhood": "Inner Sunset",
-          "ageBand": "22_25",
-          "groupSize": {
-            "min": 2,
-            "max": 4
-          },
-          "availability": [
-            {
-              "day": "sun",
-              "part": "afternoon"
-            },
-            {
-              "day": "wed",
-              "part": "evening"
-            },
-            {
-              "day": "sat",
-              "part": "morning"
-            }
-          ],
-          "interests": [
-            {
-              "id": "arts_crafts.ceramics.wheel_throwing",
-              "label": "Wheel throwing",
-              "weight": 0.7,
-              "visibility": "shown",
-              "sensitive": false
-            },
-            {
-              "id": "outdoors.hiking.coastal_hikes",
-              "label": "Coastal hikes",
-              "weight": 0.82,
-              "visibility": "shown",
-              "sensitive": false
-            },
-            {
-              "id": "games.board_games.strategy_games",
-              "label": "Strategy board games",
-              "weight": 0.55,
-              "visibility": "shown",
-              "sensitive": false
-            },
-            {
-              "id": "identity_values.faith.buddhism",
-              "label": "Buddhism",
-              "weight": 0.6,
-              "visibility": "hidden",
-              "sensitive": true
-            },
-            {
-              "id": "food_drink.cooking.sourdough",
-              "label": "Sourdough",
-              "weight": 0.55,
-              "visibility": "hidden",
-              "sensitive": false
-            }
-          ],
-          "activity": [
-            {
-              "kind": "post",
-              "at": "2026-11-01T17:00:00Z",
-              "text": "Three photos from the coast trail this morning. Fog rolled out right as we reached the lookout and the whole bay opened up in front of us."
-            },
-            {
-              "kind": "group_membership",
-              "at": "2026-10-20T10:00:00Z",
-              "groupName": "SF Clay Collective"
-            },
-            {
-              "kind": "event_rsvp",
-              "at": "2026-11-05T02:00:00Z",
-              "eventName": "Board game night at Game Parlor"
-            }
-          ]
-        },
-        "B": {
-          "neighborhood": "Outer Richmond",
-          "ageBand": "26_29",
-          "groupSize": {
-            "min": 2,
-            "max": 6
-          },
-          "availability": [
-            {
-              "day": "sat",
-              "part": "morning"
-            }
-          ],
-          "interests": [
-            {
-              "id": "outdoors.hiking.coastal_hikes",
-              "label": "Coastal hikes",
-              "weight": 0.9,
-              "visibility": "shown",
-              "sensitive": false
-            },
-            {
-              "id": "games.board_games.strategy_games",
-              "label": "Strategy board games",
-              "weight": 0.6,
-              "visibility": "shown",
-              "sensitive": false
-            }
-          ],
-          "activity": []
-        }
-      },
-      "card": {
-        "otherDistanceBand": "1_3km",
-        "sharedCoarse": [
-          "Hiking",
-          "Board games"
-        ],
-        "reason": "You both spend weekends on the coast trails and love a long strategy game."
-      },
-      "render": "Person A.\nNeighborhood: Inner Sunset. Age band: 22_25.\nPrefers groups of 2 to 4. Free: wed evening, sat morning, sun afternoon.\nInterests (strongest first): Coastal hikes (0.82), Wheel throwing (0.70), Strategy board games (0.55).\nRecent activity: event_rsvp: Board game night at Game Parlor | post: Three photos from the coast trail this morning. Fog rolled out right as we reached the lookout and the whole bay open... | group_membership: SF Clay Collective.\nPerson B.\nNeighborhood: Outer Richmond. Age band: 26_29.\nPrefers groups of 2 to 6. Free: sat morning.\nInterests (strongest first): Coastal hikes (0.90), Strategy board games (0.60).\nRecent activity: none.\nCard shown to A: 1 to 3 km away. Shared: Hiking, Board games. Reason: \"You both spend weekends on the coast trails and love a long strategy game.\"."
-    },
-    {
       "name": "show_up_state",
       "question": "show_up",
       "users": {
@@ -326,6 +204,106 @@
       },
       "activityType": "hike",
       "render": "Person A.\nNeighborhood: Inner Sunset. Age band: 22_25.\nPrefers groups of 2 to 4. Free: wed evening, sat morning, sun afternoon.\nInterests (strongest first): Coastal hikes (0.82), Wheel throwing (0.70), Strategy board games (0.55).\nRecent activity: event_rsvp: Board game night at Game Parlor | post: Three photos from the coast trail this morning. Fog rolled out right as we reached the lookout and the whole bay open... | group_membership: SF Clay Collective.\nActivity type: hike."
+    },
+    {
+      "name": "join_activity_state",
+      "question": "join_activity",
+      "users": {
+        "A": {
+          "neighborhood": "Inner Sunset",
+          "ageBand": "22_25",
+          "groupSize": {
+            "min": 2,
+            "max": 4
+          },
+          "availability": [
+            {
+              "day": "sun",
+              "part": "afternoon"
+            },
+            {
+              "day": "wed",
+              "part": "evening"
+            },
+            {
+              "day": "sat",
+              "part": "morning"
+            }
+          ],
+          "interests": [
+            {
+              "id": "arts_crafts.ceramics.wheel_throwing",
+              "label": "Wheel throwing",
+              "weight": 0.7,
+              "visibility": "shown",
+              "sensitive": false
+            },
+            {
+              "id": "outdoors.hiking.coastal_hikes",
+              "label": "Coastal hikes",
+              "weight": 0.82,
+              "visibility": "shown",
+              "sensitive": false
+            },
+            {
+              "id": "games.board_games.strategy_games",
+              "label": "Strategy board games",
+              "weight": 0.55,
+              "visibility": "shown",
+              "sensitive": false
+            },
+            {
+              "id": "identity_values.faith.buddhism",
+              "label": "Buddhism",
+              "weight": 0.6,
+              "visibility": "hidden",
+              "sensitive": true
+            },
+            {
+              "id": "food_drink.cooking.sourdough",
+              "label": "Sourdough",
+              "weight": 0.55,
+              "visibility": "hidden",
+              "sensitive": false
+            }
+          ],
+          "activity": [
+            {
+              "kind": "post",
+              "at": "2026-11-01T17:00:00Z",
+              "text": "Three photos from the coast trail this morning. Fog rolled out right as we reached the lookout and the whole bay opened up in front of us."
+            },
+            {
+              "kind": "group_membership",
+              "at": "2026-10-20T10:00:00Z",
+              "groupName": "SF Clay Collective"
+            },
+            {
+              "kind": "event_rsvp",
+              "at": "2026-11-05T02:00:00Z",
+              "eventName": "Board game night at Game Parlor"
+            }
+          ]
+        }
+      },
+      "activityType": "ceramics_studio",
+      "render": "Person A.\nNeighborhood: Inner Sunset. Age band: 22_25.\nPrefers groups of 2 to 4. Free: wed evening, sat morning, sun afternoon.\nInterests (strongest first): Coastal hikes (0.82), Wheel throwing (0.70), Strategy board games (0.55).\nRecent activity: event_rsvp: Board game night at Game Parlor | post: Three photos from the coast trail this morning. Fog rolled out right as we reached the lookout and the whole bay open... | group_membership: SF Clay Collective.\nActivity type: ceramics_studio."
+    },
+    {
+      "name": "sensitive_place_state",
+      "question": "sensitive_place",
+      "place": {
+        "placeName": "Golden Gate Meditation Center",
+        "placeKind": "community_center",
+        "pattern": "Weekly visits on Sunday mornings"
+      },
+      "render": "Place: Golden Gate Meditation Center. Kind: community_center.\nPattern: Weekly visits on Sunday mornings"
+    },
+    {
+      "name": "plan_ok_state",
+      "question": "plan_ok",
+      "text": "Anyone want to try the new ramen place on Clement St Friday at 7?",
+      "render": "Plan proposed by a user on a friend-finding app: \"Anyone want to try the new ramen place on Clement St Friday at 7?\""
     }
   ]
 }
