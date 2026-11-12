@@ -1,0 +1,355 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Common Ground internal dashboard</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="/vendor/maplibre-gl.css">
+<script src="/vendor/maplibre-gl.js"></script>
+<script src="/vendor/qrcode.min.js"></script>
+<style>
+  :root { --bg:#0b0d12; --panel:#161a22; --fg:#f4f6fa; --dim:#9aa3b2; --line:#2a303c;
+          --greedy:#f2994a; --cg:#4fd1c5; --bad:#ff5c7a; --maya:#ffd84d; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font:20px/1.35 system-ui, -apple-system, sans-serif; }
+  nav { display:flex; gap:4px; padding:10px 16px; background:var(--panel); border-bottom:1px solid var(--line); flex-wrap:wrap; align-items:center; }
+  nav a { color:var(--dim); text-decoration:none; padding:8px 16px; border-radius:8px; font-weight:600; }
+  nav a.on { background:var(--fg); color:var(--bg); }
+  nav .sp { flex:1; }
+  select, input, button { font:inherit; background:var(--bg); color:var(--fg); border:1px solid var(--line); border-radius:8px; padding:6px 10px; }
+  button { cursor:pointer; background:#232a36; font-weight:600; }
+  button:hover { border-color:var(--fg); }
+  section { display:none; padding:16px; }
+  section.on { display:block; }
+  h1 { font-size:32px; margin:0 0 12px; }
+  h2 { font-size:24px; margin:0 0 8px; }
+  #map { height:calc(100vh - 190px); border-radius:12px; }
+  .legend { display:flex; gap:18px; flex-wrap:wrap; margin-top:8px; color:var(--dim); font-size:18px; }
+  .dot { display:inline-block; width:14px; height:14px; border-radius:50%; margin-right:6px; vertical-align:-1px; }
+  .side { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px; }
+  .big { font-size:56px; font-weight:800; line-height:1; }
+  canvas { width:100%; aspect-ratio:4/3; display:block; }
+  .tiles { display:grid; grid-template-columns:repeat(auto-fill, minmax(230px, 1fr)); gap:12px; }
+  .tile .v { font-size:48px; font-weight:800; }
+  .tile .k { color:var(--dim); font-size:18px; }
+  .ctl { display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); gap:12px; }
+  .ctl .card { display:flex; flex-direction:column; gap:8px; }
+  .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  .seg button.on { background:var(--cg); color:var(--bg); }
+  #log { font:15px/1.4 ui-monospace, monospace; color:var(--dim); white-space:pre-wrap; max-height:160px; overflow:auto; }
+  #err { color:var(--bad); font-weight:600; }
+  @media (max-width:800px) { .side { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<nav>
+  <a href="/map" data-p="map">Live map</a>
+  <a href="/replay" data-p="replay">Replay</a>
+  <a href="/muse" data-p="muse">Muse at work</a>
+  <a href="/controls" data-p="controls">Demo controls</a>
+  <span class="sp"></span>
+  <span id="err"></span>
+  <select id="pool" aria-label="Pool"></select>
+</nav>
+
+<section id="p-map">
+  <h1 id="map-title">Muse's view of San Francisco (internal)</h1>
+  <div id="map"></div>
+  <div class="legend" id="legend"></div>
+</section>
+
+<section id="p-replay">
+  <div class="row" style="justify-content:space-between">
+    <h1>Low-outgoing people still isolated</h1>
+    <div class="row">
+      <button id="play">Play</button>
+      <input type="range" id="week" min="1" max="8" value="1" style="width:320px" aria-label="Week">
+      <span class="big" style="font-size:36px" id="week-label">Week 1</span>
+    </div>
+  </div>
+  <div class="side">
+    <div class="card"><h2 style="color:var(--greedy)">Greedy</h2><div class="big" id="iso-greedy">–</div><canvas id="cv-greedy"></canvas></div>
+    <div class="card"><h2 style="color:var(--cg)">Common Ground</h2><div class="big" id="iso-common_ground">–</div><canvas id="cv-common_ground"></canvas></div>
+  </div>
+  <div class="card" style="margin-top:16px"><h2>Isolated share over 8 weeks (95% interval over seeds)</h2><svg id="chart" viewBox="0 0 1000 300" style="width:100%"></svg></div>
+  <div class="legend"><span><span class="dot" style="background:var(--bad)"></span>isolated, low-outgoing</span><span><span class="dot" style="background:var(--dim)"></span>everyone else</span><span>lines: friendships</span><span id="run-id"></span></div>
+</section>
+
+<section id="p-muse">
+  <h1>Muse at work</h1>
+  <div class="tiles" id="tiles"></div>
+</section>
+
+<section id="p-controls">
+  <h1>Demo controls</h1>
+  <div class="ctl">
+    <div class="card"><h2>Counterpart</h2>
+      <div class="row seg" id="seg-cp"><button data-v="live">Live phone</button><button data-v="synthetic">Synthetic</button></div>
+      <label><input type="checkbox" id="forcedYes"> Forced yes</label>
+      <label><input type="checkbox" id="relaxCheckin"> Relax check-in</label>
+      <label><input type="checkbox" id="failNextBooking"> Fail next booking</label>
+    </div>
+    <div class="card"><h2>Plans</h2>
+      <button data-act="nudge">Trigger Maya's nudge</button>
+      <div class="row"><input id="heroPlan" placeholder="hero planId" size="16"><button data-act="form">Form hero plan now</button></div>
+      <button data-act="regen">Regenerate plans</button>
+    </div>
+    <div class="card"><h2>Advance meetup</h2>
+      <input id="meetup" placeholder="meetupId">
+      <div class="row"><button data-adv="leave_by">Leave-by</button><button data-adv="window_open">Window open</button><button data-adv="completed">Completed</button></div>
+    </div>
+    <div class="card"><h2>Reset</h2><button data-act="reset" style="border-color:var(--bad)">Reset demo</button><div id="log"></div></div>
+    <div class="card"><h2>Second phone</h2>
+      <div class="row">LAN IP <input id="lan" size="14"></div>
+      <div class="row">as <input id="liveUser" size="10"></div>
+      <div id="qr" style="background:#fff;padding:10px;width:max-content;border-radius:8px"></div>
+      <div id="deeplink" style="font-size:14px;color:var(--dim);word-break:break-all"></div>
+    </div>
+  </div>
+</section>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const PALETTE = ["#4fd1c5", "#f2994a", "#b794f4", "#68d391", "#63b3ed", "#f687b3", "#faf089", "#fc8181"];
+const page = (location.pathname.slice(1) || "map");
+document.querySelectorAll("nav a").forEach(a => a.classList.toggle("on", a.dataset.p === page));
+$("#p-" + page).classList.add("on");
+
+function showErr(e) { $("#err").textContent = e ? String(e) : ""; }
+async function api(path, opts = {}) {
+  const r = await fetch(path, { headers: { "Content-Type": "application/json" }, ...opts });
+  const t = await r.text();
+  const body = t ? JSON.parse(t) : {};
+  if (!r.ok) throw new Error(body?.error?.message || r.status);
+  return body;
+}
+const poolId = () => $("#pool").value || "pool_sf_city";
+let local = { demo: null, lowOutgoingIds: [], lanIp: "" };
+
+async function loadPools() {
+  let items = [{ poolId: "pool_sf_city", label: "San Francisco" }];
+  try { items = (await api("/api/i/pools")).items; } catch (e) { showErr(e); }
+  $("#pool").innerHTML = items.map(p => `<option value="${p.poolId}">${p.label}</option>`).join("");
+  $("#pool").onchange = onPool;
+  await onPool();
+}
+async function onPool() {
+  try { local = await api("/api/local?poolId=" + poolId()); } catch (e) { showErr(e); }
+  const label = $("#pool").selectedOptions[0]?.textContent || "San Francisco";
+  $("#map-title").textContent = `Muse's view of ${label} (internal)`;
+  if (local.demo?.heroPlanId) $("#heroPlan").value = local.demo.heroPlanId;
+  if (!$("#lan").value) $("#lan").value = local.lanIp;
+  if (local.demo?.liveUserId) $("#liveUser").value = local.demo.liveUserId;
+  renderQr();
+  refreshMap(true);
+}
+
+// ---------- Live map ----------
+let map, mapReady = false, sceneColor = {};
+function hull(pts) {  // monotone chain convex hull on [lng, lat]
+  pts = [...pts].sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  const cross = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+  const lo = [], up = [];
+  for (const p of pts) { while (lo.length >= 2 && cross(lo.at(-2), lo.at(-1), p) <= 0) lo.pop(); lo.push(p); }
+  for (const p of pts.reverse()) { while (up.length >= 2 && cross(up.at(-2), up.at(-1), p) <= 0) up.pop(); up.push(p); }
+  const h = lo.slice(0, -1).concat(up.slice(0, -1));
+  return [...h, h[0]];
+}
+const fc = (features) => ({ type: "FeatureCollection", features });
+function graphToGeo(g) {
+  const low = new Set(local.lowOutgoingIds);
+  g.scenes?.forEach((s, i) => sceneColor[s.sceneId] = PALETTE[i % PALETTE.length]);
+  window._scenes = Object.fromEntries((g.scenes || []).map(s => [s.sceneId, s.label]));
+  const pos = {};
+  const nodes = g.nodes.map(n => {
+    pos[n.userId] = [n.location.lng, n.location.lat];
+    return { type: "Feature", geometry: { type: "Point", coordinates: pos[n.userId] }, properties: {
+      color: sceneColor[n.sceneId] || "#718096", r: 5 + 2.5 * Math.sqrt(n.connections || 0),
+      isolated: !!n.isolated, low: low.has(n.userId), maya: n.userId === (local.demo?.mayaId || "u_maya") } };
+  });
+  const edges = g.edges.filter(e => pos[e.a] && pos[e.b]).map(e => ({ type: "Feature",
+    geometry: { type: "LineString", coordinates: [pos[e.a], pos[e.b]] }, properties: { kind: e.kind } }));
+  const hulls = [], venues = [];
+  for (const gr of g.groups || []) {
+    const pts = gr.memberIds.map(id => pos[id]).filter(Boolean);
+    if (!pts.length) continue;
+    const pad = 0.0025, padded = pts.flatMap(([x, y]) => [[x - pad, y], [x + pad, y], [x, y - pad], [x, y + pad]]);
+    hulls.push({ type: "Feature", geometry: { type: "Polygon", coordinates: [hull(padded)] }, properties: { title: gr.title } });
+    if (gr.venue?.lat != null) {
+      const c = [pts.reduce((s, p) => s + p[0], 0) / pts.length, pts.reduce((s, p) => s + p[1], 0) / pts.length];
+      venues.push({ type: "Feature", geometry: { type: "LineString", coordinates: [c, [gr.venue.lng, gr.venue.lat]] }, properties: {} });
+      venues.push({ type: "Feature", geometry: { type: "Point", coordinates: [gr.venue.lng, gr.venue.lat] }, properties: { name: gr.venue.name } });
+    }
+  }
+  return { nodes: fc(nodes), edges: fc(edges), hulls: fc(hulls), venues: fc(venues), bounds: Object.values(pos) };
+}
+function initMap() {
+  if (map || !window.maplibregl) return;
+  map = new maplibregl.Map({ container: "map", center: [-122.44, 37.765], zoom: 12, attributionControl: { compact: true }, style: {
+    version: 8, sources: { osm: { type: "raster", tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"], tileSize: 256, attribution: "© OpenStreetMap contributors" } },
+    layers: [{ id: "osm", type: "raster", source: "osm", paint: { "raster-saturation": -1, "raster-brightness-max": 0.35 } }] } });
+  map.on("load", () => {
+    for (const s of ["edges", "hulls", "venues", "nodes"]) map.addSource(s, { type: "geojson", data: fc([]) });
+    map.addLayer({ id: "hulls", type: "fill", source: "hulls", paint: { "fill-color": "#ffd84d", "fill-opacity": 0.18, "fill-outline-color": "#ffd84d" } });
+    map.addLayer({ id: "edges", type: "line", source: "edges", paint: {
+      "line-color": ["match", ["get", "kind"], "friendship", "#ffffff", "met", "#cbd5e0", "group", "#ffd84d", "#718096"],
+      "line-width": ["match", ["get", "kind"], "friendship", 3.5, "met", 1.8, "group", 1.5, 0.6],
+      "line-opacity": ["match", ["get", "kind"], "candidate", 0.25, 0.9] } });
+    map.addLayer({ id: "venue-lines", type: "line", source: "venues", filter: ["==", "$type", "LineString"], paint: { "line-color": "#ffd84d", "line-width": 2, "line-dasharray": [2, 2] } });
+    map.addLayer({ id: "venue-pts", type: "circle", source: "venues", filter: ["==", "$type", "Point"], paint: { "circle-radius": 8, "circle-color": "#ffd84d", "circle-stroke-color": "#000", "circle-stroke-width": 2 } });
+    map.addLayer({ id: "nodes", type: "circle", source: "nodes", paint: {
+      "circle-radius": ["case", ["get", "maya"], 12, ["get", "r"]],
+      "circle-color": ["case", ["get", "maya"], "#ffd84d", ["get", "color"]],
+      "circle-stroke-width": ["case", ["get", "maya"], 4, ["get", "isolated"], 3, 0],
+      "circle-stroke-color": ["case", ["get", "maya"], "#ffffff", ["get", "low"], "#ff5c7a", "#ffffff"] } });
+    mapReady = true; refreshMap(true);
+  });
+}
+let fitted = "";
+async function refreshMap(fit) {
+  if (page !== "map") return;
+  initMap();
+  if (!mapReady) return;
+  try {
+    const g = graphToGeo(await api(`/api/i/pools/${poolId()}/graph`));
+    for (const k of ["nodes", "edges", "hulls", "venues"]) map.getSource(k).setData(g[k]);
+    if ((fit || fitted !== poolId()) && g.bounds.length) {
+      const b = g.bounds.reduce((b, p) => b.extend(p), new maplibregl.LngLatBounds(g.bounds[0], g.bounds[0]));
+      map.fitBounds(b, { padding: 60, duration: 0 }); fitted = poolId();
+    }
+    $("#legend").innerHTML = Object.entries(sceneColor).map(([id, c]) => `<span><span class="dot" style="background:${c}"></span>${(window._scenes || {})[id] || id}</span>`).join("") +
+      `<span><span class="dot" style="background:#ffd84d"></span>Maya</span><span><span class="dot" style="border:3px solid #fff"></span>isolated</span><span><span class="dot" style="border:3px solid #ff5c7a"></span>low-outgoing (sim_private)</span><span>yellow hull: formed group → venue</span><span>edges: faint candidate, solid met, bold friendship</span>`;
+    showErr("");
+  } catch (e) { showErr(e); }
+}
+
+// ---------- Replay ----------
+let replay, playing = null;
+async function loadReplay() {
+  try { replay = await api("/api/replay"); } catch (e) { return showErr(e); }
+  $("#week").max = replay.weeks || 8;
+  $("#run-id").textContent = `run ${replay.runId}, seed ${replay.seed}` + (replay.cell ? `, flake ×${replay.cell.flake}, join ×${replay.cell.join}` : "");
+  drawChart(); drawWeek();
+}
+function drawWeek() {
+  if (!replay) return;
+  const w = +$("#week").value;
+  $("#week-label").textContent = "Week " + w;
+  const lats = replay.people.map(p => p.lat), lngs = replay.people.map(p => p.lng);
+  const [a0, a1, o0, o1] = [Math.min(...lats), Math.max(...lats), Math.min(...lngs), Math.max(...lngs)];
+  for (const key of ["greedy", "common_ground"]) {
+    const frames = (replay.frames?.[key] || []).filter(x => x.week <= w);  // pairs are per-week; cumulate
+    const wk = frames.at(-1);
+    if (!wk) continue;
+    $("#iso-" + key).textContent = Math.round(wk.isolatedShareLowOut * 100) + "%";
+    const cv = $("#cv-" + key), ctx = cv.getContext("2d");
+    cv.width = cv.clientWidth * devicePixelRatio; cv.height = cv.clientHeight * devicePixelRatio;
+    const W = cv.width, H = cv.height, m = 20 * devicePixelRatio;
+    const xy = (p) => [m + (p.lng - o0) / (o1 - o0 || 1) * (W - 2 * m), H - m - (p.lat - a0) / (a1 - a0 || 1) * (H - 2 * m)];
+    const byId = Object.fromEntries(replay.people.map(p => [p.userId, p]));
+    ctx.clearRect(0, 0, W, H);
+    ctx.strokeStyle = key === "greedy" ? "#f2994a" : "#4fd1c5"; ctx.lineWidth = 2.5 * devicePixelRatio;
+    const friended = new Set();
+    for (const [a, b] of frames.flatMap(f => f.friendships)) {
+      if (!byId[a] || !byId[b]) continue;
+      friended.add(a); friended.add(b);
+      ctx.beginPath(); ctx.moveTo(...xy(byId[a])); ctx.lineTo(...xy(byId[b])); ctx.stroke();
+    }
+    for (const p of replay.people) {
+      const iso = p.lowOutgoing && !friended.has(p.userId);
+      ctx.fillStyle = iso ? "#ff5c7a" : friended.has(p.userId) ? "#f4f6fa" : "#5a6475";
+      ctx.beginPath(); ctx.arc(...xy(p), (iso ? 7 : 5) * devicePixelRatio, 0, 7); ctx.fill();
+    }
+  }
+}
+function drawChart() {
+  const c = replay.isolatedShare; if (!c) return;
+  const weeks = c.greedy?.week || c.common_ground?.week || [];
+  const W = 1000, H = 300, L = 70, B = 40, n = weeks.length;
+  const x = i => L + i * (W - L - 20) / Math.max(1, n - 1), y = v => 10 + (1 - v) * (H - B - 10);
+  let s = "";
+  for (const t of [0, 0.25, 0.5, 0.75, 1]) s += `<line x1="${L}" x2="${W - 20}" y1="${y(t)}" y2="${y(t)}" stroke="#2a303c"/><text x="${L - 10}" y="${y(t) + 6}" fill="#9aa3b2" font-size="18" text-anchor="end">${t * 100}%</text>`;
+  weeks.forEach((w, i) => s += `<text x="${x(i)}" y="${H - 10}" fill="#9aa3b2" font-size="18" text-anchor="middle">wk ${w}</text>`);
+  for (const [key, col] of [["greedy", "#f2994a"], ["common_ground", "#4fd1c5"]]) {
+    const d = c[key]; if (!d) continue;
+    const band = d.hi.map((v, i) => `${x(i)},${y(v)}`).concat(d.lo.map((v, i) => `${x(i)},${y(v)}`).reverse()).join(" ");
+    s += `<polygon points="${band}" fill="${col}" opacity="0.2"/><polyline points="${d.mean.map((v, i) => `${x(i)},${y(v)}`).join(" ")}" fill="none" stroke="${col}" stroke-width="5"/>`;
+  }
+  s += `<line id="wk-cursor" stroke="#fff" stroke-width="2" x1="${x(0)}" x2="${x(0)}" y1="10" y2="${H - B}"/>`;
+  $("#chart").innerHTML = s;
+  window._chartX = (w) => x(weeks.indexOf(w));
+}
+$("#week").oninput = () => { drawWeek(); const cur = $("#wk-cursor"); if (cur && window._chartX) { const X = window._chartX(+$("#week").value); cur.setAttribute("x1", X); cur.setAttribute("x2", X); } };
+$("#play").onclick = () => {
+  if (playing) { clearInterval(playing); playing = null; $("#play").textContent = "Play"; return; }
+  $("#play").textContent = "Pause";
+  if (+$("#week").value >= +$("#week").max) $("#week").value = 1;
+  $("#week").oninput();
+  playing = setInterval(() => {
+    if (+$("#week").value >= +$("#week").max) return $("#play").onclick();
+    $("#week").value = +$("#week").value + 1; $("#week").oninput();
+  }, 1200);
+};
+
+// ---------- Muse at work ----------
+const TILES = [["museStepsDone", "Muse steps done"], ["museStepsFailed", "Muse steps failed"], ["approvalsRequested", "Approvals requested"],
+  ["approvalsApproved", "Approvals approved"], ["bookingFallbacks", "Booking fallbacks"], ["userDecisionsPerMeetup", "User decisions per meetup"],
+  ["nudgesShown", "Nudges shown"], ["nudgesJoined", "Nudges joined"], ["laya_decisive_share", "Laya decisive share"], ["muse_fallbacks", "Muse fallbacks"],
+  ["plansFormed", "Plans formed"], ["meetupsConfirmed", "Meetups confirmed"]];
+async function refreshMuse() {
+  if (page !== "muse") return;
+  try {
+    const m = await api("/api/i/metrics?poolId=" + poolId());
+    const fmt = (k, v) => v == null ? "–" : k === "laya_decisive_share" ? Math.round(v * 100) + "%" : Number.isInteger(v) ? v : v.toFixed(1);
+    $("#tiles").innerHTML = TILES.map(([k, l]) => `<div class="card tile"><div class="v">${fmt(k, m[k])}</div><div class="k">${l}</div></div>`).join("");
+    showErr("");
+  } catch (e) { showErr(e); }
+}
+
+// ---------- Demo controls ----------
+function log(msg) { $("#log").textContent = `${new Date().toLocaleTimeString()} ${msg}\n` + $("#log").textContent; }
+async function act(label, path, opts) {
+  try { const r = await api(path, opts); log(`${label}: ${JSON.stringify(r)}`); showErr(""); return r; }
+  catch (e) { log(`${label} failed: ${e.message}`); showErr(e); }
+}
+const post = (body) => ({ method: "POST", body: JSON.stringify(body || {}) });
+async function loadDemo() {
+  try {
+    const d = await api("/api/i/demo");
+    document.querySelectorAll("#seg-cp button").forEach(b => b.classList.toggle("on", b.dataset.v === d.counterpart));
+    for (const k of ["forcedYes", "relaxCheckin", "failNextBooking"]) $("#" + k).checked = !!d[k];
+    if (d.liveUserId && !$("#liveUser").value) { $("#liveUser").value = d.liveUserId; renderQr(); }
+  } catch (e) { showErr(e); }
+}
+async function putDemo(patch) { await act("demo", "/api/i/demo", { method: "PUT", body: JSON.stringify(patch) }); loadDemo(); }
+document.querySelectorAll("#seg-cp button").forEach(b => b.onclick = () => putDemo({ counterpart: b.dataset.v }));
+for (const k of ["forcedYes", "relaxCheckin", "failNextBooking"]) $("#" + k).onchange = (e) => putDemo({ [k]: e.target.checked });
+const ACTS = {
+  nudge: () => act("nudge", "/api/i/demo/nudges", post({ userId: local.demo?.mayaId || "u_maya", ...(local.demo?.nudgePlanId ? { planId: local.demo.nudgePlanId } : {}) })),
+  form: async () => { const r = await act("form", `/api/i/plans/${encodeURIComponent($("#heroPlan").value)}/form`, post()); if (r?.meetupIds?.[0]) $("#meetup").value = r.meetupIds[0]; },
+  regen: () => act("regenerate", "/api/i/plans/regenerate", post({ poolId: poolId() })),
+  reset: () => confirm("Reset the demo? This deletes all live interactions.") && act("reset", "/api/i/demo/reset", post()).then(loadDemo),
+};
+document.querySelectorAll("[data-act]").forEach(b => b.onclick = ACTS[b.dataset.act]);
+document.querySelectorAll("[data-adv]").forEach(b => b.onclick = () =>
+  act("advance " + b.dataset.adv, `/api/i/demo/meetups/${encodeURIComponent($("#meetup").value)}/advance`, post({ to: b.dataset.adv })));
+function renderQr() {
+  const link = `exp://${$("#lan").value}:8081/--/common-ground/demo?as=${encodeURIComponent($("#liveUser").value)}`;
+  $("#deeplink").textContent = link;
+  if (!window.qrcode) return;
+  const q = qrcode(0, "M"); q.addData(link); q.make();
+  $("#qr").innerHTML = q.createSvgTag({ cellSize: 6, margin: 0 });
+}
+$("#lan").oninput = $("#liveUser").oninput = renderQr;
+
+// ---------- boot ----------
+loadPools();
+if (page === "replay") loadReplay();
+if (page === "controls") loadDemo();
+setInterval(() => { refreshMap(false); refreshMuse(); }, 2000);
+refreshMuse();
+</script>
+</body>
+</html>
