@@ -55,6 +55,7 @@ def add(w: World, a: dict) -> dict:
     chat.post(
         w, thread, "muse", None, a["title"], [{"kind": "approval", "approvalId": a["approvalId"]}], only_for=a["userId"]
     )
+    w.on_approval(w, a)  # synthetic counterparts answer theirs (D)
     return a
 
 

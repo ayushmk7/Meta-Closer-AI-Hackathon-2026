@@ -148,3 +148,31 @@ def test_cancelled_event_cancels_and_posts_alternatives(world):
     assert last["sender"]["kind"] == "muse" and last["text"].startswith("I couldn't find a time")
     assert [a for a in last["attachments"] if a["kind"] == "plan"] == [{"kind": "plan", "planId": "pl_hero2"}]
     assert meetups.list_meetups(world, "u_maya") == []
+
+
+def test_join_approve_confirmed_with_synthetic_counterparts(world, monkeypatch):
+    """Checkpoint A: Maya joins the hero plan, OKs her $35, and the meetup reaches confirmed."""
+    pytest.importorskip("cg_api.agent")
+    from cg_api import synthetic
+    from cg_api.store import store
+
+    monkeypatch.setattr(store, "demo_state", {"forcedYes": True, "counterpart": "synthetic"})
+    for u in ("u_dan", "u_rosa"):
+        world.users[u]["synthetic"] = True
+    world.on_formed, world.on_decided, world.on_approval = runner.start, runner.decided, synthetic.on_approval
+    mt = formed(world)
+    mine = approvals.pending(world, "u_maya")
+    assert len(mine) == 1 and approvals.pending(world, "u_dan") == []  # counterparts answered themselves
+    assert meetups.view(world, "u_maya", mt)["status"] == "setting_up"  # never books before Maya decides (P11)
+    approvals.decide(world, "u_maya", mine[0]["approvalId"], "approve")
+    m = meetups.view(world, "u_maya", mt)
+    assert (m["status"], m["booking"]["status"], m["cost"]["myPayment"]) == ("confirmed", "booked", "paid")
+    assert [s["kind"] for s in m["museSteps"]].count("book") == 1
+
+
+def test_fail_next_booking_comes_from_live_demo_state(world, monkeypatch):
+    from cg_api.store import store
+
+    monkeypatch.setattr(store, "world", world)
+    monkeypatch.setattr(store, "demo_state", {"failNextBooking": True})
+    assert runner._take_fail_next_booking(world) is True and store.demo_state["failNextBooking"] is False

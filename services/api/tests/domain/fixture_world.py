@@ -53,6 +53,7 @@ def make_world(match):
         match=match,
         on_formed=lambda w, mt: None,  # agent runs are tested on their own (test_runner.py)
         on_decided=lambda w, a: None,
+        on_approval=lambda w, a: None,
         params=load_params(CONTRACTS / "params.yaml"),
         taxonomy=load_taxonomy(CONTRACTS / "taxonomy.yaml"),
         demo={"mayaId": "u_maya", "featuredPlanIds": ["pl_walk", "pl_hero"]},
