@@ -3,9 +3,7 @@
 from __future__ import annotations
 
 import dataclasses
-import functools
 import json
-import os
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
@@ -29,13 +27,6 @@ class Params(dict):
     @classmethod
     def from_yaml(cls, path: str | Path) -> Params:
         return cls(yaml.safe_load(Path(path).read_text()))
-
-    @staticmethod
-    @functools.cache
-    def default() -> Params:
-        """$CG_CONTRACTS_DIR/params.yaml, else the repo's contracts/ (read once)."""
-        d = os.environ.get("CG_CONTRACTS_DIR") or Path(__file__).resolve().parents[4] / "contracts"
-        return Params.from_yaml(Path(d) / "params.yaml")
 
 
 @dataclass(frozen=True)

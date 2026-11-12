@@ -112,7 +112,7 @@ def test_overlap_reads_crowd_min_count(params):
     pool = _pool(us)
     p = cgm.Plan.from_record(plan())
     strict = cgm.Params(params | {"privacy": params["privacy"] | {"crowdMinCount": 3}})
-    assert cgm.plan_overlap(pool, "u_0", p, ["u_1", "u_2"], 2, 3)  # contract default (2)
+    assert cgm.plan_overlap(pool, "u_0", p, ["u_1", "u_2"], 2, 3, params=params)  # contract value (2)
     assert cgm.plan_overlap(pool, "u_0", p, ["u_1", "u_2"], 2, 3, params=strict) == []
     assert cgm.plan_overlap(pool, "u_0", p, ["u_1", "u_2", "u_3"], 2, 3, params=strict)
 
