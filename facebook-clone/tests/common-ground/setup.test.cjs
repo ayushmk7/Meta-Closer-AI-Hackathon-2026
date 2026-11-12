@@ -95,6 +95,10 @@ test('intro -> optIn -> connect apps -> picked up (locked sensitive) -> done', a
   expect(text()).toContain('Only you can see this.');
   await press('Remove Wheel throwing');
   await press('Continue');
+  // Back and forward again remounts PickedUp (refetching getSetup): the removal must survive.
+  await press('Back');
+  expect(text()).not.toContain('Wheel throwing, shown');
+  await press('Continue');
   expect(text()).toContain('Group size');
   expect(text()).not.toContain("When you're usually free"); // calendar is connected
   await press('Done');

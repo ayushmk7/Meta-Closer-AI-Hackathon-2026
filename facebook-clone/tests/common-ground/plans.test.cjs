@@ -7,15 +7,17 @@ jest.mock('../../src/core/store', () => ({
   useDemo: () => ({ state: { settings: { theme: 'light' } } }),
 }));
 jest.mock('../../src/data/media', () => ({ imageSource: () => 1 }));
+const mockParams = {};
 jest.mock('expo-router', () => ({
   router: {
     push: jest.fn(),
     replace: jest.fn(),
     navigate: jest.fn(),
+    setParams: jest.fn(),
     back: jest.fn(),
     canGoBack: () => false,
   },
-  useLocalSearchParams: () => ({}),
+  useLocalSearchParams: () => mockParams,
   useFocusEffect: (cb) => require('react').useEffect(cb, [cb]),
 }));
 jest.mock('@expo/vector-icons/Ionicons', () => 'Icon');
@@ -131,4 +133,28 @@ test('muse bar: a failed call keeps the typed text', async () => {
   expect(input().props.value).toBe('board games');
   expect(input().props.editable).toBe(true);
   expect(store.getState().error?.message).toBe('Muse is busy. Try again.');
+});
+
+test('invite mode (?with=) ends with Ask Muse instead, and after a created plan', async () => {
+  const { router } = require('expo-router');
+  const daniel = fixtures.listConnections.items[0];
+  store.setState({ connections: [daniel] });
+  mockParams.with = daniel.person.userId;
+  const created = { ...fixtures.getPlan, planId: 'pl_new' };
+  const createPlan = jest.spyOn(api, 'createPlan').mockResolvedValue(created);
+  const { tree, find } = await render(React.createElement(PlansScreen));
+  const input = () => find((p) => p.accessibilityLabel === 'What do you want to do?');
+  expect(input().props.value).toBe('Plan something with Daniel…');
+  await renderer.act(async () => input().props.onSubmitEditing());
+  expect(createPlan).toHaveBeenCalledWith('Plan something with Daniel…', [daniel.person.userId]);
+  expect(router.setParams).toHaveBeenCalledWith({ with: undefined });
+  expect(router.push).toHaveBeenCalledWith('/common-ground/plan/pl_new');
+  router.setParams.mockClear();
+  const cancel = tree.root.find(
+    (n) => n.props.accessibilityLabel === 'Ask Muse instead' && n.props.onPress,
+  );
+  await renderer.act(async () => cancel.props.onPress());
+  expect(router.setParams).toHaveBeenCalledWith({ with: undefined });
+  delete mockParams.with;
+  store.setState({ connections: [] });
 });

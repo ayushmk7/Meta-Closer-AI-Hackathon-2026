@@ -12,8 +12,10 @@ import type {
   AvailabilitySlot,
   GroupSize,
   ModeInfo,
+  MyInterest,
   ProfileVisibility,
   TravelPrefs,
+  Visibility,
 } from './types';
 import { AvailabilityGrid, Banners, InterestEditor } from './ui';
 
@@ -85,12 +87,24 @@ function Intro({ onNext }: { onNext(): void }) {
   );
 }
 
-function PickedUp() {
+// Interest edits live here, overlaid on the fetched proposal, so a refetch of getSetup
+// (remount, connect, signal toggle) never undoes them.
+type Edits = Record<string, Visibility | 'removed'>;
+const applyEdits = (interests: MyInterest[], edits: Edits): MyInterest[] =>
+  interests
+    .filter((i) => edits[i.interest.id] !== 'removed')
+    .map((i) => {
+      const e = edits[i.interest.id];
+      return e && e !== 'removed' ? { ...i, visibility: e } : i;
+    });
+
+function PickedUp({ edits, onEdit }: { edits: Edits; onEdit(id: string, e: Edits[string]): void }) {
   const setup = useCg((s) => s.setup);
   const me = useCg((s) => s.me);
   const [evidence, setEvidence] = useState(false);
   useEffect(() => void load.setup(), []);
   if (!setup || !me) return <Muted style={{ padding: 16 }}>Muse is looking…</Muted>;
+  const interests = applyEdits(setup.proposedInterests, edits);
   return (
     <>
       <Section title="What Muse picked up">
@@ -100,29 +114,17 @@ function PickedUp() {
         </View>
       </Section>
       <Section title="Your interests">
-        {/* proposed interests are edited locally and sent with completeSetup */}
         <InterestEditor
-          interests={setup.proposedInterests}
+          interests={interests}
           onToggle={(id) =>
-            setState({
-              setup: {
-                ...setup,
-                proposedInterests: setup.proposedInterests.map((i) =>
-                  i.interest.id === id
-                    ? { ...i, visibility: i.visibility === 'shown' ? 'hidden' : 'shown' }
-                    : i,
-                ),
-              },
-            })
+            onEdit(
+              id,
+              interests.find((i) => i.interest.id === id)?.visibility === 'shown'
+                ? 'hidden'
+                : 'shown',
+            )
           }
-          onRemove={(id) =>
-            setState({
-              setup: {
-                ...setup,
-                proposedInterests: setup.proposedInterests.filter((i) => i.interest.id !== id),
-              },
-            })
-          }
+          onRemove={(id) => onEdit(id, 'removed')}
         />
         <Button
           title={evidence ? 'Hide why' : 'Why Muse thinks this'}
@@ -130,7 +132,7 @@ function PickedUp() {
           onPress={() => setEvidence(!evidence)}
         />
         {evidence &&
-          setup.proposedInterests
+          interests
             .filter((i) => i.evidence)
             .map((i) => (
               <Muted key={i.interest.id}>
@@ -149,7 +151,7 @@ function PickedUp() {
   );
 }
 
-function Preferences({ onDone }: { onDone(): void }) {
+function Preferences({ edits, onDone }: { edits: Edits; onDone(): void }) {
   const setup = useCg((s) => s.setup);
   const me = useCg((s) => s.me);
   const calendar = useCg((s) =>
@@ -166,7 +168,7 @@ function Preferences({ onDone }: { onDone(): void }) {
   const t = travel ?? setup?.proposedTravel ?? me.travel;
   const a = availability ?? me.availability;
   const done = async () => {
-    const interests = setup?.proposedInterests ?? [];
+    const interests = applyEdits(setup?.proposedInterests ?? [], edits);
     setSaving(true);
     const next = await act(() =>
       api.completeSetup({
@@ -223,6 +225,7 @@ export default function SetupScreen() {
   const optedIn = useCg((s) => !!s.me?.optedIn);
   const connectorsOn = useCg((s) => !!s.config?.features.connectors);
   const [page, setPage] = useState<number | null>(null);
+  const [edits, setEdits] = useState<Edits>({});
   // Pages: 0 intro, 1 connect apps (features.connectors), 2 picked up, 3 preferences.
   const first = optedIn ? (connectorsOn ? 1 : 2) : 0;
   const p = page ?? first;
@@ -255,13 +258,13 @@ export default function SetupScreen() {
       )}
       {p === 2 && (
         <>
-          <PickedUp />
+          <PickedUp edits={edits} onEdit={(id, e) => setEdits({ ...edits, [id]: e })} />
           <View style={{ paddingHorizontal: 16 }}>
             <Button title="Continue" onPress={next} />
           </View>
         </>
       )}
-      {p === 3 && <Preferences onDone={() => router.replace('/common-ground')} />}
+      {p === 3 && <Preferences edits={edits} onDone={() => router.replace('/common-ground')} />}
       {p > 0 && (p !== first || router.canGoBack()) && (
         <View style={{ paddingHorizontal: 16 }}>
           <Button title="Back" secondary onPress={back} />

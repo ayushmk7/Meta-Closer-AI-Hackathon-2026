@@ -60,10 +60,12 @@ export function PromptChips({ prompts, onPick }: { prompts: string[]; onPick(p: 
 export default function MuseBar({
   prefill,
   inviteUserIds,
+  onEndInvite,
 }: {
   prefill?: string;
   // "Plan something again": the next send creates an invite plan instead of asking.
   inviteUserIds?: string[];
+  onEndInvite?: () => void;
 }) {
   const c = useColors();
   const [text, setText] = useState(prefill ?? '');
@@ -83,7 +85,9 @@ export default function MuseBar({
       setCreating(true);
       const p = await createPlan(q, inviteUserIds);
       setCreating(false);
-      if (p) go(`/common-ground/plan/${p.planId}`);
+      if (!p) return; // failed: stay in invite mode with the text kept
+      onEndInvite?.();
+      go(`/common-ground/plan/${p.planId}`);
       return;
     }
     await askMuse(q);
@@ -116,6 +120,19 @@ export default function MuseBar({
           onPress={() => void send(text)}
         />
       </View>
+      {!!inviteUserIds?.length && (
+        <View style={{ paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center' }}>
+          <Muted style={{ flex: 1 }}>Muse will make a new plan and invite them.</Muted>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Ask Muse instead"
+            onPress={() => onEndInvite?.()}
+            style={{ minHeight: 44, justifyContent: 'center' }}
+          >
+            <Label style={{ color: c.blue, fontWeight: '600' }}>Ask Muse instead</Label>
+          </Pressable>
+        </View>
+      )}
       <PromptChips prompts={reply?.prompts ?? feedPrompts} onPick={(p) => void send(p)} />
       {!!status && (
         <View

@@ -1,7 +1,7 @@
 // Plans home, the tab root (PRD-1 §8.1). Not set up -> the setup flow.
 import { useState } from 'react';
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, View } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import {
   Button,
   Card,
@@ -204,6 +204,11 @@ export default function PlansScreen() {
   const [sheet, setSheet] = useState<Connection | null>(null);
   const [again, setAgain] = useState<Connection | null>(null);
   const invite = again ?? connections.find((x) => x.person.userId === params.with) ?? null;
+  // Invite mode ends on a created plan or "Ask Muse instead"; drop the sticky ?with= too.
+  const endInvite = () => {
+    setAgain(null);
+    if (params.with) router.setParams({ with: undefined });
+  };
 
   if (!ready)
     return (
@@ -253,6 +258,7 @@ export default function PlansScreen() {
           key={invite?.connectionId ?? 'ask'}
           prefill={invite ? `Plan something with ${firstName(invite)}…` : undefined}
           inviteUserIds={invite ? [invite.person.userId] : undefined}
+          onEndInvite={endInvite}
         />
         {nudge && <NudgeCard nudge={nudge} />}
         {!replying && feed.length > 0 && (

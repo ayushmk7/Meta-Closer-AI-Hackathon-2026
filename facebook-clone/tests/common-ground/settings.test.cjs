@@ -128,3 +128,25 @@ test('Leave Common Ground confirms first, then opts out', async () => {
   expect(optOut).toHaveBeenCalled();
   expect(store.getState().me.optedIn).toBe(false);
 });
+
+test('a spend limit outside the chip values shows as its own selected chip, not $0', async () => {
+  const config = store.getState().config;
+  const me = store.getState().me;
+  await renderer.act(async () =>
+    store.setState({
+      config: { ...config, features: { ...config.features, autonomySettings: true } },
+      me: { ...me, museSettings: { ...me.museSettings, spendWithoutAskingCents: 1500 } },
+    }),
+  );
+  jest.spyOn(api, 'getMe').mockResolvedValue(store.getState().me);
+  const { tree } = await render(React.createElement(SettingsScreen));
+  const selected = tree.root
+    .findAll((n) => typeof n.type === 'string' && n.props.accessibilityState?.selected)
+    .map((n) =>
+      JSON.stringify(
+        n.findAll((x) => typeof x.props.children === 'string').map((x) => x.props.children),
+      ),
+    );
+  expect(selected.some((t) => t.includes('$15'))).toBe(true);
+  expect(selected.some((t) => t.includes('"$0"'))).toBe(false);
+});

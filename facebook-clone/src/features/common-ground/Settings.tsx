@@ -152,17 +152,22 @@ export function MusePermissions() {
   if (!on || !settings) return null;
   const save = (patch: Partial<MuseSettings>) =>
     void saveMe({ museSettings: { ...settings, ...patch } });
-  const spend = SPEND.find(([, v]) => v === settings.spendWithoutAskingCents)?.[0] ?? '$0';
+  // Any other server value shows as its own selected chip, never as a misleading "$0".
+  const cents = settings.spendWithoutAskingCents;
+  const spend =
+    SPEND.find(([, v]) => v === cents)?.[0] ?? `$${(cents / 100).toFixed(cents % 100 ? 2 : 0)}`;
+  const items: string[] = SPEND.map(([l]) => l);
   return (
     <Section title="What Muse can do without asking">
       <Muted>Spend up to</Muted>
       <View style={flush}>
         <Chips
-          items={SPEND.map(([l]) => l)}
+          items={items.includes(spend) ? items : [...items, spend]}
           value={spend}
-          onChange={(l) =>
-            save({ spendWithoutAskingCents: SPEND.find(([x]) => x === l)?.[1] ?? 0 })
-          }
+          onChange={(l) => {
+            const v = SPEND.find(([x]) => x === l)?.[1];
+            if (v !== undefined) save({ spendWithoutAskingCents: v });
+          }}
         />
       </View>
       <Toggle
