@@ -37,8 +37,9 @@ def test_rank_and_form_on_committed_seed():
 
 def test_form_groups_respects_blocks():
     p = params()
-    pool = {"users": [{"userId": u, "metIds": [], "blockedIds": ["u_b"] if u == "u_a" else []} for u in
-                      ("u_a", "u_b", "u_c", "u_d")]}
+    games = [{"id": "games.board_games.party_games", "sensitive": False}]
+    pool = {"users": [{"userId": u, "metIds": [], "interests": games, "blockedIds": ["u_b"] if u == "u_a" else []}
+                      for u in ("u_a", "u_b", "u_c", "u_d")]}
     cands = {a: [(b, 0.5) for b in ("u_a", "u_b", "u_c", "u_d") if b != a] for a in ("u_a", "u_b", "u_c", "u_d")}
     plan = {"planId": "pl_x", "size": {"min": 3, "max": 4}}
     res = form_groups(plan, ["u_a", "u_b", "u_c", "u_d"], pool, cands, None, {}, p, random.Random(1))
@@ -64,3 +65,80 @@ def test_ground_truth_export_api():
     flat = [s for u in export["users"] for s in u["signals"]]
     assert any(s["kind"] == "routine" for s in flat) and any(s["sensitive"] for s in flat)
     assert all(s["visibility"] == "hidden" for s in flat if s["sensitive"])
+
+
+def _user(uid, met=(), l2=("games.board_games",), start="2026-11-14T18:00:00Z"):
+    return {"userId": uid, "metIds": list(met), "busy": [], "availability": [{"day": "sat", "part": "morning"}],
+            "homeLocation": {"lat": 37.77, "lng": -122.42}, "travel": {"maxMinutes": 60, "modes": ["walk"]},
+            "interests": [{"id": f"{x}.leaf", "weight": 0.9, "visibility": "shown", "sensitive": False} for x in l2]}
+
+
+def _plan(pid, at="board_game_night", scene="sc_a", joins=(), size=(3, 6)):
+    return {"planId": pid, "activityType": at, "venueId": "vn_x", "startsAt": "2026-11-14T18:00:00Z",
+            "endsAt": "2026-11-14T20:00:00Z", "size": {"min": size[0], "max": size[1]}, "sceneId": scene,
+            "targetInterestIds": ["games.board_games"], "seedJoinIds": list(joins)}
+
+
+VENUES = {"vn_x": {"location": {"lat": 37.77, "lng": -122.42}}}
+
+
+class Tables:
+    def __init__(self, pj):
+        self.pj = pj
+
+    def p_join(self, u, t):
+        return self.pj
+
+
+def _rank(users, plans, tables=None, **over):
+    p = json.loads(json.dumps(params()))
+    for k, v in over.items():
+        sec, key = k.split("__")
+        p[sec][key] = v
+    pool = {"mode": "city", "users": users}
+    return rank_plans(pool, plans, None, VENUES, tables, {}, p, random.Random(3))
+
+
+def test_rank_fill_likelihood_floor():
+    users = [_user("u_a")]
+    # 1 eligible user x p_join 0.1, no seed joins: expected 0.1 of min 3 -> below floor, dropped.
+    assert _rank(users, [_plan("pl_lo")], Tables(0.1))["u_a"] == []
+    # Two seed joins lift it over the floor.
+    assert [s["plan_id"] for s in _rank(users, [_plan("pl_hi", joins=["u_x", "u_y"])], Tables(0.1))["u_a"]] == ["pl_hi"]
+
+
+def test_rank_exposure_cap_has_no_id_bias():
+    users = [_user(f"u_{i:03d}", met=["u_zzz"]) for i in range(40)]
+    winners = set()
+    for seed in range(20):
+        p = json.loads(json.dumps(params()))
+        p["plans"]["exposureCapPerDay"] = 1
+        out = rank_plans({"mode": "city", "users": users}, [_plan("pl_one")], None, VENUES, None, {}, p,
+                         random.Random(seed))
+        winners |= {u for u, ss in out.items() if ss}
+    assert len(winners) > 5 and winners != {"u_000"}
+
+
+def test_rank_diversity_caps():
+    plans = [_plan(f"pl_{k}", at="board_game_night" if k < 3 else "trivia_night", scene=f"sc_{k % 2}") for k in range(6)]
+    picked = _rank([_user("u_a")], plans, feed__maxPerActivityType=2, feed__maxPerScene=2)["u_a"]
+    by = {p["planId"]: p for p in plans}
+    from collections import Counter
+
+    assert max(Counter(by[s["plan_id"]]["activityType"] for s in picked).values()) <= 2
+    assert max(Counter(by[s["plan_id"]]["sceneId"] for s in picked).values()) <= 2
+
+
+def test_rank_isolated_users_get_capped_plans_first():
+    users = [_user("u_a", met=["u_z"]), _user("u_b", met=["u_z"]), _user("u_zz")]  # u_zz isolated, highest id
+    out = _rank(users, [_plan("pl_one")], plans__exposureCapPerDay=1)
+    assert [u for u, ss in out.items() if ss] == ["u_zz"]
+
+
+def test_form_groups_min_shared_with_others():
+    users = [_user("u_a"), _user("u_b"), _user("u_c"), _user("u_d", l2=("music.listening",))]
+    pool = {"users": users}
+    cands = {a["userId"]: [(b["userId"], 0.5) for b in users if b is not a] for a in users}
+    res = form_groups(_plan("pl_x", size=(3, 4)), ["u_d", "u_a", "u_b", "u_c"], pool, cands, None, {}, params(),
+                      random.Random(1))
+    assert [g["member_ids"] for g in res["groups"]] == [["u_a", "u_b", "u_c"]] and res["unseated_ids"] == ["u_d"]

@@ -285,14 +285,16 @@ def rank_plans(pool: dict, plans: list[dict], vectors, venues: dict[str, dict], 
     cap = params["plans"]["exposureCapPerDay"]
     buffer_min = params["calendar"]["minFreeBufferMin"]
     boost = params["matching"]["isolationBoost"]
-    feed = params["feed"]["size"]
-    out: dict[str, list[dict]] = {}
-    for u in sorted(pool["users"], key=lambda x: x["userId"]):
+    f = params["feed"]
+    # Pass 1: hard filters and raw fit per (user, plan).
+    iso = {u["userId"] for u in pool["users"] if not u["metIds"]}
+    eligible: dict[str, list[dict]] = {}
+    for u in pool["users"]:
         uid, vec = u["userId"], vectors.get(u["userId"], {})
         slots = {(s["day"], s["part"]) for s in u["availability"]}
-        scores = []
+        rows = eligible[uid] = []
         for p in plans:
-            if uid in p.get("seedJoinIds", []) or exposures.get(p["planId"], 0) >= cap:
+            if uid in p.get("seedJoinIds", []):
                 continue
             starts, ends = _dt(p["startsAt"]), _dt(p["endsAt"])
             if u["busy"]:
@@ -308,26 +310,51 @@ def rank_plans(pool: dict, plans: list[dict], vectors, venues: dict[str, dict], 
             if fit <= 0:
                 continue
             p_join = tables.p_join(uid, p["activityType"]) if tables is not None else 1.0
-            score = fit * p_join * ((1 + boost) if not u["metIds"] else 1.0)
             shared = [t for t in p["targetInterestIds"] if vec.get(t)][: params["privacy"]["sharedCoarseMax"]]
-            scores.append({"user_id": uid, "plan_id": p["planId"], "score": round(score, 6),
-                           "shared_coarse": shared, "travel_minutes": minutes,
-                           "debug": {"fit": round(fit, 6), "p_join": p_join}})
-        scores.sort(key=lambda s: (-s["score"], s["plan_id"]))
-        # Diversity: at most feed.maxPerActivityType per activity type.
+            rows.append({"plan": p, "fit": fit, "p_join": p_join, "minutes": minutes, "shared": shared,
+                         "isolated": uid in iso})
+    # Fill likelihood. ponytail: expected joins = seed joins + mean p_join x min(eligible, exposure cap);
+    # swap for the Laya-table estimate when cg_matching lands.
+    pj: dict[str, list[float]] = {}
+    for rows in eligible.values():
+        for r in rows:
+            pj.setdefault(r["plan"]["planId"], []).append(r["p_join"])
+    fill = {}
+    for p in plans:
+        js = pj.get(p["planId"], [])
+        expected = len(p.get("seedJoinIds", [])) + (sum(js) / len(js) * min(len(js), cap) if js else 0)
+        fill[p["planId"]] = min(1.0, expected / p["size"]["min"])
+    # Pass 2: allocate exposures. Isolated users first (isolationBoost), the rest in rng order (no id bias).
+    order = sorted(eligible)
+    rng.shuffle(order)
+    order.sort(key=lambda uid: uid not in iso)
+    out: dict[str, list[dict]] = {}
+    for uid in order:
+        scores = []
+        for r in eligible[uid]:
+            pid = r["plan"]["planId"]
+            if fill[pid] < params["plans"]["fillLikelihoodFloor"] or exposures.get(pid, 0) >= cap:
+                continue
+            score = r["fit"] * r["p_join"] * fill[pid] * ((1 + boost) if r["isolated"] else 1.0)
+            scores.append((round(score, 6), pid, r))
+        scores.sort(key=lambda x: (-x[0], x[1]))
         by_type: Counter[str] = Counter()
-        types = {p["planId"]: p["activityType"] for p in plans}
+        by_scene: Counter[str] = Counter()
         picked = []
-        for s in scores:
-            t = types[s["plan_id"]]
-            if by_type[t] < params["feed"]["maxPerActivityType"]:
-                by_type[t] += 1
-                picked.append(s)
-                exposures[s["plan_id"]] = exposures.get(s["plan_id"], 0) + 1
-            if len(picked) >= feed:
+        for score, pid, r in scores:
+            t, sc = r["plan"]["activityType"], r["plan"].get("sceneId")
+            if by_type[t] >= f["maxPerActivityType"] or (sc and by_scene[sc] >= f["maxPerScene"]):
+                continue
+            by_type[t] += 1
+            by_scene[sc] += 1
+            exposures[pid] = exposures.get(pid, 0) + 1
+            picked.append({"user_id": uid, "plan_id": pid, "score": score, "shared_coarse": r["shared"],
+                           "travel_minutes": r["minutes"],
+                           "debug": {"fit": round(r["fit"], 6), "p_join": r["p_join"], "fill": round(fill[pid], 6)}})
+            if len(picked) >= f["size"]:
                 break
         out[uid] = picked
-    return out
+    return dict(sorted(out.items()))
 
 
 def form_groups(plan: dict, interested_ids: list[str], pool: dict, cands: dict[str, list[tuple[str, float]]],
@@ -351,6 +378,11 @@ def form_groups(plan: dict, interested_ids: list[str], pool: dict, cands: dict[s
             return float(tables.p_meet_again(a, b))
         return max(cand.get(a, {}).get(b, 0.0), cand.get(b, {}).get(a, 0.0))
 
+    g = params["groups"]
+
+    def l2(u: str) -> set[str]:
+        return {".".join(i["id"].split(".")[:2]) for i in users.get(u, {}).get("interests", []) if not i["sensitive"]}
+
     order = {u: k for k, u in enumerate(interested_ids)}
     queue = sorted(dict.fromkeys(interested_ids), key=lambda u: (bool(users.get(u, {}).get("metIds")), order[u]))
     lo, hi = plan["size"]["min"], plan["size"]["max"]
@@ -363,6 +395,16 @@ def form_groups(plan: dict, interested_ids: list[str], pool: dict, cands: dict[s
                 break
             group.append(best)
             queue.remove(best)
+        # groups.minSharedWithOthers: each member shares >= N level-2 interests with >= minOthers others.
+        # ponytail: prune the worst member until it holds; pruned people stay unseated this round.
+        while len(group) >= 3:
+            need = min(g["minOthers"], len(group) - 1)
+            ok = {m: sum(len(l2(m) & l2(o)) >= g["minSharedWithOthers"] for o in group if o != m) for m in group}
+            worst = min(group, key=lambda m: (ok[m], -order[m]))
+            if ok[worst] >= need:
+                break
+            group.remove(worst)
+            unseated.append(worst)
         if len(group) < lo:
             unseated += group
             continue

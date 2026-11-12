@@ -28,7 +28,7 @@
 - S1: event-pool `connectors.jsonl` carries u_maya Bedwell Bayfront visits though u_maya is not an event persona; backend must accept cross-pool records (or tell sim to change).
 - S1: contracts owner to confirm the 12 h anchor reading above.
 - S2 (laya): ground-truth signals API -> delivered (`cg_sim.seed.export`, see README).
-- S3 (mc): rank_plans/form_groups fallbacks delivered; none else reported yet.
+- S3 (mc): rank_plans/form_groups fallbacks delivered; fill likelihood, unbiased exposure order, scene cap, isolated-first, minSharedWithOthers -> delivered.
 - S4 (dashboard): none reported yet.
 
 ## Decisions (open for review)
@@ -43,7 +43,8 @@
 - `cg_matching` not available yet; `cg_sim.matching_adapter` falls back to naive dict-in/dict-out stand-ins:
   `propose_plans`, `travel_minutes`, `build_vectors`, `candidates`, `rank_plans`, `form_groups` (same argument
   order as CONTRACTS §10; pool = pool_export dict; results are PlanScore / FormResult-shaped dicts with snake_case keys).
-  Fallback ceilings: O(n^2) candidates, greedy max-min groups, unlimited groups per plan, no minSharedWithOthers rule.
+  Fallback ceilings: O(n^2) candidates, greedy max-min groups (minSharedWithOthers by pruning), unlimited groups per plan,
+  fill likelihood = seed joins + mean p_join x min(eligible, exposure cap).
 - `cg_sim.seed.export.load_ground_truth_export(pool_id)` / `ground_truth_signals(pool_id)`: read-only `--use-ground-truth` API (README).
 - `data/sim_private/<pool>/ground_truth.jsonl`: userId, role, scene, archetypes, interests, noise,
   frequentPlaces, routines, sensitivePlace. `latent.jsonl`: outgoingness, flakiness, lowOutgoing, existingFriends.
