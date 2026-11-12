@@ -1,20 +1,181 @@
-// STUB (A1). Owned by slice B: replace freely, keep the default export and props.
-import { Pressable } from 'react-native';
-import { Label, Muted } from '../../ui/native';
-import type { PlanCard as Plan } from './types';
+// Plan card (PRD-1 §8.1 item 3). Used by the For you carousel, Muse's reply row and alternatives.
+import type { ComponentProps } from 'react';
+import { Pressable, ScrollView, View } from 'react-native';
+import { Image } from 'expo-image';
+import type Ionicons from '@expo/vector-icons/Ionicons';
+import { imageSource } from '../../data/media';
+import { Icon, Label, Muted, useColors } from '../../ui/native';
+import type { Crowd, PlanCard as Plan, PlanCheck } from './types';
+
+// "Sat 10 AM" / "Sat 9:30 AM" in local time.
+export const dayTime = (iso: string): string => {
+  const d = new Date(iso);
+  const day = d.toLocaleDateString('en-US', { weekday: 'short' });
+  const time = d.toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: d.getMinutes() ? '2-digit' : undefined,
+  });
+  return `${day} ${time}`;
+};
+export const duration = (min: number): string =>
+  min % 60 ? `${min} min` : `${min / 60} hr${min === 60 ? '' : 's'}`;
+const spots = (n: number) => `${n} spot${n === 1 ? '' : 's'} left`;
+// C5: the crowd is counts only; there is no field that could carry a name.
+export const crowdLine = (c: Crowd): string => `${c.interestedCount} in · ${spots(c.spotsLeft)}`;
+export const whosIn = (c: Crowd): string =>
+  [
+    `${c.interestedCount} ${c.interestedCount === 1 ? 'person' : 'people'} in`,
+    ...c.sharedWithYou.map((s) => `${s.count} also into ${s.interest.label.toLowerCase()}`),
+    spots(c.spotsLeft),
+  ].join(' · ');
+export const checkText = (k: PlanCheck): string => (k.ok ? `✓ ${k.label}` : k.label);
+
+type IconName = ComponentProps<typeof Ionicons>['name'];
+const ICONS: Record<string, IconName> = {
+  walk: 'walk',
+  hike: 'walk',
+  climbing: 'trending-up',
+  pottery: 'color-palette',
+  ceramics: 'color-palette',
+  board_game_night: 'dice',
+  run: 'fitness',
+  music: 'musical-notes',
+};
+export const activityIcon = (type: string): IconName => ICONS[type] ?? 'sparkles';
+export const photoSource = (url: string) =>
+  url.startsWith('asset:') ? imageSource(url.slice(6)) : { uri: url };
+
+export function PlanPhoto({ plan, height }: { plan: Plan; height: number }) {
+  const c = useColors();
+  const url = plan.venue.photoUrl;
+  return (
+    <View
+      style={{
+        height,
+        backgroundColor: c.canvas === '#18191A' ? '#263951' : '#e7f3ff',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      <Icon name={activityIcon(plan.activityType)} size={36} color={c.blue} />
+      {url && (
+        <Image
+          source={photoSource(url)}
+          cachePolicy="memory"
+          accessibilityIgnoresInvertColors
+          style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+        />
+      )}
+    </View>
+  );
+}
+
+export function Badge({ text }: { text: string }) {
+  const c = useColors();
+  return (
+    <View
+      style={{
+        alignSelf: 'flex-start',
+        backgroundColor: c.blue,
+        borderRadius: 10,
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+      }}
+    >
+      <Label style={{ color: '#fff', fontSize: 12, fontWeight: '700' }}>{text}</Label>
+    </View>
+  );
+}
 
 export default function PlanCard({
   plan,
   onPress,
+  badge,
+  width = 280,
 }: {
   plan: Plan;
   onPress?: () => void;
   badge?: string;
+  width?: number;
+}) {
+  const c = useColors();
+  const checks = plan.checks.slice(0, 3);
+  const meta = [dayTime(plan.startsAt), duration(plan.durationMin), plan.cost.label].join(' · ');
+  const joined = !!plan.myJoin && plan.myJoin.status !== 'withdrawn';
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={[
+        plan.title,
+        badge,
+        joined && "You're in",
+        plan.venue.name,
+        meta,
+        ...checks.map((k) => (k.ok ? k.label : `${k.label}, not met`)),
+        crowdLine(plan.crowd),
+      ]
+        .filter(Boolean)
+        .join(', ')}
+      onPress={onPress}
+      style={({ pressed }) => ({
+        width,
+        borderRadius: 10,
+        overflow: 'hidden',
+        backgroundColor: c.card,
+        borderWidth: 1,
+        borderColor: c.divider,
+        opacity: pressed ? 0.8 : 1,
+      })}
+    >
+      <PlanPhoto plan={plan} height={130} />
+      <View style={{ padding: 12, gap: 4 }}>
+        <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
+          {badge && <Badge text={badge} />}
+          {joined && <Badge text="In" />}
+        </View>
+        <Label style={{ fontWeight: '700', fontSize: 16 }} numberOfLines={2}>
+          {plan.title}
+        </Label>
+        <Muted numberOfLines={1}>
+          {[plan.venue.name, plan.venue.neighborhood].filter(Boolean).join(' · ')}
+        </Muted>
+        <Label style={{ fontSize: 14 }}>{meta}</Label>
+        {checks.map((k) => (
+          <Label
+            key={k.kind + k.label}
+            style={{ fontSize: 14, color: k.ok ? c.text : c.secondary }}
+          >
+            {checkText(k)}
+          </Label>
+        ))}
+        <Label style={{ fontSize: 14, fontWeight: '600' }}>{crowdLine(plan.crowd)}</Label>
+        <Muted numberOfLines={2}>{plan.reason}</Muted>
+      </View>
+    </Pressable>
+  );
+}
+
+// Horizontal, snap-to-card row (For you, Muse's answer).
+export function PlanCarousel({
+  plans,
+  badgeFor,
+  onOpen,
+}: {
+  plans: Plan[];
+  badgeFor?: (p: Plan) => string | undefined;
+  onOpen(p: Plan): void;
 }) {
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel={plan.title} onPress={onPress}>
-      <Label style={{ fontWeight: '600' }}>{plan.title}</Label>
-      <Muted>{plan.venue.name}</Muted>
-    </Pressable>
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      snapToInterval={292}
+      decelerationRate="fast"
+      contentContainerStyle={{ paddingHorizontal: 16, gap: 12 }}
+    >
+      {plans.map((p) => (
+        <PlanCard key={p.planId} plan={p} badge={badgeFor?.(p)} onPress={() => onOpen(p)} />
+      ))}
+    </ScrollView>
   );
 }
