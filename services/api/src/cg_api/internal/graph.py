@@ -36,7 +36,7 @@ def _cache_key(pool_id: str) -> tuple:
 
 @router.get("/internal/v1/pools/{poolId}/graph", operation_id="poolGraph")
 def pool_graph(poolId: str):
-    if not store.pool or store.pool["poolId"] != poolId:
+    if poolId not in store.pools:
         raise ApiError(404, "not_found", "That pool isn't loaded.")
     ids = members(poolId)
     try:
@@ -78,7 +78,7 @@ def pool_graph(poolId: str):
 
 @router.get("/internal/v1/metrics", operation_id="liveMetrics")
 def live_metrics(poolId: str):
-    if not store.pool or store.pool["poolId"] != poolId:
+    if poolId not in store.pools:
         raise ApiError(404, "not_found", "That pool isn't loaded.")
     ids = members(poolId)
     meetups = list(store.meetups.values())

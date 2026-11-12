@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Literal
 
 from fastapi import APIRouter, Response
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from cg_api.deps import Base, User
 from cg_api.errors import ApiError
@@ -21,6 +21,12 @@ Day = Literal["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
 class GroupSize(BaseModel):
     min: int = Field(ge=2)
     max: int = Field(ge=2)
+
+    @model_validator(mode="after")
+    def _ordered(self):  # rejected before anything is written (400 validation_failed)
+        if self.min > self.max:
+            raise ValueError("group size minimum is above the maximum")
+        return self
 
 
 class Slot(BaseModel):
@@ -51,12 +57,11 @@ class MeUpdate(BaseModel):
 
 
 def apply_profile(u: dict, body: BaseModel) -> None:
-    """Shared by updateMe and completeSetup: copy the provided fields onto the user."""
+    """Shared by updateMe and completeSetup: copy the provided fields onto the user. The body is already
+    fully validated by its pydantic model, so this never fails halfway."""
     for k, v in body.model_dump(exclude_none=True).items():
         if k in ("profileVisibility", "neighborhood", "groupSize", "availability", "travel", "museSettings"):
             u[k] = v
-    if u["groupSize"]["min"] > u["groupSize"]["max"]:
-        raise ApiError(400, "validation_failed", "Group size minimum is above the maximum.")
 
 
 @router.get("/v1/me", operation_id="getMe")

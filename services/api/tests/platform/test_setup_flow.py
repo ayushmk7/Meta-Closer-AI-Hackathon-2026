@@ -171,3 +171,51 @@ def test_setup_with_interests_hides_sensitive_from_copy(api):
     s = api("getSetup").json()
     assert "wheel throwing" in s["museText"].lower() and "buddhism" not in s["museText"].lower()
     assert len(s["proposedInterests"]) == 2  # owner still sees both
+
+
+def test_rejected_profile_update_changes_nothing(api):
+    before = api("getMe").json()
+    r = api("updateMe", json={"groupSize": {"min": 6, "max": 4}, "neighborhood": "Mission"})
+    assert r.status_code == 400 and r.json()["error"]["code"] == "validation_failed"
+    assert api("getMe").json() == before
+    opt_in(api)
+    r = api("completeSetup", json={"acceptedInterestIds": [], "hiddenInterestIds": [], "groupSize": {"min": 6, "max": 4},
+                                   "travel": {"maxMinutes": 30, "modes": ["walk"]}, "profileVisibility": "private"})  # fmt: skip
+    assert r.status_code == 400
+    me = api("getMe").json()
+    assert me["groupSize"] == before["groupSize"] and me["profileVisibility"] == "public" and not me["setupComplete"]
+
+
+def test_event_mode_switch_on_real_seed(api, monkeypatch):
+    """Both seeded pools load side by side; Maya can switch city -> event and back (demo script 4:15)."""
+    import asyncio
+    from pathlib import Path
+
+    import pytest
+
+    from cg_api import seed, settings
+
+    data = Path(__file__).resolve().parents[4] / "data"
+    if not (data / "seed" / "pool_evt_closer_together" / "pool.json").exists():
+        pytest.skip("event seed not in data/seed")
+    monkeypatch.setattr(seed, "get_settings", lambda: settings.Settings(data_dir=data))
+    try:
+        asyncio.run(seed.load("pool_sf_city"))
+        modes = {m["mode"]: m for m in api("getConfig").json()["modes"]}
+        assert modes["event"]["available"] and modes["city"]["available"]
+        assert api("optIn", json={"mode": "city"}).json()["poolId"] == "pool_sf_city"
+        assert api("optIn", json={"mode": "event"}).json()["poolId"] == "pool_evt_closer_together"
+        ex = api("exportPool", "/internal/v1/pools/pool_evt_closer_together/export").json()
+        assert "u_maya" in {u["userId"] for u in ex["users"]}
+        assert all(p["planId"].startswith("pl_") for p in ex["plans"]) and ex["plans"]
+        assert api("listPools").json()["items"][1]["members"] == 81  # 80 personas + Maya
+        from cg_api.store import store
+
+        evt = [p for p in store.plans.values() if p["poolId"] == "pool_evt_closer_together"]
+        assert len(evt) == 67 and all(p["venueId"] in store.venues for p in evt)  # both pools whole
+        assert all(x in store.plans for x in store.demos["pool_evt_closer_together"]["featuredPlanIds"])
+        crux = [v for k, v in store.venues.items() if k.startswith("vn_crux_collective")]
+        assert len({(v["location"]["lat"], v["location"]["lng"]) for v in crux}) == len(crux)
+    finally:
+        monkeypatch.undo()
+        asyncio.run(seed.load("pool_sf_city"))

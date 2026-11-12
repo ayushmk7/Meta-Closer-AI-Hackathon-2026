@@ -32,14 +32,16 @@ async def opt_in(body: OptIn, uid: User, base: Base):
     pool_id = body.poolId or (pools[0]["poolId"] if pools else None)
     if pool_id not in {p["poolId"] for p in pools}:
         raise ApiError(400, "validation_failed", "That mode isn't available yet.")
-    if not store.pool or pool_id != store.pool["poolId"]:
-        # ponytail: one pool loaded at a time; switching pools live is M2 (load the other seed meanwhile).
+    if pool_id not in store.pools:
         raise ApiError(409, "conflict", "That pool isn't open right now.")
     u = store.users[uid]
     if not u["optedIn"]:
         u.update(optedIn=True, mode=body.mode, poolId=pool_id)
         await seed.derive(uid)  # Facebook activity becomes usable after optIn
-        changed(uid, "me.updated", "signals.updated")
+        changed(uid, "me.updated", "signals.updated", "feed.updated")
+    elif u["poolId"] != pool_id:  # switching pools keeps people met, threads and settings
+        u.update(mode=body.mode, poolId=pool_id)
+        changed(uid, "me.updated", "feed.updated")
     return me_view(uid, base)
 
 

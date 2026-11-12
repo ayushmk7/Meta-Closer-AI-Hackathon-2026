@@ -91,32 +91,104 @@ def new_user(persona: dict, synthetic: bool, mode: str, pool_id: str) -> dict:
     }
 
 
+def seeded_pools() -> list[str]:
+    """modes.yaml pools that have a seed (data/seed/<pool>/, or the tiny built-in for its pool)."""
+    out = []
+    for p in get_settings().contract("modes.yaml")["pools"]:
+        try:
+            seed_dir(p["poolId"])
+            out.append(p["poolId"])
+        except FileNotFoundError:
+            pass
+    return out
+
+
 async def load(pool_id: str, reextract: bool = False, job: dict | None = None) -> dict:
-    data = _read(seed_dir(pool_id))
-    pool, demo = data["pool"], data["demo"]
-    mode, maya = pool["mode"], demo["mayaId"]
+    """Fresh world with every seeded pool loaded side by side (so mode switching works live);
+    `pool_id` is the primary pool whose demo.json drives the demo state and Maya's featured plans."""
+    order = [pool_id, *(p for p in seeded_pools() if p != pool_id)]
+    parsed = [(pid, seed_dir(pid), _read(seed_dir(pid))) for pid in order]
     store.__init__()  # fresh world
-    store.pool, store.demo, store.seed_dir = pool, demo, str(seed_dir(pool_id))
-    store.venues = {v["venueId"]: v for v in data["venues"]}
     ports.extractor.venue = lambda vid: store.venues.get(vid)  # late-bound: survives reset and reload
+    total = sum(len(data["personas"]) for _, _, data in parsed)
+    done = 0
+    for pid, d, data in parsed:
+        done = await _load_pool(pid, d, data, reextract, job, done, total)
+    store.pool, store.demo, store.seed_dir = store.pools[pool_id], store.demos[pool_id], store.seed_dirs[pool_id]
+    p, demo = get_settings().params["demo"], store.demo
+    store.demo_state = {
+        "counterpart": p["counterpartDefault"],
+        "liveUserId": demo["liveUserId"],
+        "forcedYes": p["forcedYesDefault"],
+        "relaxCheckin": p["relaxCheckinDefault"],
+        "failNextBooking": False,
+        "simulatedPayments": p["simulatedPayments"],
+        "fakeLocation": demo["fakeLocation"],
+    }
+    for pid in order:
+        _maybe_tables(pid)
+    bridge.build()  # slice C's World shares plans/joins/...; must run before the snapshot
+    store.snapshot()
+    summary = {"poolId": pool_id, "pools": order, "users": len(store.users), "venues": len(store.venues),
+               "plans": len(store.plans)}  # fmt: skip
+    log.info("seed loaded: %s", summary)
+    return summary
+
+
+def _dedupe_ids(pid: str, data: dict) -> None:
+    """IDs must be unique across pools (CONTRACTS §2) but seeds may reuse venue/plan IDs. Rename this pool's
+    colliding ones deterministically (<id>_<pool suffix>) and rewrite every reference, so both pools load whole.
+    ponytail: workaround; drop once the sim writes globally unique IDs."""
+    suffix = pid.removeprefix("pool_")
+    vmap = {v["venueId"]: f"{v['venueId']}_{suffix}" for v in data["venues"] if v["venueId"] in store.venues}
+    pmap = {p["planId"]: f"{p['planId']}_{suffix}" for p in data["plans"] if p["planId"] in store.plans}
+    if not (vmap or pmap):
+        return
+    log.warning(
+        "%s reuses %d venue and %d plan IDs from another pool; renamed with _%s", pid, len(vmap), len(pmap), suffix
+    )
+    for v in data["venues"]:
+        v["venueId"] = vmap.get(v["venueId"], v["venueId"])
+    for p in data["plans"]:
+        p["planId"], p["venueId"] = pmap.get(p["planId"], p["planId"]), vmap.get(p["venueId"], p["venueId"])
+    for r in data["connectors"]:
+        if "venueId" in r:
+            r["venueId"] = vmap.get(r["venueId"], r["venueId"])
+    demo = data["demo"]
+    demo["featuredPlanIds"] = [pmap.get(x, x) for x in demo["featuredPlanIds"]]
+    for k in ("heroPlanId", "nudgePlanId"):
+        demo[k] = pmap.get(demo[k], demo[k])
+
+
+async def _load_pool(pid: str, d: Path, data: dict, reextract: bool, job: dict | None, done: int, total: int) -> int:
+    _dedupe_ids(pid, data)
+    pool, demo = data["pool"], data["demo"]
+    store.pools[pid], store.demos[pid], store.seed_dirs[pid] = pool, demo, str(d)
+    store.venues.update({v["venueId"]: v for v in data["venues"]})
+    mine = set()
     for persona in data["personas"]:
-        store.users[persona["userId"]] = new_user(persona, persona["userId"] != maya, mode, pool["poolId"])
+        uid = persona["userId"]
+        if uid in store.users:  # Maya lives in her first pool; optIn moves her
+            continue
+        store.users[uid] = new_user(persona, uid != demo["mayaId"], pool["mode"], pid)
+        mine.add(uid)
     for kind in ("activity", "connectors"):
         target = store.activity if kind == "activity" else store.records
         for row in data[kind]:
-            if row["userId"] in store.users:  # records for unknown users are ignored (CONTRACTS Decisions)
+            if row["userId"] in mine:  # records for people not in this pool are ignored (CONTRACTS Decisions)
                 target.setdefault(row["userId"], []).append(row)
-    users = list(store.users.values())
-    for i, u in enumerate(users):
+    for uid in sorted(mine):
+        u = store.users[uid]
         if u["synthetic"]:
             for provider in u["persona"]["connectedProviders"]:
                 u["connectors"][provider] = {
                     "connectedAt": u["persona"]["joinedAt"],
                     "lastSyncAt": u["persona"]["joinedAt"],
                 }
-            await derive(u["persona"]["userId"], reextract=reextract)
+            await derive(uid, reextract=reextract)
+        done += 1
         if job is not None:
-            job["progress"] = round((i + 1) / len(users), 3)
+            job["progress"] = round(done / total, 3)
     for plan in data["plans"]:
         store.plans[plan["planId"]] = {**plan, "status": "open"}
         for k, uid in enumerate(plan.get("seedJoinIds", [])):
@@ -124,27 +196,7 @@ async def load(pool_id: str, reextract: bool = False, job: dict | None = None) -
                 jid = f"jn_{plan['planId'].removeprefix('pl_')}_{k}"
                 store.joins[jid] = {"joinId": jid, "planId": plan["planId"], "userId": uid, "status": "interested",
                                     "createdAt": pool.get("generatedAt") or ANCHOR.strftime("%Y-%m-%dT%H:%M:%SZ")}  # fmt: skip
-    d = get_settings().params["demo"]
-    store.demo_state = {
-        "counterpart": d["counterpartDefault"],
-        "liveUserId": demo["liveUserId"],
-        "forcedYes": d["forcedYesDefault"],
-        "relaxCheckin": d["relaxCheckinDefault"],
-        "failNextBooking": False,
-        "simulatedPayments": d["simulatedPayments"],
-        "fakeLocation": demo["fakeLocation"],
-    }
-    _maybe_tables(pool["poolId"])
-    bridge.build()  # slice C's World shares plans/joins/...; must run before the snapshot
-    store.snapshot()
-    summary = {
-        "poolId": pool["poolId"],
-        "users": len(store.users),
-        "venues": len(store.venues),
-        "plans": len(store.plans),
-    }
-    log.info("seed loaded from %s: %s", store.seed_dir, summary)
-    return summary
+    return done
 
 
 def _maybe_tables(pool_id: str) -> None:

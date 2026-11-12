@@ -46,7 +46,7 @@ def _pairs(uid: str, met_only: bool) -> list[str]:
 
 def export(pool_id: str) -> dict:
     """schemas/pool_export.schema.json. Internal only: exact homes, hidden and sensitive data."""
-    if not store.pool or store.pool["poolId"] != pool_id:
+    if pool_id not in store.pools:
         raise ApiError(404, "not_found", "That pool isn't loaded.")
     users = []
     for uid in members(pool_id):
@@ -99,6 +99,8 @@ def export(pool_id: str) -> dict:
         )
     plans = []
     for pid, pl in store.plans.items():
+        if pl.get("poolId") != pool_id:
+            continue
         joined = [
             j["userId"] for j in store.joins.values() if j["planId"] == pid and j["status"] in ("interested", "matched")
         ]
@@ -106,9 +108,9 @@ def export(pool_id: str) -> dict:
                       "meetupIds": [m for m, mt in store.meetups.items() if mt.get("planId") == pid]})  # fmt: skip
     return {
         "poolId": pool_id,
-        "mode": store.pool["mode"],
+        "mode": store.pools[pool_id]["mode"],
         "generatedAt": now_iso(),
-        "taxonomyVersion": store.pool["taxonomyVersion"],
+        "taxonomyVersion": store.pools[pool_id]["taxonomyVersion"],
         "questionsVersion": get_settings().params["laya"]["questionsVersion"],
         "users": users,
         "plans": plans,

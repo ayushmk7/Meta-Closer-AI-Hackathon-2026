@@ -40,9 +40,12 @@ def now_iso() -> str:
 
 @dataclass
 class Store:
-    pool: dict | None = None  # pool.json
-    demo: dict | None = None  # demo.json
+    pool: dict | None = None  # primary pool.json (the pool loadSeed named)
+    demo: dict | None = None  # primary demo.json
     seed_dir: str | None = None
+    pools: dict[str, dict] = field(default_factory=dict)  # every loaded pool: poolId -> pool.json
+    demos: dict[str, dict] = field(default_factory=dict)
+    seed_dirs: dict[str, str] = field(default_factory=dict)
     laya_tables_dir: str | None = None
     users: dict[str, dict] = field(default_factory=dict)
     records: dict[str, list[dict]] = field(default_factory=dict)
@@ -72,7 +75,7 @@ class Store:
         return self.users[uid]
 
     # ---------- snapshot / reset ----------
-    _STATE = ("pool", "demo", "seed_dir", "laya_tables_dir", "users", "records", "activity", "venues", "plans",
+    _STATE = ("pool", "demo", "seed_dir", "pools", "demos", "seed_dirs", "laya_tables_dir", "users", "records", "activity", "venues", "plans",
               "joins", "meetups", "threads", "approvals", "connections", "blocks", "nudges", "reports",
               "directives", "applied", "demo_state", "world")  # fmt: skip
 

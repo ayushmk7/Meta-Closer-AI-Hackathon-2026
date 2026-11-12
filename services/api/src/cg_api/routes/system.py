@@ -53,13 +53,13 @@ def build_config() -> dict:
     pools = {pool["mode"]: pool for pool in modes["pools"]}
     out_modes = []
     for mode, m in modes["modes"].items():
-        if mode in pools:
+        if mode in pools and pools[mode]["poolId"] in store.pools:
             pool = pools[mode]
             out_modes.append({"mode": mode, "label": pool["label"], "poolId": pool["poolId"], "available": True,
                               "description": pool["description"], "center": pool["center"],
                               "radiusKm": pool["radiusKm"]})  # fmt: skip
-        elif m["status"] == "specced":
-            out_modes.append({"mode": mode, "label": m["label"], "poolId": f"pool_{mode}_placeholder",
+        elif m["status"] == "specced" or mode in pools:  # a built pool without a loaded seed reads "Coming soon"
+            out_modes.append({"mode": mode, "label": m["label"], "poolId": pools.get(mode, {}).get("poolId", f"pool_{mode}_placeholder"),
                               "available": False, "description": "Coming soon"})  # fmt: skip
     d = p["demo"]
     live = store.demo_state  # setDemoState changes these mid-demo
@@ -92,10 +92,10 @@ _NAME = re.compile(r"^[a-z0-9_]+\.(png|jpe?g)$")
 @router.get("/static/{kind}/{name}", name="static")
 def static(kind: str, name: str):
     """Seed avatars and venue photos of the loaded pool. Names are checked, so no path escapes the seed folder."""
-    if kind not in _STATIC or not _NAME.match(name) or not store.seed_dir:
+    if kind not in _STATIC or not _NAME.match(name):
         raise ApiError(404, "not_found", "That isn't here anymore.")
-    path = Path(store.seed_dir) / _STATIC[kind] / name
-    if not path.is_file():
+    path = next((p for d in store.seed_dirs.values() if (p := Path(d) / _STATIC[kind] / name).is_file()), None)
+    if path is None:
         raise ApiError(404, "not_found", "That isn't here anymore.")
     return FileResponse(path, headers={"Cache-Control": "public, max-age=3600"})
 
