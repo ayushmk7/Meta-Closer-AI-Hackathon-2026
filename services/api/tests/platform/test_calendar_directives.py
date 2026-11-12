@@ -5,7 +5,7 @@ import pytest
 
 pytest.importorskip("cg_api.domain.joins")
 
-from cg_api.store import store  # noqa: E402
+from cg_api.store import store
 
 SYNC = {"source": "device_calendar", "horizonStart": "2026-11-12T08:00:00Z", "horizonEnd": "2026-11-26T08:00:00Z",
         "busy": []}  # fmt: skip
