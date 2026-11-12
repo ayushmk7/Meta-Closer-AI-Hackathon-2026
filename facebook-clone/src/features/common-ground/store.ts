@@ -255,16 +255,18 @@ export function start(): Promise<void> {
   })());
 }
 
-// `retry` re-invokes the calling store action so its bookkeeping reruns too; null = no Retry.
+// `retry` re-invokes the calling store action so its bookkeeping reruns too; without one the
+// banner has no Retry (a bare re-call would drop the result). Success clears the banner.
 export async function act<T>(
   fn: () => Promise<T>,
   retry?: (() => unknown) | null,
 ): Promise<T | undefined> {
   try {
-    return await fn();
+    const out = await fn();
+    if (state.error) setState({ error: null });
+    return out;
   } catch (e) {
-    const again = retry === undefined ? () => act(fn) : retry;
-    fail(e, (e as { retryable?: boolean }).retryable && again ? () => void again() : undefined);
+    fail(e, (e as { retryable?: boolean }).retryable && retry ? () => void retry() : undefined);
     return undefined;
   }
 }

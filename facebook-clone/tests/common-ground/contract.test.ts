@@ -165,6 +165,10 @@ test('the mock answers every operation with a body that carries every required k
     const body = await call(op.method, p, bodies[op.operationId] ?? {});
     const [code, res] = success(op)!;
     const schema = res.content?.['application/json']?.schema;
+    assert.ok(
+      !JSON.stringify(body ?? '').includes('localhost'),
+      `${op.operationId}: no network URLs (D5)`,
+    );
     if (code === '204') assert.equal(body, undefined, op.operationId);
     else assertRequired(body, schema, op.operationId);
     served++;

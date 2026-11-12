@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { api } from '../../src/features/common-ground/api';
 import {
+  act,
   badgeCount,
   currentLocation,
   decideApproval,
@@ -221,6 +222,15 @@ test('review fixes: retry reruns the action, success clears error, failed start,
   getState().error!.retry!();
   await new Promise((r) => setImmediate(r));
   assert.equal(getState().plans.pl_0003!.myJoin?.status, 'interested');
+
+  // act: success clears the banner; no store action given -> no Retry (a bare re-call loses the result).
+  setState({ error: { message: 'old' } });
+  await act(async () => 1);
+  assert.equal(getState().error, null);
+  await act(async () => {
+    throw down();
+  });
+  assert.equal(getState().error?.retry, undefined);
 
   // (2) one failure no longer zeroes the shell hooks once a load succeeds.
   setState({ error: { message: 'down' } });
