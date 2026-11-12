@@ -19,6 +19,7 @@ import {
   refreshAll,
   reset,
   sendMessage,
+  setIdentity,
   setState,
   setStorage,
   start,
@@ -187,4 +188,57 @@ test('Common Ground store runs the core loop on the in-app mock', async (t) => {
   await reset();
   assert.equal(getState().ready, false);
   assert.equal(saved, null);
+});
+
+test('review fixes: retry reruns the action, success clears error, failed start, stale responses', async () => {
+  const down = () => Object.assign(new Error('down'), { retryable: true });
+
+  // (3) failed start stays not ready; Retry reruns the whole start.
+  await reset();
+  const realConfig = api.getConfig;
+  api.getConfig = async () => {
+    throw down();
+  };
+  await start();
+  api.getConfig = realConfig;
+  assert.equal(getState().ready, false);
+  getState().error!.retry!();
+  await start();
+  assert.equal(getState().ready, true);
+  assert.equal(getState().error, null);
+  await optIn('city');
+  await refreshAll();
+
+  // (1) Retry re-invokes join, so the store records the join.
+  await load.plan('pl_0003');
+  const realJoin = api.joinPlan;
+  api.joinPlan = async () => {
+    api.joinPlan = realJoin;
+    throw down();
+  };
+  await join('pl_0003');
+  assert.equal(getState().plans.pl_0003!.myJoin, null);
+  getState().error!.retry!();
+  await new Promise((r) => setImmediate(r));
+  assert.equal(getState().plans.pl_0003!.myJoin?.status, 'interested');
+
+  // (2) one failure no longer zeroes the shell hooks once a load succeeds.
+  setState({ error: { message: 'down' } });
+  assert.equal(badgeCount(getState()), 0);
+  await load.nudges();
+  assert.equal(getState().error, null);
+  assert.ok(badgeCount(getState()) > 0);
+
+  // (4) a response for the old identity is dropped after setIdentity.
+  const realApprovals = api.listApprovals;
+  let release!: () => void;
+  api.listApprovals = () =>
+    new Promise((r) => (release = () => r([{ approvalId: 'STALE' } as never])));
+  const inFlight = load.approvals();
+  api.listApprovals = realApprovals;
+  await setIdentity('u_0042');
+  release();
+  await inFlight;
+  assert.ok(!getState().approvals.some((a) => a.approvalId === 'STALE'));
+  await reset();
 });

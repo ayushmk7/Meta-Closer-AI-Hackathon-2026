@@ -139,13 +139,17 @@ function withPending(threadId: string, items: Message[]) {
   );
   return { ...state.messages, [threadId]: [...items, ...pending] };
 }
+// Bumped by reset/setIdentity so in-flight work for the old identity is dropped.
+let gen = 0;
 function loader<A extends unknown[]>(get: (...args: A) => Promise<Partial<CgState> | null>) {
   const run = async (...args: A): Promise<void> => {
+    const g = gen;
     try {
       const patch = await get(...args);
-      if (patch) setState(patch);
+      // Drop responses from before a reset/identity switch; a success clears the error banner.
+      if (g === gen) setState({ ...patch, error: null });
     } catch (e) {
-      fail(e, () => void run(...args));
+      if (g === gen) fail(e, () => void run(...args));
     }
   };
   return run;
@@ -231,38 +235,68 @@ export function start(): Promise<void> {
       // unreadable prefs: start fresh
     }
     setUser(state.userOverride);
+    const g = gen;
     await Promise.all([load.config(), load.me()]);
-    if (state.me?.optedIn) await refreshAll();
+    if (g !== gen) return;
+    if (!state.config || !state.me) {
+      // Stay not-ready; Retry (or the next shell hook mount) reruns the whole start.
+      starting = null;
+      return setState({
+        error: {
+          message: state.error?.message ?? 'Could not reach Common Ground. Check your connection.',
+          retry: () => void start(),
+        },
+      });
+    }
+    if (state.me.optedIn) await refreshAll();
+    if (g !== gen) return;
     setState({ ready: true });
     startPolling();
   })());
 }
 
-export async function act<T>(fn: () => Promise<T>): Promise<T | undefined> {
+// `retry` re-invokes the calling store action so its bookkeeping reruns too; null = no Retry.
+export async function act<T>(
+  fn: () => Promise<T>,
+  retry?: (() => unknown) | null,
+): Promise<T | undefined> {
   try {
     return await fn();
   } catch (e) {
-    fail(e, (e as { retryable?: boolean }).retryable ? () => void act(fn) : undefined);
+    const again = retry === undefined ? () => act(fn) : retry;
+    fail(e, (e as { retryable?: boolean }).retryable && again ? () => void again() : undefined);
     return undefined;
   }
 }
 
 // ---- Setup and connectors ----
 export async function optIn(mode: Mode, poolId?: string): Promise<boolean> {
-  const me = await act(() => api.optIn(mode, poolId));
+  const me = await act(
+    () => api.optIn(mode, poolId),
+    () => optIn(mode, poolId),
+  );
   if (!me) return false;
   setState({ me, lastMode: mode });
   return true;
 }
 export async function connect(provider: string): Promise<boolean> {
-  const c = await act(() => api.connectConnector(provider));
+  const c = await act(
+    () => api.connectConnector(provider),
+    () => connect(provider),
+  );
   if (!c) return false;
   setState({ connectors: state.connectors.map((x) => (x.provider === provider ? c : x)) });
   await Promise.all([load.setup(), load.signals()]);
   return true;
 }
 export async function disconnect(provider: string): Promise<boolean> {
-  if (!(await act(() => api.disconnectConnector(provider).then(() => true)))) return false;
+  if (
+    !(await act(
+      () => api.disconnectConnector(provider).then(() => true),
+      () => disconnect(provider),
+    ))
+  )
+    return false;
   await Promise.all([load.connectors(), load.setup(), load.signals()]);
   return true;
 }
@@ -271,7 +305,10 @@ export async function disconnect(provider: string): Promise<boolean> {
 // Errors keep the typed text: the caller keeps its input; `muse.lastText` holds what was sent.
 export async function askMuse(text: string): Promise<MuseReply | undefined> {
   setState({ muse: { ...state.muse, asking: true, lastText: text } });
-  const reply = await act(() => api.askMuse(text, state.muse.conversationId));
+  const reply = await act(
+    () => api.askMuse(text, state.muse.conversationId),
+    () => askMuse(text),
+  );
   setState({
     muse: {
       ...state.muse,
@@ -305,7 +342,10 @@ export async function join(
 ): Promise<Join | undefined> {
   const before = state.plans[planId]?.myJoin ?? null;
   setMyJoin(planId, { joinId: `pending:${planId}`, status: 'interested' });
-  const j = await act(() => api.joinPlan(planId, opts));
+  const j = await act(
+    () => api.joinPlan(planId, opts),
+    () => join(planId, opts),
+  );
   if (!j) {
     setMyJoin(planId, before);
     return undefined;
@@ -316,7 +356,13 @@ export async function join(
   return j;
 }
 export async function withdraw(planId: string): Promise<boolean> {
-  if (!(await act(() => api.withdrawJoin(planId).then(() => true)))) return false;
+  if (
+    !(await act(
+      () => api.withdrawJoin(planId).then(() => true),
+      () => withdraw(planId),
+    ))
+  )
+    return false;
   setMyJoin(planId, null);
   setState({ joins: state.joins.filter((j) => j.planId !== planId) });
   return true;
@@ -325,7 +371,10 @@ export async function createPlan(
   text: string,
   inviteUserIds?: string[],
 ): Promise<PlanDetail | undefined> {
-  const p = await act(() => api.createPlan(text, inviteUserIds));
+  const p = await act(
+    () => api.createPlan(text, inviteUserIds),
+    () => createPlan(text, inviteUserIds),
+  );
   if (p) setState({ plans: { ...state.plans, [p.planId]: p } });
   return p;
 }
@@ -334,7 +383,12 @@ export async function createPlan(
 export async function dismissNudge(nudgeId: string, mute: 'none' | 'signal' = 'none') {
   const before = state.nudges;
   setState({ nudges: before.filter((n) => n.nudgeId !== nudgeId) });
-  if (!(await act(() => api.dismissNudge(nudgeId, mute).then(() => true))))
+  if (
+    !(await act(
+      () => api.dismissNudge(nudgeId, mute).then(() => true),
+      () => dismissNudge(nudgeId, mute),
+    ))
+  )
     setState({ nudges: before });
 }
 
@@ -356,7 +410,10 @@ export async function decideApproval(
   approvalId: string,
   decision: 'approve' | 'decline',
 ): Promise<Approval | undefined> {
-  const a = await act(() => api.decideApproval(approvalId, decision));
+  const a = await act(
+    () => api.decideApproval(approvalId, decision),
+    null /* C8: re-tap in the sheet */,
+  );
   if (!a) return undefined;
   const swap = (list: Approval[]) => list.map((x) => (x.approvalId === approvalId ? a : x));
   const m = state.meetups[a.meetupId];
@@ -370,7 +427,10 @@ export async function decideApproval(
   return a;
 }
 export async function leaveMeetup(meetupId: string): Promise<boolean> {
-  const m = await act(() => api.leaveMeetup(meetupId));
+  const m = await act(
+    () => api.leaveMeetup(meetupId),
+    () => leaveMeetup(meetupId),
+  );
   if (!m) return false;
   setState({ meetups: { ...state.meetups, [meetupId]: m } });
   void load.joins();
@@ -418,6 +478,7 @@ export async function sendMessage(
 
 // ---- Identity, reset, location ----
 export async function setIdentity(userId: string | null): Promise<void> {
+  gen++;
   stopPolling();
   starting = null;
   const { homeCardDismissed, lastMode, drafts } = state;
@@ -426,6 +487,7 @@ export async function setIdentity(userId: string | null): Promise<void> {
 }
 
 export async function reset(): Promise<void> {
+  gen++;
   stopPolling();
   starting = null;
   await storage().remove();
