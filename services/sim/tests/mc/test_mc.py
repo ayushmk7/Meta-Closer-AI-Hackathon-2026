@@ -36,8 +36,8 @@ def test_toy_fixed_seed_regression(toy):
     b = engine.simulate(toy, "common_ground", 3)
     assert json.dumps(a) == json.dumps(b)  # same seed, same everything (NaN-safe)
     assert len(a["isolatedLowByWeek"]) == toy.weeks + 1 and a["isolatedLowByWeek"][0] == 1.0
-    # Pinned on seed v2 (seed 7) + S2 fake tables + S1 adapter fixes (13483b0). Re-pin only when the seed, adapter or engine changes on purpose.
-    assert (a["fillRate"], a["friendShareW8"], a["joinToMeetup"]) == pytest.approx((0.28125, 0.1, 0.3354430))
+    # Pinned on seed v2 (seed 7) + S2 fake tables + real cg_matching (#21). Re-pin only when the seed, adapter or engine changes on purpose.
+    assert (a["fillRate"], a["friendShareW8"], a["joinToMeetup"]) == pytest.approx((0.25, 1 / 6, 0.3368984))
     for k in ("fillRate", "friendShareW8", "isolatedLowW8", "lowSeatedShare"):
         assert 0.0 <= a[k] <= 1.0
 
