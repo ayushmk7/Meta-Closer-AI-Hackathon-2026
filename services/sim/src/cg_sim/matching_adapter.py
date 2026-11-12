@@ -169,3 +169,23 @@ def _next_slot(after: datetime, day: str, part: str, utc_offset_hours: int) -> d
     if cand < local:
         cand += timedelta(days=7)
     return cand - timedelta(hours=utc_offset_hours)
+
+
+def travel_minutes(origin: dict, dest: dict, mode: str, params: dict) -> int:
+    """origin/dest are {lat, lng}. Same formula as params.travel describes."""
+    if HAVE_MATCHING:  # pragma: no cover
+        from pathlib import Path
+
+        from cg_sim.contracts import contracts_dir
+
+        return _cgm.travel_minutes(
+            (origin["lat"], origin["lng"]), (dest["lat"], dest["lng"]), mode,
+            _cgm.Params.from_yaml(Path(contracts_dir()) / "params.yaml"),
+        )
+    import math
+
+    t = params["travel"]
+    lat1, lng1, lat2, lng2 = map(math.radians, (origin["lat"], origin["lng"], dest["lat"], dest["lng"]))
+    h = math.sin((lat2 - lat1) / 2) ** 2 + math.cos(lat1) * math.cos(lat2) * math.sin((lng2 - lng1) / 2) ** 2
+    km = 2 * 6371.0 * math.asin(math.sqrt(h)) * t["detourFactor"]
+    return math.ceil(km / t["speedsKmh"][mode] * 60 + t["overheadMin"][mode])
