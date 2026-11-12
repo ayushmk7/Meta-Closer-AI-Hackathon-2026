@@ -36,11 +36,12 @@ def list_pools():
 
 
 def _pairs(uid: str, met_only: bool) -> list[str]:
-    out = set()
-    for c in store.connections.values():
-        if uid in (c["a"], c["b"]) and (not met_only or c["status"] == "met"):
-            out.add(c["b"] if c["a"] == uid else c["a"])
-    return sorted(out)
+    return sorted(
+        o
+        for k, c in store.connections.items()
+        if uid in k and (not met_only or c["status"] == "met")
+        for o in k - {uid}
+    )
 
 
 def export(pool_id: str) -> dict:
@@ -74,7 +75,7 @@ def export(pool_id: str) -> dict:
                 "groupOnly": True,
                 "trustFloorOk": u.get("trustFloorOk", True),
                 "connectionIds": _pairs(uid, met_only=False),
-                "blockedIds": sorted(u["blocked"]),
+                "blockedIds": sorted(o for k in store.blocks if uid in k for o in k - {uid}),
                 "travel": u["travel"],
                 "busy": [{"start": b["start"], "end": b["end"]} for b in sorted(u["busy"], key=lambda b: b["start"])],
                 "signals": [

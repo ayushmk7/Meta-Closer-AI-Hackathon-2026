@@ -7,10 +7,10 @@ from typing import Literal
 from fastapi import APIRouter, Response
 from pydantic import BaseModel, Field
 
-from cg_api import realtime
 from cg_api.deps import Base, User
 from cg_api.errors import ApiError
 from cg_api.store import store
+from cg_api.store.bridge import changed
 from cg_api.store.views import me_view, my_interest
 
 router = APIRouter()
@@ -67,7 +67,7 @@ def get_me(uid: User, base: Base):
 @router.patch("/v1/me", operation_id="updateMe")
 def update_me(body: MeUpdate, uid: User, base: Base):
     apply_profile(store.users[uid], body)
-    realtime.emit(uid, "me.updated")
+    changed(uid, "me.updated")
     return me_view(uid, base)
 
 
@@ -81,7 +81,7 @@ def set_interest_visibility(interestId: str, body: VisibilityBody, uid: User):
     if not i:
         raise ApiError(404, "not_found", "That interest isn't on your profile.")
     i["visibility"] = body.visibility
-    realtime.emit(uid, "me.updated")
+    changed(uid, "me.updated")
     return my_interest(i)
 
 
@@ -91,5 +91,5 @@ def remove_interest(interestId: str, uid: User):
     if u["interests"].pop(interestId, None) is None:
         raise ApiError(404, "not_found", "That interest isn't on your profile.")
     u["removedInterests"].add(interestId)  # re-extraction never brings it back
-    realtime.emit(uid, "me.updated")
+    changed(uid, "me.updated")
     return Response(status_code=204)

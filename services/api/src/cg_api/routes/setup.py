@@ -7,13 +7,14 @@ from typing import Literal
 from fastapi import APIRouter, Response
 from pydantic import BaseModel, Field
 
-from cg_api import realtime, seed
+from cg_api import seed
 from cg_api.deps import Base, User
 from cg_api.errors import ApiError
 from cg_api.ports import ports
 from cg_api.routes.me import GroupSize, Slot, Travel, apply_profile
 from cg_api.settings import get_settings
 from cg_api.store import store
+from cg_api.store.bridge import changed
 from cg_api.store.views import me_view, my_interest, require_opted_in, signal_view
 
 router = APIRouter()
@@ -37,8 +38,7 @@ async def opt_in(body: OptIn, uid: User, base: Base):
     if not u["optedIn"]:
         u.update(optedIn=True, mode=body.mode, poolId=pool_id)
         await seed.derive(uid)  # Facebook activity becomes usable after optIn
-        realtime.emit(uid, "me.updated")
-        realtime.emit(uid, "signals.updated")
+        changed(uid, "me.updated", "signals.updated")
     return me_view(uid, base)
 
 
@@ -50,7 +50,7 @@ def opt_out(uid: User):
             j["status"] = "withdrawn"  # silent (P6)
             store.directives.get(uid, {}).get(j["joinId"], {}).update(desired="none")
     u.update(optedIn=False, setupComplete=False, mode=None, poolId=None, signals={}, connectors={}, busy=[])
-    realtime.emit(uid, "me.updated")
+    changed(uid, "me.updated")
     return Response(status_code=204)
 
 
@@ -97,6 +97,5 @@ def complete_setup(body: SetupComplete, uid: User, base: Base):
         if iid in u["interests"]:
             u["interests"][iid]["visibility"] = "hidden"
     u["setupComplete"] = True
-    realtime.emit(uid, "me.updated")
-    realtime.emit(uid, "feed.updated")  # first For you carousel is built by the feed on read
+    changed(uid, "me.updated", "feed.updated")  # first For you carousel is built by the feed on read
     return me_view(uid, base)

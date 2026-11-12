@@ -11,7 +11,7 @@ from pydantic import AwareDatetime, BaseModel
 from cg_api.deps import User
 from cg_api.errors import ApiError
 from cg_api.settings import get_settings
-from cg_api.store import now_iso, store
+from cg_api.store import bridge, now_iso, store
 from cg_api.store.views import require_opted_in
 
 router = APIRouter()
@@ -60,4 +60,5 @@ def sync_calendar(body: CalendarSync, uid: User):
     for a in body.applied:
         if a.ok:
             applied[a.key] = a.desired
+    bridge.sync(uid)
     return {"acceptedBusy": len(blocks), "directives": list(store.directives.get(uid, {}).values())}

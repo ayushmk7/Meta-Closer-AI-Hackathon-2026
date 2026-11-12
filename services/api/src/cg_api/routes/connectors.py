@@ -4,12 +4,13 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Response
 
-from cg_api import realtime, seed
+from cg_api import seed
 from cg_api.deps import Base, User
 from cg_api.errors import ApiError
 from cg_api.routes.me import VisibilityBody
 from cg_api.settings import get_settings
 from cg_api.store import now_iso, store
+from cg_api.store.bridge import changed
 from cg_api.store.views import connector_view, require_opted_in, signal_view
 
 router = APIRouter()
@@ -20,8 +21,7 @@ def _providers() -> dict:
 
 
 def _changed(uid: str) -> None:
-    realtime.emit(uid, "signals.updated")
-    realtime.emit(uid, "me.updated")
+    changed(uid, "signals.updated", "me.updated")
 
 
 @router.get("/v1/connectors", operation_id="listConnectors")

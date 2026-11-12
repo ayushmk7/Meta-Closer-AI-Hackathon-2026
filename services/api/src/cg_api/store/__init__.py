@@ -12,10 +12,14 @@ users[uid] = {
                            "strength", "visibility", "sensitive", "recordIds"}},
     "connectors": {provider: {"connectedAt", "lastSyncAt"}},
     "busy": [{"start", "end", "source"}],       # source = provider the block came from
-    "muted": set[signalId], "blocked": set[uid], "unlocks": [Unlock],
+    "muted": set[signalId], "removedInterests": set, "deletedSignals": set, "unlocks": [Unlock],
 }
 records[uid] = seeded connector records (all providers; active only while that provider is connected)
 activity[uid] = seeded Facebook activity
+When slice C's domain is installed, plans/joins/meetups/threads/approvals/connections/blocks/reports/venues are
+the *same objects* as the World's (C owns those records); users stay A's and are projected into the World by
+store.bridge.sync(uid) after every A change.
+
 directives[uid][key] = CalendarDirective (written by plans/meetups, served by syncCalendar)
 applied[uid][key] = desired value the device last reported applied ok
 """
@@ -26,6 +30,7 @@ import copy
 import itertools
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
+from typing import Any
 
 
 def now_iso() -> str:
@@ -46,11 +51,12 @@ class Store:
     joins: dict[str, dict] = field(default_factory=dict)  # {joinId, planId, userId, status, createdAt, ...}
     meetups: dict[str, dict] = field(default_factory=dict)
     threads: dict[str, dict] = field(default_factory=dict)
-    messages: dict[str, list[dict]] = field(default_factory=dict)  # threadId -> messages
     approvals: dict[str, dict] = field(default_factory=dict)
-    connections: dict[str, dict] = field(default_factory=dict)  # {connectionId, a, b, status, ...}
+    connections: dict[frozenset, dict] = field(default_factory=dict)  # frozenset({a, b}) -> {connectionId, status, ...}
+    blocks: set[frozenset] = field(default_factory=set)
     nudges: dict[str, dict] = field(default_factory=dict)
-    reports: dict[str, dict] = field(default_factory=dict)
+    reports: list[dict] = field(default_factory=list)
+    world: Any = None  # slice C's domain World (cg_api.domain.world.current) when installed; see store.bridge
     directives: dict[str, dict[str, dict]] = field(default_factory=dict)
     applied: dict[str, dict[str, str]] = field(default_factory=dict)
     _ids: itertools.count = field(default_factory=lambda: itertools.count(1))
@@ -65,17 +71,21 @@ class Store:
 
     # ---------- snapshot / reset ----------
     _STATE = ("pool", "demo", "seed_dir", "laya_tables_dir", "users", "records", "activity", "venues", "plans",
-              "joins", "meetups", "threads", "messages", "approvals", "connections", "nudges", "reports",
-              "directives", "applied")  # fmt: skip
+              "joins", "meetups", "threads", "approvals", "connections", "blocks", "nudges", "reports",
+              "directives", "applied", "world")  # fmt: skip
 
     def snapshot(self) -> None:
         self._snapshot = copy.deepcopy({k: getattr(self, k) for k in self._STATE})
 
     def reset(self) -> None:
+        # One deepcopy of everything, so dicts shared with the domain World stay shared after restore.
         if self._snapshot is not None:
             for k, v in copy.deepcopy(self._snapshot).items():
                 setattr(self, k, v)
         self._ids = itertools.count(1)
+        from cg_api.store import bridge
+
+        bridge.publish()
 
 
 store = Store()

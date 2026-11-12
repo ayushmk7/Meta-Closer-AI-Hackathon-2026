@@ -15,7 +15,7 @@ from pathlib import Path
 from cg_api import contracts
 from cg_api.ports import ports
 from cg_api.settings import get_settings
-from cg_api.store import store
+from cg_api.store import bridge, store
 
 log = logging.getLogger("cg_api.seed")
 TINY = Path(__file__).parent / "tiny"
@@ -87,7 +87,6 @@ def new_user(persona: dict, synthetic: bool, mode: str, pool_id: str) -> dict:
         "muted": set(),
         "removedInterests": set(),
         "deletedSignals": set(),
-        "blocked": set(),
         "unlocks": [],
     }
 
@@ -127,6 +126,7 @@ async def load(pool_id: str, reextract: bool = False, job: dict | None = None) -
                 store.joins[jid] = {"joinId": jid, "planId": plan["planId"], "userId": uid, "status": "interested",
                                     "createdAt": pool.get("generatedAt") or ANCHOR.strftime("%Y-%m-%dT%H:%M:%SZ")}  # fmt: skip
     _maybe_tables(pool["poolId"])
+    bridge.build()  # slice C's World shares plans/joins/...; must run before the snapshot
     store.snapshot()
     summary = {
         "poolId": pool["poolId"],
@@ -171,6 +171,7 @@ async def derive(uid: str, reextract: bool = False) -> None:
             s["visibility"] = old[sid]["visibility"]
     u["signals"] = {sid: s for sid, s in sigs.items() if sid not in u["deletedSignals"]}
     _apply_interests(u, extracted.get("interests", []))
+    bridge.sync(uid)
 
 
 def _apply_interests(u: dict, items: list[dict]) -> None:
