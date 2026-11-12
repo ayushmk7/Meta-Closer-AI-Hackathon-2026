@@ -8,6 +8,10 @@ import Chat from './Chat';
 import Person from './Person';
 import Settings from './Settings';
 import Demo from './Demo';
+import Welcome from './Welcome';
+import Explore from './Explore';
+import Passport from './Passport';
+import Scan from './Scan';
 
 // Web reuses the native screens inside the clone's narrow column. Fixed height because the
 // screens are flex:1 with their own scroll; the web layout has no SafeAreaProvider of its own.
@@ -29,3 +33,7 @@ export const ChatScreen = page(Chat);
 export const PersonScreen = page(Person);
 export const SettingsScreen = page(Settings);
 export const DemoScreen = page(Demo);
+export const WelcomeScreen = page(Welcome);
+export const ExploreScreen = page(Explore);
+export const PassportScreen = page(Passport);
+export const ScanScreen = page(Scan);

@@ -31,6 +31,9 @@ import type {
   PlanDetail,
   PublicProfile,
   Setup,
+  Share,
+  ShareFilter,
+  VerifyResult,
   Signal,
   Thread,
 } from './types';
@@ -55,6 +58,7 @@ export interface CgState {
   approvals: Approval[];
   nudges: Nudge[];
   connections: Connection[];
+  shares: Share[]; // anonymous gallery (Explore, Welcome, Ideas)
   people: Record<string, PublicProfile>;
   threads: Thread[];
   messages: Record<string, Message[]>;
@@ -83,6 +87,7 @@ const PREFS = [
   'reminders',
 ] as const;
 const STORAGE_KEY = 'common-ground:v2';
+export const QUESTS_KEY = 'common-ground-quests:v1';
 const initial = (): CgState => ({
   ready: false,
   config: null,
@@ -97,6 +102,7 @@ const initial = (): CgState => ({
   approvals: [],
   nudges: [],
   connections: [],
+  shares: [],
   people: {},
   threads: [],
   messages: {},
@@ -200,6 +206,7 @@ export const load = {
     state.config?.features.nudges ? { nudges: await api.listNudges() } : { nudges: [] },
   ),
   connections: loader(async () => ({ connections: await api.listConnections() })),
+  shares: loader(async (filter: ShareFilter = {}) => ({ shares: await api.listShares(filter) })),
   person: loader(async (userId: string) => {
     const p = await api.getPerson(userId);
     return { people: { ...state.people, [userId]: p } };
@@ -388,6 +395,50 @@ export async function createPlan(
   return p;
 }
 
+// ---- Shares and verification ----
+const putShare = (x: Share) =>
+  setState({ shares: state.shares.map((s) => (s.shareId === x.shareId ? x : s)) });
+// Optimistic like; the server's Share wins (or the old one comes back on failure).
+export async function likeShare(shareId: string, liked: boolean): Promise<Share | undefined> {
+  const before = state.shares.find((s) => s.shareId === shareId);
+  if (before && before.likedByMe !== liked)
+    putShare({ ...before, likedByMe: liked, likes: before.likes + (liked ? 1 : -1) });
+  const x = await act(
+    () => api.likeShare(shareId, liked),
+    () => likeShare(shareId, liked),
+  );
+  if (x) putShare(x);
+  else if (before) putShare(before);
+  return x;
+}
+export async function shareMeetup(meetupId: string, caption: string): Promise<Share | undefined> {
+  const x = await act(
+    () => api.shareMeetup(meetupId, caption),
+    () => shareMeetup(meetupId, caption),
+  );
+  if (x) setState({ shares: [x, ...state.shares.filter((s) => s.shareId !== x.shareId)] });
+  return x;
+}
+// Scan or typed code. Refetches the meetup so both attendees show verified.
+export async function verifyAttendee(
+  meetupId: string,
+  code: string,
+): Promise<VerifyResult | undefined> {
+  const r = await act(
+    () => api.verifyAttendee(meetupId, code),
+    () => verifyAttendee(meetupId, code),
+  );
+  if (r?.accepted) await load.meetup(meetupId);
+  return r;
+}
+// "Plan something like this": like it, then a new plan if I may create plans, else ask Muse.
+export async function planLikeThis(share: Share): Promise<PlanDetail | MuseReply | undefined> {
+  if (!share.likedByMe) void likeShare(share.shareId, true);
+  return state.me?.capabilities.canCreatePlans
+    ? createPlan(share.promptText)
+    : askMuse(share.promptText);
+}
+
 // ---- Nudges ----
 export async function dismissNudge(nudgeId: string, mute: 'none' | 'signal' = 'none') {
   const before = state.nudges;
@@ -509,6 +560,13 @@ export async function reset(): Promise<void> {
   starting = null;
   await Promise.all([wipeCalendar(), cancelReminders()]); // before the maps are forgotten
   await storage().remove();
+  try {
+    // Quests streak (slice 5) lives under its own key; Reset demo clears it too.
+    // eslint-disable-next-line @typescript-eslint/no-require-imports -- AsyncStorage; absent in Node tests.
+    await require('../../platform/scopedStorage').createScopedStorage(QUESTS_KEY).remove();
+  } catch {
+    // Node tests
+  }
   resetMock();
   setUser(null);
   state = initial();
