@@ -11,7 +11,7 @@ Milestone: v2 M2 device layer (A2, `cg/ios/v2-m2-device`)
 ## Decisions
 
 - 2026-11-12 `fixtures.json` is a verbatim copy of every 2xx `example` in `contracts/openapi.json` (Metro cannot bundle outside the app). `contract.test.ts` fails if it drifts; regenerate with `CG_WRITE_FIXTURES=1 npm test`.
-- 2026-11-12 Mock world starts not opted in and before setup. Staging (timestamps checked per request, `STEP_DELAY_S = 2` until `/v1/config` carries `params.demo.stepDelayS`): I'm in on `pl_0001` forms `mt_0001` after 2 steps; steps tick; payment waits as `needs_you`; approve -> book, calendar, reminder tick -> `confirmed`, booked, Facebook Event label, calendar `event`; decline -> pay at the studio; a `toMuse` message -> reschedule steps `st_0008/9`, start +1 h, Muse reply in chat; the seeded `pl_0002` join turns `not_filled` (alternative `pl_0003`) after 30 s. `getMeetup`/`getThread` by ID always work.
+- 2026-11-12 Mock world starts not opted in and before setup. Staging (timestamps checked per request, step delay = max of `config.demo.stepDelayS`, 2 s when absent): I'm in on `pl_0001` forms `mt_0001` after 2 steps; steps tick; payment waits as `needs_you`; approve -> book, calendar, reminder tick -> `confirmed`, booked, Facebook Event label, calendar `event`; decline -> pay at the studio; a `toMuse` message -> reschedule steps `st_0008/9`, start +1 h, Muse reply in chat; the seeded `pl_0002` join turns `not_filled` (alternative `pl_0003`) after 30 s. `getMeetup`/`getThread` by ID always work.
 - 2026-11-12 Realtime: WS per CONTRACTS §6 with 1/2/4/8/15 s backoff and refresh after reconnect; with the socket down, polls approvals, threads and `setting_up` meetups at `pollIntervalS` (1 s on the mock) and feed, joins, nudges at `feedRefreshS`.
 - 2026-11-12 Calendar: `connectDeviceCalendar()` is what the "Calendar on this iPhone" toggle calls (permission -> `connectConnector` -> create "Common Ground" calendar). Uses `expo-calendar/legacy`: the package default is Calendar@next, which Expo Go stubs. Reconciles `syncCalendar` directives plus `Join.calendar`/`Meetup.calendar`, skips unchanged ones by signature, reports `applied` in an immediate second sync. Busy blocks are merged and carry start/end only.
 - 2026-11-12 Leave-by: scheduled for confirmed meetups I'm going to when `museSettings.leaveByReminders`; moved on reschedule, cancelled on leave/cancel. Tapping opens `/common-ground/meetup/<id>?directions=1` (slice C: focus Directions on that param). Permission asked on first schedule.
@@ -24,7 +24,6 @@ Milestone: v2 M2 device layer (A2, `cg/ios/v2-m2-device`)
 ## Needs
 
 - needs: shell PR #6 merged (A2 branch merges `origin/cg/shell/v2-m0` for `expo-calendar`/`expo-notifications`).
-- needs: contracts `demo.stepDelayS` in `/v1/config` (mock uses 2 s meanwhile).
 - needs: backend live API (Checkpoint A); the real `fetch` path is untested against a server.
 
 ## Known gaps
