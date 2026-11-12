@@ -56,7 +56,9 @@ class Copy(Protocol):
     async def plan_reason(self, plan: dict, shared_labels: list[str]) -> str: ...
     async def setup_review(self, user_id: str, interest_labels: list[str]) -> str: ...
     async def intro(self, first_names: list[str], shared_labels: list[str], plan: dict) -> tuple[str, list[str]]: ...
-    async def nudge(self, signal_label: str, plan: dict) -> str: ...
+    async def nudge(self, signal_label: str, plan: dict) -> tuple[str, str]:
+        """(title, text) for Nudge.title / Nudge.text. About the activity and place, never about being alone."""
+        ...
 
 
 class AgentRunner(Protocol):
@@ -105,8 +107,9 @@ class StubCopy:
         text = f"Hi {names}! I'm Muse.{common} I'm handling the booking and the calendar."
         return text, ["What got you into this?", "Been here before?", "Anyone want to grab food after?"]
 
-    async def nudge(self, signal_label: str, plan: dict) -> str:
-        return f"{signal_label}? There's a plan for that this week."
+    async def nudge(self, signal_label: str, plan: dict) -> tuple[str, str]:
+        title = (plan.get("title") or "A plan you might like")[:60]
+        return title, f"Muse noticed {signal_label[:1].lower() + signal_label[1:]}. There's a plan for that this week."
 
 
 class StubAgent:
