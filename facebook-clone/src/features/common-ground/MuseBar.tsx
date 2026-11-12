@@ -1,7 +1,7 @@
 // Muse bar (PRD-1 §8.1 item 1). Errors keep the typed text: it is only ever cleared by the user.
 import { useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, View } from 'react-native';
-import { Icon, IconButton, Input, Label, Muted, go, useColors } from '../../ui/native';
+import { Card, Icon, IconButton, Input, Label, Muted, go, useColors } from '../../ui/native';
 import { PlanCarousel } from './PlanCard';
 import { askMuse, clearMuse, createPlan, useCg } from './store';
 
@@ -47,6 +47,8 @@ export function PromptChips({ prompts, onPick }: { prompts: string[]; onPick(p: 
             justifyContent: 'center',
             paddingHorizontal: 15,
             borderRadius: 22,
+            borderWidth: 1,
+            borderColor: c.divider,
             backgroundColor: c.input,
           }}
         >
@@ -98,8 +100,9 @@ export default function MuseBar({
   };
   const reply = muse.reply;
 
+  // On a white card like the clone's composer: the canvas and c.input are the same gray.
   return (
-    <View style={{ gap: 10 }}>
+    <Card style={{ paddingVertical: 12, gap: 10 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16 }}>
         <MuseAvatar />
         <Input
@@ -170,6 +173,6 @@ export default function MuseBar({
           />
         </View>
       )}
-    </View>
+    </Card>
   );
 }

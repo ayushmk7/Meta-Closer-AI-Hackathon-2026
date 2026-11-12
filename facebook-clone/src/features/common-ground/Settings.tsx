@@ -5,7 +5,7 @@ import { router } from 'expo-router';
 import { Button, Card, Chips, Icon, Label, Muted, Page, useColors } from '../../ui/native';
 import { api } from './api';
 import Connectors from './Connectors';
-import { sizeBounds } from './Plan';
+import { SetupPrompt, sizeBounds, sourceName } from './Plan';
 import { act, load, optIn, setState, useCg } from './store';
 import type {
   MeUpdate,
@@ -192,12 +192,17 @@ export function MusePermissions() {
 export function SignalRow({ signal, onDelete }: { signal: Signal; onDelete?: () => void }) {
   const c = useColors();
   const shown = signal.visibility === 'shown';
+  const labels = useCg((s) => s.connectors);
+  const source = sourceName(
+    signal.provider,
+    Object.fromEntries(labels.map((x) => [x.provider, x.label])),
+  );
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 44 }}>
       {signal.sensitive && <Icon name="lock-closed" size={16} color={c.secondary} />}
       <View style={{ flex: 1 }}>
         <Label style={{ color: shown ? c.text : c.secondary }}>{signal.label}</Label>
-        <Muted>{signal.sensitive ? 'Only you can see this' : signal.provider}</Muted>
+        <Muted>{signal.sensitive ? 'Only you can see this' : source}</Muted>
       </View>
       <Button
         title={shown ? 'Hide' : 'Show'}
@@ -222,7 +227,16 @@ export default function SettingsScreen() {
   const modes = useCg((s) => s.config?.modes) ?? NONE;
   const connectorsOn = useCg((s) => !!s.config?.features.connectors);
   const signals = useCg((s) => s.signals);
-  useEffect(() => void (load.me(), load.signals()), []);
+  const optedIn = !!me?.optedIn;
+  useEffect(() => void load.me(), []);
+  useEffect(() => void (optedIn && (load.signals(), load.connectors())), [optedIn]);
+  if (me && !optedIn)
+    return (
+      <Page>
+        <Banners />
+        <SetupPrompt />
+      </Page>
+    );
   if (!me)
     return (
       <Page>

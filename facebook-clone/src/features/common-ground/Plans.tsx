@@ -114,7 +114,12 @@ function YourPlanRow({ join, meetup }: { join?: Join; meetup?: Meetup }) {
   );
   const plans = useCg((s) => s.plans);
   const feed = useCg((s) => s.feed?.plans) ?? NONE;
-  const title = meetup?.title ?? join?.plan?.title ?? 'Your plan';
+  // A fresh Join from joinPlan has no `plan`; fall back to the cached detail or feed card.
+  const title =
+    meetup?.title ??
+    join?.plan?.title ??
+    (join && (plans[join.planId] ?? feed.find((p) => p.planId === join.planId))?.title) ??
+    'Your plan';
   const openMeetup = meetup && (() => go(`/common-ground/meetup/${meetup.meetupId}`));
   if (meetup?.status === 'completed' && meetup.feedbackDue)
     return <Row title={title} lines={['How was it?']} onPress={openMeetup} />;

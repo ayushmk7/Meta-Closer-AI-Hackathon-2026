@@ -1,8 +1,8 @@
 // Plan pop-up (PRD-1 §8.2). Who's in is counts only (C5).
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Alert, Linking, Pressable, Switch, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import { useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { Button, Card, Icon, Label, Muted, Page, Sheet, go, useColors } from '../../ui/native';
 import { MuseAvatar } from './MuseBar';
 import { PlanPhoto, checkText, dayTime, duration, whosIn } from './PlanCard';
@@ -12,8 +12,21 @@ import { Banners, GroupSizePicker, NotFound, usePoll } from './ui';
 import VenueMap from './VenueMap';
 
 // "google_maps" -> "Google Maps" when no connector label is known.
-const sourceName = (source: string, labels: Record<string, string>) =>
+export const sourceName = (source: string, labels: Record<string, string>) =>
   labels[source] ?? source.replace(/_/g, ' ').replace(/\b\w/g, (m) => m.toUpperCase());
+
+// Not opted in (e.g. a cold deep link after a reset): offer setup instead of the API's 403.
+export function SetupPrompt() {
+  return (
+    <Card style={{ margin: 16, padding: 16, gap: 8 }}>
+      <Label accessibilityRole="header" style={{ fontSize: 17, fontWeight: '700' }}>
+        Plans with Muse
+      </Label>
+      <Muted>Muse can find things to do with people who are into what you&apos;re into.</Muted>
+      <Button title="Get started" onPress={() => router.replace('/common-ground/setup')} />
+    </Card>
+  );
+}
 
 // Salvaged from the v1 Plan something form: the size range is bounded by config limits and my cap.
 export function sizeBounds(
@@ -141,11 +154,19 @@ export default function PlanScreen() {
   const ready = useCg((s) => s.ready);
   const error = useCg((s) => !!s.error);
   const connectors = useCg((s) => s.connectors);
-  usePoll(
-    () => void load.plan(planId),
-    useCg((s) => s.config?.limits.feedRefreshS),
-  );
+  const optedIn = useCg((s) => !!s.me?.optedIn);
+  const notOptedIn = useCg((s) => s.ready && !!s.me && !s.me.optedIn);
+  const every = useCg((s) => s.config?.limits.feedRefreshS);
+  useEffect(() => void (optedIn && load.plan(planId)), [optedIn, planId]);
+  usePoll(() => void (optedIn && load.plan(planId)), every);
 
+  if (notOptedIn)
+    return (
+      <Page>
+        <Banners />
+        <SetupPrompt />
+      </Page>
+    );
   if (!plan)
     return (
       <Page>
@@ -172,7 +193,9 @@ export default function PlanScreen() {
           </View>
           <VenueMap venue={plan.venue} style={{ height: 140, borderRadius: 8 }} />
           <View style={{ gap: 2 }}>
-            {plan.travel && <Label>{plan.travel.label}</Label>}
+            {plan.travel && !plan.checks.some((k) => k.label === plan.travel?.label) && (
+              <Label>{plan.travel.label}</Label>
+            )}
             {plan.checks.map((k) => (
               <Label key={k.kind + k.label} style={{ color: k.ok ? c.text : c.secondary }}>
                 {checkText(k)}

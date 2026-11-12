@@ -135,7 +135,11 @@ test('a spend limit outside the chip values shows as its own selected chip, not 
   await renderer.act(async () =>
     store.setState({
       config: { ...config, features: { ...config.features, autonomySettings: true } },
-      me: { ...me, museSettings: { ...me.museSettings, spendWithoutAskingCents: 1500 } },
+      me: {
+        ...me,
+        optedIn: true, // the Leave test above opted out
+        museSettings: { ...me.museSettings, spendWithoutAskingCents: 1500 },
+      },
     }),
   );
   jest.spyOn(api, 'getMe').mockResolvedValue(store.getState().me);
@@ -149,4 +153,26 @@ test('a spend limit outside the chip values shows as its own selected chip, not 
     );
   expect(selected.some((t) => t.includes('$15'))).toBe(true);
   expect(selected.some((t) => t.includes('"$0"'))).toBe(false);
+});
+
+test('not opted in: setup prompt instead of settings (no 403 banner)', async () => {
+  jest.spyOn(api, 'getMe').mockResolvedValue({ ...store.getState().me, optedIn: false });
+  await renderer.act(async () =>
+    store.setState({ me: { ...store.getState().me, optedIn: false }, error: null }),
+  );
+  const { text } = await render(React.createElement(SettingsScreen));
+  expect(text()).toContain('Get started');
+  expect(text()).not.toContain('Group size');
+  expect(store.getState().error).toBeNull();
+});
+
+test('signal rows show the connector label, not the provider id', async () => {
+  const { SignalRow } = require('../../src/features/common-ground/Settings');
+  const signal = fixtures.getSetup.signals.find((s) => !s.sensitive);
+  await renderer.act(async () =>
+    store.setState({ connectors: [{ provider: signal.provider, label: 'Google Maps' }] }),
+  );
+  const { text } = await render(React.createElement(SignalRow, { signal }));
+  expect(text()).toContain('Google Maps');
+  expect(text()).not.toContain(signal.provider);
 });

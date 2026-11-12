@@ -158,3 +158,20 @@ test('invite mode (?with=) ends with Ask Muse instead, and after a created plan'
   delete mockParams.with;
   store.setState({ connections: [] });
 });
+
+test('a fresh join row (no plan on the Join) takes its title from the feed card', async () => {
+  const card = fixtures.getFeed.plans[0];
+  const { plan: _omit, ...bare } = {
+    ...fixtures.joinPlan,
+    planId: card.planId,
+    joinId: 'jn_fresh',
+  };
+  await renderer.act(async () => void (await store.load.feed()));
+  store.setState({ joins: [bare] });
+  const { text } = await render(React.createElement(PlansScreen));
+  expect(text()).toContain(
+    `Muse is gathering people · ${bare.progress.joined} of ${bare.progress.needed}`,
+  );
+  expect(text()).not.toContain('"Your plan"');
+  store.setState({ joins: [] });
+});
