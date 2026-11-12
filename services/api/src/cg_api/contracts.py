@@ -189,3 +189,39 @@ def synth(schema, base: str, depth: int = 0):
     if pat := schema.get("pattern"):
         return next((s for s in _PATTERN_SAMPLES if re.search(pat, s)), "x")
     return "x" * max(1, schema.get("minLength", 1))
+
+
+# ---------- taxonomy and seed schemas ----------
+@cache
+def taxonomy() -> dict[str, dict]:
+    """id -> {id, label, path, level, sensitive} for every node of taxonomy.yaml."""
+    out: dict[str, dict] = {}
+
+    def walk(nodes: dict, prefix: list[str], labels: list[str], sensitive: bool) -> None:
+        for slug, node in nodes.items():
+            node = node if isinstance(node, dict) else {"label": node}
+            ids, path = [*prefix, slug], [*labels, node["label"]]
+            sens = sensitive or bool(node.get("sensitive"))
+            out[".".join(ids)] = {"id": ".".join(ids), "label": node["label"], "path": path, "level": len(ids),
+                                  "sensitive": sens}  # fmt: skip
+            walk(node.get("children") or {}, ids, path, sens)
+
+    walk(get_settings().contract("taxonomy.yaml")["tree"], [], [], False)
+    return out
+
+
+def interest_ref(interest_id: str, level: int | None = None) -> dict:
+    """InterestRef for an id, truncated to level (2 = coarse)."""
+    if level:
+        interest_id = ".".join(interest_id.split(".")[:level])
+    node = taxonomy()[interest_id]
+    return {k: node[k] for k in ("id", "label", "path", "level")}
+
+
+@cache
+def seed_validator(name: str) -> jsonschema.Draft202012Validator:
+    """Validator for contracts/schemas/<name>.schema.json."""
+    uri = _BASE + f"schemas/{name}.schema.json"
+    return jsonschema.Draft202012Validator(
+        {"$ref": uri}, registry=registry(), format_checker=jsonschema.FormatChecker()
+    )

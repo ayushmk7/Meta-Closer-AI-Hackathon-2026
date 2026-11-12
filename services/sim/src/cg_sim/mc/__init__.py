@@ -21,6 +21,8 @@ from cg_sim.mc.world import build, cells
 # Ablations for the params recommendations: Common Ground at the 1.0 x 1.0 cell, one override each.
 ABLATIONS = {
     "maxPerActivityType=4": {"feed.maxPerActivityType": 4},
+    "caps lifted (type=8,scene=8,fillFloor=0)": {"feed.maxPerActivityType": 8, "feed.maxPerScene": 8,
+                                                  "plans.fillLikelihoodFloor": 0.0},
     "exposureCapPerDay=20": {"plans.exposureCapPerDay": 20},
     "exposureCapPerDay=80": {"plans.exposureCapPerDay": 80},
     # At the default cap (40/day) no plan hits the cap in this pool, so isolationBoost has nothing to reorder;

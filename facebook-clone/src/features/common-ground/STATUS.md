@@ -1,24 +1,33 @@
 # ios status
-Milestone: M1 frontend on in-app mock (no backend yet)
+
+Milestone: v2 M2 device layer (A2, `cg/ios/v2-m2-device`)
+
 ## Done
-- 2026-11-12 Map tab, finder overlay (intro, Muse onboarding, review, Today's people, mutual connect, Waiting for you, empty), chat, meetup (voting, confirmed, check-in, feedback), settings, person, demo identity route, Home card, Messenger and Events rows, reset hook.
-- Mock is the default whenever `EXPO_PUBLIC_CG_API_URL` is unset or `EXPO_PUBLIC_CG_MOCK=1`. Fixtures in `mock.ts` derive from `contracts/openapi.json` examples; `tests/common-ground/contract.test.ts` fails if they drift.
+
+- 2026-11-12 A1 (`cg/ios/v2-m0-core`): v2 types and tolerant decoders for every JSON operation, api client for all 42 REST operations (30 s timeout for askMuse/createPlan/connectConnector), mock serving every operation from `fixtures.json`, contract test rewritten for v2, store actions frozen, STUB screens for slices B and C, all routes, v1 map-era code deleted.
+- 2026-11-12 A1 review fixes: Retry reruns the store action (none for decideApproval, C8); a successful load clears the error; failed start stays not-ready; a generation counter drops stale responses after reset/setIdentity. Array selectors are cached (useCg-safe).
+- 2026-11-12 A2: staged mock, `realtime.ts`, `calendar.ts`, `notifications.ts`.
+
 ## Decisions
-- 2026-11-12 Module store on `useSyncExternalStore` (`store.ts`); shell hooks and every CG screen (via `Banners`) call the idempotent `start()`.
-- 2026-11-12 Friend sheet uses the clone `Sheet` (pageSheet modal); finder closes by its close button only.
-- 2026-11-12 Celebration is one haptic plus a static card (reduced motion satisfied by default).
-- 2026-11-12 `index.tsx` / `index.web.tsx` share an extension on purpose: Metro tries extensions before platforms, so `index.ts` would shadow `index.web.tsx`.
-- 2026-11-12 Web runs the same screens as iPhone (user override of PRD-1 D5 "web placeholder"), on the mock only: `index.web.tsx` wraps each native screen in the clone's `narrow-page` column (`.cg-page` fixes its height) plus a `SafeAreaProvider`; `maps.web.tsx` stands in for react-native-maps (plain `c.input` box, markers/circles/polygons projected linearly, no tiles, no pan/zoom, no network). `store.start()` now runs on web; `HomeCard` starts the store so the web Home card shows. Shell.web adds contributed `tabs` to the desktop header (`map` icon aliases the `location` pin).
-- 2026-11-12 Mock faces use clone media keys `kai`, `lucas`, `ava` (named in the clone's suggestions list).
+
+- 2026-11-12 `fixtures.json` is a verbatim copy of every 2xx `example` in `contracts/openapi.json` (Metro cannot bundle outside the app). `contract.test.ts` fails if it drifts; regenerate with `CG_WRITE_FIXTURES=1 npm test`.
+- 2026-11-12 Mock world starts not opted in and before setup. Staging (timestamps checked per request, step delay = max of `config.demo.stepDelayS`, 2 s when absent): I'm in on `pl_0001` forms `mt_0001` after 2 steps; steps tick; payment waits as `needs_you`; approve -> book, calendar, reminder tick -> `confirmed`, booked, Facebook Event label, calendar `event`; decline -> pay at the studio; a `toMuse` message -> reschedule steps `st_0008/9`, start +1 h, Muse reply in chat; the seeded `pl_0002` join turns `not_filled` (alternative `pl_0003`) after 30 s. `getMeetup`/`getThread` by ID always work.
+- 2026-11-12 Realtime: WS per CONTRACTS §6 with 1/2/4/8/15 s backoff and refresh after reconnect; with the socket down, polls approvals, threads and `setting_up` meetups at `pollIntervalS` (1 s on the mock) and feed, joins, nudges at `feedRefreshS`.
+- 2026-11-12 Calendar: `connectDeviceCalendar()` is what the "Calendar on this iPhone" toggle calls (permission -> `connectConnector` -> create "Common Ground" calendar). Uses `expo-calendar/legacy`: the package default is Calendar@next, which Expo Go stubs. Reconciles `syncCalendar` directives plus `Join.calendar`/`Meetup.calendar`, skips unchanged ones by signature, reports `applied` in an immediate second sync. Busy blocks are merged and carry start/end only.
+- 2026-11-12 Leave-by: scheduled for confirmed meetups I'm going to when `museSettings.leaveByReminders`; moved on reschedule, cancelled on leave/cancel. Tapping opens `/common-ground/meetup/<id>?directions=1` (slice C: focus Directions on that param). Permission asked on first schedule.
+- 2026-11-12 Frozen store API (slices B, C): `load.{config,me,setup,connectors,signals,feed,plan(id),joins,meetups,meetup(id),approvals,nudges,connections,person(id),threads,messages(threadId)}`, `refreshAll`, `optIn`, `connect`, `disconnect`, `askMuse`, `clearMuse`, `join(planId,{size,plusOne})`, `withdraw`, `createPlan`, `dismissNudge(id, mute)`, `mergeStep`, `decideApproval`, `leaveMeetup`, `sendMessage(threadId, text, {toMuse})`, `currentLocation` (C2), `setIdentity`, `reset`; selectors `nudgesFor(s, surface)`, `pendingApprovals`, `badgeCount`.
+- 2026-11-12 Stub props frozen: `PlanCard({plan, onPress?, badge?})`, `MuseBar({prefill?})`, `StepTimeline({meetupId, steps})`, `ApprovalSheet({approval})`, `VenueMap({venue, style?})`; screens are default exports.
+- 2026-11-12 Web is always on the mock (`api.MOCK` true when `document` exists, D5).
+- 2026-11-12 Badge = pending approvals + unread threads + plans-surface nudges. Home card: setup card when not opted in, else newest home nudge.
+- 2026-11-12 Storage key `common-ground:v2`; persisted fields: userOverride, homeCardDismissed, lastMode, drafts, calendar (own calendar ID, directive key -> event ID map, pending `applied`), reminders (meetup -> notification ID). Reset deletes our calendar events and cancels reminders first.
+
 ## Needs
-- needs: backend live API (Checkpoint A); the real `fetch` path in `api.ts` is untested against a server.
+
+- needs: shell PR #6 merged (A2 branch merges `origin/cg/shell/v2-m0` for `expo-calendar`/`expo-notifications`).
+- needs: backend live API (Checkpoint A); the real `fetch` path is untested against a server.
+
 ## Known gaps
-- No WebSocket realtime; polling at `limits.pollIntervalS` / `mapRefreshS` only.
-- Leaderboard and unlocks (§7.6) not built; flags are false.
-- planMeetup sends no size or note UI.
-- Second-phone mode only swaps the display name in the mock; it does not simulate Daniel's world.
-- Not yet run on a device in Expo Go; verified by Jest, tsc, lint and both exports.
-- Web map is a blank box with projected markers: no tiles, pan or zoom, so anything outside the initial region (e.g. the Lands End venue) is off-box; in light theme the box matches the page canvas.
-- Web friend sheet (RN `Modal` pageSheet) covers the whole window, header included, instead of a centered dialog.
-- Web header Map tab has no badge (desktop header ignores `useBadge`); phone-width web reaches Common Ground via Menu only.
-- Web mock state is in memory, so a hard refresh resets opt-in and reopens the Finder (local prefs persist).
+
+- Plan pop-up is a plain stack push; formSheet `_layout.tsx` comes in A2 if wanted.
+- Calendar writes and leave-by notifications are untested on a device: need a human with an iPhone in Expo Go (calshow, notification tap).
+- The WebSocket path is untested against a live backend.

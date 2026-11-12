@@ -5,8 +5,19 @@ import { BlurView } from 'expo-blur';
 import { Image } from 'expo-image';
 import { router, useFocusEffect } from 'expo-router';
 import { imageSource } from '../../data/media';
-import { Button, Card, Empty, Icon, IconButton, Label, Muted, useColors } from '../../ui/native';
+import {
+  Button,
+  Card,
+  Empty,
+  Icon,
+  IconButton,
+  Label,
+  Muted,
+  Page,
+  useColors,
+} from '../../ui/native';
 import { setIdentity, setState, start, useCg } from './store';
+import { TZ } from './types';
 import type { AvailabilitySlot, GroupSize, InterestRef, MyInterest, PersonCard } from './types';
 
 type Colors = ReturnType<typeof useColors>;
@@ -308,9 +319,9 @@ export function Banners() {
 export function NotFound({ title }: { title: string }) {
   return (
     <Card>
-      <Empty title={title} message="It may no longer be available. Head back to the Map." />
+      <Empty title={title} message="It may no longer be available. Head back to Plans." />
       <View style={{ padding: 16 }}>
-        <Button title="Back to Map" secondary onPress={() => router.replace('/common-ground')} />
+        <Button title="Back to Plans" secondary onPress={() => router.replace('/common-ground')} />
       </View>
     </Card>
   );
@@ -331,18 +342,10 @@ export function usePoll(fn: () => void, seconds?: number): void {
   );
 }
 
-const BANDS: Record<string, string> = {
-  under_1km: 'Less than 1 km away',
-  '1_3km': '1 to 3 km away',
-  '3_10km': '3 to 10 km away',
-  over_10km: 'More than 10 km away',
-};
-export const distanceWords = (band: string): string => BANDS[band] ?? 'Nearby';
-
 // "Sat, Nov 15 · 7:30 AM"
 export const when = (iso: string): string => {
   const d = new Date(iso);
-  return `${d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} · ${d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`;
+  return `${d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: TZ })} · ${d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: TZ })}`;
 };
 // "in 5 hours" / "3 minutes ago". ponytail: hand-rolled; Hermes lacks Intl.RelativeTimeFormat.
 export const fromNow = (iso: string): string => {
@@ -358,3 +361,15 @@ export const fromNow = (iso: string): string => {
   const text = `${n} ${unit}${n === 1 ? '' : 's'}`;
   return secs > 0 ? `in ${text}` : `${text} ago`;
 };
+
+// A1 placeholder for screens slices B and C own; they replace the file, keeping its exports.
+export function Stub({ title }: { title: string }) {
+  return (
+    <Page>
+      <Banners />
+      <Card>
+        <Empty title={title} message="Coming soon." />
+      </Card>
+    </Page>
+  );
+}

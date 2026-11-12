@@ -28,10 +28,17 @@ def _request(op: contracts.Operation) -> dict:
 
 @pytest.mark.parametrize("op", ALL, ids=lambda o: o.operation_id)
 def test_operation_matches_contract(op, public, internal):
-    client = public if op.spec == contracts.PUBLIC else internal
-    r = client.request(**_request(op))
-    assert r.status_code == op.success[0], r.text
-    contracts.validate(op, r.status_code, r.json() if r.content else None)
+    """Schema-shaped request against the tiny seed: success or a declared error, body valid either way.
+    Success paths for the real handlers are covered by tests/platform."""
+    from conftest import call
+
+    req = _request(op)
+    call(
+        public if op.spec == contracts.PUBLIC else internal,
+        op.operation_id,
+        req.pop("url"),
+        **{k: v for k, v in req.items() if k != "method"},
+    )
 
 
 @pytest.mark.parametrize("op", [o for o in ALL if o.public_needs_user], ids=lambda o: o.operation_id)
@@ -67,7 +74,13 @@ def test_realtime_ping(public):
         assert ws.receive_json() == {"type": "pong"}
 
 
-@pytest.mark.parametrize("query", ["", "?user=", "?user=../../etc"])
+def test_realtime_push_from_sync_handler(public):
+    with public.websocket_connect("/v1/ws?user=u_maya") as ws:
+        public.patch("/v1/me", json={"neighborhood": "Inner Sunset"})  # sync handler, runs in the threadpool
+        assert ws.receive_json()["type"] == "me.updated"
+
+
+@pytest.mark.parametrize("query", ["", "?user=", "?user=../../etc", "?user=u_nobody"])
 def test_realtime_rejects_bad_identity(public, query):
     from starlette.websockets import WebSocketDisconnect
 

@@ -103,11 +103,16 @@ def render(run_dir) -> str:
     c = ci95([r[key] for r in base if at("common_ground", center)(r)])
     verdicts = [_verdict(*paired(base, key, at("common_ground", ci), at("greedy", ci))[1:], hb) for ci in cells_run]
     wins, losses = verdicts.count(1), verdicts.count(-1)
+    # The policy ranks on the same p_join/p_show the world draws outcomes from (both world models), so with fake
+    # (hash) Laya it is reading the dice: no claim counts as evidence without real Laya tables.
+    evidence = not cfg["fakeLaya"]
+    caveat = "" if evidence else (" Not evidence: fake Laya tables (Common Ground ranks on the same hashed "
+                                  "p_show/p_join the world draws outcomes from); needs real Laya tables.")
     L += ["## Headline", ""]
     if wins == len(cells_run):
         L += [f"**Common Ground leaves {c[0]:.0%} of low-outgoing people isolated at week 8 versus {g[0]:.0%} for "
               f"greedy, in all {len(cells_run)} sweep cells** (center cell, 95% intervals over seeds: "
-              f"{_fmt(*c)} vs {_fmt(*g)})."]
+              f"{_fmt(*c)} vs {_fmt(*g)}).{caveat}"]
     else:
         L += [f"No claim: Common Ground is better than greedy on \"{label.lower()}\" in {wins} of "
               f"{len(cells_run)} cells and worse in {losses}. Center cell: Common Ground {_fmt(*c)}, "
@@ -122,11 +127,12 @@ def render(run_dir) -> str:
         L.append(f"| {label} | " + " | ".join(_fmt(*ci95([r[key] for r in base if at(p, center)(r)]), pct)
                                             for p in pols) + " |")
     L += ["", "## Robustness: Common Ground vs greedy across sweep cells", "",
-          "Seed-paired 95% interval of the difference per cell. A claim needs better in every cell.", "",
+          "Seed-paired 95% interval of the difference per cell. A claim needs better in every cell."
+          + caveat, "",
           "| Metric | CG better | unclear | CG worse | claim |", "| --- | --- | --- | --- | --- |"]
     for key, label, hb in METRICS:
         v = [_verdict(*paired(base, key, at("common_ground", ci), at("greedy", ci))[1:], hb) for ci in cells_run]
-        claim = "yes" if v.count(1) == len(v) else "no"
+        claim = ("yes" if evidence else "not evidence") if v.count(1) == len(v) else "no"
         L.append(f"| {label} | {v.count(1)} | {v.count(0)} | {v.count(-1)} | {claim} |")
 
     abl = defaultdict(list)
@@ -148,7 +154,7 @@ def render(run_dir) -> str:
                     recs.append((d[0], name, d))
             L.append(f"| `{name}` | " + " | ".join(cells_) + " |")
         L += ["", "`isolationBoost` only reorders contested exposures: at the default cap no plan hits "
-              "`exposureCapPerDay`, so its rows are exactly zero; the cap-10 rows show it where it binds.",
+              "`exposureCapPerDay`, so its rows sit at about zero; the cap-10 rows show it where it binds.",
               "", "## Recommended params.yaml changes", ""]
         withheld = [why for bad, why in ((cfg["matching"] != "cg_matching", "Common Ground ran on the matching_adapter fallback"),
                                          (wins != len(cells_run), "the headline has no claim"),
