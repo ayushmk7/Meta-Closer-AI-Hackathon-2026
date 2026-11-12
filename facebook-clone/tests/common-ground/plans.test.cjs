@@ -161,7 +161,8 @@ test('invite mode (?with=) ends with Ask Muse instead, and after a created plan'
 
 test('a fresh join row (no plan on the Join) takes its title from the feed card', async () => {
   const card = fixtures.getFeed.plans[0];
-  const { plan: _omit, ...bare } = {
+  const bare = {
+    // joinPlan returns no `plan`
     ...fixtures.joinPlan,
     planId: card.planId,
     joinId: 'jn_fresh',
