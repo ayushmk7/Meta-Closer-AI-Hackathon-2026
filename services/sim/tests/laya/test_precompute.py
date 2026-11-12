@@ -90,3 +90,10 @@ def test_evaluate_misses_dropped_signals():
     # u2 without providers: its truth is unobservable, so not counted
     r = evaluate(export, truth, {"u1": {"google_maps", "strava"}, "u2": set()})
     assert r["sensitive_places"]["recall"] == 1.0 and r["routines"]["actual"] == 1
+
+
+def test_unreachable_laya_fails_without_writing(tmp_path, monkeypatch):
+    monkeypatch.setenv("LAYA_URL", "http://127.0.0.1:1")
+    with pytest.raises(SystemExit, match="fell back"):
+        precompute.run(POOL, fake=False, use_ground_truth=True, out=tmp_path / "t", reload=False)
+    assert not (tmp_path / "t").exists()

@@ -122,6 +122,9 @@ def reload_backend(pool_id: str) -> None:
         print(f"[{pool_id}] backend reload skipped ({type(e).__name__}); backend reads tables at start", file=sys.stderr)
 
 
+MAX_FALLBACK_SHARE = 0.05  # more fake answers than this and the tables are not real Laya
+
+
 def run(pool_id: str, fake: bool, use_ground_truth: bool, out: Path | None = None, reload: bool = True) -> dict:
     export = load_export(pool_id, use_ground_truth)
     if export["questionsVersion"] != laya.questions_version():
@@ -129,9 +132,14 @@ def run(pool_id: str, fake: bool, use_ground_truth: bool, out: Path | None = Non
               file=sys.stderr)
     client = laya.LayaClient(fake=fake)
     act_rows, meet_rows = build_tables(export, load_activity(pool_id), client)
+    model = "fake" if fake else client.model
+    if client.fallbacks:
+        n, share = len(client.fallbacks), len(client.fallbacks) / client.asked
+        if share > MAX_FALLBACK_SHARE:
+            raise SystemExit(f"[{pool_id}] {n}/{client.asked} Laya answers fell back to fake_p; nothing written")
+        model = f"{model} ({n} fake fallbacks)"
     default = data_dir() / ("sim/laya_gt" if use_ground_truth else "laya_tables") / pool_id
-    manifest = write_tables(out or default, pool_id, export, act_rows, meet_rows,
-                            "fake" if fake else client.model)
+    manifest = write_tables(out or default, pool_id, export, act_rows, meet_rows, model)
     print(f"[{pool_id}] {manifest['rows']} questionsVersion {manifest['questionsVersion']}")
     if reload and not use_ground_truth:
         reload_backend(pool_id)

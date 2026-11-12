@@ -112,6 +112,8 @@ class LayaClient:
         self.model = model or os.environ.get("LAYA_MODEL") or "laya"
         self.workers = workers
         self.q = questions()
+        self.asked = 0
+        self.fallbacks: list[str] = []  # question keys answered by fake_p; list.append is thread-safe
 
     def _ask(self, http, state: str, keys: list[str]) -> dict[str, float]:
         if self.fake:
@@ -136,9 +138,11 @@ class LayaClient:
                 if answers:
                     print(f"laya: bad answer for {k} ({type(e).__name__}); fake p", file=sys.stderr)
                 out[k] = fake_p(k, state, self.q["questionsVersion"])
+                self.fallbacks.append(k)
         return out
 
     def ask_many(self, batch: list[tuple[str, list[str]]]) -> list[dict[str, float]]:
+        self.asked += sum(len(ks) for _, ks in batch)
         if self.fake:
             return [self._ask(None, s, ks) for s, ks in batch]
         import httpx
