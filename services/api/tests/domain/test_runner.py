@@ -176,3 +176,48 @@ def test_fail_next_booking_comes_from_live_demo_state(world, monkeypatch):
     monkeypatch.setattr(store, "world", world)
     monkeypatch.setattr(store, "demo_state", {"failNextBooking": True})
     assert runner._take_fail_next_booking(world) is True and store.demo_state["failNextBooking"] is False
+
+
+def _confirmed_hero(world, monkeypatch):
+    from cg_api import synthetic
+    from cg_api.store import store
+
+    monkeypatch.setattr(store, "demo_state", {"forcedYes": True, "counterpart": "synthetic"})
+    for u in ("u_dan", "u_rosa"):
+        world.users[u]["synthetic"] = True
+    world.on_formed, world.on_decided, world.on_approval = runner.start, runner.decided, synthetic.on_approval
+    world.on_to_muse = runner.to_muse
+    mt = formed(world)
+    [mine] = approvals.pending(world, "u_maya")
+    approvals.decide(world, "u_maya", mine["approvalId"], "approve")
+    assert world.meetups[mt]["status"] == "confirmed"
+    return mt
+
+
+def test_to_muse_moves_the_time(world, monkeypatch):
+    """Moment 5: 'Muse, can we do 11 instead?' -> Muse replies, reschedule + calendar steps, startsAt moves."""
+    pytest.importorskip("cg_api.agent")
+    mt = _confirmed_hero(world, monkeypatch)
+    th = world.meetups[mt]["threadId"]
+    chat.send(world, "u_dan", th, "Muse, can we do 11 instead?", "c-11")
+    m = meetups.view(world, "u_maya", mt)
+    assert (m["startsAt"], m["endsAt"]) == ("2026-11-14T19:00:00Z", "2026-11-14T21:00:00Z")  # 11 AM PT
+    reply = chat.list_messages(world, "u_maya", th)[-1]
+    assert reply["sender"]["kind"] == "muse" and reply["text"].startswith("Done.")
+    [att] = [a for a in reply["attachments"] if a["kind"] == "muse_steps"]
+    kinds = {s["stepId"]: s["kind"] for s in m["museSteps"]}
+    assert {kinds[i] for i in att["stepIds"]} >= {"reschedule", "calendar"}
+    assert m["calendar"]["startsAt"] == "2026-11-14T19:00:00Z"
+
+
+def test_to_muse_question_gets_an_answer_and_failures_are_logged(world, monkeypatch, caplog):
+    pytest.importorskip("cg_api.agent")
+    mt = _confirmed_hero(world, monkeypatch)
+    th = world.meetups[mt]["threadId"]
+    chat.send(world, "u_dan", th, "Muse, what should I bring?", "c-q")
+    assert chat.list_messages(world, "u_maya", th)[-1]["sender"]["kind"] == "muse"
+    from cg_api import agent
+
+    monkeypatch.setattr(agent, "answer_question", lambda *a: 1 / 0)
+    chat.send(world, "u_dan", th, "Muse, is it indoors?", "c-q2")
+    assert "toMuse turn failed" in caplog.text

@@ -65,3 +65,17 @@ def test_errors_use_envelope(live, public):
     assert r.status_code == 401 and r.json()["error"]["code"] == "unauthenticated"
     r = public.post("/v1/approvals/ap_x/decision", headers=MAYA, json={"decision": "maybe"})
     assert r.status_code == 400
+
+
+def test_nudges_and_avatars_use_the_request_host(live, public):
+    live.demo["nudgePlanId"] = "pl_walk"
+    items = ok(public.get("/v1/nudges", headers=MAYA), "listNudges")["items"]
+    assert items and items[0]["planId"] == "pl_walk"
+    ok(public.get(f"/v1/plans/{items[0]['planId']}", headers=MAYA), "getPlan")  # the nudge opens a real plan
+    ok(public.post(f"/v1/nudges/{items[0]['nudgeId']}/dismiss", headers=MAYA, json={"mute": "signal"}), "dismissNudge")
+    joins.form(live, "pl_hero") if joins.join(live, "u_maya", "pl_hero")["status"] == "interested" else None
+    m = ok(public.get("/v1/meetups", headers=MAYA), "listMeetups")["items"][0]
+    urls = [a["person"]["avatarUrl"] for a in m["attendees"] if a["person"]["avatarUrl"]]
+    t = ok(public.get("/v1/threads", headers=MAYA), "listThreads")["items"][0]
+    urls += [p["avatarUrl"] for p in t["participants"] if p["avatarUrl"]]
+    assert urls and all(u.startswith("http://testserver/static/avatars/") for u in urls)
