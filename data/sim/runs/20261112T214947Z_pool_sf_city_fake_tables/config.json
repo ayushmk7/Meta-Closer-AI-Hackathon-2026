@@ -1,0 +1,145 @@
+{
+  "runId": "20261112T214947Z_pool_sf_city_fake_tables",
+  "poolId": "pool_sf_city",
+  "fakeLaya": true,
+  "world": "tables",
+  "seeds": 50,
+  "cells": [
+    {
+      "flake": 0.5,
+      "join": 0.5
+    },
+    {
+      "flake": 0.5,
+      "join": 0.75
+    },
+    {
+      "flake": 0.5,
+      "join": 1.0
+    },
+    {
+      "flake": 0.5,
+      "join": 1.25
+    },
+    {
+      "flake": 0.5,
+      "join": 1.5
+    },
+    {
+      "flake": 0.75,
+      "join": 0.5
+    },
+    {
+      "flake": 0.75,
+      "join": 0.75
+    },
+    {
+      "flake": 0.75,
+      "join": 1.0
+    },
+    {
+      "flake": 0.75,
+      "join": 1.25
+    },
+    {
+      "flake": 0.75,
+      "join": 1.5
+    },
+    {
+      "flake": 1.0,
+      "join": 0.5
+    },
+    {
+      "flake": 1.0,
+      "join": 0.75
+    },
+    {
+      "flake": 1.0,
+      "join": 1.0
+    },
+    {
+      "flake": 1.0,
+      "join": 1.25
+    },
+    {
+      "flake": 1.0,
+      "join": 1.5
+    },
+    {
+      "flake": 1.25,
+      "join": 0.5
+    },
+    {
+      "flake": 1.25,
+      "join": 0.75
+    },
+    {
+      "flake": 1.25,
+      "join": 1.0
+    },
+    {
+      "flake": 1.25,
+      "join": 1.25
+    },
+    {
+      "flake": 1.25,
+      "join": 1.5
+    },
+    {
+      "flake": 1.5,
+      "join": 0.5
+    },
+    {
+      "flake": 1.5,
+      "join": 0.75
+    },
+    {
+      "flake": 1.5,
+      "join": 1.0
+    },
+    {
+      "flake": 1.5,
+      "join": 1.25
+    },
+    {
+      "flake": 1.5,
+      "join": 1.5
+    }
+  ],
+  "centerCell": 12,
+  "policies": [
+    "random",
+    "greedy",
+    "common_ground"
+  ],
+  "people": 301,
+  "plans": 698,
+  "weeks": 8,
+  "joinDaily": 0.5,
+  "ablations": {
+    "maxPerActivityType=4": {
+      "feed.maxPerActivityType": 4
+    },
+    "exposureCapPerDay=20": {
+      "plans.exposureCapPerDay": 20
+    },
+    "exposureCapPerDay=80": {
+      "plans.exposureCapPerDay": 80
+    },
+    "isolationBoost=0": {
+      "matching.isolationBoost": 0.0
+    },
+    "isolationBoost=1": {
+      "matching.isolationBoost": 1.0
+    },
+    "formLeadHours=12": {
+      "plans.formLeadHours": 12
+    },
+    "formLeadHours=48": {
+      "plans.formLeadHours": 48
+    }
+  },
+  "mainSeconds": 102.5,
+  "totalSeconds": 189.3,
+  "matching": "matching_adapter fallback"
+}
