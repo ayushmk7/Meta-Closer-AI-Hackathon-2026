@@ -58,7 +58,7 @@ class Tables:
 
 def load_tables(pool_id: str, users: list[str], acts: list[str], fake: bool) -> tuple[Tables, bool]:
     """(tables, is_fake). fake: S2's precompute.build_tables with the hash LayaClient (render_state inside, so
-    values equal the backend's LAYA_FAKE); else data/laya_tables/<pool>/*.parquet."""
+    values equal the backend's LAYA_FAKE); else data/sim/laya_gt/<pool>/*.parquet (sim-only ground-truth tables; mc never writes tables)."""
     if fake:
         from cg_sim import laya, precompute
         from cg_sim.seed.export import load_ground_truth_export
@@ -68,7 +68,7 @@ def load_tables(pool_id: str, users: list[str], acts: list[str], fake: bool) -> 
     else:
         import pyarrow.parquet as pq
 
-        d = data_dir() / "laya_tables" / pool_id
+        d = data_dir() / "sim" / "laya_gt" / pool_id
         act_rows, meet_rows = (pq.read_table(d / f).to_pylist() for f in ("activity.parquet", "meet_again.parquet"))
         fake = json.loads((d / "manifest.json").read_text())["layaModel"] == "fake"
     n, na = len(users), len(acts)

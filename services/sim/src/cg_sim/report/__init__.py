@@ -166,7 +166,7 @@ def render(run_dir) -> str:
           f"common_ground `form_groups`), show-up at 1 - (1 - p_show) x flake multiplier, meet-again per pair.",
           "- Every policy sees the same people, the same weekly `propose_plans` inventory and the same random streams.",
           "- Fake Laya tables ignore interests, so in fake mode p_join is scaled by interest fit."
-          if cfg["fakeLaya"] else "- Laya tables from data/laya_tables.", ""]
+          if cfg["fakeLaya"] else "- Laya tables from data/sim/laya_gt.", ""]
     return "\n".join(L)
 
 

@@ -57,7 +57,7 @@ def _run(world, tasks, workers):
 def main(argv: list[str]) -> int:
     ap = argparse.ArgumentParser(prog="cg-sim run")
     ap.add_argument("--pool", default="pool_sf_city")
-    ap.add_argument("--fake-laya", action="store_true", help="hash-based Laya tables (no data/laya_tables needed)")
+    ap.add_argument("--fake-laya", action="store_true", help="hash-based Laya tables (no data/sim/laya_gt needed)")
     ap.add_argument("--seeds", type=int, help="default params.sim.seeds")
     ap.add_argument("--cells", choices=["all", "center"], default="all")
     ap.add_argument("--weeks", type=int)
@@ -69,8 +69,8 @@ def main(argv: list[str]) -> int:
     a = ap.parse_args(argv)
 
     t0 = time.time()
-    if not a.fake_laya and not (data_dir() / "laya_tables" / a.pool / "activity.parquet").exists():
-        print(f"no data/laya_tables/{a.pool}; run `cg-sim precompute` or pass --fake-laya", file=sys.stderr)
+    if not a.fake_laya and not (data_dir() / "sim" / "laya_gt" / a.pool / "activity.parquet").exists():
+        print(f"no data/sim/laya_gt/{a.pool}; run `cg-sim precompute` or pass --fake-laya", file=sys.stderr)
         return 2
     world = build(a.pool, a.fake_laya, a.weeks, a.users)
     seeds = a.seeds or world.params["sim"]["seeds"]
