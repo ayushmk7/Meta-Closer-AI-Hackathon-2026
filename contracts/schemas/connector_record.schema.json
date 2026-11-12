@@ -1,0 +1,109 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "connector_record.schema.json",
+  "title": "One line of data/seed/<poolId>/connectors.jsonl (synthetic connector data)",
+  "description": "What a connected provider would hand Muse. Inert until the user connects the provider (synthetic personas: their connectedProviders at load). Includes realistic noise and some sensitive places.",
+  "type": "object",
+  "required": [
+    "recordId",
+    "userId",
+    "provider",
+    "kind",
+    "at"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "recordId": {
+      "type": "string",
+      "pattern": "^cr_[a-z0-9_]+$"
+    },
+    "userId": {
+      "$ref": "common.schema.json#/$defs/userId"
+    },
+    "provider": {
+      "$ref": "common.schema.json#/$defs/provider"
+    },
+    "kind": {
+      "enum": [
+        "place_visit",
+        "saved_place",
+        "routine",
+        "ticket",
+        "artist",
+        "post",
+        "busy"
+      ]
+    },
+    "at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Visit time, save time, ticket event start, post time, or busy start."
+    },
+    "end": {
+      "type": "string",
+      "format": "date-time",
+      "description": "busy: end of the block; place_visit: departure."
+    },
+    "venueId": {
+      "$ref": "common.schema.json#/$defs/venueId"
+    },
+    "placeName": {
+      "type": "string",
+      "description": "For places not in venues.jsonl (homes are never recorded)."
+    },
+    "placeKind": {
+      "type": "string"
+    },
+    "location": {
+      "$ref": "common.schema.json#/$defs/latLng"
+    },
+    "routine": {
+      "type": "object",
+      "required": [
+        "activity",
+        "day",
+        "part"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "activity": {
+          "type": "string"
+        },
+        "day": {
+          "enum": [
+            "mon",
+            "tue",
+            "wed",
+            "thu",
+            "fri",
+            "sat",
+            "sun"
+          ]
+        },
+        "part": {
+          "enum": [
+            "morning",
+            "afternoon",
+            "evening"
+          ]
+        },
+        "area": {
+          "type": "string"
+        }
+      }
+    },
+    "eventName": {
+      "type": "string"
+    },
+    "artist": {
+      "type": "string"
+    },
+    "genre": {
+      "type": "string"
+    },
+    "text": {
+      "type": "string",
+      "maxLength": 500
+    }
+  }
+}

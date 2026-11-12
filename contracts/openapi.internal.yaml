@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Common Ground internal API
-  version: "1.0.0"
+  version: "2.0.0"
   summary: Backend-only interface for the simulation, the dashboard and demo controls.
   description: |
     Served by the backend on CG_INTERNAL_HOST:CG_INTERNAL_PORT (default 127.0.0.1:9001), a separate listener
@@ -113,16 +113,29 @@ paths:
                   members: { type: integer }
                   isolated: { type: integer }
                   connections: { type: integer }
+                  openPlans: { type: integer }
+                  joins: { type: integer }
+                  plansFormed: { type: integer }
+                  plansNotFilled: { type: integer }
                   meetupsConfirmed: { type: integer }
                   meetupsCompleted: { type: integer }
+                  museStepsDone: { type: integer }
+                  museStepsFailed: { type: integer }
+                  approvalsRequested: { type: integer }
+                  approvalsApproved: { type: integer }
+                  bookingFallbacks: { type: integer }
+                  userDecisionsPerMeetup: { type: number, description: "Joins + approval taps + feedback per confirmed meetup: the cognitive-load number." }
+                  nudgesShown: { type: integer }
+                  nudgesJoined: { type: integer }
                   laya_decisive_share: { type: number }
+                  muse_fallbacks: { type: integer }
         default: { $ref: "#/components/responses/Error" }
 
   /internal/v1/seed/load:
     post:
       tags: [seed]
       operationId: loadSeed
-      summary: Load data/seed/<poolId>/ and run extraction for every persona. Idempotent per poolId.
+      summary: Load data/seed/<poolId>/ (personas, activity, connectors, venues, plans, demo) and run extraction for every persona. Idempotent per poolId.
       requestBody:
         required: true
         content:
@@ -186,11 +199,11 @@ paths:
                   questionsVersion: { type: integer }
         default: { $ref: "#/components/responses/Error" }
 
-  /internal/v1/drops/regenerate:
+  /internal/v1/plans/regenerate:
     post:
       tags: [demo]
-      operationId: regenerateDrops
-      summary: Advance the day and build fresh drops now (all users in the pool, or the listed ones).
+      operationId: regeneratePlans
+      summary: Advance the day, propose plans with cg_matching.propose_plans and rebuild feeds now (all users in the pool, or the listed ones).
       requestBody:
         required: true
         content:
@@ -208,9 +221,60 @@ paths:
             application/json:
               schema:
                 type: object
-                required: [drops]
+                required: [plans, feeds]
                 properties:
-                  drops: { type: integer }
+                  plans: { type: integer }
+                  feeds: { type: integer }
+        default: { $ref: "#/components/responses/Error" }
+
+  /internal/v1/plans/{planId}/form:
+    parameters:
+      - name: planId
+        in: path
+        required: true
+        schema: { type: string }
+    post:
+      tags: [demo]
+      operationId: formPlan
+      summary: Form groups for this plan now, as if its formsAt had passed. Returns the meetups created.
+      responses:
+        "200":
+          description: Formation result
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [meetupIds, notFilledUserIds]
+                properties:
+                  meetupIds: { type: array, items: { type: string } }
+                  notFilledUserIds: { type: array, items: { type: string } }
+        default: { $ref: "#/components/responses/Error" }
+
+  /internal/v1/demo/nudges:
+    post:
+      tags: [demo]
+      operationId: triggerNudge
+      summary: Create a nudge now for a user (default demo.json nudgePlanId for u_maya), ignoring weekly caps and quiet hours.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [userId]
+              properties:
+                userId: { type: string }
+                planId: { type: string }
+      responses:
+        "200":
+          description: Nudge created
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [nudgeId]
+                properties:
+                  nudgeId: { type: string }
         default: { $ref: "#/components/responses/Error" }
 
   /internal/v1/demo:
@@ -245,7 +309,7 @@ paths:
     post:
       tags: [demo]
       operationId: resetDemo
-      summary: Delete all live interactions (onboarding, connections, threads, meetups, hi, invites, locations) and keep the seeded pool.
+      summary: Delete all live interactions (Maya's setup and connectors, joins, live plans, meetups, steps, approvals, threads, connections, nudges, calendar state) and restore the seeded pool and plans.
       responses:
         "204": { description: Reset }
         default: { $ref: "#/components/responses/Error" }
@@ -268,7 +332,7 @@ paths:
               type: object
               required: [to]
               properties:
-                to: { type: string, enum: [window_open, completed] }
+                to: { type: string, enum: [leave_by, window_open, completed], description: "leave_by = shift so leaveBy is one minute from now (the app's local notification fires)." }
       responses:
         "200":
           description: Done
@@ -315,8 +379,10 @@ components:
           enum: [live, synthetic]
           description: "live: liveUserId is driven by the second phone. synthetic: counterparts are automated."
         liveUserId: { type: string }
-        forcedYes: { type: boolean, description: "Synthetic counterparts always connect, accept, vote yes and show up." }
+        forcedYes: { type: boolean, description: "Synthetic counterparts join the hero plan, approve payments, agree to changes and show up." }
         relaxCheckin: { type: boolean }
+        failNextBooking: { type: boolean, description: "The next book step fails so Muse's visible fallback can be shown. Resets to false after one use." }
+        simulatedPayments: { type: boolean }
         fakeLocation:
           oneOf:
             - type: object
@@ -348,6 +414,7 @@ components:
                   lng: { type: number }
               sceneId: { type: [string, "null"] }
               connections: { type: integer }
+              openJoins: { type: integer }
               isolated: { type: boolean }
               synthetic: { type: boolean }
         edges:
@@ -358,8 +425,26 @@ components:
             properties:
               a: { type: string }
               b: { type: string }
-              kind: { type: string, enum: [candidate, connection, friendship] }
+              kind: { type: string, enum: [candidate, group, met, friendship], description: "group = in the same formed meetup; met = counted meetup together." }
               weight: { type: number }
+        groups:
+          type: array
+          description: Formed groups (meetups) for drawing hulls on the map.
+          items:
+            type: object
+            required: [meetupId, planId, title, memberIds, status]
+            properties:
+              meetupId: { type: string }
+              planId: { type: string }
+              title: { type: string }
+              venue:
+                type: object
+                properties:
+                  name: { type: string }
+                  lat: { type: number }
+                  lng: { type: number }
+              memberIds: { type: array, items: { type: string } }
+              status: { type: string }
         scenes:
           type: array
           items:

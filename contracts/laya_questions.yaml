@@ -17,7 +17,11 @@
 # p >= 0.85 or p <= 0.15. Otherwise the caller escalates to Muse with the same state and question.
 # Any change to a template or instruction bumps questionsVersion; cached tables with an older
 # questionsVersion must be recomputed.
-questionsVersion: 1
+#
+# v2 (contracts v2, plans-first): removed `connect` and `opener_ok` and the card_summary fragment;
+# `accept_activity` became `join_activity`; added `sensitive_place` and `plan_ok`. The connect table is gone;
+# the activity table now carries p_join instead of p_accept.
+questionsVersion: 2
 
 # ---------- Shared state fragments ----------
 # A fragment renders only public fields that the backend also has (never sim_private data).
@@ -36,12 +40,8 @@ fragments:
   # {activity}: up to 5 most recent activity items, newest first, each "kind: text" with text truncated to 120 chars
   #             (cut at 117 + "..."), joined with " | ". Text = text, else photoCaption, groupName, eventName, pageName, listingTitle.
   # Formatting: weights with 2 decimals ("0.70"); any empty list renders "none"; ageBand verbatim ("22_25").
-  # {otherDistanceBand}: under_1km -> "under 1 km", 1_3km -> "1 to 3 km", 3_10km -> "3 to 10 km", over_10km -> "over 10 km".
-  # {sharedCoarse}: coarse labels in the order the card shows them, comma-joined.
   # Fragments in a state are joined with a single newline. contracts/laya_golden.json holds reference renders;
   # both services must reproduce them byte for byte in a test.
-  card_summary: |-
-    Card shown to {alias}: {otherDistanceBand} away. Shared: {sharedCoarse}. Reason: "{reason}".
   activity_type: |-
     Activity type: {activityType}.
 
@@ -58,6 +58,20 @@ questions:
       sexual orientation or gender identity, political views, or ethnicity?
     notes: Taxonomy nodes marked sensitive are always sensitive; this question covers free-text evidence and edge cases.
 
+  sensitive_place:
+    type: noul
+    usedBy: [backend]
+    state: |-
+      Place: {placeName}. Kind: {placeKind}.
+      Pattern: {pattern}
+    instructions: >-
+      Does regularly visiting this place reveal or strongly imply the person's religion, health condition,
+      sexual orientation or gender identity, political views, or ethnicity?
+    notes: >-
+      Runs on every place signal (frequent_place, saved_place, post with a place). {placeKind} is the venue kind
+      or "unknown"; {pattern} is the signal label, e.g. "Weekly visits on Sunday mornings". A yes hides the signal
+      and any interest it produced (P4).
+
   interest_strength:
     type: score
     usedBy: [backend]
@@ -67,23 +81,15 @@ questions:
     instructions: How central is this interest to the person, based only on the evidence?
     criteria: [passing mention, occasional, regular hobby, core part of their life]
 
-  connect:
-    type: noul
-    usedBy: [backend, sim]
-    state: |-
-      {user_summary:A}
-      {user_summary:B}
-      {card_summary:A}
-    instructions: Would person A tap Connect on this card?
-    table: connect
-
-  accept_activity:
+  join_activity:
     type: noul
     usedBy: [backend, sim]
     state: |-
       {user_summary:A}
       {activity_type}
-    instructions: Would person A accept an invite to a small group meetup of this activity type?
+    instructions: >-
+      Would person A tap "I'm in" on a plan to do this activity with a small group of strangers who share
+      some of their interests?
     table: activity
 
   show_up:
@@ -92,7 +98,7 @@ questions:
     state: |-
       {user_summary:A}
       {activity_type}
-    instructions: If person A accepted this meetup, would they actually show up?
+    instructions: If person A joined a plan of this activity type and their group formed, would they actually show up?
     table: activity
 
   meet_again:
@@ -104,14 +110,15 @@ questions:
     instructions: After one meetup, would both A and B want to meet again?
     table: meet_again
 
-  opener_ok:
+  plan_ok:
     type: noul
     usedBy: [backend]
     state: |-
-      Opener from one stranger to another on a friend-finding app: "{text}"
+      Plan proposed by a user on a friend-finding app: "{text}"
     instructions: >-
-      Is this opener friendly and appropriate, with no harassment, sexual content, threats,
-      spam, or requests for money or contact details?
+      Is this a safe, legal and friendly plan for a small group of strangers to do in a public place, with no
+      sexual content, harassment, drugs, or requests for money or contact details?
+    notes: Also used on Muse bar requests that would create a plan. A decisive no returns 422 screened.
 
   message_flag:
     type: noul
@@ -127,8 +134,8 @@ questions:
       Report reason: {reason}. Details: "{text}"
     instructions: Does this report describe a threat to safety or ongoing harassment?
 
-# ---------- Activity types used by accept_activity / show_up ----------
-# Meetup options carry one of these. Keep the list stable; append only.
+# ---------- Activity types used by join_activity / show_up ----------
+# Plans, venues and meetups carry one of these. Keep the list stable; append only.
 activityTypes:
   - coffee
   - walk
@@ -160,23 +167,21 @@ activityTypes:
   - hackathon_or_cowork
   - bike_ride
   - comedy_show
+  - lunch
 
 # ---------- Table files written by the simulation, read by the backend ----------
 # Location: data/laya_tables/<poolId>/ ; Parquet ; one manifest.json alongside.
 tables:
-  connect:
-    file: connect.parquet
-    columns: { viewer_id: string, candidate_id: string, p_connect: float64 }
-    key: [viewer_id, candidate_id]
   activity:
     file: activity.parquet
-    columns: { user_id: string, activity_type: string, p_accept: float64, p_show: float64 }
+    columns: { user_id: string, activity_type: string, p_join: float64, p_show: float64 }
+    note: p_join from join_activity, p_show from show_up
     key: [user_id, activity_type]
   meet_again:
     file: meet_again.parquet
     columns: { user_a: string, user_b: string, p_meet_again: float64 }
     key: [user_a, user_b]
-    note: user_a < user_b lexicographically
+    note: user_a < user_b lexicographically; pairs = each user's top params.sim.candidatesPerUser candidates
   manifest:
     file: manifest.json
     fields: { poolId: string, questionsVersion: int, layaModel: string, createdAt: datetime, rows: "object table->int", exportGeneratedAt: datetime }

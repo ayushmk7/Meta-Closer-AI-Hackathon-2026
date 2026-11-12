@@ -1,0 +1,130 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "venue.schema.json",
+  "title": "One line of data/seed/<poolId>/venues.jsonl (public places with simulated booking inventory)",
+  "description": "Public places only. Real public places (parks, museums, well-known venues) may use their real names; booking, prices and inventory are always simulated and shown as 'Simulated booking'. Never imply a partnership.",
+  "type": "object",
+  "required": [
+    "venueId",
+    "name",
+    "neighborhood",
+    "address",
+    "location",
+    "kind",
+    "activityTypes",
+    "booking"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "venueId": {
+      "$ref": "common.schema.json#/$defs/venueId"
+    },
+    "name": {
+      "type": "string"
+    },
+    "neighborhood": {
+      "type": "string"
+    },
+    "address": {
+      "type": "string"
+    },
+    "location": {
+      "$ref": "common.schema.json#/$defs/latLng"
+    },
+    "kind": {
+      "type": "string",
+      "description": "park, cafe, game_cafe, climbing_gym, studio, museum, bar, library, trail, beach, community_center, ..."
+    },
+    "activityTypes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "common.schema.json#/$defs/activityType"
+      }
+    },
+    "photo": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Path relative to the pool folder, e.g. 'venue_photos/vn_lands_end.jpg'. Licensed or generated; listed in venue_photos/PROVENANCE.md."
+    },
+    "hours": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "day",
+          "open",
+          "close"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "day": {
+            "enum": [
+              "mon",
+              "tue",
+              "wed",
+              "thu",
+              "fri",
+              "sat",
+              "sun"
+            ]
+          },
+          "open": {
+            "type": "string",
+            "pattern": "^[0-2][0-9]:[0-5][0-9]$"
+          },
+          "close": {
+            "type": "string",
+            "pattern": "^[0-2][0-9]:[0-5][0-9]$"
+          }
+        }
+      },
+      "description": "Local opening hours. Absent = always open (parks, trails)."
+    },
+    "booking": {
+      "type": "object",
+      "required": [
+        "kind",
+        "cost",
+        "capacityPerSlot",
+        "payAtVenueAllowed"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "none",
+            "reservation",
+            "day_pass",
+            "class",
+            "ticket"
+          ]
+        },
+        "cost": {
+          "$ref": "common.schema.json#/$defs/cost"
+        },
+        "capacityPerSlot": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Simulated inventory: people per time slot."
+        },
+        "payAtVenueAllowed": {
+          "type": "boolean",
+          "description": "Muse's in-bounds fallback when someone declines a prepaid approval."
+        },
+        "failureRate": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Simulated booking failure probability outside demo controls. Default 0."
+        }
+      }
+    },
+    "sensitive": {
+      "type": "boolean",
+      "description": "Place whose visits imply a sensitive category (place of worship, clinic). Never used for plans; exists so connector records can reference it."
+    }
+  }
+}

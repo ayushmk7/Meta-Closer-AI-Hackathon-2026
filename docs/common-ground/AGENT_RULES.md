@@ -6,9 +6,9 @@ Read first: [contracts/CONTRACTS.md](../../contracts/CONTRACTS.md), then this fi
 
 | Agent | PRD | Builds |
 | --- | --- | --- |
-| **ios** | [PRD-1](PRD-1-ios-common-ground.md) | The Common Ground feature inside the Expo app: map tab, finder overlay, chat, meetups |
-| **backend** | [PRD-2](PRD-2-backend-ai.md) | Public and internal APIs, Muse, Laya, matching package, synthetic counterparts |
-| **sim** | [PRD-3](PRD-3-simulation-dashboard.md) | Seed data, Laya precompute, Monte Carlo simulation, backend-only dashboard |
+| **ios** | [PRD-1](PRD-1-ios-common-ground.md) | The Common Ground feature inside the Expo app: Plans tab (Muse bar, plan carousel, Your plans), plan pop-up, setup and connectors, meetup timeline and approvals, chat, calendar sync, reminders |
+| **backend** | [PRD-2](PRD-2-backend-ai.md) | Public and internal APIs, Muse (bar, agent, chat), Laya, `cg_matching`, simulated connectors, booking and payments, synthetic counterparts |
+| **sim** | [PRD-3](PRD-3-simulation-dashboard.md) | Seed data (personas, activity, connector records, venues, plans), Laya precompute, Monte Carlo simulation, backend-only dashboard |
 | **shell** | [PRD-4](PRD-4-facebook-shell.md) | Small changes to the Facebook clone so Common Ground plugs in |
 
 ## R1. Ownership
@@ -29,7 +29,7 @@ You write only inside your paths. Reading anything is fine. CI enforces this wit
 
 ## R2. Branches, worktrees and PRs
 
-- One worktree per agent. Branch names start with your prefix: `cg/backend/m1-drops`.
+- One worktree per agent. Branch names start with your prefix: `cg/backend/m1-plans`.
 - Small PRs, one milestone slice each. Title prefix `[ios]`, `[backend]`, `[sim]`, `[shell]` or `[contracts]`.
 - Rebase on `main` before opening. CI must be green. Never force-push `main`, never merge someone else's PR.
 - A PR description lists: what changed, contract operations touched (by `operationId`), checks run, and anything another agent may want to know (copied into your STATUS.md too).
@@ -46,8 +46,8 @@ Every agent must be able to run, test and demo its part alone, from the first da
 
 | Agent | Stand-alone mode |
 | --- | --- |
-| ios | `make mock-api` (Prism serves `openapi.yaml` examples) plus an in-app fixture mode for flows Prism cannot stage. Works with the WebSocket disconnected. |
-| backend | `MUSE_FAKE=1` and `LAYA_FAKE=1` give deterministic offline answers. A tiny built-in seed works when `data/seed/` is empty. |
+| ios | `make mock-api` (Prism serves `openapi.yaml` examples) plus an in-app fixture mode for flows Prism cannot stage (a group forming, Muse steps ticking, an approval, a reschedule). Works with the WebSocket disconnected. |
+| backend | `MUSE_FAKE=1` and `LAYA_FAKE=1` give deterministic offline answers; with `MUSE_FAKE=1` the scripted planner runs the agent steps. A tiny built-in seed (a handful of personas, venues and plans) works when `data/seed/` is empty. |
 | sim | `--fake-laya`, `--fake-muse`, and `--use-ground-truth` (stand-in for `/internal/v1/pools/{id}/export` until the backend serves it). |
 | shell | Extension points tested with fixtures, like the existing `tests/features.test.ts`. No backend needed. |
 
@@ -63,31 +63,35 @@ You decide anything not fixed here or in the contracts. Make the best choice for
 
 | Agent | Decide freely | Fixed |
 | --- | --- | --- |
-| ios | Component structure, state management (React context, reducers, hooks), animation, gesture library use (already installed: reanimated, gesture-handler), bottom-sheet implementation, map marker design, copy within R12, empty and loading states, file layout inside your folder | Routes under `/common-ground`, extension-point registration, tokens and `useColors()`, API shapes, privacy duties C1 to C6, Expo Go only, no new dependencies |
-| backend | Framework internals (FastAPI is suggested), database and ORM, migrations, job runner, caching, Muse prompts, Laya batching, realtime transport internals, synthetic-actor timing within `params.demo` | Every request and response shape, privacy guarantees P1 to P10, ports, env var names, `cg_matching` signatures, Laya questions and templates, data file formats you read |
-| sim | Persona generation method, Muse prompts for seeding, avatar style, Monte Carlo engine design, extra metrics, dashboard tech and layout, run output format | Seed file schemas, `demo.json` rules, Laya table format, `questionsVersion`, using `cg_matching` for the Common Ground policy, claims rule (relative results only), dashboard binds to loopback |
-| shell | How extension points are implemented, tab bar layout for six tabs, Messenger and Events row placement, test refactors | The TypeScript interfaces in CONTRACTS §11, existing clone behavior and checks, the dependency allowlist |
+| ios | Component structure, state management, animation, gesture use (already installed: reanimated, gesture-handler), carousel and pop-up implementation, step timeline design, calendar reconciliation internals, copy within R12 for client-only strings, empty and loading states, file layout inside your folder | Routes under `/common-ground`, extension-point registration, tokens and `useColors()`, API shapes, client duties C1 to C8, Expo Go only, the dependency allowlist |
+| backend | Framework internals (FastAPI is suggested), database and ORM, job runner, caching, Muse prompts and tool schemas, the scripted planner, step copy templates, simulated provider internals, Laya batching, realtime internals, synthetic-actor timing within `params.demo` | Every request and response shape, privacy guarantees P1 to P11, the autonomy bounds (CONTRACTS §5), ports, env var names, `cg_matching` signatures, Laya questions and templates, data file formats you read |
+| sim | Persona, connector-record and venue generation methods, Muse prompts for seeding, avatar and venue photo style, Monte Carlo engine design, extra metrics, dashboard tech and layout, run output format | Seed file schemas, `demo.json` rules, Laya table format, `questionsVersion`, using `cg_matching` for plan proposals and the Common Ground policy, claims rule (relative results only), dashboard binds to loopback |
+| shell | How extension points are implemented, tab bar layout for six tabs, Messenger and Events row placement, test refactors | The TypeScript interfaces in CONTRACTS §11, existing clone behavior and checks, the dependency allowlist and permission strings |
 
 ## R7. Privacy and safety
 
-The backend enforces P1 to P10 (CONTRACTS §8) and tests each one. The app adds these client duties:
+The backend enforces P1 to P11 (CONTRACTS §8) and tests each one. The app adds these client duties:
 
-- **C1** Never write another user's data to disk. In-memory caches only; the scoped storage key holds only the user's own preferences, drafts and the demo identity override.
-- **C2** Send location only while the map tab is foreground, at most once per `limits.locationMinIntervalS`. When `config.demo.fakeLocation` is set, send that instead of GPS and do not request location permission.
+- **C1** Never write another user's data to disk. In-memory caches only; scoped storage holds only the user's own preferences, drafts, the demo identity override and the mapping from calendar directive keys to device event IDs. Calendar events the app writes carry only the directive's title, times, location and notes, which never name another person.
+- **C2** Location: one reading when the user taps Check in, nothing else. When `config.demo.fakeLocation` is set, send that instead and do not request location permission. No location layer on venue maps.
 - **C3** Never reference the internal API host, port or any `/internal/` path. No dashboard links, no debug menus that reach it.
-- **C4** No analytics, crash reporting or third-party SDKs. The only network peers are `EXPO_PUBLIC_CG_API_URL` and Apple Maps tiles.
-- **C5** Never show another person's pass, dismissal, decline or "seen" state, even if a field appears to allow it.
-- **C6** Show interests exactly as the server sends them. Never combine responses to show more (for example, joining a coarse card label with a later full-depth label in one place).
+- **C4** No analytics, crash reporting or third-party SDKs. Network peers: `EXPO_PUBLIC_CG_API_URL`, Apple Maps tiles for venue previews, and Apple Maps or Google Maps only when the user taps Directions (opened with `Linking`, carrying only the server's `Directions` URL).
+- **C5** Never show another person's withdrawal, decline or "seen" state, or a reason a join was not filled, even if a field appears to allow it. Never show who is in a plan before the group forms.
+- **C6** Show interests, signals and step labels exactly as the server sends them. Never combine responses to show more (for example, pairing a coarse crowd label with a later full-depth label in one place).
+- **C7** Calendar: read only the start and end of events in the next `limits.calendarHorizonDays`, from the calendars the user allowed, excluding the app's own Common Ground calendar. Never read or send titles, notes, locations or attendees. Sync at most once per `limits.calendarSyncMinIntervalS` while foreground (plus right after applying directives). Write only to the "Common Ground" calendar the app created, and only what directives say.
+- **C8** Approvals: never approve on the user's behalf, never pre-check an approval, and always show the amount, payee and the simulated-payment label (`Approval.simulated`) on the approval sheet before the approve button is enabled.
 
 Everyone: no real people's names or photos in seed data or UI fixtures, and no secrets in commits.
 
 ## R8. Demo invariants
 
 - **D1** The app runs in Expo Go (SDK 57) on an iPhone. No development build, no Xcode, no native modules outside Expo Go.
-- **D2** With `DEMO_MODE=1`, the demo is fully reproducible: same seed, same first drop for Maya (featured people from `demo.json`), same tables. `POST /internal/v1/demo/reset` returns to that state in under 10 seconds.
-- **D3** The counterpart toggle (live second phone or synthetic) can flip at any moment without breaking an open thread or meetup.
-- **D4** Every Muse or Laya call has a fallback that keeps the demo moving: templated text for Muse, the fake probability for Laya, with a log line saying so.
-- **D5** The existing clone keeps passing its own checks (`npm test`, `npm run test:native`, `typecheck`, `lint`, `test:e2e`, both builds). On web, Common Ground makes no network requests.
+- **D2** With `DEMO_MODE=1`, the demo is fully reproducible: same seed, same first feed for Maya (`demo.json` `featuredPlanIds`), same hero and nudge plans, same tables. `POST /internal/v1/demo/reset` returns to that state in under 10 seconds.
+- **D3** The counterpart toggle (live second phone or synthetic) can flip at any moment without breaking an open thread, a forming plan or a meetup being set up.
+- **D4** Every Muse or Laya call has a fallback that keeps the demo moving: the scripted planner and templated copy for Muse (the Muse bar falls back to keyword filtering), the fake probability for Laya, with a log line saying so. A failed booking always produces a visible fallback step, never a stuck timeline.
+- **D5** The existing clone keeps passing its own checks (`npm test`, `npm run test:native`, `typecheck`, `lint`, `test:e2e`, both builds). On web, Common Ground runs on the in-app mock only and makes no network requests; calendar and notifications are no-ops.
+- **D6** No real money, bookings or third-party accounts. Payments, bookings and every connector except the device calendar are simulated and labeled as such on screen.
+- **D7** The visible agent reads on stage: Muse steps advance with `params.demo.stepDelayS` between them, and every step transition reaches the phone within 2 seconds (realtime, or polling at `limits.pollIntervalS`).
 
 ## R9. When you need something from another agent
 
@@ -105,13 +109,13 @@ Each agent keeps one file in its own space: `facebook-clone/src/features/common-
 # <agent> status
 Milestone: M1 (in progress)
 ## Done
-- 2026-11-12 getCurrentDrop, decideSuggestion live (contract v1.0.0)
+- 2026-11-13 getFeed, getPlan, joinPlan live (contract v2.0.0)
 ## Decisions
-- 2026-11-12 Bottom sheet built on reanimated, three snap points. Why: matches Find My.
+- 2026-11-13 Plan pop-up is a formSheet modal route. Why: native swipe-to-dismiss.
 ## Needs
-- needs: backend getDensity (blocked density layer; showing count only meanwhile)
+- needs: backend meetup.step realtime (polling the meetup meanwhile)
 ## Known gaps
-- Group invites UI hidden until features.groups is true
+- Muse permissions UI hidden until features.autonomySettings is true
 ```
 
 ## R11. Definition of done (every PR)
@@ -127,14 +131,17 @@ Milestone: M1 (in progress)
 | Use | Avoid |
 | --- | --- |
 | Common Ground (the feature), Muse (the AI) | Ditto, the algorithm, the bot |
-| people, someone, new friends | matches, swipes, candidates, users |
-| Connect, Pass, Say hi | Like, Reject, Swipe |
-| Today's people | drop (internal word only) |
-| meetup, plan, Muse found 3 options | date, hangout request |
-| shared interests, you both like | compatibility score, percentages |
-| Map (tab label), Find people (button) | Friend finder, Discover |
+| people, someone, new friends, people you've met | matches, swipes, candidates, users |
+| plan, I'm in, Can't make it | RSVP, apply, join request, Like |
+| For you, Your plans | feed, drop, queue (internal words only) |
+| Muse is gathering people, Muse is setting it up, Muse booked it | the system, processing, pending |
+| OK $35?, Muse will ask before paying | charge, authorize, transaction |
+| This one didn't fill | rejected, not selected, unmatched |
+| shared interests, you both like, 2 also do ceramics | compatibility score, percentages |
+| Plans (tab label), What do you want to do? (Muse bar) | Map, Friend finder, Discover |
+| Muse noticed, Because you've been to … | tracking, we detected, your data shows |
 
-Copy is warm, short and plain. No percentages or scores shown to users. No emoji in UI chrome. Muse speaks in first person, briefly, and never pretends to be a person.
+Copy is warm, short and plain. No percentages or scores shown to users. No emoji in UI chrome. Muse speaks in first person, briefly, and never pretends to be a person. Muse says what it did ("I booked 3 wheels"), not what the system did. Nudges are about the activity, never about loneliness.
 
 ## R13. Milestones
 
@@ -142,9 +149,13 @@ Each agent moves through these on its own schedule; the mocks in R4 remove waiti
 
 | Milestone | shell | backend | sim | ios |
 | --- | --- | --- | --- | --- |
-| **M0 Skeletons** (first PR) | Extension points, scoped storage, allowlisted deps, Map tab placeholder | Every public and internal route returns its `openapi.yaml` example; `/v1/config` from params; `cg_matching` with frozen signatures and a naive body | Seed v0 for both pools: schema-valid, deterministic, `demo.json`, Maya from the clone seed | API client and types, mock mode, Map tab renders mock map and tray |
-| **M1 Core loop** | Messenger and Events rows, reset hook, web placeholder | Seed load and extraction, onboarding, drops via `cg_matching`, connect, opener, threads, Muse intro and starters | Extraction eval vs ground truth, Laya precompute, tables written | Onboarding, finder overlay, drop cards, connect and pass, say hi, chat |
+v1 M0 to M1 work exists for shell (extension points, done) and ios (map-era screens on the in-app mock). The v2 table below restarts the milestones; shell's v2 M0 is only the dependency update in PRD-4 step 10.
+
+| Milestone | shell | backend | sim | ios |
+| --- | --- | --- | --- | --- |
+| **M0 Skeletons** (first PR) | `expo-calendar`, `expo-notifications`, permission strings (PRD-4 step 10) | Every public and internal route returns its `openapi.yaml` example; `/v1/config` from params; `cg_matching` v2 signatures with naive bodies | Seed v0 for both pools: personas, activity, connector records, venues, plans, `demo.json`, Maya from the clone seed; schema-valid and deterministic | v2 API client and types, contract test on v2 examples, mock mode, Plans tab renders the mock feed; map-era screens removed |
+| **M1 Core loop** | | Seed load, extraction and signals, setup, connectors, feed via `rank_plans`, Muse bar, joins, `form_groups`, meetups with the scripted planner, threads, intro and starters | Extraction and sensitive-gate eval, Laya precompute, tables written | Setup and connectors, Muse bar, carousel, plan pop-up, I'm in, Your plans, meetup timeline (polling), chat |
 | **Checkpoint A** | | | | ios points at the live backend; backend loads sim seed and tables |
-| **M2 Meetups and map** | Six-tab polish and checks | Muse meetup agent, votes, Events, location, density, realtime, synthetic counterparts, internal graph | Monte Carlo, three policies, sweeps, report; dashboard replay, live graph, demo controls | Meetups, votes, check-in, feedback, map pins and precision, density layer, realtime |
+| **M2 Agent and integrations** | Six-tab polish and checks | Muse agent with tools, approvals and simulated payments, simulated booking with failures, calendar directives, travel and leave-by, Muse in chat (`toMuse`, reschedule, backfill), nudges, check-in, realtime, synthetic counterparts, internal graph and metrics | Monte Carlo, three policies, sweeps, report; dashboard replay, live graph with groups, demo controls | Approvals, calendar sync and writes, local leave-by notifications, directions, nudges on Home and Events, check-in, feedback, realtime |
 | **Checkpoint B** | | | | Full demo script end to end on two phones and the laptop |
 | **M3 Demo hardening** | | Reset under 10 s, fallbacks, load | Final run for slides | Second-phone identity, polish, should-haves |

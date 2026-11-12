@@ -1,0 +1,85 @@
+# Connector providers. The backend serves these through GET /v1/connectors; the sim writes seed records
+# (data/seed/<poolId>/connectors.jsonl, schemas/connector_record.schema.json) only for providers listed here.
+# `reads` is the exact copy shown next to the toggle. `simulated: true` = seeded demo data, no real account (P10).
+# Adding a provider is an additive contracts change. Keys are permanent; never rename or reuse one.
+version: 1
+
+providers:
+  device_calendar:
+    label: "Calendar on this iPhone"
+    reads: "When you're busy. Never what your events are."
+    recordKinds: [busy]
+    signalKinds: []
+    simulated: false          # real, via expo-calendar in the app; busy blocks arrive through syncCalendar
+    status: available
+    notes: The app writes plans into its own "Common Ground" calendar; see CONTRACTS §5 calendar directive.
+
+  google_maps:
+    label: "Google Maps"
+    reads: "Places you visit often and places you saved."
+    recordKinds: [place_visit, saved_place]
+    signalKinds: [frequent_place, saved_place]
+    simulated: true
+    status: available
+    notes: >-
+      Pasting a Google Maps link into the Muse bar also works without connecting; the backend resolves it against
+      the seeded venues and never fetches the link.
+
+  google_calendar:
+    label: "Google Calendar"
+    reads: "When you're busy. Never what your events are."
+    recordKinds: [busy]
+    signalKinds: []
+    simulated: true
+    status: available
+
+  strava:
+    label: "Strava"
+    reads: "Your regular runs and rides: activity, area, day and time."
+    recordKinds: [routine]
+    signalKinds: [routine]
+    simulated: true
+    status: available
+
+  spotify:
+    label: "Spotify"
+    reads: "Your top artists and genres."
+    recordKinds: [artist]
+    signalKinds: [artist]
+    simulated: true
+    status: available
+
+  eventbrite:
+    label: "Eventbrite"
+    reads: "Tickets you hold."
+    recordKinds: [ticket]
+    signalKinds: [ticket]
+    simulated: true
+    status: available
+
+  instagram:
+    label: "Instagram"
+    reads: "Places and hobbies in your posts."
+    recordKinds: [post]
+    signalKinds: [post]
+    simulated: true
+    status: available
+
+  meetup:
+    label: "Meetup"
+    reads: "Groups you belong to."
+    recordKinds: []
+    signalKinds: []
+    simulated: true
+    status: coming_soon       # appears as "Coming soon", not selectable
+
+# Facebook activity (posts, Groups, Event RSVPs, life events) is not a connector: it is available after optIn.
+# Signals derived from it use provider `facebook`.
+signalKinds:
+  frequent_place: "A place visited at least params.nudges.frequentPlaceVisits30d times in 30 days"
+  saved_place: "A place the user saved"
+  routine: "A repeated activity at a regular day, time and area"
+  ticket: "A ticket for an upcoming event"
+  artist: "A top artist or genre"
+  post: "A place or hobby in a post"
+  life_event: "Moved, new job, started school (Facebook)"

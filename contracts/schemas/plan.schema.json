@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "plan.schema.json",
+  "title": "One line of data/seed/<poolId>/plans.jsonl (initial plan inventory)",
+  "description": "Written by the sim with cg_matching.propose_plans plus Muse-written title and description, deterministic for rngSeed. The backend loads these and proposes more live with the same function.",
+  "type": "object",
+  "required": [
+    "planId",
+    "poolId",
+    "title",
+    "description",
+    "activityType",
+    "venueId",
+    "startsAt",
+    "endsAt",
+    "size",
+    "cost",
+    "targetInterestIds",
+    "origin"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "planId": {
+      "$ref": "common.schema.json#/$defs/planId"
+    },
+    "poolId": {
+      "$ref": "common.schema.json#/$defs/poolId"
+    },
+    "title": {
+      "type": "string",
+      "maxLength": 80
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 400
+    },
+    "activityType": {
+      "$ref": "common.schema.json#/$defs/activityType"
+    },
+    "venueId": {
+      "$ref": "common.schema.json#/$defs/venueId"
+    },
+    "startsAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "endsAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "size": {
+      "$ref": "common.schema.json#/$defs/groupSize"
+    },
+    "cost": {
+      "$ref": "common.schema.json#/$defs/cost"
+    },
+    "targetInterestIds": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "common.schema.json#/$defs/interestId"
+      },
+      "description": "Level 2 or 3 interests the plan is for. Never sensitive."
+    },
+    "sceneId": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "origin": {
+      "enum": [
+        "seed",
+        "signal"
+      ],
+      "description": "signal = proposed at a venue from a persona's frequent place."
+    },
+    "seedJoinIds": {
+      "type": "array",
+      "items": {
+        "$ref": "common.schema.json#/$defs/userId"
+      },
+      "description": "Synthetic personas already in at load time (shows 'N in' on day one). Never includes u_maya."
+    }
+  }
+}

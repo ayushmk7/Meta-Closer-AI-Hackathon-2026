@@ -4,49 +4,247 @@
   "title": "GET /internal/v1/pools/{poolId}/export, and cg_matching.PoolSnapshot.from_export()",
   "description": "Everything matching needs, after the real extraction pipeline. Contains exact homes and hidden/sensitive interests: internal only.",
   "type": "object",
-  "required": ["poolId", "mode", "generatedAt", "taxonomyVersion", "questionsVersion", "users"],
+  "required": [
+    "poolId",
+    "mode",
+    "generatedAt",
+    "taxonomyVersion",
+    "questionsVersion",
+    "users"
+  ],
   "additionalProperties": false,
   "properties": {
-    "poolId": { "$ref": "common.schema.json#/$defs/poolId" },
-    "mode": { "$ref": "common.schema.json#/$defs/mode" },
-    "generatedAt": { "type": "string", "format": "date-time" },
-    "taxonomyVersion": { "type": "integer" },
-    "questionsVersion": { "type": "integer" },
+    "poolId": {
+      "$ref": "common.schema.json#/$defs/poolId"
+    },
+    "mode": {
+      "$ref": "common.schema.json#/$defs/mode"
+    },
+    "generatedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "taxonomyVersion": {
+      "type": "integer"
+    },
+    "questionsVersion": {
+      "type": "integer"
+    },
     "users": {
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["userId", "synthetic", "profileVisibility", "homeLocation", "neighborhood", "ageBand", "availability", "groupSize", "interests", "groupOnly", "connectionIds", "blockedIds"],
+        "required": [
+          "userId",
+          "synthetic",
+          "profileVisibility",
+          "homeLocation",
+          "neighborhood",
+          "ageBand",
+          "availability",
+          "groupSize",
+          "interests",
+          "groupOnly",
+          "connectionIds",
+          "blockedIds",
+          "travel",
+          "busy",
+          "signals",
+          "metIds"
+        ],
         "additionalProperties": false,
         "properties": {
-          "userId": { "$ref": "common.schema.json#/$defs/userId" },
-          "synthetic": { "type": "boolean" },
-          "profileVisibility": { "enum": ["public", "private"] },
-          "homeLocation": { "$ref": "common.schema.json#/$defs/latLng" },
-          "neighborhood": { "type": "string" },
-          "ageBand": { "$ref": "common.schema.json#/$defs/ageBand" },
-          "availability": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/availabilitySlot" } },
-          "groupSize": { "$ref": "common.schema.json#/$defs/groupSize" },
+          "userId": {
+            "$ref": "common.schema.json#/$defs/userId"
+          },
+          "synthetic": {
+            "type": "boolean"
+          },
+          "profileVisibility": {
+            "enum": [
+              "public",
+              "private"
+            ]
+          },
+          "homeLocation": {
+            "$ref": "common.schema.json#/$defs/latLng"
+          },
+          "neighborhood": {
+            "type": "string"
+          },
+          "ageBand": {
+            "$ref": "common.schema.json#/$defs/ageBand"
+          },
+          "availability": {
+            "type": "array",
+            "items": {
+              "$ref": "common.schema.json#/$defs/availabilitySlot"
+            }
+          },
+          "groupSize": {
+            "$ref": "common.schema.json#/$defs/groupSize"
+          },
           "interests": {
             "type": "array",
             "description": "Leaf-level extracted interests. Parent weights are derived by cg_matching, not stored.",
             "items": {
               "type": "object",
-              "required": ["id", "weight", "visibility", "sensitive"],
+              "required": [
+                "id",
+                "weight",
+                "visibility",
+                "sensitive"
+              ],
               "additionalProperties": false,
               "properties": {
-                "id": { "$ref": "common.schema.json#/$defs/interestId" },
-                "weight": { "type": "number", "minimum": 0, "maximum": 1 },
-                "visibility": { "enum": ["shown", "hidden"] },
-                "sensitive": { "type": "boolean" },
-                "sharedSensitiveOptIn": { "type": "boolean", "description": "User opted this sensitive category into overlap." }
+                "id": {
+                  "$ref": "common.schema.json#/$defs/interestId"
+                },
+                "weight": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "visibility": {
+                  "enum": [
+                    "shown",
+                    "hidden"
+                  ]
+                },
+                "sensitive": {
+                  "type": "boolean"
+                },
+                "sharedSensitiveOptIn": {
+                  "type": "boolean",
+                  "description": "User opted this sensitive category into overlap."
+                }
               }
             }
           },
-          "groupOnly": { "type": "boolean" },
-          "trustFloorOk": { "type": "boolean" },
-          "connectionIds": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/userId" } },
-          "blockedIds": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/userId" } }
+          "groupOnly": {
+            "type": "boolean",
+            "description": "Always true for strangers in v2; kept for compatibility with params.trust."
+          },
+          "trustFloorOk": {
+            "type": "boolean"
+          },
+          "connectionIds": {
+            "type": "array",
+            "items": {
+              "$ref": "common.schema.json#/$defs/userId"
+            },
+            "description": "People this user has been in a formed group with."
+          },
+          "blockedIds": {
+            "type": "array",
+            "items": {
+              "$ref": "common.schema.json#/$defs/userId"
+            }
+          },
+          "travel": {
+            "$ref": "common.schema.json#/$defs/travelPrefs"
+          },
+          "busy": {
+            "type": "array",
+            "items": {
+              "$ref": "common.schema.json#/$defs/busyBlock"
+            },
+            "description": "Busy blocks from connected calendars within params.calendar.horizonDays."
+          },
+          "signals": {
+            "type": "array",
+            "description": "Visible and hidden signals with their sensitivity. Internal only.",
+            "items": {
+              "type": "object",
+              "required": [
+                "signalId",
+                "provider",
+                "kind",
+                "interestIds",
+                "strength",
+                "visibility",
+                "sensitive"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "signalId": {
+                  "type": "string"
+                },
+                "provider": {
+                  "type": "string"
+                },
+                "kind": {
+                  "type": "string"
+                },
+                "interestIds": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "common.schema.json#/$defs/interestId"
+                  }
+                },
+                "venueId": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "strength": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "visibility": {
+                  "enum": [
+                    "shown",
+                    "hidden"
+                  ]
+                },
+                "sensitive": {
+                  "type": "boolean"
+                }
+              }
+            }
+          },
+          "metIds": {
+            "type": "array",
+            "items": {
+              "$ref": "common.schema.json#/$defs/userId"
+            },
+            "description": "Connections with status met."
+          }
+        }
+      }
+    },
+    "plans": {
+      "type": "array",
+      "description": "Live plans with who joined. Optional; the sim reads its own seed plans otherwise.",
+      "items": {
+        "type": "object",
+        "required": [
+          "planId",
+          "status",
+          "interestedIds"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "planId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "interestedIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "meetupIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
         }
       }
     }

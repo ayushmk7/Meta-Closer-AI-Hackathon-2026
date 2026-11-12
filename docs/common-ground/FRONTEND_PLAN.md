@@ -1,5 +1,7 @@
 # Common Ground — Frontend-only build plan (mock-first, ponytail)
 
+> **Historical (v1).** This is the executed build plan for the v1 map-era frontend. Contracts v2 replaced the map tab, finder overlay, drop and voting with the Plans tab, plan pop-up, Muse step timeline and approvals; see [PRD-1](PRD-1-ios-common-ground.md). The design-language guidance in §0 ("Design language: what every Common Ground screen must reuse") and the findings about Jest, `tsx` and web bundling still apply. Everything else is superseded.
+
 Repo root: `/Users/ayush/Downloads/My Projects/Hackathons/Meta-Closer-AI-Hackathon-2026`
 App: `<root>/facebook-clone` (all paths below are relative to it unless absolute). Specs: `<root>`.
 
