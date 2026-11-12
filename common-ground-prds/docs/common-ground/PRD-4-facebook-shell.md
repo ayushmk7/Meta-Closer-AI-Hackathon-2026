@@ -31,6 +31,6 @@ Read first: `facebook-clone/docs/ARCHITECTURE.md`, `facebook-clone/docs/EXTENDIN
 - On an iPhone in Expo Go, the bar shows Home, Friends, Map, Marketplace, Notifications, Menu once Common Ground registers its tab, and every core screen behaves as before.
 - `facebook-clone/docs/COMMON_GROUND_SHELL_STATUS.md` lists what you changed and any decision the ios agent should know.
 
-## Open item for the human
+## Resolved: Maya's pitch
 
-The clone's Maya already lives in San Francisco with friends there, while the demo script says "Maya just moved to SF." Either reword the pitch ("Maya wants friends who are into what she's into") or add a "Moved to San Francisco" life event to her seed. That seed change is yours to make only if the human asks.
+The clone's Maya already lives in San Francisco with friends there. The human chose to reword the pitch to "Maya wants friends who are into what she's into" instead of changing her seed. Do not add a life event or any other seed change for Maya.

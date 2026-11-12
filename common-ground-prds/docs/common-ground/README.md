@@ -54,4 +54,4 @@ Without a backend, `make mock-api` serves the contract examples on :8000.
 - Review and merge `cg/contracts/` PRs; nobody else edits `contracts/`.
 - Watch each agent's STATUS.md `needs:` lines at each milestone.
 - At Checkpoint A, point the app at the live backend; at Checkpoint B, rehearse the demo script with two phones and the laptop.
-- Open item: the clone's Maya already lives in San Francisco with friends there. Decide between rewording the pitch and adding a "Moved to San Francisco" life event to her seed (PRD-4, last section).
+- Resolved: Maya's pitch is "Maya wants friends who are into what she's into," not "just moved to SF." Her clone seed stays unchanged (PRD-4, last section).

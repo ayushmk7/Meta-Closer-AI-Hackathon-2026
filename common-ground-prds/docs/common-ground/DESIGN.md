@@ -179,7 +179,7 @@ Unlocks through confirmed meetups (host at 1, groups up to 8 and extra slots at 
 | Time | On screen | What it proves |
 | --- | --- | --- |
 | 0:00 | The problem and the stat | Clear young-adult need |
-| 0:20 | iPhone: life-event prompt; first launch opens the finder over the map, density layer behind | One surface, privacy-safe density |
+| 0:20 | iPhone: first launch opens the finder over the map, density layer behind | One surface, privacy-safe density |
 | 0:45 | Muse onboarding chat; extracted interests with one sensitive item auto-hidden | Muse reads her, Laya protects her |
 | 1:30 | Drop cards: a public card, a private card showing only shared interests; multi-select 2 and pick group size | People-first, privacy by design |
 | 2:10 | Mutual connect from the second phone (synthetic fallback); Muse's intro and starters; 3 meetup options, votes, Event created, venue pin on the map | Muse coordinates end to end |
