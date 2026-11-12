@@ -21,6 +21,7 @@ const RegionContext = createContext<Region>({
 });
 const x = (r: Region, lng: number) => (lng - r.longitude) / r.longitudeDelta + 0.5;
 const y = (r: Region, lat: number) => (r.latitude - lat) / r.latitudeDelta + 0.5;
+const clamp = (n: number) => Math.min(0.95, Math.max(0.05, n));
 const pct = (n: number) => `${n * 100}%` as const;
 
 const MapView = forwardRef<
@@ -39,7 +40,7 @@ const MapView = forwardRef<
   return (
     <View
       pointerEvents={pointerEvents}
-      style={[{ backgroundColor: c.input, overflow: 'hidden' }, style]}
+      style={[{ backgroundColor: c.card, overflow: 'hidden' }, style]}
     >
       {region && <RegionContext.Provider value={region}>{children}</RegionContext.Provider>}
     </View>
@@ -72,8 +73,9 @@ export function Marker({
       accessibilityLabel={accessibilityLabel ?? title}
       style={{
         position: 'absolute',
-        left: pct(x(r, coordinate.longitude)),
-        top: pct(y(r, coordinate.latitude)),
+        // ponytail: clamp so off-region pins (e.g. a far venue) stay visible at the edge
+        left: pct(clamp(x(r, coordinate.longitude))),
+        top: pct(clamp(y(r, coordinate.latitude))),
         transform: [{ translateX: '-50%' }, { translateY: '-50%' }],
       }}
     >
@@ -137,7 +139,13 @@ export function Polygon({
     <svg
       viewBox="0 0 100 100"
       preserveAspectRatio="none"
-      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' }}
+      style={{
+        position: 'absolute',
+        inset: 0,
+        width: '100%',
+        height: '100%',
+        pointerEvents: 'none',
+      }}
     >
       <polygon
         fill={fillColor}
