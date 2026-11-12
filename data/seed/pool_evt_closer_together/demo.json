@@ -1,0 +1,26 @@
+{
+  "poolId": "pool_evt_closer_together",
+  "mayaId": "u_maya",
+  "featuredIds": [
+    "u_e049",
+    "u_e007",
+    "u_e028",
+    "u_e071"
+  ],
+  "publicFeaturedId": "u_e049",
+  "privateFeaturedId": "u_e028",
+  "liveUserId": "u_e049",
+  "counterpartIds": [
+    "u_e049",
+    "u_e007",
+    "u_e028",
+    "u_e071",
+    "u_e011",
+    "u_e020",
+    "u_e069"
+  ],
+  "fakeLocation": {
+    "lat": 37.48447,
+    "lng": -122.1472
+  }
+}

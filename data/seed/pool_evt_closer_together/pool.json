@@ -1,0 +1,18 @@
+{
+  "poolId": "pool_evt_closer_together",
+  "mode": "event",
+  "label": "Closer Together AI Hackathon",
+  "description": "People at this event, Nov 11 to 13",
+  "center": {
+    "lat": 37.4848,
+    "lng": -122.1484
+  },
+  "radiusKm": 2,
+  "window": {
+    "start": "2026-11-08T08:00:00Z",
+    "end": "2026-11-20T08:00:00Z"
+  },
+  "generator": "cg-sim 0.1.0",
+  "rngSeed": 7,
+  "taxonomyVersion": 1
+}

@@ -1,0 +1,26 @@
+{
+  "poolId": "pool_sf_city",
+  "mayaId": "u_maya",
+  "featuredIds": [
+    "u_0220",
+    "u_0125",
+    "u_0098",
+    "u_0169"
+  ],
+  "publicFeaturedId": "u_0220",
+  "privateFeaturedId": "u_0098",
+  "liveUserId": "u_0220",
+  "counterpartIds": [
+    "u_0220",
+    "u_0125",
+    "u_0098",
+    "u_0169",
+    "u_0213",
+    "u_0291",
+    "u_0296"
+  ],
+  "fakeLocation": {
+    "lat": 37.76155,
+    "lng": -122.4661
+  }
+}
