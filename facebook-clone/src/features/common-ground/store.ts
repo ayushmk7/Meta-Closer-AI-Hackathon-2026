@@ -6,7 +6,11 @@ import type { ExternalRow } from '../../extensions/types';
 import { api, getUser, setUser } from './api';
 import { TZ } from './types';
 import { resetMock } from './mock';
+import { startCalendar, wipeCalendar } from './calendar';
+import { cancelReminders, startReminders } from './notifications';
+import { startRealtime, stopRealtime } from './realtime';
 import type {
+  CalendarApplied,
   Approval,
   Config,
   Connection,
@@ -61,8 +65,23 @@ export interface CgState {
   homeCardDismissed: boolean;
   lastMode: Mode | null;
   drafts: Record<string, string>;
+  // Device bookkeeping (C1-allowed): calendar.ts and notifications.ts own these.
+  calendar: CalendarPrefs;
+  reminders: Record<string, { id: string; at: string }>;
 }
-const PREFS = ['userOverride', 'homeCardDismissed', 'lastMode', 'drafts'] as const;
+export interface CalendarPrefs {
+  id: string | null; // the app's own "Common Ground" calendar
+  events: Record<string, { eventId: string; sig: string }>; // directive key -> device event
+  applied: CalendarApplied[]; // reported in the next syncCalendar
+}
+const PREFS = [
+  'userOverride',
+  'homeCardDismissed',
+  'lastMode',
+  'drafts',
+  'calendar',
+  'reminders',
+] as const;
 const STORAGE_KEY = 'common-ground:v2';
 const initial = (): CgState => ({
   ready: false,
@@ -87,6 +106,8 @@ const initial = (): CgState => ({
   homeCardDismissed: false,
   lastMode: null,
   drafts: {},
+  calendar: { id: null, events: {}, applied: [] },
+  reminders: {},
 });
 
 let state = initial();
@@ -115,7 +136,7 @@ export function setState(patch: Partial<CgState>): void {
   notify();
   if (PREFS.some((k) => k in patch && patch[k] !== prev[k])) persist();
 }
-const subscribe = (l: () => void) => {
+export const subscribe = (l: () => void) => {
   listeners.add(l);
   return () => void listeners.delete(l);
 };
@@ -201,25 +222,6 @@ export async function refreshAll(): Promise<void> {
   ]);
 }
 
-// ponytail: one global poll for shell badges/rows at feedRefreshS; screens poll their own detail
-// with usePoll at pollIntervalS. A2 replaces this with realtime.ts (WS + polling fallback).
-let timer: ReturnType<typeof setInterval> | null = null;
-let inFlight = false;
-function startPolling() {
-  if (timer || !state.config) return;
-  timer = setInterval(async () => {
-    if (inFlight || !state.me?.optedIn) return;
-    inFlight = true;
-    await Promise.all([load.threads(), load.approvals(), load.nudges(), load.joins()]);
-    inFlight = false;
-  }, state.config.limits.feedRefreshS * 1000);
-  (timer as { unref?: () => void }).unref?.(); // Node: never keep tests alive
-}
-function stopPolling() {
-  if (timer) clearInterval(timer);
-  timer = null;
-}
-
 let starting: Promise<void> | null = null;
 export function start(): Promise<void> {
   return (starting ??= (async () => {
@@ -231,6 +233,8 @@ export function start(): Promise<void> {
         homeCardDismissed: saved.homeCardDismissed === true,
         lastMode: typeof saved.lastMode === 'string' ? saved.lastMode : null,
         drafts: saved.drafts && typeof saved.drafts === 'object' ? saved.drafts : {},
+        calendar: saved.calendar?.events ? saved.calendar : state.calendar,
+        reminders: saved.reminders && typeof saved.reminders === 'object' ? saved.reminders : {},
       };
     } catch {
       // unreadable prefs: start fresh
@@ -252,7 +256,9 @@ export function start(): Promise<void> {
     if (state.me.optedIn) await refreshAll();
     if (g !== gen) return;
     setState({ ready: true });
-    startPolling();
+    startRealtime();
+    startCalendar();
+    startReminders();
   })());
 }
 
@@ -482,17 +488,26 @@ export async function sendMessage(
 // ---- Identity, reset, location ----
 export async function setIdentity(userId: string | null): Promise<void> {
   gen++;
-  stopPolling();
+  stopRealtime();
   starting = null;
-  const { homeCardDismissed, lastMode, drafts } = state;
-  setState({ ...initial(), userOverride: userId, homeCardDismissed, lastMode, drafts });
+  const { homeCardDismissed, lastMode, drafts, calendar, reminders } = state;
+  setState({
+    ...initial(),
+    userOverride: userId,
+    homeCardDismissed,
+    lastMode,
+    drafts,
+    calendar,
+    reminders,
+  });
   await start();
 }
 
 export async function reset(): Promise<void> {
   gen++;
-  stopPolling();
+  stopRealtime();
   starting = null;
+  await Promise.all([wipeCalendar(), cancelReminders()]); // before the maps are forgotten
   await storage().remove();
   resetMock();
   setUser(null);

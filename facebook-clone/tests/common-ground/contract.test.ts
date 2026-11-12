@@ -97,13 +97,15 @@ function assertRequired(value: unknown, schema: Json, label: string) {
     if (key in value) assertRequired((value as Json)[key], sub as Json, `${label}.${key}`);
 }
 
-test('the mock answers every operation with a body that carries every required key', async () => {
+test('the mock answers every operation with a body that carries every required key', async (t) => {
+  t.mock.timers.enable({ apis: ['Date'], now: Date.now() });
   resetMock();
   const u = 'u_maya';
   const call = (method: string, p: string, body?: unknown) => mockRequest(u, method, p, body);
   // Walk the demo so every resource exists: opt in, join the example plan, its meetup forms.
   await call('POST', '/v1/optin', { mode: 'city' });
   await call('POST', '/v1/plans/pl_0001/join', {});
+  t.mock.timers.tick(60_000); // the staged group forms and Muse finishes its steps
   const meetup = (await call('GET', '/v1/meetups')) as Json;
   assert.equal(meetup.items.length, 1);
   const ids: Record<string, string> = {

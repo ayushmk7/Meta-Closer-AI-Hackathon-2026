@@ -26,6 +26,14 @@ import {
   start,
   withdraw,
 } from '../../src/features/common-ground/store';
+import { STEP_DELAY_S, mockRequest, resetMock } from '../../src/features/common-ground/mock';
+import {
+  handleEvent,
+  hooks,
+  pollFast,
+  startRealtime,
+  stopRealtime,
+} from '../../src/features/common-ground/realtime';
 import type { MuseStep } from '../../src/features/common-ground/types';
 
 let saved: string | null = null;
@@ -72,6 +80,7 @@ test('mergeSteps updates in place by stepId, appends new ones, never reorders', 
 });
 
 test('Common Ground store runs the core loop on the in-app mock', async (t) => {
+  t.mock.timers.enable({ apis: ['Date'], now: Date.parse('2026-11-12T18:00:00Z') });
   await reset();
   await start();
   assert.equal(getState().ready, true);
@@ -87,9 +96,11 @@ test('Common Ground store runs the core loop on the in-app mock', async (t) => {
   await t.test('only own prefs are persisted, under common-ground:v2 fields', () => {
     setState({ homeCardDismissed: true });
     assert.deepEqual(Object.keys(JSON.parse(saved!)).sort(), [
+      'calendar',
       'drafts',
       'homeCardDismissed',
       'lastMode',
+      'reminders',
       'userOverride',
     ]);
   });
@@ -130,7 +141,10 @@ test('Common Ground store runs the core loop on the in-app mock', async (t) => {
 
   await t.test('joining the example plan forms its meetup; steps merge live', async () => {
     const j = await join('pl_0001');
-    assert.equal(j!.meetupId, 'mt_0001');
+    assert.equal(j!.status, 'interested');
+    t.mock.timers.tick(10_000);
+    await load.joins();
+    assert.equal(getState().joins.find((x) => x.planId === 'pl_0001')!.meetupId, 'mt_0001');
     await Promise.all([load.meetups(), load.approvals(), load.threads()]);
     s = getState();
     assert.equal(inboxRows(s.threads, true)[0]!.href, '/common-ground/chat/th_0001');
@@ -253,6 +267,111 @@ test('review fixes: retry reruns the action, success clears error, failed start,
   await reset();
 });
 
+test('staged mock: forms, ticks steps, waits for approval, books, reschedules, not_filled', async (t) => {
+  t.mock.timers.enable({ apis: ['Date'], now: Date.parse('2026-11-12T18:00:00Z') });
+  resetMock();
+  const u = 'u_maya';
+  type Json = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any -- raw mock JSON
+  const call = (m: string, p: string, b?: unknown) => mockRequest(u, m, p, b) as Promise<Json>;
+  const D = STEP_DELAY_S * 1000;
+  const statuses = async () =>
+    ((await call('GET', '/v1/meetups/mt_0001')).museSteps as Json[]).map((s) => s.status);
+  await call('POST', '/v1/optin', { mode: 'city' });
+  await call('POST', '/v1/plans/pl_0001/join', {});
+  assert.equal((await call('GET', '/v1/meetups')).items.length, 0, 'not formed yet');
+  t.mock.timers.tick(2 * D);
+  assert.equal((await call('GET', '/v1/meetups')).items.length, 1, 'formed');
+  assert.deepEqual((await statuses()).slice(0, 2), ['running', 'queued']);
+  t.mock.timers.tick(10 * D);
+  assert.deepEqual(await statuses(), [
+    'done',
+    'done',
+    'done',
+    'needs_you',
+    'queued',
+    'queued',
+    'queued',
+  ]);
+  assert.equal((await call('GET', '/v1/meetups/mt_0001')).status, 'setting_up');
+  await call('POST', '/v1/approvals/ap_0001/decision', { decision: 'approve' });
+  t.mock.timers.tick(D / 2);
+  assert.deepEqual((await statuses()).slice(3, 5), ['done', 'running']);
+  t.mock.timers.tick(3 * D);
+  let m = await call('GET', '/v1/meetups/mt_0001');
+  assert.equal(m.status, 'confirmed');
+  assert.equal(m.booking.status, 'booked');
+  assert.equal(m.calendar.desired, 'event');
+  const start = m.startsAt;
+  await call('POST', '/v1/threads/th_0001/messages', {
+    text: 'Muse, can we do 11?',
+    clientId: 'c1',
+  });
+  t.mock.timers.tick(D);
+  assert.equal((await call('GET', '/v1/meetups/mt_0001')).status, 'setting_up', 'rescheduling');
+  t.mock.timers.tick(2 * D);
+  m = await call('GET', '/v1/meetups/mt_0001');
+  assert.equal(m.status, 'confirmed');
+  assert.equal(Date.parse(m.startsAt) - Date.parse(start), 3_600_000);
+  assert.deepEqual(
+    m.museSteps.slice(-2).map((s: Json) => s.stepId),
+    ['st_0008', 'st_0009'],
+  );
+  const msgs = (await call('GET', '/v1/threads/th_0001/messages')).items as Json[];
+  assert.equal(msgs.at(-1)!.sender.kind, 'muse');
+  t.mock.timers.tick(60_000);
+  const seeded = ((await call('GET', '/v1/joins')).items as Json[]).find(
+    (j) => j.planId === 'pl_0002',
+  )!;
+  assert.equal(seeded.status, 'not_filled');
+  assert.deepEqual(seeded.alternatives, ['pl_0003']);
+  resetMock();
+});
+
+test('realtime events refetch what CONTRACTS §6 names; meetup.step merges; unknown types skip', () => {
+  const called: string[] = [];
+  const real = { ...load };
+  for (const k of Object.keys(load) as (keyof typeof load)[])
+    (load as Record<string, unknown>)[k] = async (...args: unknown[]) =>
+      void called.push([k, ...args].join(':'));
+  setState({
+    meetups: {
+      mt_1: { meetupId: 'mt_1', museSteps: [step('a')] } as never,
+    },
+    messages: { th_1: [] },
+  });
+  const ev = (type: string, data: Record<string, unknown> = {}) =>
+    handleEvent({ type, eventId: 'e', at: '', data });
+  ev('meetup.step', { meetupId: 'mt_1', step: step('a', 'done') });
+  ev('meetup.step', { meetupId: 'mt_1', step: step('b') });
+  assert.deepEqual(
+    getState().meetups.mt_1!.museSteps.map((s) => [s.stepId, s.status]),
+    [
+      ['a', 'done'],
+      ['b', 'queued'],
+    ],
+  );
+  ev('join.updated');
+  ev('approval.requested', { meetupId: 'mt_1' });
+  ev('message.created', { threadId: 'th_1' });
+  ev('message.created', { threadId: 'th_unopened' });
+  ev('me.updated');
+  ev('teleport.started');
+  ev('constructor');
+  Object.assign(load, real);
+  assert.deepEqual(called, [
+    'joins',
+    'feed',
+    'approvals',
+    'meetup:mt_1',
+    'messages:th_1',
+    'threads',
+    'threads',
+    'me',
+    'config',
+  ]);
+  setState({ meetups: {}, messages: {} });
+});
+
 test('event rows show times in America/Los_Angeles whatever the device zone', () => {
   const rows = eventRows(
     {
@@ -268,4 +387,73 @@ test('event rows show times in America/Los_Angeles whatever the device zone', ()
     true,
   );
   assert.equal(rows[0]!.time, 'Sat 10:00 AM');
+});
+
+test('realtime: a socket that opens then drops backs off, refetches at most once, polls never overlap', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout', 'setInterval', 'Date'], now: 0 });
+  const sockets: { onopen?: () => void; onclose?: () => void; close(): void }[] = [];
+  const RealWs = globalThis.WebSocket;
+  globalThis.WebSocket = class {
+    onopen?: () => void;
+    onclose?: () => void;
+    constructor() {
+      sockets.push(this);
+      setTimeout(() => {
+        this.onopen?.();
+        setTimeout(() => this.onclose?.(), 5);
+      }, 0);
+    }
+    close() {}
+  } as never;
+  const realUrl = hooks.url;
+  hooks.url = () => 'ws://test/v1/ws?user=u_maya';
+  const real = { ...load };
+  let feeds = 0;
+  let approvalsInFlight = 0;
+  let maxInFlight = 0;
+  (load as Record<string, unknown>).feed = async () => void feeds++;
+  (load as Record<string, unknown>).approvals = () => {
+    maxInFlight = Math.max(maxInFlight, ++approvalsInFlight);
+    return new Promise<void>((r) => setTimeout(() => (approvalsInFlight--, r()), 3500));
+  };
+  setState({
+    me: { optedIn: true } as never,
+    config: {
+      features: { realtime: true },
+      limits: { pollIntervalS: 5, feedRefreshS: 60 },
+    } as never,
+    meetups: {},
+  });
+  startRealtime();
+  for (let i = 0; i < 1000; i++) t.mock.timers.tick(10); // 10 s
+  stopRealtime();
+  globalThis.WebSocket = RealWs;
+  hooks.url = realUrl;
+  Object.assign(load, real);
+  assert.ok(sockets.length <= 5, `${sockets.length} sockets in 10 s`);
+  assert.ok(feeds <= 1, `${feeds} refetches`);
+  assert.equal(maxInFlight, 1);
+});
+
+test('mock: other plans get their own detail; no steps before formation; fast poll shows the group forming', async (t) => {
+  t.mock.timers.enable({ apis: ['Date'], now: Date.parse('2026-11-12T18:00:00Z') });
+  await reset();
+  await start();
+  await optIn('city');
+  const walk = (await mockRequest('u_maya', 'GET', '/v1/plans/pl_0003')) as Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any -- raw mock JSON
+  assert.equal(walk.description, '');
+  assert.doesNotMatch(walk.museWillHandle.join(), /wheel|clay|\$35/i);
+  assert.equal(walk.because[0].signalId, 'si_0001');
+  const early = (await mockRequest('u_maya', 'GET', '/v1/meetups/mt_0001')) as Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any -- raw mock JSON
+  assert.deepEqual(early.museSteps, []);
+
+  await load.plan('pl_0001');
+  await join('pl_0001');
+  t.mock.timers.tick(STEP_DELAY_S * 2000);
+  await pollFast();
+  const s = getState();
+  assert.equal(s.plans.pl_0001!.myJoin?.status, 'matched');
+  assert.equal(s.joins.find((j) => j.planId === 'pl_0001')!.meetupId, 'mt_0001');
+  assert.ok(s.meetups.mt_0001);
+  await reset();
 });
