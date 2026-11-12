@@ -68,7 +68,7 @@ paths:
                   - { mode: city, label: "San Francisco", poolId: pool_sf_city, available: true, description: "Plans near you in San Francisco", center: { lat: 37.7749, lng: -122.4194 }, radiusKm: 10 }
                   - { mode: event, label: "Closer Together AI Hackathon", poolId: pool_evt_closer_together, available: true, description: "Plans with people at this event, Nov 11 to 13", center: { lat: 37.4848, lng: -122.1484 }, radiusKm: 2 }
                   - { mode: campus, label: "Campus", poolId: pool_campus_placeholder, available: false, description: "Coming soon" }
-                demo: { enabled: true, counterpart: synthetic, fakeLocation: { lat: 37.7639, lng: -122.4689 }, relaxCheckin: true, simulatedPayments: true }
+                demo: { enabled: true, counterpart: synthetic, fakeLocation: { lat: 37.7639, lng: -122.4689 }, relaxCheckin: true, simulatedPayments: true, stepDelayS: [1, 2] }
 
   /v1/me:
     get:
@@ -1241,6 +1241,12 @@ components:
                 - { type: "null" }
             relaxCheckin: { type: boolean, description: "When true the server accepts check-ins outside the geofence and window." }
             simulatedPayments: { type: boolean, description: "When true, approval sheets say no real money moves." }
+            stepDelayS:
+              description: "params.demo.stepDelayS: [min, max] seconds between visible Muse steps. Optional; clients default to 2."
+              type: array
+              items: { type: number }
+              minItems: 2
+              maxItems: 2
 
     InterestRef:
       type: object

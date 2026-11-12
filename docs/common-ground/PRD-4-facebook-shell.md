@@ -16,7 +16,7 @@ Read first: `facebook-clone/docs/ARCHITECTURE.md`, `facebook-clone/docs/EXTENDIN
 4. **Native tab bar.** *(Done in v1.)* `src/ui/Shell.tsx` renders the five core tabs plus contributed tabs at their `after` position, calling each `useBadge` hook on every render. Six tabs fit at 390 points. A contributed tab's `href` counts as top level; routes nested under it are detail screens with the back button and the tab's `label` as the header title.
 5. **Messenger and Events.** *(Done in v1.)* On native, each `inboxSource` is a labeled section above the seeded chats, and each `eventSource` is a labeled section on the Events screen. Web ignores both.
 6. **Reset.** *(Done in v1.)* Settings › Reset demo runs every `resetHooks[].run()` after the core reset. A failing hook shows the existing error banner and does not undo the core reset.
-7. **Web.** *(Done in v1.)* Web shows no extra header destination. A feature's `menuItems` still appear in the web Menu.
+7. **Web.** *(Done in v1.)* Web shows a contributed tab as an extra desktop header destination (human decision 2026-11-12, keeps the v1 override). A feature's `menuItems` still appear in the web Menu.
 8. **Tests and scripts.** *(Done in v1.)* `npm test` includes `tests/**/*.test.ts`; `npm run test:native` includes `tests/**/*.test.cjs`.
 9. **Registry entry.** *(Done in v1 once the ios agent's `feature.ts` landed.)* `src/extensions/registry.ts` imports `commonGroundFeature` and appends it last.
 10. **v2 dependencies and permission strings (new, your v2 M0).**
