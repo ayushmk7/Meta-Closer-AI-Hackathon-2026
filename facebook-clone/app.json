@@ -21,9 +21,16 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Common Ground uses your location to show friends who share theirs with you."
+          "locationWhenInUsePermission": "Common Ground uses your location once, when you check in at a meetup."
         }
-      ]
+      ],
+      [
+        "expo-calendar",
+        {
+          "calendarPermission": "Common Ground reads when you're busy (never what your events are) and adds plans you join to a Common Ground calendar."
+        }
+      ],
+      "expo-notifications"
     ],
     "experiments": {
       "typedRoutes": true

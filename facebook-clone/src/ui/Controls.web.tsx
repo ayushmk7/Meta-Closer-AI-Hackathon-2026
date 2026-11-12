@@ -18,6 +18,7 @@ const aliases: Record<string, string> = {
   happy: 'feeling',
   open: 'comment',
   map: 'location',
+  'sparkles-outline': 'sparkles',
 };
 const paths: Record<string, string> = {
   home: 'M3 10.5 12 3l9 7.5V21h-6v-7H9v7H3Z',
@@ -61,6 +62,7 @@ const paths: Record<string, string> = {
   birthday: 'M3 12h18v9H3Zm0 5h18M6 12V8m6 4V8m6 4V8M6 5V3m6 2V3m6 2V3',
   filter: 'M3 5h18M6 12h12M9 19h6',
   shield: 'm12 2 9 4v6c0 6-9 10-9 10S3 18 3 12V6Z',
+  sparkles: 'M10 3c.8 4.6 2.4 6.2 7 7-4.6.8-6.2 2.4-7 7-.8-4.6-2.4-6.2-7-7 4.6-.8 6.2-2.4 7-7ZM18 14c.4 2.2 1.1 2.9 3.3 3.3-2.2.4-2.9 1.1-3.3 3.3-.4-2.2-1.1-2.9-3.3-3.3 2.2-.4 2.9-1.1 3.3-3.3ZM18 2c.3 1.5.8 2 2.3 2.3-1.5.3-2 .8-2.3 2.3-.3-1.5-.8-2-2.3-2.3 1.5-.3 2-.8 2.3-2.3Z',
 };
 export function Icon({
   name,
