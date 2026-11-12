@@ -137,3 +137,54 @@ def test_interleaved_decisions_book_once_and_refunds_update_payment():
     out = [e for a in aps for e in r.decide(a, "approved")]
     assert [e["myPayment"] for e in out if e["type"] == "payment"].count("not_needed") == 3
     assert out[-1]["type"] == "cancelled"
+
+
+def test_parse_time_change():
+    from cg_api.agent import parse_time_change
+
+    start = "2026-11-14T18:00:00Z"  # Saturday 10 AM local
+    cases = {
+        "Muse, can we do 11 instead?": "2026-11-14T19:00:00Z",
+        "muse 11:30am?": "2026-11-14T19:30:00Z",
+        "Muse can we start at noon": "2026-11-14T20:00:00Z",
+        "Muse, an hour later?": "2026-11-14T19:00:00Z",
+        "Muse make it 9": "2026-11-14T17:00:00Z",
+        "Muse can 3 of us bring friends?": None,
+        "Muse what should I bring?": None,
+    }
+    for text, want in cases.items():
+        assert parse_time_change(text, start) == want, text
+
+
+def test_reschedule_in_bounds_rebooks_and_replies():
+    r = run()
+    for a in [e["approval"] for e in list(r.start()) if e["type"] == "approval"]:
+        list(r.decide(a["approvalId"], "approved"))
+    events, reply, ids = r.reschedule_to("2026-11-14T19:00:00Z", {})
+    kinds = [(e["type"], e.get("step", {}).get("kind")) for e in events]
+    assert kinds == [
+        ("step", "reschedule"),
+        ("reschedule", None),
+        ("step", "book"),
+        ("booking", None),
+        ("step", "calendar"),
+        ("calendar", None),
+    ]
+    assert reply == (
+        "Done. Everyone's free at 11 and Clay Hour Studio has room then, so I moved it. Your calendars are updated."
+    )
+    assert (
+        ids == [e["step"]["stepId"] for e in events if e["type"] == "step"]
+        and r.plan["endsAt"] == "2026-11-14T21:00:00Z"
+    )
+
+
+def test_reschedule_out_of_bounds_changes_nothing():
+    r = run()
+    list(r.start())
+    busy = {"u_0125": [{"start": "2026-11-14T19:00:00Z", "end": "2026-11-14T20:00:00Z"}]}
+    for when, b in [("2026-11-14T19:00:00Z", busy), ("2026-11-15T18:00:00Z", {}), ("2026-11-14T23:00:00Z", {})]:
+        n = len(r.steps)
+        events, reply, ids = r.reschedule_to(when, b)
+        assert events == [] and ids == [] and len(r.steps) == n and reply.startswith("I can't move it")
+    assert r.plan["startsAt"] == HERO["startsAt"]

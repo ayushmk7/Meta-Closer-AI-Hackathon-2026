@@ -20,11 +20,12 @@ an amount within that user's auto-spend limit.
 
 from __future__ import annotations
 
+import re
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 
-from cg_api.muse.copy import SEAT, approval_copy, clock, day, money
+from cg_api.muse.copy import SEAT, approval_copy, clock, day, local, money
 from cg_api.providers import simulated_book
 
 PROVIDER = "Simulated booking"
@@ -265,7 +266,105 @@ class ScriptedRun:
         yield {"type": "confirmed", "eventLabel": f"Private event · {going} going"}
         yield self._step("reminder", "done", "Set leave-by reminders for everyone")
 
+    def reschedule_to(self, new_start: str, busy: dict[str, list[dict]]) -> tuple[list[dict], str, list[str]]:
+        """(events, reply, stepIds) for a chat request to move the start. Applies only inside the autonomy bounds
+        (CONTRACTS §5): same local day, within rescheduleWindowMin, every attendee free, venue has room, cost unchanged."""
+        p, v = self.plan, self.venue
+        old, new = _dt(p["startsAt"]), _dt(new_start)
+        end = new + (_dt(p["endsAt"]) - old)
+        party = self._party()
+        if new == old:
+            return [], f"It's already at {clock(new_start)}.", []
+        in_bounds = (
+            local(new_start).date() == local(p["startsAt"]).date()
+            and abs(new - old) <= timedelta(minutes=self.reschedule_window_min)
+            and all(_free(busy.get(a["userId"], []), new, end) for a in self.attendees)
+            and (not self.needs_booking or simulated_book(v, new_start, party) is not None)
+        )
+        if not in_bounds:
+            # ponytail: a `change` approval to every attendee lands with the M2 tool agent
+            return (
+                [],
+                (
+                    f"I can't move it to {clock(new_start, True)} on my own. I can shift it by up to "
+                    f"{self.reschedule_window_min // 60} hours on the same day when everyone's free and there's room."
+                ),
+                [],
+            )
+        n0 = len(self.steps)
+        old_label = clock(p["startsAt"])
+        self.plan = {**p, "startsAt": new_start, "endsAt": _iso(end)}
+        events = [
+            self._step("reschedule", "done", f"Moved it from {old_label} to {clock(new_start)}; everyone's still free")
+        ]
+        events.append({"type": "reschedule", "startsAt": new_start, "endsAt": self.plan["endsAt"]})
+        booked = any(s["kind"] == "book" and s["status"] == "done" for s in self.steps)
+        if self.needs_booking and booked:
+            code = simulated_book(v, new_start, party)
+            events.append(
+                self._step(
+                    "book", "done", f"Rebooked {self._seat(party)} at {v['name']}", detail=f"Confirmation {code}"
+                )
+            )
+            events.append(self._booking("booked", f"Booked · {code}", code))
+        events.append(self._step("calendar", "done", "Updated everyone's calendar"))
+        events.append({"type": "calendar", "desired": "event"})
+        room = f" and {v['name']} has room then" if self.needs_booking else ""
+        reply = f"Done. Everyone's free at {clock(new_start)}{room}, so I moved it. Your calendars are updated."
+        return events, reply, [s["stepId"] for s in self.steps[n0:]]
+
 
 def visible_steps(steps: list[dict], viewer_id: str) -> list[dict]:
     """What one attendee sees: shared steps plus only their own payment step, without the internal field."""
     return [{k: v for k, v in s.items() if k != "forUserId"} for s in steps if s.get("forUserId") in (None, viewer_id)]
+
+
+# ---------- Muse in the group chat (toMuse): the scripted D4 path ----------
+_TIME = re.compile(r"\b(\d{1,2})(?::(\d{2}))?\s*(a\.?m\.?|p\.?m\.?)?(?=\W|$)", re.IGNORECASE)
+_SHIFT = re.compile(r"\b(an|one|1|half an|30 min(?:utes)?)\s*(hour)?\s*(later|earlier)\b", re.IGNORECASE)
+
+
+def parse_time_change(text: str, current_start: str) -> str | None:
+    """New start (UTC ISO) for "11", "11am", "11:30", "noon", "an hour later"; same local day. None if no time.
+    A bare hour picks the am/pm reading closest to the current start."""
+    cur = local(current_start)
+    t = text.lower()
+    m = _SHIFT.search(t)
+    if m:
+        mins = 30 if m[1].startswith(("half", "30")) else 60
+        return _iso(_dt(current_start) + timedelta(minutes=mins if m[3] == "later" else -mins))
+    if re.search(r"\bnoon\b", t):
+        h, mi = 12, 0
+    else:
+        hit = next(
+            (
+                x
+                for x in _TIME.finditer(t)
+                if x[1] and int(x[1]) <= 23 and not re.match(r"\s*(people|wheels?|of us)", t[x.end() :])
+            ),
+            None,
+        )
+        if not hit:
+            return None
+        h, mi, ampm = int(hit[1]), int(hit[2] or 0), (hit[3] or "").replace(".", "")
+        if ampm == "pm" and h < 12:
+            h += 12
+        elif ampm == "am" and h == 12:
+            h = 0
+        elif not ampm and h <= 12:
+            alts = [h % 12, h % 12 + 12]
+            h = min(alts, key=lambda x: abs(x * 60 + mi - (cur.hour * 60 + cur.minute)))
+    if h > 23 or mi > 59:
+        return None
+    return _iso(cur.replace(hour=h, minute=mi))
+
+
+def answer_question(plan: dict, venue: dict) -> str:
+    when = f"{day(plan['startsAt'])} {clock(plan['startsAt'], True)} to {clock(plan['endsAt'], True)}"
+    cost = (plan.get("cost") or {}).get("perPersonCents", 0)
+    money_line = f" It's {money(cost)} each." if cost else " It's free."
+    return f"It's {when} at {venue['name']}.{money_line} I'm handling the booking and the calendar."
+
+
+def _free(busy: list[dict], start: datetime, end: datetime) -> bool:
+    return not any(_dt(b["start"]) < end and _dt(b["end"]) > start for b in busy)
