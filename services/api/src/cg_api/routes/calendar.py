@@ -77,7 +77,7 @@ def directives_for(uid: str) -> list[dict]:
         for j in w.joins.values():
             if j["userId"] != uid:
                 continue
-            d = joins.hold(w, j)
+            d = _tidy(joins.hold(w, j), w.venues[w.plans[j["planId"]]["venueId"]]["name"])
             if (
                 d is None and applied.get(j["joinId"], "none") != "none"
             ):  # matched: the meetup's event replaces the hold
@@ -88,6 +88,15 @@ def directives_for(uid: str) -> list[dict]:
                 out[d["key"]] = d
         for m in w.meetups.values():
             if uid in m.get("members", {}):
-                out[m["meetupId"]] = meetups.directive(w, uid, m)
+                out[m["meetupId"]] = _tidy(meetups.directive(w, uid, m), w.venues[m["venueId"]]["name"])
     out.update(store.directives.get(uid, {}))  # explicit writes win
     return [d for d in out.values() if d["desired"] != "none" or applied.get(d["key"], "none") != "none"]
+
+
+def _tidy(d: dict | None, venue: str) -> dict | None:
+    """Titles already naming the venue get no second " at <venue>" ("Brunch at Nopal Table at Nopal Table").
+    ponytail: patches slice C's title builders at the serving edge; drop once they check this themselves."""
+    suffix = f" at {venue}"
+    if d and d["title"].endswith(suffix) and venue in d["title"][: -len(suffix)]:
+        d = {**d, "title": d["title"][: -len(suffix)]}
+    return d

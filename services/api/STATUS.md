@@ -41,6 +41,7 @@ Milestone: slice A M2 (platform) done
 - 2026-11-12 Producer-only metric counts: increment `cg_api.store.counters` with `muse_fallbacks`, `laya_calls`, `laya_decisive` and `booking_fallbacks`.
 
 ## Needs
+- needs: slice C — `joins.hold` and `meetups.directive` add " at {venue}" even when the plan title already names the venue ("Weekend brunch at Nopal Table at Nopal Table"). `syncCalendar` trims it for now (`routes/calendar._tidy`).
 - needs: slice C/D (optional) — mark Muse's `calendar` step done per attendee from `store.applied[uid][meetupId] == "event"` (CONTRACTS §5) instead of marking it done right away.
 - needs: slice C — set `meetups[mt]["members"][uid]["counted"] = True` when the trust rule passes (`params.checkin.meetupCountsWhen`); `Me.rewards` reads it.
 - needs: bplans — clean `ruff check` errors in domain/joins.py, plans.py, runner.py, world.py and routes/approvals.py.

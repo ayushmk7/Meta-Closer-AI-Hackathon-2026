@@ -50,3 +50,12 @@ def test_directives_follow_joins_and_meetups(api):
     }
     assert not any(n in (x.get("title", "") + (x.get("notes") or "")) for x in d.values() for n in names)  # P7
     assert mt not in sync(api, user="u_0098")  # not a member: never sees it
+
+
+def test_title_names_venue_once(api):
+    store.plans["pl_sf_wed_game_night"]["title"] = "Board game night at Meeple Harbor"
+    api("optIn", json={"mode": "city"})
+    jid = api("joinPlan", "/v1/plans/pl_sf_wed_game_night/join").json()["joinId"]
+    assert sync(api)[jid]["title"] == "Hold: Board game night at Meeple Harbor"
+    store.plans["pl_sf_wed_game_night"]["title"] = "Board games"
+    assert sync(api)[jid]["title"] == "Hold: Board games at Meeple Harbor"
