@@ -5,8 +5,11 @@ import type { StorageAdapter } from '../../core/persistence';
 import type { ExternalRow } from '../../extensions/types';
 import { api, getUser, setUser } from './api';
 import { resetMock } from './mock';
+import { startCalendar, wipeCalendar } from './calendar';
+import { cancelReminders, startReminders } from './notifications';
 import { startRealtime, stopRealtime } from './realtime';
 import type {
+  CalendarApplied,
   Approval,
   Config,
   Connection,
@@ -61,8 +64,23 @@ export interface CgState {
   homeCardDismissed: boolean;
   lastMode: Mode | null;
   drafts: Record<string, string>;
+  // Device bookkeeping (C1-allowed): calendar.ts and notifications.ts own these.
+  calendar: CalendarPrefs;
+  reminders: Record<string, { id: string; at: string }>;
 }
-const PREFS = ['userOverride', 'homeCardDismissed', 'lastMode', 'drafts'] as const;
+export interface CalendarPrefs {
+  id: string | null; // the app's own "Common Ground" calendar
+  events: Record<string, { eventId: string; sig: string }>; // directive key -> device event
+  applied: CalendarApplied[]; // reported in the next syncCalendar
+}
+const PREFS = [
+  'userOverride',
+  'homeCardDismissed',
+  'lastMode',
+  'drafts',
+  'calendar',
+  'reminders',
+] as const;
 const STORAGE_KEY = 'common-ground:v2';
 const initial = (): CgState => ({
   ready: false,
@@ -87,6 +105,8 @@ const initial = (): CgState => ({
   homeCardDismissed: false,
   lastMode: null,
   drafts: {},
+  calendar: { id: null, events: {}, applied: [] },
+  reminders: {},
 });
 
 let state = initial();
@@ -115,7 +135,7 @@ export function setState(patch: Partial<CgState>): void {
   notify();
   if (PREFS.some((k) => k in patch && patch[k] !== prev[k])) persist();
 }
-const subscribe = (l: () => void) => {
+export const subscribe = (l: () => void) => {
   listeners.add(l);
   return () => void listeners.delete(l);
 };
@@ -212,6 +232,8 @@ export function start(): Promise<void> {
         homeCardDismissed: saved.homeCardDismissed === true,
         lastMode: typeof saved.lastMode === 'string' ? saved.lastMode : null,
         drafts: saved.drafts && typeof saved.drafts === 'object' ? saved.drafts : {},
+        calendar: saved.calendar?.events ? saved.calendar : state.calendar,
+        reminders: saved.reminders && typeof saved.reminders === 'object' ? saved.reminders : {},
       };
     } catch {
       // unreadable prefs: start fresh
@@ -234,6 +256,8 @@ export function start(): Promise<void> {
     if (g !== gen) return;
     setState({ ready: true });
     startRealtime();
+    startCalendar();
+    startReminders();
   })());
 }
 
@@ -463,8 +487,16 @@ export async function setIdentity(userId: string | null): Promise<void> {
   gen++;
   stopRealtime();
   starting = null;
-  const { homeCardDismissed, lastMode, drafts } = state;
-  setState({ ...initial(), userOverride: userId, homeCardDismissed, lastMode, drafts });
+  const { homeCardDismissed, lastMode, drafts, calendar, reminders } = state;
+  setState({
+    ...initial(),
+    userOverride: userId,
+    homeCardDismissed,
+    lastMode,
+    drafts,
+    calendar,
+    reminders,
+  });
   await start();
 }
 
@@ -472,6 +504,7 @@ export async function reset(): Promise<void> {
   gen++;
   stopRealtime();
   starting = null;
+  await Promise.all([wipeCalendar(), cancelReminders()]); // before the maps are forgotten
   await storage().remove();
   resetMock();
   setUser(null);

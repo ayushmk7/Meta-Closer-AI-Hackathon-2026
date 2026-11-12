@@ -89,9 +89,11 @@ test('Common Ground store runs the core loop on the in-app mock', async (t) => {
   await t.test('only own prefs are persisted, under common-ground:v2 fields', () => {
     setState({ homeCardDismissed: true });
     assert.deepEqual(Object.keys(JSON.parse(saved!)).sort(), [
+      'calendar',
       'drafts',
       'homeCardDismissed',
       'lastMode',
+      'reminders',
       'userOverride',
     ]);
   });
