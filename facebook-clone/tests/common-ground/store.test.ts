@@ -441,7 +441,8 @@ test('mock: other plans get their own detail; no steps before formation; fast po
   await start();
   await optIn('city');
   const walk = (await mockRequest('u_maya', 'GET', '/v1/plans/pl_0003')) as Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any -- raw mock JSON
-  assert.doesNotMatch(walk.description + walk.museWillHandle.join(), /wheel|clay|\$35/i);
+  assert.equal(walk.description, '');
+  assert.doesNotMatch(walk.museWillHandle.join(), /wheel|clay|\$35/i);
   assert.equal(walk.because[0].signalId, 'si_0001');
   const early = (await mockRequest('u_maya', 'GET', '/v1/meetups/mt_0001')) as Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any -- raw mock JSON
   assert.deepEqual(early.museSteps, []);

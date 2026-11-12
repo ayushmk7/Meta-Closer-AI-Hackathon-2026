@@ -72,7 +72,7 @@ const detailOf = (card: PlanCard): PlanDetail => {
   return {
     ...extras,
     ...clone(card),
-    description: card.reason,
+    description: '', // cards carry no description; reason is shown already
     museWillHandle: [
       ...(prepaid ? [`Ask you before paying ${card.cost.label}`] : []),
       'Add it to your calendar',
