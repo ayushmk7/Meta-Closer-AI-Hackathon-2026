@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import re
 from pathlib import Path
 
@@ -9,7 +10,7 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse
 
 from cg_api import realtime
-from cg_api.deps import User
+from cg_api.deps import User, current_user
 from cg_api.errors import ApiError
 from cg_api.settings import get_settings
 from cg_api.store import store
@@ -104,17 +105,27 @@ def static(kind: str, name: str):
 
 @router.websocket("/v1/ws", name="realtime")
 async def ws_realtime(ws: WebSocket, user: str = ""):
-    if user not in store.users:
-        await ws.close(code=4401)
+    try:
+        current_user(user)  # same identity rule as REST: well-formed and in the loaded world
+    except ApiError:
+        await ws.close(code=1008)  # policy violation
         return
     await ws.accept()
     realtime.connect(user, ws)
     try:
         while True:
-            msg = await ws.receive_json()
-            if isinstance(msg, dict) and msg.get("type") == "ping":
+            if _frame(await ws.receive_text()).get("type") == "ping":
                 await ws.send_json({"type": "pong"})
     except WebSocketDisconnect:
         pass
     finally:
         realtime.disconnect(user, ws)
+
+
+def _frame(text: str) -> dict:
+    """Client frames are untrusted: anything but a JSON object is ignored."""
+    try:
+        msg = json.loads(text)
+    except ValueError:
+        return {}
+    return msg if isinstance(msg, dict) else {}

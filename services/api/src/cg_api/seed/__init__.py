@@ -100,6 +100,7 @@ async def load(pool_id: str, reextract: bool = False, job: dict | None = None) -
     store.__init__()  # fresh world
     store.pool, store.demo, store.seed_dir = pool, demo, str(d)
     store.venues = {v["venueId"]: v for v in data["venues"]}
+    ports.extractor.venue = lambda vid: store.venues.get(vid)  # late-bound: survives reset and reload
     for persona in data["personas"]:
         store.users[persona["userId"]] = new_user(persona, persona["userId"] != maya, mode, pool["poolId"])
     for kind in ("activity", "connectors"):

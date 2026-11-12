@@ -9,6 +9,7 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any, Protocol
 
@@ -43,6 +44,8 @@ class Laya(Protocol):
 
 
 class Extractor(Protocol):
+    venue: Callable[[str], dict | None]  # venue-ID lookup into the loaded seed; set by cg_api.seed.load
+
     async def extract(self, user_id: str, activity: list[dict], records: list[dict]) -> dict:
         """{"interests": [{id, weight, evidence, source, sensitive, visibility}], "signals": [...]}; owner-only."""
         ...
@@ -78,6 +81,8 @@ class StubLaya:
 
 
 class StubExtractor:
+    venue: Callable[[str], dict | None] = staticmethod(lambda vid: None)
+
     async def extract(self, user_id: str, activity: list[dict], records: list[dict]) -> dict:
         return {"interests": [], "signals": []}
 

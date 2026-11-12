@@ -20,8 +20,9 @@ USER = {"X-CG-User": "u_maya"}
 
 @pytest.fixture(scope="session")
 def apps():
+    apps = create_apps()  # installs slice D providers first, like cg-api does
     asyncio.run(seed.load("pool_sf_city"))
-    return create_apps()
+    return apps
 
 
 @pytest.fixture(autouse=True)

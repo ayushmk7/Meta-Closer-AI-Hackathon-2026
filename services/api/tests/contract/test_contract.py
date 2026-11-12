@@ -65,6 +65,7 @@ def test_config_from_params(public):
     assert c["limits"]["groupSizeMin"] == p["groups"]["strangerSizeMin"]
     assert c["features"] == p["features"]
     assert [m["available"] for m in c["modes"] if m["mode"] == "campus"] == [False]
+    assert c["demo"]["stepDelayS"] == p["demo"]["stepDelayS"]
 
 
 def test_realtime_ping(public):
@@ -77,3 +78,20 @@ def test_realtime_push_from_sync_handler(public):
     with public.websocket_connect("/v1/ws?user=u_maya") as ws:
         public.patch("/v1/me", json={"neighborhood": "Inner Sunset"})  # sync handler, runs in the threadpool
         assert ws.receive_json()["type"] == "me.updated"
+
+
+@pytest.mark.parametrize("query", ["", "?user=", "?user=../../etc", "?user=u_nobody"])
+def test_realtime_rejects_bad_identity(public, query):
+    from starlette.websockets import WebSocketDisconnect
+
+    with pytest.raises(WebSocketDisconnect) as e, public.websocket_connect("/v1/ws" + query) as ws:
+        ws.receive_json()
+    assert e.value.code == 1008
+
+
+def test_realtime_ignores_junk_frames(public):
+    with public.websocket_connect("/v1/ws?user=u_maya") as ws:
+        for junk in ("hello", "[1]", "null", '{"type": 3}'):
+            ws.send_text(junk)
+        ws.send_json({"type": "ping"})
+        assert ws.receive_json() == {"type": "pong"}

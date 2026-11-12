@@ -20,9 +20,14 @@ Milestone: M1 slice A (platform) done; C/D handlers pending
 - 2026-11-12 Sensitive interests a user accepts are shown on their profile but never opted into overlap (`sharedSensitiveOptIn` stays false; no API sets it yet, P4).
 - 2026-11-12 One pool loaded at a time; `optIn` into an unloaded pool → 409. Live pool switching comes in M2.
 - 2026-11-12 Directives: other slices write `store.directives[uid][key]`; `syncCalendar` returns them all and records `store.applied[uid][key]` for ok reports.
+- 2026-11-12 Branch tracks origin/main (v2 contracts #12, Decisions #15 merged in).
+- 2026-11-12 `/v1/ws` applies the REST identity rule to `?user=` (close 1008 otherwise) and ignores non-object frames.
+
+- 2026-11-12 `ports.extractor.venue` is set at seed load to a venue-ID lookup (`store.venues.get`), for the extractor's sensitive-venue check.
 
 ## Needs
 - needs: slice B — `packages/matching/pyproject.toml` named `cg-matching`, deps within numpy/pyarrow/pyyaml/igraph/leidenalg (else A re-locks services/api).
+- needs: merge order #13 (packages/matching) then this; A then merges main and re-locks so cg-matching is pinned. Until then plain `uv run` (no `--frozen`) fails to resolve the missing path dep; use `uv run --frozen`.
 - needs: human — merge `cg/sim/m0-seed-v2` to main (v2 contracts merged in #12, #15).
 
 ## Known gaps

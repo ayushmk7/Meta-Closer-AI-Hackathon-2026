@@ -134,3 +134,10 @@ def test_static_is_confined(public):
 
 def test_config_demo_from_seed(api):
     assert api("getConfig").json()["demo"]["fakeLocation"] == {"lat": 37.7594, "lng": -122.4676}
+
+
+def test_extractor_gets_venue_lookup(apps):
+    from cg_api.ports import ports
+
+    assert ports.extractor.venue("vn_lands_end")["name"] == "Lands End Trail"
+    assert ports.extractor.venue("vn_nope") is None
