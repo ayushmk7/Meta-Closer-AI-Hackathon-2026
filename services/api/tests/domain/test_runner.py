@@ -221,3 +221,20 @@ def test_to_muse_question_gets_an_answer_and_failures_are_logged(world, monkeypa
     monkeypatch.setattr(agent, "answer_question", lambda *a: 1 / 0)
     chat.send(world, "u_dan", th, "Muse, is it indoors?", "c-q2")
     assert "toMuse turn failed" in caplog.text
+
+
+def test_to_muse_change_requests_and_questions(world, monkeypatch):
+    pytest.importorskip("cg_api.agent")
+    mt = _confirmed_hero(world, monkeypatch)
+    th = world.meetups[mt]["threadId"]
+    said = {}
+    for k, text in enumerate(
+        ["Muse, can we do Sunday instead?", "Muse, is it Saturday?", "Muse, can I bring 2 friends?", "Muse, cancel it"]
+    ):
+        chat.send(world, "u_dan", th, text, f"c{k}")
+        said[text] = chat.list_messages(world, "u_maya", th)[-1]["text"]
+    assert said["Muse, can we do Sunday instead?"].startswith("Moving it to Sunday needs everyone's OK")
+    assert said["Muse, is it Saturday?"].startswith("Here's the plan:")
+    assert said["Muse, can I bring 2 friends?"].startswith("Here's the plan:")  # not a time (D's cue rule)
+    assert said["Muse, cancel it"].startswith("Cancelling needs everyone's OK")
+    assert world.meetups[mt]["status"] == "confirmed" and world.meetups[mt]["startsAt"] == "2026-11-14T18:00:00Z"
