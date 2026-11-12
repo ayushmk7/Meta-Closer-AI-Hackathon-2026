@@ -11,13 +11,12 @@ from __future__ import annotations
 
 import argparse
 import json
-import math
 import os
 import sys
 from collections import defaultdict
 from pathlib import Path
 
-from cg_sim import laya
+from cg_sim import laya, matching_adapter
 from cg_sim.contracts import data_dir, params, pool_ids
 
 
@@ -51,42 +50,12 @@ def load_activity(pool_id: str) -> dict[str, list[dict]]:
 
 
 def candidates(export: dict, k: int) -> dict[str, list[tuple[str, float]]]:
-    """ponytail: naive stand-in for cg_matching.build_vectors + candidates (IDF-weighted cosine over
-    non-sensitive leaves + level-2 parents at params.matching.parentWeightFactor). Swap for
-    cg_matching via matching_adapter once it exposes candidates. O(n^2): fine for ~300 users."""
-    m = params()["matching"]
-    vecs: dict[str, dict[str, float]] = {}
-    for u in export["users"]:
-        v: dict[str, float] = defaultdict(float)
-        for i in u["interests"]:
-            if i["sensitive"] and not i.get("sharedSensitiveOptIn"):
-                continue
-            v[i["id"]] += i["weight"]
-            v[i["id"].rsplit(".", 1)[0]] += i["weight"] * m["parentWeightFactor"]
-        vecs[u["userId"]] = v
-    df: dict[str, int] = defaultdict(int)
-    for v in vecs.values():
-        for key in v:
-            df[key] += 1
-    n = len(vecs)
-    for v in vecs.values():
-        for key in v:
-            v[key] *= math.log((1 + n) / (1 + df[key])) + 1 if m["idf"] else 1
-        norm = math.sqrt(sum(x * x for x in v.values())) or 1.0
-        for key in v:
-            v[key] /= norm
+    """Top-k candidates per user via matching_adapter (cg_matching when installed), minus blocked pairs."""
+    p = params()
+    cands = matching_adapter.candidates(export, matching_adapter.build_vectors(export, p), p)
     blocked = {u["userId"]: set(u["blockedIds"]) for u in export["users"]}
-    out = {}
-    for a, va in vecs.items():
-        scored = []
-        for b, vb in vecs.items():
-            if b == a or b in blocked[a] or a in blocked[b]:
-                continue
-            c = sum(x * vb[key] for key, x in va.items() if key in vb)
-            if c >= m["minCosine"]:
-                scored.append((b, round(c, 6)))
-        out[a] = sorted(scored, key=lambda t: (-t[1], t[0]))[:k]
-    return out
+    return {a: [(b, c) for b, c in lst if b not in blocked[a] and a not in blocked.get(b, ())][:k]
+            for a, lst in cands.items()}
 
 
 def meet_again_pairs(cands: dict[str, list[tuple[str, float]]]) -> list[tuple[str, str]]:
