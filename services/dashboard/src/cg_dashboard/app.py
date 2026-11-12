@@ -3,6 +3,7 @@
 Routes
   /, /map, /replay, /muse, /controls   one page (static/index.html), tab picked from the path
   /api/i/<path>                        proxy to CG_INTERNAL_URL/internal/v1/<path> (GET, PUT, POST)
+  /vendor/<file>                       vendored maplibre-gl + qrcode-generator (no CDN at stage time)
   /api/replay                          newest data/sim/runs/*/replay.json, else bundled fixture
   /api/local?poolId=                   demo.json + low-outgoing ids from data/sim_private + LAN IP
 """
@@ -10,6 +11,7 @@ Routes
 import argparse
 import ipaddress
 import json
+import mimetypes
 import os
 import socket
 import sys
@@ -95,6 +97,13 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json(502, {"error": {"code": "internal_unreachable", "message": str(e), "retryable": True}})
 
     def route(self, method: str):
+        # Block other web pages on this laptop (CSRF) and DNS rebinding from driving the internal API.
+        port = self.server.server_address[1]
+        host, origin = self.headers.get("Host"), self.headers.get("Origin")
+        if host not in (f"127.0.0.1:{port}", f"localhost:{port}") or (
+            method != "GET" and origin not in (None, f"http://{host}")
+        ):
+            return self.send_json(403, {"error": {"code": "forbidden", "message": "loopback host only", "retryable": False}})
         u = urlsplit(self.path)
         if u.path.startswith("/api/i/") and ".." not in u.path:
             return self.proxy(method, u.path[len("/api/i/") :], u.query)
@@ -102,6 +111,8 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json(405, {"error": {"code": "method", "message": "GET only", "retryable": False}})
         if u.path in PAGES:
             return self.send(200, (PKG / "static" / "index.html").read_bytes(), "text/html; charset=utf-8")
+        if u.path.startswith("/vendor/") and (f := PKG / "static" / "vendor" / Path(u.path).name).is_file():
+            return self.send(200, f.read_bytes(), mimetypes.guess_type(f.name)[0] or "application/octet-stream")
         if u.path == "/api/replay":
             return self.send(200, replay_path().read_bytes())
         if u.path == "/api/local":

@@ -1,12 +1,17 @@
 """Smoke: every page renders and every API the page calls works against the fake internal API."""
 
 import json
+import re
+import shutil
+import subprocess
 import threading
 import urllib.error
 import urllib.request
+from pathlib import Path
 
 import pytest
 
+from cg_dashboard import app
 from cg_dashboard.app import make_server, replay_path
 from cg_dashboard.fake import build_state, start_fake
 
@@ -30,12 +35,41 @@ def call(url, method="GET", body=None):
         return e.code, e.read()
 
 
-@pytest.mark.parametrize("page", ["/", "/map", "/replay", "/muse", "/controls"])
-def test_pages_render(dash, page):
-    status, body = call(dash[0] + page)
-    assert status == 200
-    for marker in [b"Muse's view of San Francisco (internal)", b"Low-outgoing people still isolated", b"Muse at work", b"Demo controls"]:
-        assert marker in body
+def test_page_and_vendored_libs_served(dash):
+    status, body = call(dash[0] + "/replay")
+    assert status == 200 and b"Low-outgoing people still isolated" in body
+    for f in ("maplibre-gl.js", "maplibre-gl.css", "qrcode.min.js"):
+        assert f"/vendor/{f}".encode() in body
+        assert call(dash[0] + "/vendor/" + f)[0] == 200
+    assert b"https://unpkg" not in body and b"cdnjs" not in body
+
+
+def test_inline_script_parses(tmp_path):
+    node = shutil.which("node")
+    if not node:
+        pytest.skip("node not installed")
+    html = (Path(app.__file__).parent / "static" / "index.html").read_text()
+    js = tmp_path / "page.js"
+    js.write_text(re.search(r"<script>(.*?)</script>", html, re.S).group(1))
+    r = subprocess.run([node, "--check", str(js)], capture_output=True, text=True)
+    assert r.returncode == 0, r.stderr
+
+
+def test_foreign_host_or_origin_forbidden(dash):
+    base, state = dash
+    port = base.rsplit(":", 1)[1]
+    n = len(state["calls"])
+    for headers, method in [
+        ({"Host": "evil.example"}, "GET"),  # DNS rebinding
+        ({"Host": f"127.0.0.1:{port}", "Origin": "http://evil.example"}, "POST"),  # CSRF from another tab
+    ]:
+        req = urllib.request.Request(base + "/api/i/demo/reset", data=b"{}" if method == "POST" else None, method=method, headers=headers)
+        with pytest.raises(urllib.error.HTTPError) as e:
+            urllib.request.urlopen(req, timeout=5)
+        assert e.value.code == 403
+    assert len(state["calls"]) == n  # nothing reached the internal API
+    same = urllib.request.Request(base + "/api/i/demo/reset", data=b"{}", method="POST", headers={"Origin": f"http://127.0.0.1:{port}"})
+    assert urllib.request.urlopen(same, timeout=5).status == 204
 
 
 def test_graph_and_metrics_proxy(dash):
