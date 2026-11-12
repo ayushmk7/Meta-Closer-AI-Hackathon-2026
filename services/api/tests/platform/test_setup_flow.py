@@ -177,6 +177,11 @@ def test_rejected_profile_update_changes_nothing(api):
     before = api("getMe").json()
     r = api("updateMe", json={"groupSize": {"min": 6, "max": 4}, "neighborhood": "Mission"})
     assert r.status_code == 400 and r.json()["error"]["code"] == "validation_failed"
+    assert r.json()["error"]["message"] == "Group size minimum is above the maximum."
+    assert (
+        api("updateMe", json={"travel": {"maxMinutes": 1}}).json()["error"]["message"]
+        == "Something in that request isn't right."
+    )
     assert api("getMe").json() == before
     opt_in(api)
     r = api("completeSetup", json={"acceptedInterestIds": [], "hiddenInterestIds": [], "groupSize": {"min": 6, "max": 4},
