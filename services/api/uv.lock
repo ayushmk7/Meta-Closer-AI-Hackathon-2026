@@ -56,6 +56,7 @@ name = "cg-api"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "cg-matching" },
     { name = "fastapi" },
     { name = "httpx" },
     { name = "igraph" },
@@ -69,11 +70,6 @@ dependencies = [
     { name = "uvicorn", extra = ["standard"] },
 ]
 
-[package.optional-dependencies]
-matching = [
-    { name = "cg-matching" },
-]
-
 [package.dev-dependencies]
 dev = [
     { name = "pytest" },
@@ -82,7 +78,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "cg-matching", marker = "extra == 'matching'", editable = "../../packages/matching" },
+    { name = "cg-matching", editable = "../../packages/matching" },
     { name = "fastapi", specifier = ">=0.115" },
     { name = "httpx", specifier = ">=0.27" },
     { name = "igraph", specifier = ">=0.11" },
@@ -95,7 +91,6 @@ requires-dist = [
     { name = "referencing", specifier = ">=0.35" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.32" },
 ]
-provides-extras = ["matching"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -105,7 +100,7 @@ dev = [
 
 [[package]]
 name = "cg-matching"
-version = "0.1.0"
+version = "0.2.0"
 source = { editable = "../../packages/matching" }
 dependencies = [
     { name = "igraph" },
@@ -120,8 +115,14 @@ requires-dist = [
     { name = "igraph", specifier = ">=0.11" },
     { name = "leidenalg", specifier = ">=0.10" },
     { name = "numpy", specifier = ">=2.0" },
-    { name = "pyarrow", specifier = ">=17" },
+    { name = "pyarrow", specifier = ">=17.0" },
     { name = "pyyaml", specifier = ">=6.0" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pytest", specifier = ">=8.3" },
+    { name = "ruff", specifier = ">=0.8" },
 ]
 
 [[package]]
