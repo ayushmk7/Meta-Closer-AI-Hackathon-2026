@@ -38,7 +38,7 @@ jest.mock('../../src/platform/scopedStorage', () => {
 });
 
 const fixtures = require('../../src/features/common-ground/fixtures.json');
-const { api, CgError } = require('../../src/features/common-ground/api');
+const { api } = require('../../src/features/common-ground/api');
 const store = require('../../src/features/common-ground/store');
 const SettingsScreen = require('../../src/features/common-ground/Settings').default;
 

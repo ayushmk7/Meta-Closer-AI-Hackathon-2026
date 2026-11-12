@@ -23,15 +23,20 @@ import { Banners, GroupSizePicker, InterestEditor } from './ui';
 const NONE: ModeInfo[] = []; // stable fallback outside useCg (useSyncExternalStore)
 
 export async function saveMe(patch: MeUpdate): Promise<boolean> {
-  const me = await act(() => api.updateMe(patch));
+  const me = await act(
+    () => api.updateMe(patch),
+    () => saveMe(patch),
+  );
   if (me) setState({ me });
   return !!me;
 }
 export async function setSignal(signalId: string, visibility: Visibility | 'delete') {
-  const ok = await act(() =>
-    visibility === 'delete'
-      ? api.deleteSignal(signalId).then(() => true)
-      : api.setSignalVisibility(signalId, visibility).then(() => true),
+  const ok = await act(
+    () =>
+      visibility === 'delete'
+        ? api.deleteSignal(signalId).then(() => true)
+        : api.setSignalVisibility(signalId, visibility).then(() => true),
+    () => setSignal(signalId, visibility),
   );
   if (ok) await Promise.all([load.signals(), load.setup()]);
 }

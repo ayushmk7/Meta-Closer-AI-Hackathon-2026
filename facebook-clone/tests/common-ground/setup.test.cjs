@@ -38,7 +38,7 @@ jest.mock('../../src/platform/scopedStorage', () => {
 });
 
 const fixtures = require('../../src/features/common-ground/fixtures.json');
-const { api, CgError } = require('../../src/features/common-ground/api');
+const { api } = require('../../src/features/common-ground/api');
 const store = require('../../src/features/common-ground/store');
 const SetupScreen = require('../../src/features/common-ground/Setup').default;
 
@@ -79,12 +79,6 @@ async function render(el) {
     tree.root.findAll((n) => n.props.accessibilityLabel === label && n.props.onPress).length > 0;
   return { tree, text, find, press, has };
 }
-const { Alert } = require('react-native');
-// Press the Alert button titled `text` the next time Alert.alert is called.
-const confirmWith = (text) =>
-  jest
-    .spyOn(Alert, 'alert')
-    .mockImplementation((_t, _m, buttons) => buttons.find((b) => b.text === text)?.onPress?.());
 
 test('intro -> optIn -> connect apps -> picked up (locked sensitive) -> done', async () => {
   const { router } = require('expo-router');
