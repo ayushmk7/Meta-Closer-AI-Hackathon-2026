@@ -1,1 +1,1 @@
-export { MapScreen as default } from '@/features/common-ground';
+export { PlansScreen as default } from '@/features/common-ground';

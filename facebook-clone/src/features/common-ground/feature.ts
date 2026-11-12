@@ -14,10 +14,10 @@ export const commonGroundFeature: FeatureDefinition = {
   tabs: [
     {
       id: 'common-ground',
-      label: 'Map',
+      label: 'Plans',
       href: '/common-ground',
-      icon: 'map-outline',
-      activeIcon: 'map',
+      icon: 'sparkles-outline',
+      activeIcon: 'sparkles',
       after: '/friends',
       useBadge,
     },
@@ -26,9 +26,9 @@ export const commonGroundFeature: FeatureDefinition = {
     {
       id: 'common-ground',
       label: 'Common Ground',
-      icon: 'people-circle-outline',
+      icon: 'sparkles-outline',
       href: '/common-ground',
-      description: 'Meet people who share your interests',
+      description: "Plans with people who are into what you're into",
     },
   ],
   homeSections: [{ id: 'common-ground-home', Component: HomeSection }],

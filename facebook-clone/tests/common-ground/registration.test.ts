@@ -20,15 +20,15 @@ test('Common Ground contributes exactly one of each extension point, registered 
     { ...c.tabs[0], useBadge: undefined },
     {
       id: 'common-ground',
-      label: 'Map',
+      label: 'Plans',
       href: '/common-ground',
-      icon: 'map-outline',
-      activeIcon: 'map',
+      icon: 'sparkles-outline',
+      activeIcon: 'sparkles',
       after: '/friends',
       useBadge: undefined,
     },
   );
-  assert.equal(c.menuItems[0].icon, 'people-circle-outline');
+  assert.equal(c.menuItems[0].icon, 'sparkles-outline');
   assert.equal(c.inboxSources[0].label, 'Common Ground');
   assert.equal(c.eventSources[0].label, 'Planned with Muse');
 });
