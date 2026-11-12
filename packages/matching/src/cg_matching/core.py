@@ -432,6 +432,22 @@ def _related(a: str, b: str) -> bool:
     return a == b or a.startswith(b + ".") or b.startswith(a + ".")
 
 
+def plan_pref_keys(plan: Plan, venue: Venue) -> list[str]:
+    """The MatchState.prefs keys a plan matches. Sensitive venues never get a key (P4)."""
+    keys = [f"act:{plan.activity_type}"] + ([] if venue.sensitive else [f"vn:{venue.venue_id}"])
+    return keys + [f"int:{l2}" for l2 in dict.fromkeys(_prefix(t, 2) for t in plan.target_interest_ids) if l2]
+
+
+def update_prefs(prefs: dict[str, float], keys: list[str], r: float, alpha: float) -> dict[str, float]:
+    """One user's prefs after a reward r in [-1, 1] on `keys`: EMA w = (1 - alpha) * w + alpha * r, clamped.
+    Pure: returns a new dict."""
+    r = max(-1.0, min(1.0, r))
+    out = dict(prefs)
+    for k in dict.fromkeys(keys):
+        out[k] = round(max(-1.0, min(1.0, (1 - alpha) * out.get(k, 0.0) + alpha * r)), 6)
+    return out
+
+
 def rank_plans(
     pool: PoolSnapshot,
     plans: list[Plan],
@@ -453,6 +469,7 @@ def rank_plans(
     """
     pp, m, f = params["plans"], params["matching"], params["feed"]
     cap, boost = pp["exposureCapPerDay"], m["isolationBoost"]
+    pref_boost = m.get("prefBoost", 0.0)  # absent = no learned-preference effect
     buffer_min = params["calendar"]["minFreeBufferMin"]
     met = _met(pool, state)
     iso = {uid for uid in pool.users if not any(uid in pair for pair in met)}
@@ -499,6 +516,10 @@ def rank_plans(
             ]
             base = pj * ps * fit * travel_pen * ((1 + m["signalBoost"]) if sig else 1.0)
             base *= (1 + boost) if uid in iso else 1.0
+            liked: list[str] = []
+            if (up := state.prefs.get(uid)) and (ws := [(up[k], k) for k in plan_pref_keys(p, v) if k in up]):
+                base *= 1 + pref_boost * sum(w for w, _ in ws) / len(ws)
+                liked = [k for w, k in sorted(ws, key=lambda x: (-x[0], x[1])) if w > 0]
             shared = list(
                 dict.fromkeys(l2 for t in p.target_interest_ids if (l2 := _prefix(t, 2)) and vec.get(l2))
             )
@@ -510,6 +531,7 @@ def rank_plans(
                     "p_join": pj,
                     "p_show": ps,
                     "minutes": minutes,
+                    "pref_keys": liked,
                     "signal_ids": sig,
                     "shared": shared[: params["privacy"]["sharedCoarseMax"]],
                 }
@@ -556,6 +578,8 @@ def rank_plans(
             "isolated": isolated,
             "signal_ids": r["signal_ids"],
         }
+        if r["pref_keys"]:  # positive learned keys, strongest first: "Because you liked X" (owner-only, P7)
+            debug["pref_keys"] = r["pref_keys"]
         out[uid].append(PlanScore(uid, p.plan_id, round(score, 6), r["shared"], r["minutes"], debug))
     return out
 

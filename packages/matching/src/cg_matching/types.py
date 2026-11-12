@@ -185,6 +185,8 @@ class MatchState:
     seat_history:  userId -> times left unseated recently (raises seat priority)
     venue_capacity: venueId -> people per slot (form_groups caps total seats; absent = unlimited)
     fixed_ids:     planId -> userIds already seated who must stay together (backfill)
+    prefs:         userId -> {key: w in [-1, 1]} learned from feedback (update_prefs); keys act:<activityType>,
+                   vn:<venueId>, int:<level-2 interest>
     """
 
     exposures: dict[str, int] = field(default_factory=dict)
@@ -194,6 +196,7 @@ class MatchState:
     seat_history: dict[str, int] = field(default_factory=dict)
     venue_capacity: dict[str, int] = field(default_factory=dict)
     fixed_ids: dict[str, list[str]] = field(default_factory=dict)
+    prefs: dict[str, dict[str, float]] = field(default_factory=dict)
 
     def to_dict(self) -> dict:
         return dataclasses.asdict(self)

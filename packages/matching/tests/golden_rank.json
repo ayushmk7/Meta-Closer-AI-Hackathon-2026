@@ -1,0 +1,3122 @@
+{
+ "u_000": [
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.67361,
+    "isolated": true,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_cafe_b",
+   "score": 0.216517,
+   "shared_coarse": [
+    "food_drink.coffee_tea"
+   ],
+   "travel_minutes": 10,
+   "user_id": "u_000"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.67361,
+    "isolated": true,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_cafe",
+   "score": 0.216517,
+   "shared_coarse": [
+    "food_drink.coffee_tea"
+   ],
+   "travel_minutes": 10,
+   "user_id": "u_000"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.541816,
+    "isolated": true,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_clay_b",
+   "score": 0.174155,
+   "shared_coarse": [
+    "arts_crafts.ceramics"
+   ],
+   "travel_minutes": 10,
+   "user_id": "u_000"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.541816,
+    "isolated": true,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_clay_a",
+   "score": 0.174155,
+   "shared_coarse": [
+    "arts_crafts.ceramics"
+   ],
+   "travel_minutes": 10,
+   "user_id": "u_000"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.502678,
+    "isolated": true,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_wall_b",
+   "score": 0.161575,
+   "shared_coarse": [
+    "outdoors.climbing"
+   ],
+   "travel_minutes": 10,
+   "user_id": "u_000"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.245282,
+    "isolated": true,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_wall_a",
+   "score": 0.078841,
+   "shared_coarse": [
+    "outdoors.climbing"
+   ],
+   "travel_minutes": 10,
+   "user_id": "u_000"
+  }
+ ],
+ "u_001": [
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.729177,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_wall_b",
+   "score": 0.151044,
+   "shared_coarse": [
+    "outdoors.climbing"
+   ],
+   "travel_minutes": 12,
+   "user_id": "u_001"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.483891,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_clay_a",
+   "score": 0.100235,
+   "shared_coarse": [
+    "arts_crafts.ceramics"
+   ],
+   "travel_minutes": 12,
+   "user_id": "u_001"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.483891,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_cafe",
+   "score": 0.100235,
+   "shared_coarse": [
+    "food_drink.coffee_tea"
+   ],
+   "travel_minutes": 12,
+   "user_id": "u_001"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.483891,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_cafe_b",
+   "score": 0.100235,
+   "shared_coarse": [
+    "food_drink.coffee_tea"
+   ],
+   "travel_minutes": 12,
+   "user_id": "u_001"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.483891,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_clay_b",
+   "score": 0.100235,
+   "shared_coarse": [
+    "arts_crafts.ceramics"
+   ],
+   "travel_minutes": 12,
+   "user_id": "u_001"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.355802,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_wall_a",
+   "score": 0.073702,
+   "shared_coarse": [
+    "outdoors.climbing"
+   ],
+   "travel_minutes": 12,
+   "user_id": "u_001"
+  }
+ ],
+ "u_002": [
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.770476,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_clay_a",
+   "score": 0.156847,
+   "shared_coarse": [
+    "arts_crafts.ceramics"
+   ],
+   "travel_minutes": 13,
+   "user_id": "u_002"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.770476,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_clay_b",
+   "score": 0.156847,
+   "shared_coarse": [
+    "arts_crafts.ceramics"
+   ],
+   "travel_minutes": 13,
+   "user_id": "u_002"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.626157,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_wall_b",
+   "score": 0.127468,
+   "shared_coarse": [
+    "outdoors.climbing"
+   ],
+   "travel_minutes": 13,
+   "user_id": "u_002"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.305534,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_wall_a",
+   "score": 0.062198,
+   "shared_coarse": [
+    "outdoors.climbing"
+   ],
+   "travel_minutes": 13,
+   "user_id": "u_002"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.119557,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_cafe",
+   "score": 0.024338,
+   "shared_coarse": [
+    "food_drink.coffee_tea"
+   ],
+   "travel_minutes": 13,
+   "user_id": "u_002"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.119557,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_cafe_b",
+   "score": 0.024338,
+   "shared_coarse": [
+    "food_drink.coffee_tea"
+   ],
+   "travel_minutes": 13,
+   "user_id": "u_002"
+  }
+ ],
+ "u_003": [
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.683842,
+    "isolated": true,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_clay_b",
+   "score": 0.216143,
+   "shared_coarse": [
+    "arts_crafts.ceramics"
+   ],
+   "travel_minutes": 11,
+   "user_id": "u_003"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.683842,
+    "isolated": true,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_clay_a",
+   "score": 0.216143,
+   "shared_coarse": [
+    "arts_crafts.ceramics"
+   ],
+   "travel_minutes": 11,
+   "user_id": "u_003"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.663119,
+    "isolated": true,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_cafe_b",
+   "score": 0.209593,
+   "shared_coarse": [
+    "food_drink.coffee_tea"
+   ],
+   "travel_minutes": 11,
+   "user_id": "u_003"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.663119,
+    "isolated": true,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_cafe",
+   "score": 0.209593,
+   "shared_coarse": [
+    "food_drink.coffee_tea"
+   ],
+   "travel_minutes": 11,
+   "user_id": "u_003"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.304357,
+    "isolated": true,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_wall_b",
+   "score": 0.096199,
+   "shared_coarse": [
+    "outdoors.climbing"
+   ],
+   "travel_minutes": 11,
+   "user_id": "u_003"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.148511,
+    "isolated": true,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_wall_a",
+   "score": 0.04694,
+   "shared_coarse": [
+    "outdoors.climbing"
+   ],
+   "travel_minutes": 11,
+   "user_id": "u_003"
+  }
+ ],
+ "u_004": [
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.632972,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_cafe",
+   "score": 0.119813,
+   "shared_coarse": [
+    "food_drink.coffee_tea"
+   ],
+   "travel_minutes": 17,
+   "user_id": "u_004"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.632972,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_cafe_b",
+   "score": 0.119813,
+   "shared_coarse": [
+    "food_drink.coffee_tea"
+   ],
+   "travel_minutes": 17,
+   "user_id": "u_004"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.599652,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_wall_b",
+   "score": 0.113506,
+   "shared_coarse": [
+    "outdoors.climbing"
+   ],
+   "travel_minutes": 17,
+   "user_id": "u_004"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.489657,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_clay_b",
+   "score": 0.092685,
+   "shared_coarse": [
+    "arts_crafts.ceramics"
+   ],
+   "travel_minutes": 17,
+   "user_id": "u_004"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.489657,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_clay_a",
+   "score": 0.092685,
+   "shared_coarse": [
+    "arts_crafts.ceramics"
+   ],
+   "travel_minutes": 17,
+   "user_id": "u_004"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.2926,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_wall_a",
+   "score": 0.055385,
+   "shared_coarse": [
+    "outdoors.climbing"
+   ],
+   "travel_minutes": 17,
+   "user_id": "u_004"
+  }
+ ],
+ "u_005": [
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.670919,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_wall_b",
+   "score": 0.13658,
+   "shared_coarse": [
+    "outdoors.climbing"
+   ],
+   "travel_minutes": 13,
+   "user_id": "u_005"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.547609,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_cafe",
+   "score": 0.111478,
+   "shared_coarse": [
+    "food_drink.coffee_tea"
+   ],
+   "travel_minutes": 13,
+   "user_id": "u_005"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.547609,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_cafe_b",
+   "score": 0.111478,
+   "shared_coarse": [
+    "food_drink.coffee_tea"
+   ],
+   "travel_minutes": 13,
+   "user_id": "u_005"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.499991,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_clay_b",
+   "score": 0.101784,
+   "shared_coarse": [
+    "arts_crafts.ceramics"
+   ],
+   "travel_minutes": 13,
+   "user_id": "u_005"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.499991,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_clay_a",
+   "score": 0.101784,
+   "shared_coarse": [
+    "arts_crafts.ceramics"
+   ],
+   "travel_minutes": 13,
+   "user_id": "u_005"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.327375,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_wall_a",
+   "score": 0.066644,
+   "shared_coarse": [
+    "outdoors.climbing"
+   ],
+   "travel_minutes": 13,
+   "user_id": "u_005"
+  }
+ ],
+ "u_006": [
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.662134,
+    "isolated": true,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_clay_b",
+   "score": 0.209282,
+   "shared_coarse": [
+    "arts_crafts.ceramics"
+   ],
+   "travel_minutes": 11,
+   "user_id": "u_006"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.662134,
+    "isolated": true,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_clay_a",
+   "score": 0.209282,
+   "shared_coarse": [
+    "arts_crafts.ceramics"
+   ],
+   "travel_minutes": 11,
+   "user_id": "u_006"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.617596,
+    "isolated": true,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_wall_b",
+   "score": 0.195204,
+   "shared_coarse": [
+    "outdoors.climbing"
+   ],
+   "travel_minutes": 11,
+   "user_id": "u_006"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.424445,
+    "isolated": true,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_cafe_b",
+   "score": 0.134155,
+   "shared_coarse": [
+    "food_drink.coffee_tea"
+   ],
+   "travel_minutes": 11,
+   "user_id": "u_006"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.424445,
+    "isolated": true,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_cafe",
+   "score": 0.134155,
+   "shared_coarse": [
+    "food_drink.coffee_tea"
+   ],
+   "travel_minutes": 11,
+   "user_id": "u_006"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.301356,
+    "isolated": true,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_wall_a",
+   "score": 0.09525,
+   "shared_coarse": [
+    "outdoors.climbing"
+   ],
+   "travel_minutes": 11,
+   "user_id": "u_006"
+  }
+ ],
+ "u_007": [
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.653561,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_cafe",
+   "score": 0.130712,
+   "shared_coarse": [
+    "food_drink.coffee_tea"
+   ],
+   "travel_minutes": 14,
+   "user_id": "u_007"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.653561,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_clay_b",
+   "score": 0.130712,
+   "shared_coarse": [
+    "arts_crafts.ceramics"
+   ],
+   "travel_minutes": 14,
+   "user_id": "u_007"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.653561,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_clay_a",
+   "score": 0.130712,
+   "shared_coarse": [
+    "arts_crafts.ceramics"
+   ],
+   "travel_minutes": 14,
+   "user_id": "u_007"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.653561,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_cafe_b",
+   "score": 0.130712,
+   "shared_coarse": [
+    "food_drink.coffee_tea"
+   ],
+   "travel_minutes": 14,
+   "user_id": "u_007"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.381729,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_wall_b",
+   "score": 0.076346,
+   "shared_coarse": [
+    "outdoors.climbing"
+   ],
+   "travel_minutes": 14,
+   "user_id": "u_007"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.186265,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_wall_a",
+   "score": 0.037253,
+   "shared_coarse": [
+    "outdoors.climbing"
+   ],
+   "travel_minutes": 14,
+   "user_id": "u_007"
+  }
+ ],
+ "u_008": [
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.702227,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_wall_b",
+   "score": 0.132922,
+   "shared_coarse": [
+    "outdoors.climbing"
+   ],
+   "travel_minutes": 17,
+   "user_id": "u_008"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.627227,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_clay_b",
+   "score": 0.118725,
+   "shared_coarse": [
+    "arts_crafts.ceramics"
+   ],
+   "travel_minutes": 17,
+   "user_id": "u_008"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.627227,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_clay_a",
+   "score": 0.118725,
+   "shared_coarse": [
+    "arts_crafts.ceramics"
+   ],
+   "travel_minutes": 17,
+   "user_id": "u_008"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.342652,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_wall_a",
+   "score": 0.064859,
+   "shared_coarse": [
+    "outdoors.climbing"
+   ],
+   "travel_minutes": 17,
+   "user_id": "u_008"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.336844,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_cafe",
+   "score": 0.06376,
+   "shared_coarse": [
+    "food_drink.coffee_tea"
+   ],
+   "travel_minutes": 17,
+   "user_id": "u_008"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.336844,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_cafe_b",
+   "score": 0.06376,
+   "shared_coarse": [
+    "food_drink.coffee_tea"
+   ],
+   "travel_minutes": 17,
+   "user_id": "u_008"
+  }
+ ],
+ "u_009": [
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.766282,
+    "isolated": true,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_clay_a",
+   "score": 0.221674,
+   "shared_coarse": [
+    "arts_crafts.ceramics"
+   ],
+   "travel_minutes": 16,
+   "user_id": "u_009"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.766282,
+    "isolated": true,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_clay_b",
+   "score": 0.221674,
+   "shared_coarse": [
+    "arts_crafts.ceramics"
+   ],
+   "travel_minutes": 16,
+   "user_id": "u_009"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.552232,
+    "isolated": true,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_wall_b",
+   "score": 0.159753,
+   "shared_coarse": [
+    "outdoors.climbing"
+   ],
+   "travel_minutes": 16,
+   "user_id": "u_009"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.328407,
+    "isolated": true,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_cafe_b",
+   "score": 0.095003,
+   "shared_coarse": [
+    "food_drink.coffee_tea"
+   ],
+   "travel_minutes": 16,
+   "user_id": "u_009"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.328407,
+    "isolated": true,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_cafe",
+   "score": 0.095003,
+   "shared_coarse": [
+    "food_drink.coffee_tea"
+   ],
+   "travel_minutes": 16,
+   "user_id": "u_009"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.269462,
+    "isolated": true,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_wall_a",
+   "score": 0.077951,
+   "shared_coarse": [
+    "outdoors.climbing"
+   ],
+   "travel_minutes": 16,
+   "user_id": "u_009"
+  }
+ ],
+ "u_010": [
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.805278,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_cafe_b",
+   "score": 0.161056,
+   "shared_coarse": [
+    "food_drink.coffee_tea"
+   ],
+   "travel_minutes": 14,
+   "user_id": "u_010"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.805278,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_cafe",
+   "score": 0.161056,
+   "shared_coarse": [
+    "food_drink.coffee_tea"
+   ],
+   "travel_minutes": 14,
+   "user_id": "u_010"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.469008,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_clay_b",
+   "score": 0.093802,
+   "shared_coarse": [
+    "arts_crafts.ceramics"
+   ],
+   "travel_minutes": 14,
+   "user_id": "u_010"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.469008,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_clay_a",
+   "score": 0.093802,
+   "shared_coarse": [
+    "arts_crafts.ceramics"
+   ],
+   "travel_minutes": 14,
+   "user_id": "u_010"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.36271,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_wall_b",
+   "score": 0.072542,
+   "shared_coarse": [
+    "outdoors.climbing"
+   ],
+   "travel_minutes": 14,
+   "user_id": "u_010"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.176984,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_wall_a",
+   "score": 0.035397,
+   "shared_coarse": [
+    "outdoors.climbing"
+   ],
+   "travel_minutes": 14,
+   "user_id": "u_010"
+  }
+ ],
+ "u_011": [
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.649159,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_wall_b",
+   "score": 0.129832,
+   "shared_coarse": [
+    "outdoors.climbing"
+   ],
+   "travel_minutes": 14,
+   "user_id": "u_011"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.623616,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_cafe",
+   "score": 0.124723,
+   "shared_coarse": [
+    "food_drink.coffee_tea"
+   ],
+   "travel_minutes": 14,
+   "user_id": "u_011"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.623616,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_cafe_b",
+   "score": 0.124723,
+   "shared_coarse": [
+    "food_drink.coffee_tea"
+   ],
+   "travel_minutes": 14,
+   "user_id": "u_011"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.435541,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_clay_a",
+   "score": 0.087108,
+   "shared_coarse": [
+    "arts_crafts.ceramics"
+   ],
+   "travel_minutes": 14,
+   "user_id": "u_011"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.435541,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_clay_b",
+   "score": 0.087108,
+   "shared_coarse": [
+    "arts_crafts.ceramics"
+   ],
+   "travel_minutes": 14,
+   "user_id": "u_011"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.316757,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_wall_a",
+   "score": 0.063351,
+   "shared_coarse": [
+    "outdoors.climbing"
+   ],
+   "travel_minutes": 14,
+   "user_id": "u_011"
+  }
+ ],
+ "u_012": [
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.78535,
+    "isolated": true,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_cafe",
+   "score": 0.231398,
+   "shared_coarse": [
+    "food_drink.coffee_tea"
+   ],
+   "travel_minutes": 15,
+   "user_id": "u_012"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.78535,
+    "isolated": true,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_cafe_b",
+   "score": 0.231398,
+   "shared_coarse": [
+    "food_drink.coffee_tea"
+   ],
+   "travel_minutes": 15,
+   "user_id": "u_012"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.490844,
+    "isolated": true,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_clay_a",
+   "score": 0.144624,
+   "shared_coarse": [
+    "arts_crafts.ceramics"
+   ],
+   "travel_minutes": 15,
+   "user_id": "u_012"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.490844,
+    "isolated": true,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_clay_b",
+   "score": 0.144624,
+   "shared_coarse": [
+    "arts_crafts.ceramics"
+   ],
+   "travel_minutes": 15,
+   "user_id": "u_012"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.377224,
+    "isolated": true,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_wall_b",
+   "score": 0.111146,
+   "shared_coarse": [
+    "outdoors.climbing"
+   ],
+   "travel_minutes": 15,
+   "user_id": "u_012"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.184066,
+    "isolated": true,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_wall_a",
+   "score": 0.054234,
+   "shared_coarse": [
+    "outdoors.climbing"
+   ],
+   "travel_minutes": 15,
+   "user_id": "u_012"
+  }
+ ],
+ "u_013": [
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.772085,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_wall_b",
+   "score": 0.15166,
+   "shared_coarse": [
+    "outdoors.climbing"
+   ],
+   "travel_minutes": 15,
+   "user_id": "u_013"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.630181,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_clay_a",
+   "score": 0.123786,
+   "shared_coarse": [
+    "arts_crafts.ceramics"
+   ],
+   "travel_minutes": 15,
+   "user_id": "u_013"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.630181,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_clay_b",
+   "score": 0.123786,
+   "shared_coarse": [
+    "arts_crafts.ceramics"
+   ],
+   "travel_minutes": 15,
+   "user_id": "u_013"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.376739,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_wall_a",
+   "score": 0.074002,
+   "shared_coarse": [
+    "outdoors.climbing"
+   ],
+   "travel_minutes": 15,
+   "user_id": "u_013"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.082198,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_cafe",
+   "score": 0.016146,
+   "shared_coarse": [
+    "food_drink.coffee_tea"
+   ],
+   "travel_minutes": 15,
+   "user_id": "u_013"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.082198,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_cafe_b",
+   "score": 0.016146,
+   "shared_coarse": [
+    "food_drink.coffee_tea"
+   ],
+   "travel_minutes": 15,
+   "user_id": "u_013"
+  }
+ ],
+ "u_014": [
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.736508,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_wall_b",
+   "score": 0.144671,
+   "shared_coarse": [
+    "outdoors.climbing"
+   ],
+   "travel_minutes": 15,
+   "user_id": "u_014"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.650768,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_clay_a",
+   "score": 0.127829,
+   "shared_coarse": [
+    "arts_crafts.ceramics"
+   ],
+   "travel_minutes": 15,
+   "user_id": "u_014"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.650768,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_clay_b",
+   "score": 0.127829,
+   "shared_coarse": [
+    "arts_crafts.ceramics"
+   ],
+   "travel_minutes": 15,
+   "user_id": "u_014"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.359379,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_wall_a",
+   "score": 0.070592,
+   "shared_coarse": [
+    "outdoors.climbing"
+   ],
+   "travel_minutes": 15,
+   "user_id": "u_014"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.184546,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_cafe",
+   "score": 0.03625,
+   "shared_coarse": [
+    "food_drink.coffee_tea"
+   ],
+   "travel_minutes": 15,
+   "user_id": "u_014"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.184546,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_cafe_b",
+   "score": 0.03625,
+   "shared_coarse": [
+    "food_drink.coffee_tea"
+   ],
+   "travel_minutes": 15,
+   "user_id": "u_014"
+  }
+ ],
+ "u_015": [
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.789022,
+    "isolated": true,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_wall_b",
+   "score": 0.23248,
+   "shared_coarse": [
+    "outdoors.climbing"
+   ],
+   "travel_minutes": 15,
+   "user_id": "u_015"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.458105,
+    "isolated": true,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_clay_a",
+   "score": 0.134977,
+   "shared_coarse": [
+    "arts_crafts.ceramics"
+   ],
+   "travel_minutes": 15,
+   "user_id": "u_015"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.458105,
+    "isolated": true,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_clay_b",
+   "score": 0.134977,
+   "shared_coarse": [
+    "arts_crafts.ceramics"
+   ],
+   "travel_minutes": 15,
+   "user_id": "u_015"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.409371,
+    "isolated": true,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_cafe",
+   "score": 0.120618,
+   "shared_coarse": [
+    "food_drink.coffee_tea"
+   ],
+   "travel_minutes": 15,
+   "user_id": "u_015"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.409371,
+    "isolated": true,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_cafe_b",
+   "score": 0.120618,
+   "shared_coarse": [
+    "food_drink.coffee_tea"
+   ],
+   "travel_minutes": 15,
+   "user_id": "u_015"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.385003,
+    "isolated": true,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_wall_a",
+   "score": 0.113438,
+   "shared_coarse": [
+    "outdoors.climbing"
+   ],
+   "travel_minutes": 15,
+   "user_id": "u_015"
+  }
+ ],
+ "u_016": [
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.733792,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_wall_b",
+   "score": 0.141517,
+   "shared_coarse": [
+    "outdoors.climbing"
+   ],
+   "travel_minutes": 16,
+   "user_id": "u_016"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.643035,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_clay_a",
+   "score": 0.124014,
+   "shared_coarse": [
+    "arts_crafts.ceramics"
+   ],
+   "travel_minutes": 16,
+   "user_id": "u_016"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.643035,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_clay_b",
+   "score": 0.124014,
+   "shared_coarse": [
+    "arts_crafts.ceramics"
+   ],
+   "travel_minutes": 16,
+   "user_id": "u_016"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.358054,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_wall_a",
+   "score": 0.069053,
+   "shared_coarse": [
+    "outdoors.climbing"
+   ],
+   "travel_minutes": 16,
+   "user_id": "u_016"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.219216,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_cafe",
+   "score": 0.042277,
+   "shared_coarse": [
+    "food_drink.coffee_tea"
+   ],
+   "travel_minutes": 16,
+   "user_id": "u_016"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.219216,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_cafe_b",
+   "score": 0.042277,
+   "shared_coarse": [
+    "food_drink.coffee_tea"
+   ],
+   "travel_minutes": 16,
+   "user_id": "u_016"
+  }
+ ],
+ "u_017": [
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.704648,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_clay_a",
+   "score": 0.130863,
+   "shared_coarse": [
+    "arts_crafts.ceramics"
+   ],
+   "travel_minutes": 18,
+   "user_id": "u_017"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.704648,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_clay_b",
+   "score": 0.130863,
+   "shared_coarse": [
+    "arts_crafts.ceramics"
+   ],
+   "travel_minutes": 18,
+   "user_id": "u_017"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.507815,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_wall_b",
+   "score": 0.094308,
+   "shared_coarse": [
+    "outdoors.climbing"
+   ],
+   "travel_minutes": 18,
+   "user_id": "u_017"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.495576,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_cafe",
+   "score": 0.092036,
+   "shared_coarse": [
+    "food_drink.coffee_tea"
+   ],
+   "travel_minutes": 18,
+   "user_id": "u_017"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.495576,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_cafe_b",
+   "score": 0.092036,
+   "shared_coarse": [
+    "food_drink.coffee_tea"
+   ],
+   "travel_minutes": 18,
+   "user_id": "u_017"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.247788,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_wall_a",
+   "score": 0.046018,
+   "shared_coarse": [
+    "outdoors.climbing"
+   ],
+   "travel_minutes": 18,
+   "user_id": "u_017"
+  }
+ ],
+ "u_018": [
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.705756,
+    "isolated": true,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_cafe",
+   "score": 0.215507,
+   "shared_coarse": [
+    "food_drink.coffee_tea"
+   ],
+   "travel_minutes": 13,
+   "user_id": "u_018"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.705756,
+    "isolated": true,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_cafe_b",
+   "score": 0.215507,
+   "shared_coarse": [
+    "food_drink.coffee_tea"
+   ],
+   "travel_minutes": 13,
+   "user_id": "u_018"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.504111,
+    "isolated": true,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_clay_a",
+   "score": 0.153934,
+   "shared_coarse": [
+    "arts_crafts.ceramics"
+   ],
+   "travel_minutes": 13,
+   "user_id": "u_018"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.504111,
+    "isolated": true,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_clay_b",
+   "score": 0.153934,
+   "shared_coarse": [
+    "arts_crafts.ceramics"
+   ],
+   "travel_minutes": 13,
+   "user_id": "u_018"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.497776,
+    "isolated": true,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_wall_b",
+   "score": 0.152,
+   "shared_coarse": [
+    "outdoors.climbing"
+   ],
+   "travel_minutes": 13,
+   "user_id": "u_018"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.24289,
+    "isolated": true,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_wall_a",
+   "score": 0.074168,
+   "shared_coarse": [
+    "outdoors.climbing"
+   ],
+   "travel_minutes": 13,
+   "user_id": "u_018"
+  }
+ ],
+ "u_019": [
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.673245,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_cafe_b",
+   "score": 0.137054,
+   "shared_coarse": [
+    "food_drink.coffee_tea"
+   ],
+   "travel_minutes": 13,
+   "user_id": "u_019"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.673245,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_cafe",
+   "score": 0.137054,
+   "shared_coarse": [
+    "food_drink.coffee_tea"
+   ],
+   "travel_minutes": 13,
+   "user_id": "u_019"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.523351,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_wall_b",
+   "score": 0.106539,
+   "shared_coarse": [
+    "outdoors.climbing"
+   ],
+   "travel_minutes": 13,
+   "user_id": "u_019"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.522346,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_clay_b",
+   "score": 0.106335,
+   "shared_coarse": [
+    "arts_crafts.ceramics"
+   ],
+   "travel_minutes": 13,
+   "user_id": "u_019"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.522346,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_clay_a",
+   "score": 0.106335,
+   "shared_coarse": [
+    "arts_crafts.ceramics"
+   ],
+   "travel_minutes": 13,
+   "user_id": "u_019"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.255369,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_wall_a",
+   "score": 0.051986,
+   "shared_coarse": [
+    "outdoors.climbing"
+   ],
+   "travel_minutes": 13,
+   "user_id": "u_019"
+  }
+ ],
+ "u_020": [
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.720742,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_cafe",
+   "score": 0.157019,
+   "shared_coarse": [
+    "food_drink.coffee_tea"
+   ],
+   "travel_minutes": 9,
+   "user_id": "u_020"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.720742,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_cafe_b",
+   "score": 0.157019,
+   "shared_coarse": [
+    "food_drink.coffee_tea"
+   ],
+   "travel_minutes": 9,
+   "user_id": "u_020"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.503018,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_clay_a",
+   "score": 0.109586,
+   "shared_coarse": [
+    "arts_crafts.ceramics"
+   ],
+   "travel_minutes": 9,
+   "user_id": "u_020"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.503018,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_clay_b",
+   "score": 0.109586,
+   "shared_coarse": [
+    "arts_crafts.ceramics"
+   ],
+   "travel_minutes": 9,
+   "user_id": "u_020"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.476974,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_wall_b",
+   "score": 0.103912,
+   "shared_coarse": [
+    "outdoors.climbing"
+   ],
+   "travel_minutes": 9,
+   "user_id": "u_020"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.23274,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_wall_a",
+   "score": 0.050704,
+   "shared_coarse": [
+    "outdoors.climbing"
+   ],
+   "travel_minutes": 9,
+   "user_id": "u_020"
+  }
+ ],
+ "u_021": [
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.871053,
+    "isolated": true,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_wall_b",
+   "score": 0.251983,
+   "shared_coarse": [
+    "outdoors.climbing"
+   ],
+   "travel_minutes": 16,
+   "user_id": "u_021"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.471229,
+    "isolated": true,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_clay_b",
+   "score": 0.13632,
+   "shared_coarse": [
+    "arts_crafts.ceramics"
+   ],
+   "travel_minutes": 16,
+   "user_id": "u_021"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.471229,
+    "isolated": true,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_clay_a",
+   "score": 0.13632,
+   "shared_coarse": [
+    "arts_crafts.ceramics"
+   ],
+   "travel_minutes": 16,
+   "user_id": "u_021"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.42503,
+    "isolated": true,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_wall_a",
+   "score": 0.122955,
+   "shared_coarse": [
+    "outdoors.climbing"
+   ],
+   "travel_minutes": 16,
+   "user_id": "u_021"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.138597,
+    "isolated": true,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_cafe",
+   "score": 0.040094,
+   "shared_coarse": [
+    "food_drink.coffee_tea"
+   ],
+   "travel_minutes": 16,
+   "user_id": "u_021"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.138597,
+    "isolated": true,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_cafe_b",
+   "score": 0.040094,
+   "shared_coarse": [
+    "food_drink.coffee_tea"
+   ],
+   "travel_minutes": 16,
+   "user_id": "u_021"
+  }
+ ],
+ "u_022": [
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.697578,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_cafe_b",
+   "score": 0.134533,
+   "shared_coarse": [
+    "food_drink.coffee_tea"
+   ],
+   "travel_minutes": 16,
+   "user_id": "u_022"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.697578,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_cafe",
+   "score": 0.134533,
+   "shared_coarse": [
+    "food_drink.coffee_tea"
+   ],
+   "travel_minutes": 16,
+   "user_id": "u_022"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.531274,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_wall_b",
+   "score": 0.10246,
+   "shared_coarse": [
+    "outdoors.climbing"
+   ],
+   "travel_minutes": 16,
+   "user_id": "u_022"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.480763,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_clay_a",
+   "score": 0.092719,
+   "shared_coarse": [
+    "arts_crafts.ceramics"
+   ],
+   "travel_minutes": 16,
+   "user_id": "u_022"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.480763,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_clay_b",
+   "score": 0.092719,
+   "shared_coarse": [
+    "arts_crafts.ceramics"
+   ],
+   "travel_minutes": 16,
+   "user_id": "u_022"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.259235,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_wall_a",
+   "score": 0.049995,
+   "shared_coarse": [
+    "outdoors.climbing"
+   ],
+   "travel_minutes": 16,
+   "user_id": "u_022"
+  }
+ ],
+ "u_023": [
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.668176,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_wall_b",
+   "score": 0.133635,
+   "shared_coarse": [
+    "outdoors.climbing"
+   ],
+   "travel_minutes": 14,
+   "user_id": "u_023"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.625183,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_clay_a",
+   "score": 0.125037,
+   "shared_coarse": [
+    "arts_crafts.ceramics"
+   ],
+   "travel_minutes": 14,
+   "user_id": "u_023"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.625183,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_clay_b",
+   "score": 0.125037,
+   "shared_coarse": [
+    "arts_crafts.ceramics"
+   ],
+   "travel_minutes": 14,
+   "user_id": "u_023"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.403344,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_cafe",
+   "score": 0.080669,
+   "shared_coarse": [
+    "food_drink.coffee_tea"
+   ],
+   "travel_minutes": 14,
+   "user_id": "u_023"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.403344,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_cafe_b",
+   "score": 0.080669,
+   "shared_coarse": [
+    "food_drink.coffee_tea"
+   ],
+   "travel_minutes": 14,
+   "user_id": "u_023"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.326037,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_wall_a",
+   "score": 0.065207,
+   "shared_coarse": [
+    "outdoors.climbing"
+   ],
+   "travel_minutes": 14,
+   "user_id": "u_023"
+  }
+ ],
+ "u_024": [
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.893416,
+    "isolated": true,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_clay_a",
+   "score": 0.272811,
+   "shared_coarse": [
+    "arts_crafts.ceramics"
+   ],
+   "travel_minutes": 13,
+   "user_id": "u_024"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.893416,
+    "isolated": true,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_clay_b",
+   "score": 0.272811,
+   "shared_coarse": [
+    "arts_crafts.ceramics"
+   ],
+   "travel_minutes": 13,
+   "user_id": "u_024"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.392348,
+    "isolated": true,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_wall_b",
+   "score": 0.119806,
+   "shared_coarse": [
+    "outdoors.climbing"
+   ],
+   "travel_minutes": 13,
+   "user_id": "u_024"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.218796,
+    "isolated": true,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_cafe_b",
+   "score": 0.066811,
+   "shared_coarse": [
+    "food_drink.coffee_tea"
+   ],
+   "travel_minutes": 13,
+   "user_id": "u_024"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.218796,
+    "isolated": true,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_cafe",
+   "score": 0.066811,
+   "shared_coarse": [
+    "food_drink.coffee_tea"
+   ],
+   "travel_minutes": 13,
+   "user_id": "u_024"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.191446,
+    "isolated": true,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_wall_a",
+   "score": 0.058459,
+   "shared_coarse": [
+    "outdoors.climbing"
+   ],
+   "travel_minutes": 13,
+   "user_id": "u_024"
+  }
+ ],
+ "u_025": [
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.74627,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_wall_b",
+   "score": 0.146589,
+   "shared_coarse": [
+    "outdoors.climbing"
+   ],
+   "travel_minutes": 15,
+   "user_id": "u_025"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.621906,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_clay_b",
+   "score": 0.12216,
+   "shared_coarse": [
+    "arts_crafts.ceramics"
+   ],
+   "travel_minutes": 15,
+   "user_id": "u_025"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.621906,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_clay_a",
+   "score": 0.12216,
+   "shared_coarse": [
+    "arts_crafts.ceramics"
+   ],
+   "travel_minutes": 15,
+   "user_id": "u_025"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.364142,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_wall_a",
+   "score": 0.071528,
+   "shared_coarse": [
+    "outdoors.climbing"
+   ],
+   "travel_minutes": 15,
+   "user_id": "u_025"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.237306,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_cafe_b",
+   "score": 0.046614,
+   "shared_coarse": [
+    "food_drink.coffee_tea"
+   ],
+   "travel_minutes": 15,
+   "user_id": "u_025"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.237306,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_cafe",
+   "score": 0.046614,
+   "shared_coarse": [
+    "food_drink.coffee_tea"
+   ],
+   "travel_minutes": 15,
+   "user_id": "u_025"
+  }
+ ],
+ "u_026": [
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.622807,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_cafe_b",
+   "score": 0.124561,
+   "shared_coarse": [
+    "food_drink.coffee_tea"
+   ],
+   "travel_minutes": 14,
+   "user_id": "u_026"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.622807,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_cafe",
+   "score": 0.124561,
+   "shared_coarse": [
+    "food_drink.coffee_tea"
+   ],
+   "travel_minutes": 14,
+   "user_id": "u_026"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.600564,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_clay_b",
+   "score": 0.120113,
+   "shared_coarse": [
+    "arts_crafts.ceramics"
+   ],
+   "travel_minutes": 14,
+   "user_id": "u_026"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.600564,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_clay_a",
+   "score": 0.120113,
+   "shared_coarse": [
+    "arts_crafts.ceramics"
+   ],
+   "travel_minutes": 14,
+   "user_id": "u_026"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.501433,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_wall_b",
+   "score": 0.100287,
+   "shared_coarse": [
+    "outdoors.climbing"
+   ],
+   "travel_minutes": 14,
+   "user_id": "u_026"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.244674,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_wall_a",
+   "score": 0.048935,
+   "shared_coarse": [
+    "outdoors.climbing"
+   ],
+   "travel_minutes": 14,
+   "user_id": "u_026"
+  }
+ ],
+ "u_027": [
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.838496,
+    "isolated": true,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_clay_a",
+   "score": 0.233581,
+   "shared_coarse": [
+    "arts_crafts.ceramics"
+   ],
+   "travel_minutes": 18,
+   "user_id": "u_027"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.838496,
+    "isolated": true,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_clay_b",
+   "score": 0.233581,
+   "shared_coarse": [
+    "arts_crafts.ceramics"
+   ],
+   "travel_minutes": 18,
+   "user_id": "u_027"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.515522,
+    "isolated": true,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_wall_b",
+   "score": 0.14361,
+   "shared_coarse": [
+    "outdoors.climbing"
+   ],
+   "travel_minutes": 18,
+   "user_id": "u_027"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.251549,
+    "isolated": true,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_wall_a",
+   "score": 0.070074,
+   "shared_coarse": [
+    "outdoors.climbing"
+   ],
+   "travel_minutes": 18,
+   "user_id": "u_027"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.176526,
+    "isolated": true,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_cafe",
+   "score": 0.049175,
+   "shared_coarse": [
+    "food_drink.coffee_tea"
+   ],
+   "travel_minutes": 18,
+   "user_id": "u_027"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.176526,
+    "isolated": true,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_cafe_b",
+   "score": 0.049175,
+   "shared_coarse": [
+    "food_drink.coffee_tea"
+   ],
+   "travel_minutes": 18,
+   "user_id": "u_027"
+  }
+ ],
+ "u_028": [
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.82214,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_wall_b",
+   "score": 0.173237,
+   "shared_coarse": [
+    "outdoors.climbing"
+   ],
+   "travel_minutes": 11,
+   "user_id": "u_028"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.526901,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_clay_b",
+   "score": 0.111026,
+   "shared_coarse": [
+    "arts_crafts.ceramics"
+   ],
+   "travel_minutes": 11,
+   "user_id": "u_028"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.526901,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_clay_a",
+   "score": 0.111026,
+   "shared_coarse": [
+    "arts_crafts.ceramics"
+   ],
+   "travel_minutes": 11,
+   "user_id": "u_028"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.401163,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_wall_a",
+   "score": 0.084531,
+   "shared_coarse": [
+    "outdoors.climbing"
+   ],
+   "travel_minutes": 11,
+   "user_id": "u_028"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.21555,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_cafe_b",
+   "score": 0.04542,
+   "shared_coarse": [
+    "food_drink.coffee_tea"
+   ],
+   "travel_minutes": 11,
+   "user_id": "u_028"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.21555,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_cafe",
+   "score": 0.04542,
+   "shared_coarse": [
+    "food_drink.coffee_tea"
+   ],
+   "travel_minutes": 11,
+   "user_id": "u_028"
+  }
+ ],
+ "u_029": [
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.747287,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_cafe_b",
+   "score": 0.14412,
+   "shared_coarse": [
+    "food_drink.coffee_tea"
+   ],
+   "travel_minutes": 16,
+   "user_id": "u_029"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.747287,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_cafe",
+   "score": 0.14412,
+   "shared_coarse": [
+    "food_drink.coffee_tea"
+   ],
+   "travel_minutes": 16,
+   "user_id": "u_029"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.520582,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_clay_b",
+   "score": 0.100398,
+   "shared_coarse": [
+    "arts_crafts.ceramics"
+   ],
+   "travel_minutes": 16,
+   "user_id": "u_029"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.520582,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_clay_a",
+   "score": 0.100398,
+   "shared_coarse": [
+    "arts_crafts.ceramics"
+   ],
+   "travel_minutes": 16,
+   "user_id": "u_029"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.412984,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_wall_b",
+   "score": 0.079647,
+   "shared_coarse": [
+    "outdoors.climbing"
+   ],
+   "travel_minutes": 16,
+   "user_id": "u_029"
+  },
+  {
+   "debug": {
+    "fill": 1.0,
+    "fit": 0.201516,
+    "isolated": false,
+    "p_join": 0.5,
+    "p_show": 0.5,
+    "signal_ids": []
+   },
+   "plan_id": "pl_wall_a",
+   "score": 0.038864,
+   "shared_coarse": [
+    "outdoors.climbing"
+   ],
+   "travel_minutes": 16,
+   "user_id": "u_029"
+  }
+ ]
+}
