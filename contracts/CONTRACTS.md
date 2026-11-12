@@ -38,6 +38,7 @@ Precedence when documents disagree: **contracts/** > [AGENT_RULES](../docs/commo
   | `mc_` | Muse bar conversation | `mm_` | Muse bar message |
   | `cn_` | connection (person met) | `sc_` | scene |
   | `rp_` | report | `cr_` | connector record (seed only) |
+  | `sh_` | share (anonymous gallery post) | | |
 
   Interest IDs are taxonomy paths (`outdoors.climbing.bouldering`), not prefixed. Connector providers are the keys of `connectors.yaml` (`google_maps`), not prefixed. v1 prefixes `ob_ dr_ sg_ hi_ gr_ iv_ op_ om_ hx_` are retired and never reused.
 - **Demo identity:** every public request carries `X-CG-User: <userId>`. v2 has no real authentication, so the backend refuses to start unless `DEMO_MODE=1`.
@@ -95,6 +96,8 @@ The full shapes and examples are in `openapi.yaml`. Every endpoint is required f
 | People | `listConnections`, `getPerson` | |
 | Chat | `listThreads`, `getThread`, `listMessages`, `sendMessage`, `markThreadRead` | |
 | Safety | `report`, `block` | |
+| Shares | `listShares` (no `X-CG-User` needed), `shareMeetup`, `likeShare` | |
+| Verify | `verifyAttendee` | |
 
 Retired from v1: `startOnboarding`, `sendOnboardingMessage`, `completeOnboarding`, `getDensity`, `getCurrentDrop`, `decideSuggestion`, `sayHi`, `listHi`, `replyHi`, `dismissHi`, `requestGroup`, `getGroupRequest`, `listInvites`, `decideInvite`, `planMeetup`, `voteMeetup`, `getMap`, `updateLocation`, `setLocationShare`, `setLocationView`, `setGhostMode`, `getSceneLeaderboard`, `followScene`.
 
@@ -210,7 +213,8 @@ from cg_matching.types import (
     LayaTables,     # LayaTables.from_dir(path) reads data/laya_tables/<poolId>/; .p_join(u, t), .p_show(u, t), .p_meet_again(a, b)
     Venue,          # Venue.from_record(dict) accepts schemas/venue.schema.json
     Plan,           # Plan.from_record(dict) accepts schemas/plan.schema.json (plus live plans with the same fields)
-    MatchState,     # today's plan exposures, open joins, met pairs, blocked pairs, seat history
+    MatchState,     # today's plan exposures, open joins, met pairs, blocked pairs, seat history;
+                    # .prefs: dict[str, dict[str, float]] user -> key -> w in [-1, 1] (optional, default {}; added batch 2)
     PlanScore,      # user_id, plan_id, score, shared_coarse: list[str], travel_minutes: int, debug: dict
     GroupResult,    # plan_id, member_ids, min_pairwise
     FormResult,     # groups: list[GroupResult], unseated_ids: list[str]
@@ -229,7 +233,11 @@ def rank_plans(pool: PoolSnapshot, plans: list[Plan], vectors: "Vectors", venues
                state: MatchState, params: Params, rng: "random.Random") -> dict[str, list[PlanScore]]: ...
 def form_groups(plan: Plan, interested_ids: list[str], pool: PoolSnapshot, cands: dict[str, list[tuple[str, float]]],
                 tables: LayaTables, state: MatchState, params: Params, rng: "random.Random") -> FormResult: ...
+def update_prefs(prefs: dict[str, float], keys: list[str], r: float, alpha: float) -> dict[str, float]: ...
+    # added batch 2; returns a new dict, w = (1 - alpha) * w + alpha * r for each key
 ```
+
+Preference keys are `act:<activityType>`, `vn:<venueId>` and `int:<level-2 interest ID>`. `rank_plans` multiplies a plan's base score by `1 + params.matching.prefBoost * mean(w over the plan's keys present in state.prefs[user])` before the fill and allocation passes; with empty `prefs` its output is identical to before. `PlanScore.debug["pref_keys"]` lists the keys that applied.
 
 All functions are pure (no I/O, no network, no clock; randomness only from `rng`/`seed`; times come in as arguments). `shared_interests` and `plan_overlap` apply P1, P2 and P4 so the backend and the simulation reveal the same overlap. `plan_overlap` returns `(level-2 interest ID, count of joined users who have it)` for interests the viewer also has, which is exactly what `Crowd.sharedWithYou` shows. `rank_plans` applies calendar and travel hard filters from `pool` (busy blocks, neighborhood centroid, travel prefs).
 
@@ -283,6 +291,8 @@ Hooks in `useBadge` and `useRows` are called on every render of their host scree
 | `expo-location` | One reading when the user taps Check in | When-in-use only; never in the background; skipped when `demo.fakeLocation` is set |
 | `expo-blur` | Pop-up and sheet backgrounds | |
 | `expo-haptics` | Group-formed and approval feedback | |
+| `expo-camera` | Scan another attendee's verify QR (`CameraView` with `onBarcodeScanned`) | Only on the scan screen, only after the user taps; no photos or video are saved or sent |
+| `qrcode-generator` | Draw my verify QR as a View grid | Pure JS, no native module |
 
 Directions use React Native's built-in `Linking` to open the `Directions` URLs. Nothing else may be added to `facebook-clone/package.json` without a contracts PR. Not allowed: `expo-maps` (not in Expo Go), Google map provider, background location, push notifications, any native module outside Expo Go, any share extension (needs a development build).
 
@@ -332,6 +342,7 @@ Standard commands (each owner provides its own; the root `Makefile` only calls t
 
 ### Changelog
 
+- v2.1.0 (2026-11-12, batch 2): shares (`Share`, `listShares`, `shareMeetup`, `likeShare`, prefix `sh_`), `verifyAttendee` with optional `Meetup.verifyCode` and `Attendee.verified`, optional `Feedback.rating` and `Feedback.tags`, connectors `luma` and `beli`, params `matching.prefBoost`, `matching.prefAlpha`, `shares.galleryMax`, §10 `MatchState.prefs` and `update_prefs`, allowlist `expo-camera` and `qrcode-generator`.
 - v2.0.0 (2026-11-12): plans-first redesign after judge feedback. Plans, joins, group formation from joins, the Muse bar, the visible Muse agent (steps, approvals, simulated booking and payments, autonomy settings), connectors and signals, nudges, device calendar sync and directives, travel estimates and directions. Removed the people drop, openers, group requests, voting, the map and location sharing, density and the scene leaderboard. `questionsVersion` 2. New `connectors.yaml` and seed files `connectors.jsonl`, `venues.jsonl`, `plans.jsonl`; `onboarding.jsonl` retired. App allowlist adds `expo-calendar` and `expo-notifications`.
 - v1.0.0 (2026-11-12): initial contracts.
 
@@ -351,3 +362,6 @@ Resolved open questions from the v2 build. Additive only; nothing renamed or tig
 
 
 - **Rewards (2026-11-12).** Optional `Me.rewards` { confirmedMeetups, streakWeeks, nextUnlock } from `params.unlocks`; private to the user, never shown to others or used in ranking. "Surprise me" is client-only: it opens a random not-joined plan from the viewer's own `getFeed` (already tailored); no new endpoint.
+- **Quests and Passport (batch 2).** Client-only, like Surprise me: derived from the user's own joins, messages, meetups and local flags; no new endpoint, never sent to the server or shown to others.
+- **Shares are anonymous (batch 2).** A `Share` has no person fields and uses the venue photo only, because a user photo can show attendees who did not consent. Sensitive venues can't be shared (422).
+- **Verification by QR (batch 2).** NFC is not possible in Expo Go, so "tap phones" is "show my code, scan theirs" with the same 6 characters printed for typed entry (web, simulator, denied camera). One accepted scan verifies both people server-side and counts the meetup for both.
