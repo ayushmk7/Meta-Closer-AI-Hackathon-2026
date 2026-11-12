@@ -1,0 +1,26 @@
+{
+  "poolId": "pool_evt_closer_together",
+  "mayaId": "u_maya",
+  "featuredPlanIds": [
+    "pl_evt_hero_lunch_walk",
+    "pl_evt_bayfront_walk",
+    "pl_evt_wed_game_night",
+    "pl_explorers_031",
+    "pl_explorers_032"
+  ],
+  "heroPlanId": "pl_evt_hero_lunch_walk",
+  "nudgePlanId": "pl_evt_bayfront_walk",
+  "liveUserId": "u_e007",
+  "counterpartIds": [
+    "u_e007",
+    "u_e028",
+    "u_e049",
+    "u_e057",
+    "u_e071"
+  ],
+  "privateCounterpartId": "u_e028",
+  "fakeLocation": {
+    "lat": 37.48391,
+    "lng": -122.14923
+  }
+}
