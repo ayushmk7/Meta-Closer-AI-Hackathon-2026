@@ -314,7 +314,9 @@ test('phone touch gestures scroll every long page and the story strip', async ({
     }
     await page.goto('/');
     await expect(page.getByRole('region', { name: 'Stories', exact: true })).toBeVisible();
-    await swipe([330, 275, 220, 165, 110, 55].map((x) => ({ x, y: 270 })));
+    // Home sections (Common Ground card) sit above the strip, so swipe at its real position.
+    const y = (await page.locator('.stories').boundingBox())!.y + 80;
+    await swipe([330, 275, 220, 165, 110, 55].map((x) => ({ x, y })));
     await expect
       .poll(() => page.locator('.stories').evaluate((element) => element.scrollLeft))
       .toBeGreaterThan(200);
