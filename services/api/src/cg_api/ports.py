@@ -138,9 +138,9 @@ def install_providers() -> None:
 
 
 def matching() -> Any:
-    """cg_matching, imported lazily: slice B's package may not be installed yet. Raises Unavailable."""
+    """cg_matching (path dependency on packages/matching), imported lazily. Raises Unavailable if missing."""
     try:
         import cg_matching
     except ImportError as e:
-        raise Unavailable("cg_matching not installed (uv sync --extra matching)") from e
+        raise Unavailable("cg_matching not installed (uv sync)") from e
     return cg_matching
