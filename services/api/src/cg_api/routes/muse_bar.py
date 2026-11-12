@@ -5,11 +5,11 @@ the spec's example cards are used so the bar is demo-able.
 
 from __future__ import annotations
 
+import secrets
 import time
 from collections import defaultdict, deque
 from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime
-from itertools import count
 
 from fastapi import APIRouter
 from pydantic import BaseModel
@@ -37,9 +37,8 @@ plan_source: Callable[[str], Awaitable[list[dict]]] = _example_cards  # slice C:
 gate: Callable[[str], Awaitable[None]] = _no_gate  # slice C/A: raise ApiError(403, "not_opted_in", ...)
 
 # ponytail: in-process conversations and rate limits; reset with the process (demo reset clears them via clear())
-_conversations: dict[str, list[dict]] = {}
+_conversations: dict[tuple[str, str], list[dict]] = {}
 _asks: dict[str, deque] = defaultdict(deque)
-_ids = count(1)
 
 
 def clear() -> None:
@@ -61,18 +60,21 @@ async def ask_muse(body: AskBody, user: User):
     s = get_settings()
     p = s.params["muse"]
     text = body.text.strip()
-    if not text or len(text) > p["askMaxChars"]:
+    if not text:
+        raise ApiError(400, "validation_failed", "Tell me what you'd like to do.")
+    if len(text) > p["askMaxChars"]:
         raise ApiError(400, "validation_failed", f"Keep it under {p['askMaxChars']} characters.")
     await gate(user)
     q, t = _asks[user], time.monotonic()
     while q and t - q[0] > 3600:
         q.popleft()
     if len(q) >= p["askPerHour"]:
-        raise ApiError(429, "rate_limited", "Give me a minute, then ask again.", retryable=True)
+        raise ApiError(429, "rate_limited", "You've asked a lot this hour. Try again a bit later.", retryable=True)
     q.append(t)
 
-    cid = body.conversationId if body.conversationId in _conversations else f"mc_{next(_ids):04d}"
-    history = _conversations.setdefault(cid, [])
+    # owner-scoped and unguessable: another user's id just starts a fresh conversation (P7, prompt privacy)
+    cid = body.conversationId if (user, body.conversationId) in _conversations else f"mc_{secrets.token_hex(8)}"
+    history = _conversations.setdefault((user, cid), [])
     f, said = await bar.understand(ports.muse, text, history, _now(), s.contracts_dir)
     cards = await plan_source(user)
     venue = bar.nearest_venue(f["link"], [c["venue"] for c in cards]) if f["link"] else None
@@ -82,7 +84,7 @@ async def ask_muse(body: AskBody, user: User):
     history += [{"role": "user", "content": text}, {"role": "assistant", "content": answer}]
     return {
         "conversationId": cid,
-        "reply": {"messageId": f"mm_{next(_ids):04d}", "text": answer, "createdAt": _now()},
+        "reply": {"messageId": f"mm_{secrets.token_hex(8)}", "text": answer, "createdAt": _now()},
         "plans": plans,
         "createdPlanId": None,
         "prompts": bar.follow_ups(text),

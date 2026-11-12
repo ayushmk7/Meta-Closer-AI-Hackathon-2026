@@ -12,6 +12,7 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 
 from cg_api.muse import Unavailable
+from cg_api.muse.extract import taxonomy
 
 log = logging.getLogger("cg_api.muse.copy")
 TZ = ZoneInfo("America/Los_Angeles")  # ponytail: pool timezone fixed to SF until a second-city pool exists
@@ -83,18 +84,42 @@ def names(first: list[str]) -> str:
     return first[0] if len(first) == 1 else ", ".join(first[:-1]) + " and " + first[-1]
 
 
+def lc(label: str) -> str:
+    """Mid-sentence casing: "Wheel throwing" -> "wheel throwing"; "AI and ML", "CrossFit", "Film & TV" kept."""
+    return label[:1].lower() + label[1:] if label[1:] == label[1:].lower() else label
+
+
+def safe_labels(items: list, sensitive: set[str]) -> list[str]:
+    """Labels safe to speak: drops hidden or sensitive interest dicts and any sensitive taxonomy label (P4)."""
+    out = []
+    for i in items:
+        if isinstance(i, dict):
+            if i.get("visibility") == "hidden" or i.get("sensitive"):
+                continue
+            i = i.get("label") or (i.get("interest") or {}).get("label", "")
+        if i and i not in sensitive:
+            out.append(i)
+    return out
+
+
+def _when(title: str, iso: str) -> str:
+    """ " on Saturday", unless the title already says the day."""
+    d = day(iso) if iso else ""
+    return f" on {d}" if d and d.lower() not in title.lower() else ""
+
+
 # ---------- templates (also the MUSE_FAKE output) ----------
 def intro_text(first_names: list[str], shared_labels: list[str], plan: dict) -> str:
     p = public_plan(plan)
-    common = f" You're all into {shared_labels[0].lower()}." if shared_labels else ""
-    when = f" {day(p['startsAt'])} at {p['venue']} is yours." if p["startsAt"] and p["venue"] else ""
+    common = f" You're all into {lc(shared_labels[0])}." if shared_labels else ""
+    when = f" See you {day(p['startsAt'])} at {p['venue']}." if p["startsAt"] and p["venue"] else ""
     return f"{names(first_names)}, meet each other!{common}{when} I'm handling the booking and the calendar."
 
 
 def starters(plan: dict, shared_labels: list[str]) -> list[str]:
     out = list(STARTERS.get(plan.get("activityType", ""), []))
     if len(shared_labels) > 1:
-        out.append(f"Anyone else into {shared_labels[1].lower()}?")
+        out.append(f"Anyone else into {lc(shared_labels[1])}?")
     out += GENERIC_STARTERS
     return list(dict.fromkeys(s for s in out if len(s) < 90))[:3]
 
@@ -122,22 +147,28 @@ def plan_title(plan: dict) -> str:
 
 def plan_reason(plan: dict, shared_labels: list[str]) -> str:
     p = public_plan(plan)
+    venue = f"at {p['venue']}" if p["venue"] else "nearby"
     when = f" on {day(p['startsAt'])}" if p["startsAt"] else ""
     if shared_labels:
-        return f"People who like {shared_labels[0].lower()}, {p['venue'] or 'nearby'}{when}."[:160]
-    return f"Something new at {p['venue'] or 'a place nearby'}{when}."[:160]
+        return f"For people into {lc(shared_labels[0])}, {venue}{when}."[:160]
+    return f"Something new {venue}{when}."[:160]
 
 
 def setup_review(interest_labels: list[str]) -> str:
+    """Callers pass safe_labels(); sensitive or hidden labels are never spoken."""
     if not interest_labels:
         return "I didn't find much yet. Add a few things you like and I'll find plans for you."
-    top = names([x.lower() for x in interest_labels[:3]])
+    top = names([lc(x) for x in interest_labels[:3]])
     return f"I noticed you're into {top}. I'll look for small plans around those."
 
 
-def nudge(signal_label: str, plan: dict) -> str:
+def nudge(signal_label: str, plan: dict) -> tuple[str, str]:
+    """(title, text), e.g. ("Lands End Trail on Sunday?", "You've been to ... Sunday coastal walk is open. Want in?")"""
     p = public_plan(plan)
-    return f"{signal_label}. There's a {p['title'].lower() or 'plan'} {day(p['startsAt'])}, want in?"[:160]
+    title = f"{p['venue'] or p['title']} on {day(p['startsAt'])}?" if p["startsAt"] else f"{p['title']}?"
+    return title[:80], f"{signal_label}. {p['title'] or 'A plan'}{_when(p['title'], p['startsAt'])} is open. Want in?"[
+        :160
+    ]
 
 
 # ---------- live Copy (ports.Copy) ----------
@@ -153,6 +184,12 @@ _INTRO = {
     "required": ["text", "starters"],
     "additionalProperties": False,
 }
+_NUDGE = {
+    "type": "object",
+    "properties": {"title": {"type": "string"}, "text": {"type": "string"}},
+    "required": ["title", "text"],
+    "additionalProperties": False,
+}
 VOICE = (
     "You are Muse, the planning assistant in Common Ground. Warm, short, plain. First person, never pretend "
     "to be a person. No emoji, no percentages or scores. Talk about the activity, never about loneliness. "
@@ -163,8 +200,10 @@ VOICE = (
 class MuseCopy:
     """Implements ports.Copy; any Muse failure or over-long answer falls back to the template."""
 
-    def __init__(self, muse):
+    def __init__(self, muse, contracts_dir=None):
         self.muse = muse
+        tax = taxonomy(contracts_dir) if contracts_dir else {}
+        self.sensitive = {v["label"] for v in tax.values() if v["sensitive"]}
 
     async def _ask(self, purpose: str, task: str, facts: dict, schema: dict = _TEXT) -> dict | None:
         try:
@@ -191,6 +230,7 @@ class MuseCopy:
         )
 
     async def plan_reason(self, plan: dict, shared_labels: list[str]) -> str:
+        shared_labels = safe_labels(shared_labels, self.sensitive)
         facts = {"plan": public_plan(plan), "sharedInterests": shared_labels}
         return await self._text(
             "copy.reason",
@@ -200,17 +240,19 @@ class MuseCopy:
             160,
         )
 
-    async def setup_review(self, user_id: str, interest_labels: list[str]) -> str:
-        # user_id is deliberately not sent
+    async def setup_review(self, user_id: str, interest_labels: list) -> str:
+        # user_id is deliberately not sent; labels may be strings or MyInterest-like dicts
+        labels = safe_labels(interest_labels, self.sensitive)
         return await self._text(
             "copy.setup",
             "At most 2 sentences reviewing what you noticed I like.",
-            {"interests": interest_labels},
-            setup_review(interest_labels),
+            {"interests": labels},
+            setup_review(labels),
             280,
         )
 
     async def intro(self, first_names, shared_labels, plan) -> tuple[str, list[str]]:
+        shared_labels = safe_labels(shared_labels, self.sensitive)
         facts = {"firstNames": first_names, "sharedInterests": shared_labels, "plan": public_plan(plan)}
         j = await self._ask(
             "copy.intro",
@@ -224,11 +266,15 @@ class MuseCopy:
             return j["text"], st
         return intro_text(first_names, shared_labels, plan), starters(plan, shared_labels)
 
-    async def nudge(self, signal_label: str, plan: dict) -> str:
-        return await self._text(
+    async def nudge(self, signal_label: str, plan: dict) -> tuple[str, str]:
+        """(title, text); ports.Copy.nudge is being widened to return both (bplat)."""
+        title, text = nudge(signal_label, plan)
+        j = await self._ask(
             "copy.nudge",
-            "One short nudge about the activity and the place.",
+            "A short nudge about the activity and the place: a title under 40 characters ending in ?, and one "
+            "sentence under 160 characters.",
             {"signal": signal_label, "plan": public_plan(plan)},
-            nudge(signal_label, plan),
-            160,
+            _NUDGE,
         )
+        t, x = (j or {}).get("title", "").strip(), (j or {}).get("text", "").strip()
+        return (t, x) if 0 < len(t) <= 80 and 0 < len(x) <= 160 else (title, text)

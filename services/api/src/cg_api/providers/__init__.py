@@ -40,7 +40,7 @@ def install(ports) -> None:
         model=s.muse_model,
         timeout_s=p["muse"]["liveTimeoutS"],
     )
-    ports.copy = MuseCopy(ports.muse)
+    ports.copy = MuseCopy(ports.muse, s.contracts_dir)
     ports.extractor = Extractor(
         ports.muse,
         ports.laya,

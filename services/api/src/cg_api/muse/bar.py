@@ -15,7 +15,7 @@ from urllib.parse import unquote_plus
 
 from cg_api.laya import load_questions
 from cg_api.muse import Unavailable
-from cg_api.muse.copy import TZ, local
+from cg_api.muse.copy import TZ, _when, local
 from cg_api.muse.extract import taxonomy
 
 DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
@@ -144,7 +144,7 @@ def keyword_filter(text: str, now_iso: str, contracts_dir: Path) -> dict:
         days = [today + timedelta(1)]
     elif "weekend" in t:
         sat = today + timedelta((5 - today.weekday()) % 7)
-        days = [d for d in (sat - timedelta(1) if today.weekday() == 6 else sat, sat + timedelta(1)) if d >= today]
+        days = [today] if today.weekday() == 6 else [sat, sat + timedelta(1)]  # on Sunday, the weekend is today
     elif "this week" in t:
         days = [today + timedelta(i) for i in range(7 - today.weekday())]
     else:
@@ -190,14 +190,14 @@ def apply(cards: list[dict], f: dict, venue_id: str | None = None) -> list[dict]
 def reply(plans: list[dict], f: dict) -> str:
     if not plans:
         return "I couldn't find a plan for that yet. Try another day, or ask me for something close to it."
-    n = len(plans)
+    if not any(f.get(k) for k in ("activityTypes", "interestIds", "days", "part", "maxMinutes", "link")):
+        return "Here's what's coming up near you."
     first = plans[0]
-    when = local(first["startsAt"]).strftime("%A")
-    what = "plan" if n == 1 else "plans"
-    lead = f"I found {n} {what} that fit." if n > 1 else f"I found one that fits: {first['title']} on {when}."
+    if len(plans) == 1:
+        return f"I found one that fits: {first['title']}{_when(first['title'], first['startsAt'])}."
     count = (first.get("crowd") or {}).get("interestedCount", 0)
-    tail = f" {first['title']} already has {count} people in." if n > 1 and count >= 2 else ""
-    return lead + tail
+    tail = f" {first['title']} already has {count} people in." if count >= 2 else ""
+    return f"I found {len(plans)} plans that fit.{tail}"
 
 
 def follow_ups(text: str) -> list[str]:

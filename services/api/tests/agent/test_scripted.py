@@ -37,9 +37,6 @@ def test_hero_default_sequence_waits_for_every_payment():
         ("payment", "needs_you"),
         ("payment", "needs_you"),
         ("book", "queued"),
-        ("calendar", "queued"),
-        ("event", "queued"),
-        ("reminder", "queued"),
     ]
     first = ev[1]["step"]
     assert first["label"] == "Everyone's free Saturday 10 to 12"
@@ -64,14 +61,29 @@ def test_hero_default_sequence_waits_for_every_payment():
     assert list(r.decide(approvals[0]["approvalId"], "approved")) == []  # already decided
 
 
-def test_booking_failure_is_visible_then_rescheduled():
+def test_booking_failure_is_visible_then_rescheduled_in_order():
     r = run(fail_next_booking=True)
     for a in [e["approval"] for e in list(r.start()) if e["type"] == "approval"]:
         list(r.decide(a["approvalId"], "approved"))
-    book = [s for s in r.steps if s["kind"] in ("book", "reschedule")]
-    assert [(s["kind"], s["status"]) for s in book] == [("book", "failed"), ("reschedule", "done"), ("book", "done")]
-    assert book[1]["label"] == "Full at 10, so I booked 11 instead; everyone's still free"
+    tail = [(s["kind"], s["status"]) for s in r.steps if s["kind"] != "payment"][3:]
+    assert tail == [("book", "failed"), ("reschedule", "done"), ("book", "done"), ("calendar", "done"),
+                    ("event", "done"), ("reminder", "done")]
+    labels = [s["label"] for s in r.steps]
+    assert "Clay Hour Studio is full at 10 AM" in labels
+    assert "Full at 10, so I moved it to 11; everyone's still free" in labels
+    assert labels[-1] == "Set leave-by reminders for everyone"
     assert r.plan["startsAt"] == "2026-11-14T19:00:00Z"
+
+
+def test_no_room_stops_before_payments_and_never_claims_booked():
+    small = {**VENUE, "booking": {**VENUE["booking"], "capacityPerSlot": 2}}
+    ids = count(1)
+    r = ScriptedRun("mt_1", HERO, small, PEOPLE, "2026-11-12T18:12:00Z", lambda p: f"{p}_{next(ids)}")
+    ev = list(r.start())
+    assert steps(ev)[2:] == [("check_availability", "failed"), ("reschedule", "failed")]
+    assert not any(e["type"] in ("approval", "payment", "confirmed") for e in ev)
+    assert [e["booking"]["status"] for e in ev if e["type"] == "booking"] == ["failed"]
+    assert not any("Confirmation" in (s["detail"] or "") for s in r.steps)
 
 
 def test_auto_spend_and_free_plans_and_private_payment_steps():

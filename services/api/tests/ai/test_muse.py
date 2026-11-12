@@ -53,8 +53,8 @@ def test_fake_copy_is_templated_and_bounded():
     copy = MuseCopy(FAKE)
     text, starters = asyncio.run(copy.intro(["Maya", "Rosa", "Dan"], ["Wheel throwing"], PLAN))
     assert text == (
-        "Maya, Rosa and Dan, meet each other! You're all into wheel throwing. Saturday at Clay Hour "
-        "Studio is yours. I'm handling the booking and the calendar."
+        "Maya, Rosa and Dan, meet each other! You're all into wheel throwing. See you Saturday at Clay "
+        "Hour Studio. I'm handling the booking and the calendar."
     )
     assert len(starters) == 3 and all(len(s) < 90 for s in starters)
     assert len(asyncio.run(copy.plan_title({**PLAN, "title": "x" * 99}))) == 60
@@ -168,3 +168,46 @@ def test_bar_keyword_fallback_and_maps_link():
 def test_bar_live_answer_validated(bad):
     f, said = asyncio.run(bar.understand(Spy(bad), "coffee", [], "2026-11-12T18:00:00Z", CONTRACTS))
     assert said is None and f["activityTypes"] == ["coffee"]
+
+
+def test_stalled_muse_costs_one_timeout_not_retries():
+    import socket
+    import time
+
+    srv = socket.socket()
+    srv.bind(("127.0.0.1", 0))
+    srv.listen(8)  # accepts connections, never answers
+    muse = MuseClient(fake=False, base_url=f"http://127.0.0.1:{srv.getsockname()[1]}/v1", api_key="x", timeout_s=0.5)
+    t0 = time.monotonic()
+    with pytest.raises(Unavailable):
+        asyncio.run(muse.respond("bar", "hi"))
+    assert time.monotonic() - t0 < 1.2
+    srv.close()
+
+
+def test_copy_never_speaks_sensitive_labels_and_keeps_casing():
+    copy = MuseCopy(FAKE, CONTRACTS)
+    said = asyncio.run(copy.setup_review("u_x", ["Ceramics", "Faith & spirituality", "AI and ML"]))
+    assert said == "I noticed you're into ceramics and AI and ML. I'll look for small plans around those."
+    hidden = [{"interest": {"label": "Sourdough"}, "visibility": "hidden", "sensitive": False}]
+    assert "Sourdough" not in asyncio.run(copy.setup_review("u_x", hidden))
+    spy = Spy()
+    asyncio.run(MuseCopy(spy, CONTRACTS).setup_review("u_x", ["Faith & spirituality", "Buddhism"]))
+    assert "Faith" not in spy.prompts[0][1] and "Buddhism" not in spy.prompts[0][1]
+    assert asyncio.run(copy.plan_reason(PLAN, ["CrossFit"])) == "For people into CrossFit, at Clay Hour Studio on Saturday."
+    walk = {**PLAN, "title": "Sunday coastal walk at Lands End", "startsAt": "2026-11-15T17:00:00Z",
+            "venue": {"name": "Lands End Trail"}}
+    title, text = asyncio.run(copy.nudge("You've been to Lands End Trail 4 times this month", walk))
+    assert title == "Lands End Trail on Sunday?"
+    assert text == ("You've been to Lands End Trail 4 times this month. Sunday coastal walk at Lands End is open. "
+                    "Want in?")
+
+
+def test_bar_reply_and_sunday_weekend():
+    sunday = "2026-11-15T18:00:00Z"
+    assert bar.keyword_filter("hike this weekend", sunday, CONTRACTS)["days"] == ["2026-11-15"]
+    empty = bar.keyword_filter("I just moved here", sunday, CONTRACTS)
+    card = {**PLAN, "crowd": {"interestedCount": 3}}
+    assert bar.reply([card, card], empty) == "Here's what's coming up near you."
+    f = bar.keyword_filter("pottery", sunday, CONTRACTS)
+    assert bar.reply([card], f) == "I found one that fits: Saturday wheel-throwing drop-in."

@@ -19,3 +19,14 @@ def test_ask_muse_rate_limited(public):
     codes = [public.post("/v1/muse/ask", json={"text": "coffee"}).status_code for _ in range(31)]
     assert codes[-1] == 429 and set(codes[:-1]) == {200}
     muse_bar.clear()
+
+
+def test_conversations_are_owner_scoped_and_unguessable(public):
+    muse_bar.clear()
+    cid = public.post("/v1/muse/ask", json={"text": "something near my therapist"}).json()["conversationId"]
+    assert len(cid) > 10
+    other = public.post("/v1/muse/ask", json={"text": "coffee", "conversationId": cid}, headers={"X-CG-User": "u_0042"})
+    assert other.json()["conversationId"] != cid
+    assert all("therapist" not in m["content"] for m in muse_bar._conversations[("u_0042", other.json()["conversationId"])])
+    assert public.post("/v1/muse/ask", json={"text": "  "}).json()["error"]["message"] == "Tell me what you'd like to do."
+    muse_bar.clear()

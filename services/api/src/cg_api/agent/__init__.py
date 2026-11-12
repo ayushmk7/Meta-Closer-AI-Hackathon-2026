@@ -101,14 +101,12 @@ class ScriptedRun:
             detail=f"Checked {n} calendars",
         )
         if self.needs_booking:
-            cap = (v.get("booking") or {}).get("capacityPerSlot", n)
-            ok = cap >= n
+            if simulated_book(v, p["startsAt"], n) is None:  # capacity check only; nothing is booked yet
+                yield self._step("check_availability", "failed", f"{v['name']} is full at {clock(p['startsAt'], True)}")
+                if not (yield from self._shift(n, "No room")):
+                    return
             yield self._step(
-                "check_availability",
-                "done" if ok else "failed",
-                f"{v['name']} has {self._seat(n)} open at {clock(p['startsAt'])}"
-                if ok
-                else f"{v['name']} doesn't have room for {n} at {clock(p['startsAt'])}",
+                "check_availability", "done", f"{v['name']} has {self._seat(n)} open at {clock(self.plan['startsAt'])}"
             )
         else:
             yield self._step("check_availability", "done", f"No booking needed at {v['name']}")
@@ -149,11 +147,8 @@ class ScriptedRun:
             }
             yield self._step("payment", "needs_you", f"Waiting for you to OK {amount}", approval_id=ap_id, for_user=uid)
         if self.pending:
-            # queued steps show what comes next while Muse waits
+            # only the next step is queued: anything after a booking failure must append after it, in order
             yield self._step("book", "queued", f"Book {self._seat(len(self.attendees))}")
-            yield self._step("calendar", "queued", "Add it to everyone's calendar")
-            yield self._step("event", "queued", "Create a private event")
-            yield self._step("reminder", "queued", "Remind everyone when to leave")
 
     def decide(self, approval_id: str, status: str) -> Iterator[dict]:
         """approved | declined | expired for one pending payment approval; continues the run when all are in."""
@@ -186,89 +181,69 @@ class ScriptedRun:
             return
         p, v = self.plan, self.venue
         party = self._party()
-        book = self._find("book")
-        if self.needs_booking:
-            code = simulated_book(v, p["startsAt"], party, fail=self.fail_next_booking)
-            if code is None:
-                self.fail_next_booking = False
-                yield self._event_or_new(
-                    book, "book", status="failed", label=f"Couldn't book {clock(p['startsAt'])}: {v['name']} is full"
-                )
-                yield from self._retry_later(party)
-                return
+        if not self.needs_booking:
+            yield self._booking("not_needed", "No booking needed", None)
+            yield from self._finish()
+            return
+        code = simulated_book(v, p["startsAt"], party, fail=self.fail_next_booking)
+        if code is None:
+            self.fail_next_booking = False
             yield self._event_or_new(
-                book,
-                "book",
-                status="done",
-                label=f"Booked {self._seat(party)} at {v['name']}",
-                detail=f"Confirmation {code}",
+                self._find("book"), "book", status="failed", label=f"{v['name']} is full at {clock(p['startsAt'], True)}"
             )
-            yield {
-                "type": "booking",
-                "booking": {
-                    "status": "booked",
-                    "label": f"Booked · {code}",
-                    "provider": PROVIDER,
-                    "confirmationCode": code,
-                },
-            }
-        else:
-            yield {
-                "type": "booking",
-                "booking": {
-                    "status": "not_needed",
-                    "label": "No booking needed",
-                    "provider": PROVIDER,
-                    "confirmationCode": None,
-                },
-            }
+            if not (yield from self._shift(party, "Full")):
+                return
+            code = simulated_book(v, self.plan["startsAt"], party)
+            if code is None:
+                yield self._step("book", "failed", f"{v['name']} is full at {clock(self.plan['startsAt'], True)} too")
+                yield self._booking("failed", "Couldn't book it", None)
+                return  # ponytail: cancel with alternatives or a `change` approval lands with the M2 tool agent
+        yield self._event_or_new(
+            self._find("book"),
+            "book",
+            status="done",
+            label=f"Booked {self._seat(party)} at {v['name']}",
+            detail=f"Confirmation {code}",
+        )
+        yield self._booking("booked", f"Booked · {code}", code)
         yield from self._finish()
+
+    def _booking(self, status: str, label: str, code: str | None) -> dict:
+        return {
+            "type": "booking",
+            "booking": {"status": status, "label": label, "provider": PROVIDER, "confirmationCode": code},
+        }
 
     def _event_or_new(self, step, kind, **kw) -> dict:
         if step and step["status"] == "queued":
             return self._update(step, **kw)
         return self._step(kind, kw.pop("status"), kw.pop("label"), **kw)
 
-    def _retry_later(self, party: int) -> Iterator[dict]:
-        """Booking failure stays visible, then Muse moves the start by 1 h inside the autonomy bounds."""
+    def _shift(self, party: int, why: str):
+        """Move the start 1 h later inside the autonomy bounds if the venue has room then. Returns success."""
         p, v = self.plan, self.venue
         shift = timedelta(minutes=60)
-        if shift > timedelta(minutes=self.reschedule_window_min):
-            return  # ponytail: outside the bounds needs a `change` approval (M2)
+        later = _iso(_dt(p["startsAt"]) + shift)
+        if shift > timedelta(minutes=self.reschedule_window_min) or simulated_book(v, later, party) is None:
+            yield self._step("reschedule", "failed", f"Couldn't find another time at {v['name']} today")
+            yield self._booking("failed", "Couldn't book it", None)
+            return False  # ponytail: outside the bounds needs a `change` approval (M2)
         old = clock(p["startsAt"])
-        self.plan = {**p, "startsAt": _iso(_dt(p["startsAt"]) + shift), "endsAt": _iso(_dt(p["endsAt"]) + shift)}
-        code = simulated_book(v, self.plan["startsAt"], party, fail=False)
+        self.plan = {**p, "startsAt": later, "endsAt": _iso(_dt(p["endsAt"]) + shift)}
         yield self._step(
-            "reschedule",
-            "done",
-            f"Full at {old}, so I booked {clock(self.plan['startsAt'])} instead; everyone's still free",
+            "reschedule", "done", f"{why} at {old}, so I moved it to {clock(later)}; everyone's still free"
         )
         yield {"type": "reschedule", "startsAt": self.plan["startsAt"], "endsAt": self.plan["endsAt"]}
-        yield self._step("book", "done", f"Booked {self._seat(party)} at {v['name']}", detail=f"Confirmation {code}")
-        yield {
-            "type": "booking",
-            "booking": {
-                "status": "booked",
-                "label": f"Booked · {code}",
-                "provider": PROVIDER,
-                "confirmationCode": code,
-            },
-        }
-        yield from self._finish()
+        return True
 
     def _finish(self) -> Iterator[dict]:
-        cal = self._find("calendar")
         # ponytail: done on write; "done when every attendee applied it" needs syncCalendar acks from slice A (M2)
-        yield self._event_or_new(cal, "calendar", status="done", label="Added it to everyone's calendar")
+        yield self._step("calendar", "done", "Added it to everyone's calendar")
         yield {"type": "calendar", "desired": "event"}
         going = len(self.attendees) - sum(1 for s in self.decided.values() if s == "declined")
-        label = f"Private event · {going} going"
-        yield self._event_or_new(
-            self._find("event"), "event", status="done", label=f"Created a private event · {going} going"
-        )
-        yield {"type": "confirmed", "eventLabel": label}
-        rem = self._find("reminder")
-        yield self._event_or_new(rem, "reminder", status="done", label="I'll remind everyone when to leave")
+        yield self._step("event", "done", f"Created a private event · {going} going")
+        yield {"type": "confirmed", "eventLabel": f"Private event · {going} going"}
+        yield self._step("reminder", "done", "Set leave-by reminders for everyone")
 
 
 def visible_steps(steps: list[dict], viewer_id: str) -> list[dict]:

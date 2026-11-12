@@ -33,7 +33,6 @@ class MuseClient:
         if not fake:
             from openai import AsyncOpenAI
 
-            # max_retries=1: "one retry" (PRD-2 §3.11)
             self._client = AsyncOpenAI(base_url=base_url, api_key=api_key, max_retries=1)
 
     def _count(self, purpose: str, outcome: str) -> None:
@@ -58,7 +57,10 @@ class MuseClient:
             kw["tools"] = tools
         t0 = time.monotonic()
         try:
-            r = await self._client.with_options(timeout=timeout_s or self.timeout_s).responses.create(**kw)
+            # live calls (bar, chat, agent) get one attempt so the timeout is the whole budget; batch gets a retry
+            retries = 1 if effort == "high" else 0
+            client = self._client.with_options(timeout=timeout_s or self.timeout_s, max_retries=retries)
+            r = await client.responses.create(**kw)
             text = r.output_text or ""
             data = json.loads(text) if schema else None
         except Exception as e:  # any SDK/network/parse failure is a D4 fallback, never a 500
