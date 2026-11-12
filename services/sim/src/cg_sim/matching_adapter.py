@@ -189,3 +189,184 @@ def travel_minutes(origin: dict, dest: dict, mode: str, params: dict) -> int:
     h = math.sin((lat2 - lat1) / 2) ** 2 + math.cos(lat1) * math.cos(lat2) * math.sin((lng2 - lng1) / 2) ** 2
     km = 2 * 6371.0 * math.asin(math.sqrt(h)) * t["detourFactor"]
     return math.ceil(km / t["speedsKmh"][mode] * 60 + t["overheadMin"][mode])
+
+
+# ---------- vectors, candidates, rank_plans, form_groups (CONTRACTS §10 seams, dict in / dict out) ----------
+# pool = pool_export dict, plans = plan.schema dicts, venues = {venueId: venue dict}, state = dict with optional
+# keys exposures {planId: int}, blockedPairs [[a, b]]. tables: object with p_join(u, t) / p_meet_again(a, b)
+# (cg_matching.LayaTables or the sim's fake), or None (treated as 1.0 / candidate cosine).
+# Returns plain dicts shaped like PlanScore / FormResult (snake_case keys, as in the dataclasses).
+#
+# ponytail: naive stand-ins. O(n^2) candidates, greedy max-min grouping, unlimited groups per plan (venue capacity
+# not in the signature), no minSharedWithOthers rule. Real cg_matching replaces all of it when importable.
+
+
+def _params_obj():  # pragma: no cover
+    from pathlib import Path
+
+    from cg_sim.contracts import contracts_dir
+
+    return _cgm.Params.from_yaml(Path(contracts_dir()) / "params.yaml")
+
+
+def build_vectors(pool: dict, params: dict) -> dict[str, dict[str, float]]:
+    if HAVE_MATCHING:  # pragma: no cover
+        return _cgm.build_vectors(_cgm.PoolSnapshot.from_export(pool), _params_obj())
+    f = params["matching"]["parentWeightFactor"]
+    out = {}
+    for u in pool["users"]:
+        v: dict[str, float] = {}
+        for i in u["interests"]:
+            if i["sensitive"] and not i.get("sharedSensitiveOptIn"):
+                continue  # P4
+            parts = i["id"].split(".")
+            for depth in range(len(parts), 0, -1):
+                key = ".".join(parts[:depth])
+                v[key] = max(v.get(key, 0.0), i["weight"] * f ** (len(parts) - depth))
+        out[u["userId"]] = v
+    return out
+
+
+def _cos(a: dict[str, float], b: dict[str, float]) -> float:
+    import math
+
+    dot = sum(w * b[k] for k, w in a.items() if k in b)
+    na, nb = math.sqrt(sum(w * w for w in a.values())), math.sqrt(sum(w * w for w in b.values()))
+    return dot / (na * nb) if na and nb else 0.0
+
+
+def candidates(pool: dict, vectors, params: dict) -> dict[str, list[tuple[str, float]]]:
+    if HAVE_MATCHING:  # pragma: no cover
+        return _cgm.candidates(_cgm.PoolSnapshot.from_export(pool), vectors, _params_obj())
+    m = params["matching"]
+    ids = sorted(vectors)
+    out = {}
+    for a in ids:
+        scored = [(b, round(_cos(vectors[a], vectors[b]), 6)) for b in ids if b != a]
+        scored = [s for s in scored if s[1] >= m["minCosine"]]
+        scored.sort(key=lambda s: (-s[1], s[0]))
+        out[a] = scored[: m["knnK"]]
+    return out
+
+
+def _overlaps(busy: list[dict], starts: datetime, ends: datetime, buffer_min: int) -> bool:
+    buf = timedelta(minutes=buffer_min)
+    for b in busy:
+        bs, be = _dt(b["start"]), _dt(b["end"])
+        if bs < ends + buf and starts - buf < be:
+            return True
+    return False
+
+
+def _dt(s: str) -> datetime:
+    from datetime import UTC
+
+    return datetime.strptime(s, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=UTC)
+
+
+def _slot(starts: datetime) -> tuple[str, str]:
+    from zoneinfo import ZoneInfo
+
+    lt = starts.astimezone(ZoneInfo("America/Los_Angeles"))
+    return _DAYS[lt.weekday()], ("morning" if lt.hour < 12 else "afternoon" if lt.hour < 17 else "evening")
+
+
+def rank_plans(pool: dict, plans: list[dict], vectors, venues: dict[str, dict], tables, state: dict,
+               params: dict, rng: random.Random) -> dict[str, list[dict]]:
+    """Per user: plans passing calendar + travel hard filters, best first, at most feed.size."""
+    if HAVE_MATCHING:  # pragma: no cover
+        snap = _cgm.PoolSnapshot.from_export(pool)
+        out = _cgm.rank_plans(snap, [_cgm.Plan.from_record(p) for p in plans], vectors,
+                              {k: _cgm.Venue.from_record(v) for k, v in venues.items()}, tables, state,
+                              _params_obj(), rng)
+        return {u: [_to_dict(s) for s in ss] for u, ss in out.items()}
+    vectors = vectors or build_vectors(pool, params)
+    exposures = dict((state or {}).get("exposures", {}))
+    cap = params["plans"]["exposureCapPerDay"]
+    buffer_min = params["calendar"]["minFreeBufferMin"]
+    boost = params["matching"]["isolationBoost"]
+    feed = params["feed"]["size"]
+    out: dict[str, list[dict]] = {}
+    for u in sorted(pool["users"], key=lambda x: x["userId"]):
+        uid, vec = u["userId"], vectors.get(u["userId"], {})
+        slots = {(s["day"], s["part"]) for s in u["availability"]}
+        scores = []
+        for p in plans:
+            if uid in p.get("seedJoinIds", []) or exposures.get(p["planId"], 0) >= cap:
+                continue
+            starts, ends = _dt(p["startsAt"]), _dt(p["endsAt"])
+            if u["busy"]:
+                if _overlaps(u["busy"], starts, ends, buffer_min):
+                    continue
+            elif _slot(starts) not in slots:
+                continue
+            v = venues[p["venueId"]]
+            minutes = min(travel_minutes(u["homeLocation"], v["location"], m, params) for m in u["travel"]["modes"])
+            if pool.get("mode") != "event" and minutes > u["travel"]["maxMinutes"]:
+                continue
+            fit = max((vec.get(t, 0.0) for t in p["targetInterestIds"]), default=0.0)
+            if fit <= 0:
+                continue
+            p_join = tables.p_join(uid, p["activityType"]) if tables is not None else 1.0
+            score = fit * p_join * ((1 + boost) if not u["metIds"] else 1.0)
+            shared = [t for t in p["targetInterestIds"] if vec.get(t)][: params["privacy"]["sharedCoarseMax"]]
+            scores.append({"user_id": uid, "plan_id": p["planId"], "score": round(score, 6),
+                           "shared_coarse": shared, "travel_minutes": minutes,
+                           "debug": {"fit": round(fit, 6), "p_join": p_join}})
+        scores.sort(key=lambda s: (-s["score"], s["plan_id"]))
+        # Diversity: at most feed.maxPerActivityType per activity type.
+        by_type: Counter[str] = Counter()
+        types = {p["planId"]: p["activityType"] for p in plans}
+        picked = []
+        for s in scores:
+            t = types[s["plan_id"]]
+            if by_type[t] < params["feed"]["maxPerActivityType"]:
+                by_type[t] += 1
+                picked.append(s)
+                exposures[s["plan_id"]] = exposures.get(s["plan_id"], 0) + 1
+            if len(picked) >= feed:
+                break
+        out[uid] = picked
+    return out
+
+
+def form_groups(plan: dict, interested_ids: list[str], pool: dict, cands: dict[str, list[tuple[str, float]]],
+                tables, state: dict, params: dict, rng: random.Random) -> dict:
+    """Greedy max-min-pairwise groups of size.min..size.max. interested_ids in join order.
+    Seat priority: isolated (no metIds) first, then earliest join."""
+    if HAVE_MATCHING:  # pragma: no cover
+        res = _cgm.form_groups(_cgm.Plan.from_record(plan), interested_ids, _cgm.PoolSnapshot.from_export(pool),
+                               cands, tables, state, _params_obj(), rng)
+        return _to_dict(res)
+    users = {u["userId"]: u for u in pool["users"]}
+    cand = {a: dict(lst) for a, lst in cands.items()}
+    blocked = {frozenset(x) for x in (state or {}).get("blockedPairs", [])}
+    for u in users.values():
+        blocked |= {frozenset((u["userId"], b)) for b in u.get("blockedIds", [])}
+
+    def pair(a: str, b: str) -> float:
+        if frozenset((a, b)) in blocked:
+            return -1.0
+        if tables is not None and hasattr(tables, "p_meet_again"):
+            return float(tables.p_meet_again(a, b))
+        return max(cand.get(a, {}).get(b, 0.0), cand.get(b, {}).get(a, 0.0))
+
+    order = {u: k for k, u in enumerate(interested_ids)}
+    queue = sorted(dict.fromkeys(interested_ids), key=lambda u: (bool(users.get(u, {}).get("metIds")), order[u]))
+    lo, hi = plan["size"]["min"], plan["size"]["max"]
+    groups, unseated = [], []
+    while len(queue) >= lo:
+        group = [queue.pop(0)]
+        while len(group) < hi and queue:
+            best = max(queue, key=lambda c: (min(pair(c, g) for g in group), -order[c]))
+            if min(pair(best, g) for g in group) < 0:
+                break
+            group.append(best)
+            queue.remove(best)
+        if len(group) < lo:
+            unseated += group
+            continue
+        mp = min(pair(a, b) for i, a in enumerate(group) for b in group[i + 1:])
+        groups.append({"plan_id": plan["planId"], "member_ids": group, "min_pairwise": round(mp, 6)})
+    unseated += queue
+    return {"groups": groups, "unseated_ids": sorted(unseated, key=order.get)}
