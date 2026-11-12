@@ -12,8 +12,8 @@ export default function Rewards({ style }: { style?: StyleProp<ViewStyle> }) {
   const c = useColors();
   const r = useCg((st) => st.me?.rewards);
   const regular = useCg((st) => !!st.me?.unlocks.some((u) => u.unlockId === 'regular'));
-  if (!r) return null;
-  const next = r.nextUnlock;
+  const next = r?.nextUnlock;
+  if (!r || (!next && !r.streakWeeks && !regular)) return null;
   const goal =
     next &&
     `${next.remaining} more meetup${s(next.remaining)} to ${
@@ -42,7 +42,10 @@ export default function Rewards({ style }: { style?: StyleProp<ViewStyle> }) {
                   width: 10,
                   height: 10,
                   borderRadius: 5,
-                  backgroundColor: i < r.confirmedMeetups ? c.blue : c.divider,
+                  // Unfilled: a ring in secondary text color (divider is ~1.2:1, WCAG 1.4.11 wants 3:1).
+                  borderWidth: 1.5,
+                  borderColor: i < r.confirmedMeetups ? c.blue : c.secondary,
+                  backgroundColor: i < r.confirmedMeetups ? c.blue : 'transparent',
                 }}
               />
             ))}

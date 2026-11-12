@@ -84,6 +84,12 @@ test('shows next unlock, dots, streak, Regular badge and the privacy line', asyn
   expect(r2.text()).not.toContain('more meetup');
 });
 
+test('renders nothing when all unlocked, no streak and no Regular', async () => {
+  await setMe({ rewards: { confirmedMeetups: 5, streakWeeks: 0, nextUnlock: null }, unlocks: [] });
+  const { tree } = await render(React.createElement(Rewards));
+  expect(tree.toJSON()).toBeNull();
+});
+
 test('Same time next week? creates the same plan 7 days later, only once feedback is in', async () => {
   const m = { ...fixtures.getMeetup, status: 'completed', feedbackDue: false };
   const can = { ...fixtures.getMe.capabilities, canCreatePlans: true };
