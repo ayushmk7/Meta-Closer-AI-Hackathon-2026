@@ -45,3 +45,7 @@ def test_all_earned_and_reports():
     assert rewards(five, UNLOCKS, NOW)["nextUnlock"] is None
     assert rewards(five[:4], UNLOCKS, NOW, has_reports=True)["nextUnlock"] is None
     assert rewards(five[:2], UNLOCKS, NOW, has_reports=True)["nextUnlock"]["unlockId"] == "bigger_groups"
+
+
+def test_unlock_order_independent_of_yaml_order():
+    assert rewards([], UNLOCKS[::-1], NOW)["nextUnlock"]["unlockId"] == "create_plans"

@@ -23,7 +23,7 @@ def rewards(counted: list[datetime], unlocks: list[dict], now: datetime, has_rep
         streak += 1
         week -= timedelta(weeks=1)
     nxt = None
-    for u in unlocks:
+    for u in sorted(unlocks, key=lambda u: u["afterConfirmedMeetups"]):
         if u.get("requiresNoReports") and has_reports:
             continue  # ponytail: not earnable by meetups, so never shown as "next"
         if n < u["afterConfirmedMeetups"]:
