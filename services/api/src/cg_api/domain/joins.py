@@ -24,7 +24,7 @@ def hold(w: World, j: dict) -> dict | None:
     return {
         "key": j["joinId"],
         "desired": desired,
-        "title": f"Hold: {p['title']} at {v['name']}"[:120],
+        "title": f"Hold: {plans.with_venue(p['title'], v['name'])}"[:120],
         "startsAt": p["startsAt"],
         "endsAt": p["endsAt"],
         "location": f"{v['name']}, {v.get('address', '')}".rstrip(", "),

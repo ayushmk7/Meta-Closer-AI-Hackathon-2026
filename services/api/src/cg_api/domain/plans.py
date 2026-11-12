@@ -14,6 +14,11 @@ log = logging.getLogger("cg_api.domain.plans")
 TZ = ZoneInfo("America/Los_Angeles")  # ponytail: one city; per-pool tz when a second pool lands
 
 
+def with_venue(title: str, venue: str) -> str:
+    """Name the venue once: 'Board games at Meeple Harbor', never '... at Meeple Harbor at Meeple Harbor'."""
+    return title if venue in title else f"{title} at {venue}"
+
+
 def money(cents: int) -> str:
     return f"${cents // 100}" if cents % 100 == 0 else f"${cents / 100:.2f}"
 
