@@ -9,6 +9,7 @@ ponytail: temporary. Delete the fallback (keep the dict wrappers) once backend M
 from __future__ import annotations
 
 import dataclasses
+import functools
 import random
 from collections import Counter
 from datetime import datetime, timedelta
@@ -275,6 +276,7 @@ def _overlaps(busy: list[dict], starts: datetime, ends: datetime, buffer_min: in
     return False
 
 
+@functools.cache  # ponytail: unbounded; inputs are the finite set of plan/busy timestamps
 def _dt(s: str) -> datetime:
     from datetime import UTC
 

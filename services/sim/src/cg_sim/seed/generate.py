@@ -396,7 +396,7 @@ def generate(pool_id: str, seed: int, root: Path | None = None) -> dict:
                 "existingFriends": 12,
             }
         )
-    records += maya.connector_records(REF_TIME, horizon, _iso, event_pool=mode == "event")
+        records += maya.connector_records(REF_TIME, horizon, _iso)  # city only: backend ignores u_maya records elsewhere
 
     for i, p in enumerate(people):
         prng = _rng(pool_id, seed, f"text:{p.user_id}")
