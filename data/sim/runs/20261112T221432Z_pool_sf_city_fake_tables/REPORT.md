@@ -61,6 +61,8 @@ Seed-paired 95% interval of the difference per cell. A claim needs better in eve
 | `formLeadHours=12` | -1.0% [-2.3%, +0.3%] | +1.1% [+0.2%, +2.1%] | +1.7% [+1.2%, +2.2%] |
 | `formLeadHours=48` | +1.6% [+0.2%, +2.9%] | -1.0% [-1.9%, -0.2%] | -1.9% [-2.4%, -1.4%] |
 
+`isolationBoost` only reorders contested exposures: at the default cap no plan hits `exposureCapPerDay`, so its rows are exactly zero; the cap-10 rows show it where it binds.
+
 ## Recommended params.yaml changes
 
 - Withheld: Common Ground ran on the matching_adapter fallback; the headline has no claim; Laya tables are fake. The ablation table above is exploratory, not evidence.

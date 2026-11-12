@@ -7,17 +7,12 @@ all policies and sweep cells see identical random streams; only decisions differ
 
 from __future__ import annotations
 
-import functools
 import random
 
 import numpy as np
 
 from cg_sim import matching_adapter as ma
 from cg_sim.mc.world import World
-
-# ponytail: runtime memo of the adapter's timestamp parser (75% of rank_plans time; same strings every call).
-# Drop once matching_adapter caches _dt itself.
-ma._dt = functools.cache(ma._dt)
 
 POLICIES = ("random", "greedy", "common_ground")
 # Calibration knob (not a contract param): one day's impression converts at JOIN_DAILY x p_join. At 1/7 almost
