@@ -44,3 +44,24 @@ Tolerant reader: ignore unknown keys; new keys may be added, existing ones never
 Cumulative state at week w = union of metPairs / friendships over frames 1..w.
 Pairs are always sorted [a, b] with a < b lexicographically.
 """
+
+from cg_sim.mc.world import World, cells, ci95
+
+
+def band(rows: list[dict], policy: str, cell: int, weeks: int) -> dict:
+    """mean / 95% interval over seeds of isolatedLowByWeek for one policy and cell (base variant)."""
+    series = [r["isolatedLowByWeek"] for r in rows
+              if r["variant"] == "base" and r["policy"] == policy and r["cell"] == cell]
+    stats = [ci95([s[k] for s in series]) for k in range(weeks + 1)]
+    return {"week": list(range(weeks + 1)), "mean": [s[0] for s in stats],
+            "lo": [s[1] for s in stats], "hi": [s[2] for s in stats]}
+
+
+def build(world: World, run_id: str, traces: dict[str, list[dict]], rows: list[dict], center: int) -> dict:
+    flake, join = cells(world.params)[center]
+    return {
+        "version": 1, "runId": run_id, "poolId": world.pool_id, "seed": 0,
+        "cell": {"flake": flake, "join": join}, "weeks": world.weeks, "policies": list(traces),
+        "people": world.people, "venues": world.venues, "frames": traces,
+        "isolatedShare": {p: band(rows, p, center, world.weeks) for p in traces},
+    }
