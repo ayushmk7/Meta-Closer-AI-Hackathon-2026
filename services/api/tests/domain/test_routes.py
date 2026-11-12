@@ -3,6 +3,7 @@
 import pytest
 
 from cg_api import contracts
+from cg_api.domain import joins
 from cg_api.domain import world as world_mod
 
 MAYA, DAN = {"X-CG-User": "u_maya"}, {"X-CG-User": "u_dan"}
@@ -27,6 +28,10 @@ def test_core_loop_over_http(live, public):
     assert feed["plans"][0]["planId"] == "pl_walk"
     ok(public.get("/v1/plans/pl_hero", headers=MAYA), "getPlan")
     j = ok(public.post("/v1/plans/pl_hero/join", headers=MAYA), "joinPlan")
+    if j["status"] == "interested":  # DEMO_MODE beat: "Muse is gathering people"; fire the timer here
+        assert j["progress"] == {"joined": 3, "needed": 3} and j["meetupId"] is None
+        joins.form(live, "pl_hero")
+        j = ok(public.get("/v1/joins", headers=MAYA), "listJoins")["items"][0]
     assert j["status"] == "matched"
     ok(public.get("/v1/joins", headers=MAYA), "listJoins")
     m = ok(public.get(f"/v1/meetups/{j['meetupId']}", headers=MAYA), "getMeetup")

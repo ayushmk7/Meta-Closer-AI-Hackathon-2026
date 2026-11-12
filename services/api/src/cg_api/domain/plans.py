@@ -31,7 +31,7 @@ def cost_view(cost: dict) -> dict:
 def venue_view(w: World, v: dict) -> dict:
     out = {k: v[k] for k in ("venueId", "name", "neighborhood", "address", "location", "kind") if k in v}
     photo = v.get("photo")
-    out["photoUrl"] = f"{w.base_url}/static/venues/{photo.rsplit('/', 1)[-1]}" if photo else None
+    out["photoUrl"] = f"{w.base()}/static/venues/{photo.rsplit('/', 1)[-1]}" if photo else None
     return out
 
 

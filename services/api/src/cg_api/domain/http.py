@@ -5,11 +5,24 @@ from __future__ import annotations
 import logging
 from typing import Any, Callable
 
+from fastapi import Depends, Request
+
 from cg_api import contracts
 from cg_api.domain import world
 from cg_api.errors import ApiError
 
 log = logging.getLogger("cg_api.domain")
+
+
+async def _use_request_base(request: Request) -> None:
+    base = str(request.base_url).rstrip("/")
+    world.request_base.set(base)
+    if world.current is not None:  # last host seen: fallback for requests outside these routers (askMuse)
+        world.current.base_url = base
+
+
+# Router-level dependency: static URLs use the host the phone used (LAN), never a hardcoded localhost.
+REQUEST_BASE = [Depends(_use_request_base)]
 
 
 def call(operation_id: str, fn: Callable[..., Any], *args: Any) -> Any:

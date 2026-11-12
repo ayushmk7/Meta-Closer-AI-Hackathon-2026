@@ -230,3 +230,47 @@ def decided(w: World, a: dict) -> None:
         world_spawn(ports.ports.agent.on_approval(a["approvalId"]))
         return
     _enqueue(w, a["meetupId"], run.decide(a["approvalId"], a["status"]))
+
+
+async def _to_muse(w: World, msg: dict) -> None:
+    """One toMuse turn: D's rules decide (time change or question), C applies the events and posts Muse's reply."""
+    from cg_api import agent
+
+    t = w.threads[msg["threadId"]]
+    m = w.meetups[t["meetupId"]]
+    run = w.runs.get(m["meetupId"])
+    start = run.plan["startsAt"] if run is not None else m["startsAt"]  # follows earlier reschedules
+    parse = getattr(agent, "parse_time_change", None)
+    new_start = parse(msg["text"], start) if parse else None
+    step_ids: list[str] = []
+    if new_start and run is not None and hasattr(run, "reschedule_to"):
+        busy = {a["userId"]: w.users[a["userId"]]["busy"] for a in run.attendees}
+        events, reply, step_ids = run.reschedule_to(new_start, busy)
+        for ev in events:
+            apply(w, m["meetupId"], ev)
+    elif hasattr(agent, "answer_question"):
+        plan = (
+            run.plan if run is not None else {**w.plans[m["planId"]], "startsAt": m["startsAt"], "endsAt": m["endsAt"]}
+        )
+        reply = agent.answer_question(plan, w.venues[m["venueId"]])
+    else:
+        log.warning("runner: no toMuse handler in cg_api.agent yet; %s unanswered", msg["messageId"])
+        return
+    att = [{"kind": "muse_steps", "meetupId": m["meetupId"], "stepIds": step_ids}] if step_ids else []
+    chat.post(w, msg["threadId"], "muse", None, reply, att)
+
+
+def to_muse(w: World, msg: dict) -> None:
+    """World.on_to_muse. A real AgentRunner wins; otherwise the scripted turn runs in the meetup's driver."""
+    if not isinstance(ports.ports.agent, ports.StubAgent):
+        world_spawn(ports.ports.agent.on_message(msg["threadId"], msg["messageId"]))
+        return
+    mt = w.threads[msg["threadId"]]["meetupId"]
+
+    async def turn() -> None:
+        try:
+            await _to_muse(w, msg)
+        except Exception:
+            log.exception("runner: toMuse turn failed for %s", msg["messageId"])
+
+    _enqueue(w, mt, turn)

@@ -8,6 +8,7 @@ sibling modules, never stored.
 from __future__ import annotations
 
 import asyncio
+import contextvars
 from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
@@ -16,8 +17,9 @@ from typing import Any, Callable
 
 import yaml
 
-from cg_api import ports
 from cg_api.domain import matching
+
+request_base: contextvars.ContextVar[str | None] = contextvars.ContextVar("cg_request_base", default=None)
 
 
 def _spawn(coro) -> None:
@@ -107,9 +109,7 @@ class World:
     # Hooks into D's agent (domain.runner drives ScriptedRun); tests swap in plain callables.
     on_formed: Callable[["World", str], None] = lambda w, mt: _runner().start(w, mt)
     on_decided: Callable[["World", dict], None] = lambda w, a: _runner().decided(w, a)
-    on_to_muse: Callable[["World", dict], None] = lambda w, m: _spawn(
-        ports.ports.agent.on_message(m["threadId"], m["messageId"])
-    )
+    on_to_muse: Callable[["World", dict], None] = lambda w, m: _runner().to_muse(w, m)
     on_approval: Callable[["World", dict], None] = lambda w, a: _synthetic().on_approval(w, a)  # D: counterparts
     on_left: Callable[["World", str, str], None] = lambda w, mt, uid: None  # M2: backfill, continue or cancel
 
@@ -123,6 +123,7 @@ class World:
     connections: dict[frozenset, dict] = field(default_factory=dict)
     blocks: set[frozenset] = field(default_factory=set)
     reports: list[dict] = field(default_factory=list)
+    nudges: dict[str, dict] = field(default_factory=dict)
     runs: dict[str, Any] = field(default_factory=dict)  # meetupId -> D's ScriptedRun
     run_queues: dict[str, Any] = field(default_factory=dict)  # meetupId -> deque of pending run items
     events: list[tuple[str, str, dict]] = field(default_factory=list)  # (userId, type, data) for the realtime hub
@@ -140,6 +141,10 @@ class World:
         if not u:
             raise Fail(401, "unauthenticated", "Who's this? Pick a demo identity.")
         return u
+
+    def base(self) -> str:
+        """Base for /static URLs: the current request's host, else `base_url` (background tasks copy it)."""
+        return request_base.get() or self.base_url
 
     def blocked(self, a: str, b: str) -> bool:
         return frozenset((a, b)) in self.blocks
