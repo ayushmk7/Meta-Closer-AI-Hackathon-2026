@@ -1,7 +1,7 @@
 // Verify in person, web: my code as text + typed entry of theirs (no camera, no network beyond the mock).
 // ponytail: native Scan.tsx imports ScanPage from here and adds the QR and the camera as children.
 import { useRef, useState, type ReactNode } from 'react';
-import { View } from 'react-native';
+import { Platform, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Button, Card, Icon, Input, Label, Muted, Page, Title, useColors } from '../../ui/native';
 import { load, useCg, verifyAttendee } from './store';
@@ -65,7 +65,8 @@ export function ScanPage({
   return (
     <Page>
       <Banners />
-      <Title>Verify in person</Title>
+      {/* Web shows the title in the shell's back row (#84); native keeps the canvas Title. */}
+      {Platform.OS !== 'web' && <Title>Verify in person</Title>}
       <Card style={{ padding: 16, gap: 12, alignItems: 'center' }}>
         <Label accessibilityRole="header" style={{ fontSize: 17, fontWeight: '700' }}>
           Your code
