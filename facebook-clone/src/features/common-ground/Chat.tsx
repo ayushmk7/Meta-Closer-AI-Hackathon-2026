@@ -321,14 +321,8 @@ export default function ChatScreen() {
   usePoll(() => void load.messages(threadId));
   useFocusEffect(
     useCallback(() => {
-      void load.threads();
-      void act(() => api.markThreadRead(threadId)).then(() =>
-        setState({
-          threads: getState().threads.map((t) =>
-            t.threadId === threadId ? { ...t, unreadCount: 0 } : t,
-          ),
-        }),
-      );
+      // Read first, then list: a list sent alongside could answer last with the old unread count.
+      void act(() => api.markThreadRead(threadId)).then(() => load.threads());
     }, [threadId]),
   );
 

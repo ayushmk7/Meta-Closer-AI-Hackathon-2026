@@ -29,6 +29,7 @@ Milestone: v2 M2 device layer (A2, `cg/ios/v2-m2-device`)
 - 2026-11-12 Badge = pending approvals + unread threads + plans-surface nudges. Home card: setup card when not opted in, else newest home nudge.
 - 2026-11-12 Storage key `common-ground:v2`; persisted fields: userOverride, homeCardDismissed, lastMode, drafts, calendar (own calendar ID, directive key -> event ID map, pending `applied`), reminders (meetup -> notification ID). Reset deletes our calendar events and cancels reminders first.
 - 2026-11-13 Story prompt shows only when `venue.photoUrl` is set: the client can't see venue sensitivity and producers keep sensitive venues photo-less (CONTRACTS Decisions "Stories after the event"). Share to story is secondary while the Feedback card is due (one primary). Persisted prefs now also include `storyPrompt` (meetupId -> posted|dismissed, C1).
+- 2026-11-13 Opening a chat marks it read, then reloads threads (no longer in parallel). Why: a list answering after the read put the old unread count back, so the badge stuck while the socket was open.
 
 ## Needs
 
