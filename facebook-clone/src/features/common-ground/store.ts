@@ -168,8 +168,6 @@ const messageOf = (e: unknown) =>
 function fail(e: unknown, retry?: () => void) {
   setState({ error: { message: messageOf(e), retry } });
 }
-const byId = <T>(list: T[], key: (x: T) => string) =>
-  Object.fromEntries(list.map((x) => [key(x), x]));
 
 // Keep optimistic messages the server has not echoed yet (matched by clientId).
 function withPending(threadId: string, items: Message[]) {
@@ -194,6 +192,19 @@ function loader<A extends unknown[]>(get: (...args: A) => Promise<Partial<CgStat
   };
   return run;
 }
+// Per-meetup write stamps: a fetch only lands if nothing newer (a later fetch, a step event) wrote
+// that meetup since it left, so out-of-order responses never drop steps (CONTRACTS §3 rule 10).
+let meetupClock = 0;
+const meetupWrote: Record<string, number> = {};
+function putMeetups(fresh: Meetup[], t: number): Partial<CgState> {
+  const meetups = { ...state.meetups };
+  for (const m of fresh)
+    if ((meetupWrote[m.meetupId] ?? 0) < t) {
+      meetups[m.meetupId] = m;
+      meetupWrote[m.meetupId] = t;
+    }
+  return { meetups };
+}
 export const load = {
   config: loader(async () => ({ config: await api.getConfig() })),
   me: loader(async () => ({ me: await api.getMe() })),
@@ -213,12 +224,13 @@ export const load = {
     }
   }),
   joins: loader(async () => ({ joins: await api.listJoins() })),
-  meetups: loader(async () => ({
-    meetups: { ...state.meetups, ...byId(await api.listMeetups(), (m) => m.meetupId) },
-  })),
+  meetups: loader(async () => {
+    const t = ++meetupClock;
+    return putMeetups(await api.listMeetups(), t);
+  }),
   meetup: loader(async (meetupId: string) => {
-    const m = await api.getMeetup(meetupId);
-    return { meetups: { ...state.meetups, [meetupId]: m } };
+    const t = ++meetupClock;
+    return putMeetups([await api.getMeetup(meetupId)], t);
   }),
   approvals: loader(async () => ({ approvals: await api.listApprovals() })),
   nudges: loader(async () =>
@@ -505,6 +517,7 @@ export const mergeSteps = (steps: MuseStep[], step: MuseStep): MuseStep[] =>
 export function mergeStep(meetupId: string, step: MuseStep): void {
   const m = state.meetups[meetupId];
   if (!m) return void load.meetup(meetupId);
+  meetupWrote[meetupId] = ++meetupClock;
   setState({
     meetups: { ...state.meetups, [meetupId]: { ...m, museSteps: mergeSteps(m.museSteps, step) } },
   });
@@ -521,6 +534,7 @@ export async function decideApproval(
   if (!a) return undefined;
   const swap = (list: Approval[]) => list.map((x) => (x.approvalId === approvalId ? a : x));
   const m = state.meetups[a.meetupId];
+  if (m) meetupWrote[m.meetupId] = ++meetupClock;
   setState({
     approvals: swap(state.approvals),
     meetups: m
@@ -536,7 +550,7 @@ export async function leaveMeetup(meetupId: string): Promise<boolean> {
     () => leaveMeetup(meetupId),
   );
   if (!m) return false;
-  setState({ meetups: { ...state.meetups, [meetupId]: m } });
+  setState(putMeetups([m], ++meetupClock));
   void load.joins();
   return true;
 }
