@@ -1,14 +1,13 @@
 // Plan pop-up (PRD-1 §8.2). Who's in is counts only (C5).
 import { useEffect, useState } from 'react';
-import { Alert, Linking, Pressable, Switch, View } from 'react-native';
+import { ActivityIndicator, Alert, Linking, Pressable, Switch, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Button, Card, Icon, Label, Muted, Page, Sheet, go, useColors } from '../../ui/native';
-import { MuseAvatar } from './MuseBar';
 import { PlanPhoto, checkText, dayTime, duration, whosIn } from './PlanCard';
 import { join, load, useCg, withdraw } from './store';
 import type { GroupSize, PlanDetail } from './types';
-import { Banners, GroupSizePicker, NotFound, usePoll } from './ui';
+import { Banners, GroupSizePicker, NotFound, Section, usePoll } from './ui';
 import VenueMap from './VenueMap';
 
 // "google_maps" -> "Google Maps" when no connector label is known.
@@ -42,13 +41,12 @@ const clamp = (v: GroupSize, b: { min: number; max: number }): GroupSize => {
   return { min, max: Math.min(Math.max(v.max, min), b.max) };
 };
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+// Shared Section header (UX 2.2) over a body at the same 16 gutter.
+function Block({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <View style={{ gap: 6 }}>
-      <Label accessibilityRole="header" style={{ fontWeight: '700', fontSize: 16 }}>
-        {title}
-      </Label>
-      {children}
+    <View>
+      <Section title={title} />
+      <View style={{ paddingHorizontal: 16, gap: 6 }}>{children}</View>
     </View>
   );
 }
@@ -69,7 +67,7 @@ export function BottomBar({ plan }: { plan: PlanDetail }) {
     const meetupId = joinRow?.meetupId;
     return (
       <Button
-        title="Open your plan"
+        title="Open plan"
         disabled={!meetupId}
         onPress={() => meetupId && go(`/common-ground/meetup/${meetupId}`)}
       />
@@ -80,13 +78,13 @@ export function BottomBar({ plan }: { plan: PlanDetail }) {
     return (
       <View style={{ gap: 8 }}>
         <Label accessibilityLiveRegion="polite" style={{ textAlign: 'center' }}>
-          You&apos;re in · Muse is gathering people{p ? ` (${p.joined} of ${p.needed})` : ''}
+          {`You're in · Muse is gathering people${p ? ` · ${p.joined} of ${p.needed}` : ''}`}
         </Label>
         <Button
           title="Can't make it"
           secondary
           onPress={() =>
-            Alert.alert("Can't make it?", 'Muse will take you off this plan.', [
+            Alert.alert("Can't make it?", 'Muse will free your spot.', [
               { text: 'Keep me in', style: 'cancel' },
               {
                 text: "Can't make it",
@@ -102,7 +100,7 @@ export function BottomBar({ plan }: { plan: PlanDetail }) {
   if (myJoin?.status === 'not_filled')
     return <Muted style={{ textAlign: 'center' }}>This one didn&apos;t fill</Muted>;
   if (plan.status !== 'open')
-    return <Button title={`This plan is ${plan.status}`} disabled onPress={() => {}} />;
+    return <Muted style={{ textAlign: 'center' }}>{`This plan is ${plan.status}`}</Muted>;
 
   const current = size ?? clamp(plan.size, bounds);
   return (
@@ -132,7 +130,13 @@ export function BottomBar({ plan }: { plan: PlanDetail }) {
         {plusOneOn && (
           <>
             <Label>+1 a friend</Label>
-            <Switch accessibilityLabel="+1 a friend" value={plusOne} onValueChange={setPlusOne} />
+            <Switch
+              accessibilityLabel="+1 a friend"
+              value={plusOne}
+              onValueChange={setPlusOne}
+              trackColor={{ false: c.secondary, true: c.blue }}
+              thumbColor="#fff"
+            />
           </>
         )}
       </View>
@@ -151,8 +155,7 @@ export default function PlanScreen() {
   const c = useColors();
   const { planId = '' } = useLocalSearchParams<{ planId: string }>();
   const plan = useCg((s) => s.plans[planId]);
-  const ready = useCg((s) => s.ready);
-  const error = useCg((s) => !!s.error);
+  const missing = useCg((s) => !!s.missingPlans[planId]);
   const connectors = useCg((s) => s.connectors);
   const optedIn = useCg((s) => !!s.me?.optedIn);
   const notOptedIn = useCg((s) => s.ready && !!s.me && !s.me.optedIn);
@@ -171,7 +174,11 @@ export default function PlanScreen() {
     return (
       <Page>
         <Banners />
-        {ready && error && <NotFound title="Plan not found" />}
+        {missing ? (
+          <NotFound title="This plan isn't available" />
+        ) : (
+          <ActivityIndicator color={c.blue} style={{ marginTop: 40 }} />
+        )}
       </Page>
     );
   const labels = Object.fromEntries(connectors.map((x) => [x.provider, x.label]));
@@ -181,9 +188,12 @@ export default function PlanScreen() {
       <Banners />
       <Page>
         <PlanPhoto plan={plan} height={200} />
-        <View style={{ padding: 16, gap: 16 }}>
-          <View style={{ gap: 4 }}>
-            <Label accessibilityRole="header" style={{ fontSize: 22, fontWeight: '800' }}>
+        <View style={{ paddingVertical: 16, gap: 16 }}>
+          <View style={{ gap: 4, paddingHorizontal: 16 }}>
+            <Label
+              accessibilityRole="header"
+              style={{ fontSize: 24, lineHeight: 30, fontWeight: '800' }}
+            >
               {plan.title}
             </Label>
             <Label>{plan.venue.name}</Label>
@@ -191,8 +201,11 @@ export default function PlanScreen() {
             <Label>{meta}</Label>
             {!!plan.description && <Muted>{plan.description}</Muted>}
           </View>
-          <VenueMap venue={plan.venue} style={{ height: 140, borderRadius: 8 }} />
-          <View style={{ gap: 2 }}>
+          <VenueMap
+            venue={plan.venue}
+            style={{ height: 140, borderRadius: 8, marginHorizontal: 16 }}
+          />
+          <View style={{ gap: 2, paddingHorizontal: 16 }}>
             {plan.travel && !plan.checks.some((k) => k.label === plan.travel?.label) && (
               <Label>{plan.travel.label}</Label>
             )}
@@ -204,42 +217,36 @@ export default function PlanScreen() {
             <Muted>{plan.reason}</Muted>
           </View>
           {plan.because.length > 0 && (
-            <Section title="Because">
+            <Block title="Because">
               {plan.because.map((b) => (
                 <Muted key={b.label}>
                   {b.label} · {sourceName(b.source, labels)}
                 </Muted>
               ))}
-            </Section>
+            </Block>
           )}
-          <Section title="Who's in">
+          <Block title="Who's in">
             <Label>{whosIn(plan.crowd)}</Label>
-          </Section>
+          </Block>
           {plan.museWillHandle.length > 0 && (
-            <Card style={{ padding: 12, gap: 8, backgroundColor: c.input }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <MuseAvatar size={28} />
-                <Label accessibilityRole="header" style={{ fontWeight: '700' }}>
-                  Muse will handle
-                </Label>
-              </View>
+            <Block title="Muse will handle">
               {plan.museWillHandle.map((t) => (
                 <View key={t} style={{ flexDirection: 'row', gap: 8 }}>
-                  <Icon name="checkmark-circle" size={18} color={c.blue} />
+                  <Icon name="checkmark" size={18} color={c.secondary} />
                   <Label style={{ flex: 1 }}>{t}</Label>
                 </View>
               ))}
-            </Card>
+            </Block>
           )}
           {plan.safety.length > 0 && (
-            <Section title="Safety">
+            <Block title="Safety">
               {plan.safety.map((t) => (
                 <Muted key={t}>{t}</Muted>
               ))}
-            </Section>
+            </Block>
           )}
           {plan.alternatives.length > 0 && (
-            <Section title="Other times">
+            <Block title="Other times">
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
                 {plan.alternatives.map((a) => (
                   <Button
@@ -251,13 +258,13 @@ export default function PlanScreen() {
                   />
                 ))}
               </View>
-            </Section>
+            </Block>
           )}
           {!!plan.directions?.apple && (
             <Pressable
               accessibilityRole="link"
               onPress={() => void Linking.openURL(plan.directions.apple).catch(() => {})}
-              style={{ minHeight: 44, justifyContent: 'center' }}
+              style={{ minHeight: 44, justifyContent: 'center', paddingHorizontal: 16 }}
             >
               <Label style={{ color: c.blue, fontWeight: '600' }}>Directions</Label>
             </Pressable>

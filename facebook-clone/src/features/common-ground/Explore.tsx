@@ -29,11 +29,11 @@ export default function ExploreScreen() {
   return (
     <Page>
       <Banners />
-      <Card>
-        <Title>Explore</Title>
-        <Muted style={{ paddingHorizontal: 16, marginTop: -8, paddingBottom: 12 }}>
-          Plans people nearby went to. No names, no faces.
-        </Muted>
+      <Title>Explore</Title>
+      <Muted style={{ paddingHorizontal: 16, marginTop: -16 }}>
+        Plans people nearby went to. No names or faces.
+      </Muted>
+      <Card style={{ paddingTop: 12 }}>
         <Chips
           items={[ALL, ...distinct(shares.map((s) => activityLabel(s.activityType)))]}
           value={activity}

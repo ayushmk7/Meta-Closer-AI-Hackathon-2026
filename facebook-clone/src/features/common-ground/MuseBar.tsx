@@ -4,6 +4,7 @@ import { ActivityIndicator, Pressable, ScrollView, View } from 'react-native';
 import { Card, Icon, IconButton, Input, Label, Muted, go, useColors } from '../../ui/native';
 import { PlanCarousel } from './PlanCard';
 import { askMuse, clearMuse, createPlan, useCg } from './store';
+import { Pill } from './ui';
 
 const NONE: string[] = []; // stable fallback outside useCg (useSyncExternalStore)
 
@@ -28,7 +29,6 @@ export function MuseAvatar({ size = 36 }: { size?: number }) {
 }
 
 export function PromptChips({ prompts, onPick }: { prompts: string[]; onPick(p: string): void }) {
-  const c = useColors();
   if (!prompts.length) return null;
   return (
     <ScrollView
@@ -37,23 +37,7 @@ export function PromptChips({ prompts, onPick }: { prompts: string[]; onPick(p: 
       contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}
     >
       {prompts.map((p) => (
-        <Pressable
-          key={p}
-          accessibilityRole="button"
-          accessibilityLabel={`Ask Muse: ${p}`}
-          onPress={() => onPick(p)}
-          style={{
-            minHeight: 44,
-            justifyContent: 'center',
-            paddingHorizontal: 15,
-            borderRadius: 22,
-            borderWidth: 1,
-            borderColor: c.divider,
-            backgroundColor: c.input,
-          }}
-        >
-          <Label style={{ fontWeight: '600', fontSize: 14 }}>{p}</Label>
-        </Pressable>
+        <Pill key={p} label={p} accessibilityLabel={`Ask Muse: ${p}`} onPress={() => onPick(p)} />
       ))}
     </ScrollView>
   );
