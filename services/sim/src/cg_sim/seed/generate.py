@@ -465,6 +465,14 @@ def generate(pool_id: str, seed: int, root: Path | None = None) -> dict:
     _dump_jsonl(seed_dir / "personas.jsonl", personas)
     _dump_jsonl(seed_dir / "activity.jsonl", activity)
     _dump_jsonl(seed_dir / "connectors.jsonl", records)
+    photos = [v for v in venue_rows if v["venueId"] in venues.PHOTOS]  # demo venues only (city pool)
+    if photos:
+        (seed_dir / "venue_photos").mkdir()
+        for v in photos:
+            v["photo"] = f"venue_photos/{v['venueId']}.jpg"
+            shutil.copyfile(maya.clone_dir() / "assets" / "images" / venues.PHOTOS[v["venueId"]], seed_dir / v["photo"])
+        rows = "\n".join(f"- `{v['venueId']}.jpg`: `facebook-clone/assets/images/{venues.PHOTOS[v['venueId']]}`" for v in photos)
+        (seed_dir / "venue_photos" / "PROVENANCE.md").write_text(venues.PHOTO_PROVENANCE.format(rows=rows) + "\n")
     _dump_jsonl(seed_dir / "venues.jsonl", venue_rows)
     _dump_jsonl(seed_dir / "plans.jsonl", plan_rows)
     _dump_json(seed_dir / "demo.json", demo)

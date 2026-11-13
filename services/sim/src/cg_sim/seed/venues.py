@@ -103,7 +103,16 @@ STREETS = {
 # Demo anchors: the hero studio (fictional, Hayes Valley) and the event-pool hero cafe.
 HERO_CITY = ("vn_clay_hour", "Clay Hour Studio", "Hayes Valley", "512 Hayes St", 37.7765, -122.4250, "studio", ["ceramics_studio", "craft_session"], ("class", "prepaid", 3500, 8), _hours("09:00", "21:00"))
 # The city nudge's restaurant (fictional, Hayes Valley): Maya's frequent dinner spot, reservation, pay there.
-NUDGE_CITY = ("vn_little_fern", "Little Fern Kitchen", "Hayes Valley", "461 Hayes St", 37.7768, -122.4240, "restaurant", ["food_crawl"], ("reservation", "pay_at_venue", 4500, 8), _hours("17:00", "22:30"))
+NUDGE_CITY = ("vn_little_fern", "Little Fern Kitchen", "Hayes Valley", "418 Hayes St", 37.7768, -122.4236, "restaurant", ["food_crawl", "brunch", "lunch"], ("reservation", "pay_at_venue", 3200, 12), _hours("11:00", "22:00"))
+# Demo venue photos: copies of the clone's licensed images (facebook-clone/assets/provenance.md), by venueId.
+PHOTOS = {"vn_little_fern": "salad.jpg", "vn_clay_hour": "pottery.jpg"}
+PHOTO_PROVENANCE = """# Venue photo provenance
+
+Each `vn_*.jpg` here is a copy of a Facebook clone image, an Unsplash photo used under the Unsplash
+license. Source URL, license and SHA-256 are recorded in `facebook-clone/assets/provenance.md`.
+The venues are fictional; the photos are stand-ins and show no real business.
+
+{rows}"""
 HERO_EVENT = ("vn_bayside_commons", "Bayside Commons Cafe", "Belle Haven", "1180 Willow Rd", 37.4801, -122.1560, "cafe", ["lunch", "coffee", "walk"], ("reservation", "prepaid", 1400, 12), _hours("08:00", "16:00"))
 
 SENSITIVE_CITY = [
