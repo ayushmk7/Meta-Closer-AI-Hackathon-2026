@@ -46,8 +46,9 @@ combination that fails the center cell cannot satisfy "CG better in the center a
 ## 25-cell held-out confirmation (seeds 10-59, all cells)
 
 Arms: greedy, CG current, and CG + fillToMax true / reunionBoost 1 / crowdBoost 0.5 (3,750 sims, seed-paired 95% CIs).
-Raw rows: `confirm25.jsonl`; full per-cell table: `CONFIRM25.md`. These came from an ad-hoc script that has since
-been folded into `cg_sim.mc.grid --holdout 50 --confirm`, which computes the same simulate calls on the same seeds.
+Produced by `uv run python -m cg_sim.mc.grid --seeds 10 --holdout 50 --confirm --fake-laya` (run
+`../20261113T032653Z_pool_sf_city_grid/`: `confirm.jsonl`, with the per-cell table in its `GRID.md`). Every per-cell row
+matches the earlier ad-hoc script's table exactly.
 
 Adoption bar: combo isolation better than CG current in every cell (upper bound < 0) and fill vs CG current >= -3 pts.
 

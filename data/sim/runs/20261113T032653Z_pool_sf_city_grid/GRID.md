@@ -1,3 +1,33 @@
+# CG params grid: 20261113T032653Z_pool_sf_city_grid
+
+Center cell, selection seeds 0-9, world=tables, real cg_matching=True, Laya fake (render_state hash). Current params: {'matching.fillToMax': False, 'matching.reunionBoost': 0.0, 'matching.crowdBoost': 0.0}. params.yaml unchanged. **Exploratory, fake Laya: not evidence.** Confirm with real Laya tables (or `--world truth`) before a params PR.
+
+Baselines: greedy isolated 51.8% [49.9%, 53.7%]; CG at current params 60.4% [58.1%, 62.7%].
+
+| fillToMax | reunionBoost | crowdBoost | CG isolated w8 | CG - greedy isolated | fill vs CG current | fill vs greedy | passes |
+|---|---|---|---|---|---|---|---|
+| false | 4 | 0.5 | 55.9% [53.4%, 58.4%] | +4.1% [+1.8%, +6.4%] | -2.5% [-2.8%, -2.2%] | -5.4% [-5.9%, -4.9%] | no |
+| true | 1 | 0.5 | 56.2% [54.6%, 57.8%] | +4.4% [+2.2%, +6.6%] | -2.0% [-2.3%, -1.6%] | -4.9% [-5.5%, -4.3%] | no |
+| true | 1 | 0 | 56.4% [54.1%, 58.7%] | +4.6% [+2.7%, +6.4%] | -0.1% [-0.5%, +0.2%] | -3.1% [-3.6%, -2.5%] | no |
+| false | 1 | 0.5 | 56.8% [55.4%, 58.3%] | +5.0% [+3.4%, +6.6%] | -2.2% [-2.5%, -1.8%] | -5.1% [-5.7%, -4.5%] | no |
+| false | 4 | 0 | 56.9% [55.7%, 58.2%] | +5.1% [+2.9%, +7.3%] | -0.7% [-1.2%, -0.2%] | -3.6% [-4.2%, -3.0%] | no |
+| true | 4 | 0 | 57.0% [55.2%, 58.9%] | +5.2% [+3.2%, +7.2%] | -0.4% [-0.7%, -0.1%] | -3.4% [-4.0%, -2.7%] | no |
+| true | 4 | 0.5 | 57.2% [55.4%, 59.1%] | +5.4% [+2.6%, +8.2%] | -2.3% [-2.6%, -2.0%] | -5.2% [-5.8%, -4.6%] | no |
+| false | 1 | 0 | 57.8% [55.8%, 59.8%] | +5.9% [+3.5%, +8.3%] | -0.2% [-0.6%, +0.1%] | -3.2% [-3.9%, -2.5%] | no |
+| true | 0 | 0 | 59.0% [56.8%, 61.2%] | +7.1% [+4.5%, +9.8%] | +0.2% [+0.1%, +0.3%] | -2.7% [-3.1%, -2.3%] | no |
+| true | 0 | 0.5 | 59.5% [57.5%, 61.5%] | +7.7% [+4.9%, +10.4%] | -2.1% [-2.5%, -1.7%] | -5.0% [-5.7%, -4.4%] | no |
+| false | 0 | 0.5 | 59.7% [57.2%, 62.1%] | +7.9% [+4.8%, +10.9%] | -2.3% [-2.8%, -1.9%] | -5.2% [-5.9%, -4.5%] | no |
+| false | 0 | 0 | 60.4% [58.1%, 62.7%] | +8.6% [+6.5%, +10.6%] | +0.0% [+0.0%, +0.0%] | -2.9% [-3.4%, -2.5%] | no |
+
+## Held-out (seeds 10-59, center cell, top 2 from selection)
+
+| fillToMax | reunionBoost | crowdBoost | CG isolated w8 | CG - greedy isolated | fill vs CG current | fill vs greedy | passes |
+|---|---|---|---|---|---|---|---|
+| true | 1 | 0.5 | 55.6% [54.6%, 56.6%] | +3.9% [+2.7%, +5.1%] | -2.2% [-2.4%, -2.0%] | -5.0% [-5.3%, -4.7%] | no |
+| false | 4 | 0.5 | 56.8% [55.7%, 57.8%] | +5.0% [+3.8%, +6.3%] | -2.5% [-2.7%, -2.3%] | -5.3% [-5.5%, -5.0%] | no |
+
+## Confirmation: fillToMax=true, reunionBoost=1, crowdBoost=0.5 vs CG current vs greedy, seeds 10-59, all 25 cells
+
 | flake | join | combo - greedy iso | combo - CG iso | combo - CG fill | combo - CG friends w8 | combo - CG show | CG - greedy iso | beats CG |
 |---|---|---|---|---|---|---|---|---|
 | 0.5 | 0.5 | +9.4% [+8.3%, +10.4%] | -3.1% [-4.3%, -1.9%] | -1.9% [-2.2%, -1.6%] | +4.6% [+3.8%, +5.3%] | +0.1% [-0.1%, +0.2%] | +12.5% [+11.3%, +13.7%] | yes |
@@ -26,4 +56,4 @@
 | 1.5 | 1.25 | +1.5% [+0.1%, +2.8%] | -4.6% [-5.6%, -3.6%] | -2.1% [-2.4%, -1.9%] | +5.0% [+4.2%, +5.8%] | +0.5% [+0.4%, +0.6%] | +6.1% [+4.9%, +7.2%] | yes |
 | 1.5 | 1.5 | +1.0% [-0.2%, +2.2%] | -5.2% [-6.4%, -3.9%] | -2.1% [-2.2%, -1.9%] | +5.8% [+5.0%, +6.5%] | +0.4% [+0.3%, +0.5%] | +6.2% [+4.9%, +7.4%] | yes |
 
-ADOPT=True  combo beats greedy (iso upper<0) in 0/25 cells
+ADOPT vs CG current (iso upper < 0 and fill >= -3 pts in every cell): yes (exploratory, fake Laya). vs greedy: worse 24, unclear 1, better 0 of 25.
