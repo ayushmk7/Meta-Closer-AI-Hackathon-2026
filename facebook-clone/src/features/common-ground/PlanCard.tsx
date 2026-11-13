@@ -54,6 +54,9 @@ const ICONS: Record<string, IconName> = {
   board_game_night: 'dice',
   run: 'fitness',
   music: 'musical-notes',
+  brunch: 'restaurant',
+  lunch: 'restaurant',
+  food_crawl: 'restaurant',
 };
 export const activityIcon = (type: string): IconName => ICONS[type] ?? 'sparkles';
 export const photoSource = (url: string) =>
