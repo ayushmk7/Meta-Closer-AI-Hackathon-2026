@@ -2,7 +2,7 @@
   "poolId": "pool_evt_closer_together",
   "mode": "event",
   "label": "Closer Together AI Hackathon",
-  "description": "Plans with people at this event, Nov 11 to 13",
+  "description": "Meetups with people at this event, Nov 11 to 13",
   "center": {
     "lat": 37.4848,
     "lng": -122.1484
