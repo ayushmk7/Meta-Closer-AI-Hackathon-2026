@@ -61,6 +61,7 @@ export function Toggle({
         onValueChange={onChange}
         trackColor={{ false: c.secondary, true: c.blue }}
         thumbColor="#fff"
+        {...{ activeThumbColor: '#fff' }} // RN-web ignores thumbColor when on (default teal)
       />
     </View>
   );

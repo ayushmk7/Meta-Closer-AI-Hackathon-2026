@@ -136,6 +136,14 @@ test('interested: progress line and Can not make it withdraws after confirm', as
   expect(withdraw).toHaveBeenCalledWith('pl_0001');
 });
 
+test('interested and full count: Muse is forming the group', async () => {
+  store.setState({
+    joins: [{ ...fixtures.joinPlan, planId: 'pl_0001', progress: { joined: 3, needed: 3 } }],
+  });
+  const { text } = await render(bar({ myJoin: { joinId: 'jn_0001', status: 'interested' } }));
+  expect(text()).toContain("You're in. Muse is forming your group.");
+});
+
 test('matched: Open plan goes to the meetup', async () => {
   const { router } = require('expo-router');
   const m = fixtures.getMeetup;

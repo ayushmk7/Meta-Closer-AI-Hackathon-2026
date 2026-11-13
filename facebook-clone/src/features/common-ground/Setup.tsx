@@ -45,7 +45,7 @@ function Intro({ onNext }: { onNext(): void }) {
     modes.find((m) => m.mode === (picked ?? lastMode) && m.available) ??
     modes.find((m) => m.available);
   return (
-    <Section title="Plans">
+    <Section title="How it works">
       <View style={{ flexDirection: 'row', gap: 10, alignItems: 'flex-start' }}>
         <MuseAvatar />
         <View

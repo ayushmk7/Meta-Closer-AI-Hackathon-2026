@@ -112,7 +112,11 @@ export function BottomBar({ plan, surprise = false }: { plan: PlanDetail; surpri
     return (
       <View style={{ gap: 8 }}>
         <Label accessibilityLiveRegion="polite" style={{ textAlign: 'center' }}>
-          {more > 0 ? `You're in. Muse needs ${more} more.` : "You're in."}
+          {!p
+            ? "You're in."
+            : more > 0
+              ? `You're in. Muse needs ${more} more.`
+              : "You're in. Muse is forming your group."}
         </Label>
         <Button
           title="Can't make it"
@@ -183,6 +187,7 @@ export function BottomBar({ plan, surprise = false }: { plan: PlanDetail; surpri
               onValueChange={setPlusOne}
               trackColor={{ false: c.secondary, true: c.blue }}
               thumbColor="#fff"
+              {...{ activeThumbColor: '#fff' }} // RN-web ignores thumbColor when on (default teal)
             />
           </>
         )}
