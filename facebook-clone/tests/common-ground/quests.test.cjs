@@ -29,7 +29,7 @@ jest.mock('../../src/platform/scopedStorage', () => ({
 const fixtures = require('../../src/features/common-ground/fixtures.json');
 const store = require('../../src/features/common-ground/store');
 const { default: Quests } = require('../../src/features/common-ground/Quests');
-const { default: Passport, StampEarned } = require('../../src/features/common-ground/Passport');
+const Passport = require('../../src/features/common-ground/Passport').default;
 
 async function render(el) {
   let tree;
@@ -52,12 +52,12 @@ beforeEach(() =>
   ),
 );
 
-test('Verify in person ticks, saves and starts the streak; Surprise me ticks from outside', async () => {
+test('Talk to a person ticks, saves and starts the streak; Surprise me ticks from outside', async () => {
   const { tree, labels } = await render(React.createElement(Quests));
   expect(labels()).toContain("Today's quests");
   expect(labels()).toContain('0 of 4 done');
   const talk = tree.root.find(
-    (n) => n.props.accessibilityLabel === 'Verify in person' && n.props.onPress,
+    (n) => n.props.accessibilityLabel === 'Talk to a person' && n.props.onPress,
   );
   expect(talk.props.accessibilityState).toEqual({ checked: false });
   await renderer.act(async () => talk.props.onPress());
@@ -81,7 +81,7 @@ test('Verify in person ticks, saves and starts the streak; Surprise me ticks fro
 
 const KEY = 'common-ground-quests:v1';
 const talkBox = (tree) =>
-  tree.root.find((n) => n.props.accessibilityLabel === 'Verify in person' && n.props.onPress);
+  tree.root.find((n) => n.props.accessibilityLabel === 'Talk to a person' && n.props.onPress);
 
 test('card left open across LA midnight: ticks clear, streak not extended for an empty day', async () => {
   jest.useFakeTimers({
@@ -140,21 +140,5 @@ test('Passport shows collected and locked stamps', async () => {
   expect(labels()).toContain(`${m.venue.name}, collected`);
   expect(labels()).toContain('Board game night, locked');
   expect(labels()).toMatch(/3 of \d+ stamps/);
-  await renderer.act(async () => tree.unmount());
-});
-
-test('StampEarned after a verify: names the stamp, links to Passport, ticks Verify in person', async () => {
-  delete mockSaved[KEY];
-  const m = fixtures.getMeetup;
-  await renderer.act(async () => store.setState({ meetups: { [m.meetupId]: m } }));
-  const { tree, labels } = await render(React.createElement(StampEarned, { meetupId: m.meetupId }));
-  await renderer.act(async () => {});
-  expect(labels()).toContain('Stamp earned: Ceramics studio');
-  const link = tree.root.find(
-    (n) => n.props.accessibilityLabel === 'See passport' && n.props.onPress,
-  );
-  await renderer.act(async () => link.props.onPress());
-  expect(require('expo-router').router.push).toHaveBeenCalledWith('/common-ground/passport');
-  expect(JSON.parse(mockSaved[KEY])[fixtures.getMe.userId]).toMatchObject({ talked: true });
   await renderer.act(async () => tree.unmount());
 });

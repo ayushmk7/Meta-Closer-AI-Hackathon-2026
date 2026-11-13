@@ -43,16 +43,14 @@ const writeLog = async (userId: string, log: QuestLog) => {
 };
 
 let push: ((log: QuestLog) => void) | null = null; // the mounted card, if any
-async function note(patch: Partial<QuestLog>): Promise<void> {
+// SurpriseButton calls this when it opens a plan.
+export async function noteSurprise(): Promise<void> {
   const userId = getState().me?.userId;
   if (!userId) return;
-  const log = { ...(await readLog(userId, laDay(Date.now()))), ...patch };
+  const log = { ...(await readLog(userId, laDay(Date.now()))), surprise: true };
   await writeLog(userId, log);
   push?.(log);
 }
-// SurpriseButton calls this when it opens a plan; StampEarned when a verify succeeds.
-export const noteSurprise = () => note({ surprise: true });
-export const noteVerified = () => note({ talked: true });
 
 function Row({ q, onPress }: { q: Quest; onPress?: () => void }) {
   const c = useColors();
