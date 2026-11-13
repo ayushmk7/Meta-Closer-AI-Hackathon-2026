@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import math
+import re
 import time
 from datetime import UTC, datetime, timedelta
 from typing import Literal
@@ -12,6 +13,7 @@ from fastapi import APIRouter, Response
 from pydantic import BaseModel
 
 from cg_api import realtime
+from cg_api.domain.plans import TZ
 from cg_api.errors import ApiError
 from cg_api.ports import Unavailable, matching
 from cg_api.settings import get_settings
@@ -83,6 +85,14 @@ def _travel(uid: str, venue_id: str) -> int:
         return get_settings().params["travel"]["defaultMaxMinutes"]
 
 
+_WEEKDAY = re.compile(r"\b(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\b")
+
+
+def _retitle(title: str, start: datetime) -> str:
+    """Seed titles name the day ("Sunday small plates"): keep it true after time travel moves the day."""
+    return _WEEKDAY.sub(start.astimezone(TZ).strftime("%A"), title)
+
+
 @router.post("/internal/v1/demo/meetups/{meetupId}/advance", operation_id="advanceMeetup")
 def advance_meetup(meetupId: str, body: Advance):
     """Time-travel: shift the meetup's start/end (duration kept) so leave-by, check-in or feedback is now."""
@@ -102,11 +112,17 @@ def advance_meetup(meetupId: str, body: Advance):
         new_start = now + timedelta(minutes=1 + travel + p["travel"]["leaveByBufferMin"])
     elif body.to == "window_open":
         new_start = now + timedelta(minutes=math.floor(p["checkin"]["opensBeforeMin"] / 2))
-    else:
-        new_start = now - duration - timedelta(minutes=1)
+    else:  # back by whole days, so it ended at its own time of day (Sun 7 PM -> Thu 7 PM), not at 3 AM
+        new_start = start - timedelta(
+            days=max(0, math.ceil((start + duration - now + timedelta(minutes=1)) / timedelta(days=1)))
+        )
         if m.get("status") in ("setting_up", "confirmed"):
             m["status"] = "completed"
     m["startsAt"], m["endsAt"] = _z(new_start), _z(new_start + duration)
+    if m.get("title"):
+        m["title"] = _retitle(m["title"], new_start)
+    if t := store.threads.get(m.get("threadId")):
+        t["title"] = _retitle(t["title"], new_start)
     for uid in members:
         realtime.emit(uid, "meetup.updated", {"meetupId": meetupId})
         realtime.emit(uid, "calendar.changed")

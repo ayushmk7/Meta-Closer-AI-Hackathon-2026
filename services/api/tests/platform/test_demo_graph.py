@@ -67,3 +67,33 @@ def test_isolated_and_export_pairs_match_a_full_scan(api):
         assert u["metIds"] == sorted(met(uid))
         assert u["connectionIds"] == sorted(o for k in store.connections if uid in k for o in k - {uid})
         assert u["blockedIds"] == sorted(o for k in store.blocks if uid in k for o in k - {uid})
+
+
+def test_advance_keeps_title_day_and_time_of_day_true(api):
+    """ux-fable N-P0-2: "Sunday small plates" must not read "FRI 3:12 AM" after advance to completed."""
+    from cg_api.domain.plans import TZ
+
+    local = (datetime.now(TZ) + timedelta(days=3)).replace(hour=19, minute=0, second=0, microsecond=0)
+    start = local.astimezone(UTC)
+    day = local.strftime("%A")
+    store.threads["th_t"] = {"threadId": "th_t", "meetupId": "mt_t", "title": f"{day} small plates", "members": [],
+                             "messages": [], "readUpTo": {}}  # fmt: skip
+    store.meetups["mt_t"] = {"meetupId": "mt_t", "planId": "pl_sf_hero_wheel", "venueId": "vn_clay_hour",
+                             "threadId": "th_t", "title": f"{day} small plates at Little Fern", "status": "confirmed",
+                             "startsAt": start.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                             "endsAt": (start + timedelta(minutes=90)).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                             "members": {"u_maya": {"rsvp": "going"}}, "steps": []}  # fmt: skip
+    api("advanceMeetup", "/internal/v1/demo/meetups/mt_t/advance", json={"to": "completed"})
+    m = store.meetups["mt_t"]
+    s = datetime.fromisoformat(m["startsAt"]).astimezone(TZ)
+    assert (
+        datetime.fromisoformat(m["endsAt"])
+        < datetime.now(UTC)
+        < datetime.fromisoformat(m["endsAt"]) + timedelta(days=1)
+    )
+    assert (s.hour, s.minute) == (19, 0)  # its own time of day, a few days back
+    assert (
+        m["title"] == f"{s:%A} small plates at Little Fern" and store.threads["th_t"]["title"] == f"{s:%A} small plates"
+    )
+    api("advanceMeetup", "/internal/v1/demo/meetups/mt_t/advance", json={"to": "leave_by"})
+    assert m["title"].startswith(datetime.fromisoformat(m["startsAt"]).astimezone(TZ).strftime("%A"))
