@@ -25,14 +25,14 @@ export const commonGroundFeature: FeatureDefinition = {
   menuItems: [
     {
       id: 'common-ground',
-      label: 'Common Ground',
+      label: 'Plans',
       icon: 'sparkles-outline',
       href: '/common-ground',
       description: "Plans with people who are into what you're into",
     },
   ],
   homeSections: [{ id: 'common-ground-home', Component: HomeSection }],
-  inboxSources: [{ id: 'common-ground', label: 'Common Ground', useRows: useInboxRows }],
+  inboxSources: [{ id: 'common-ground', label: 'Plans', useRows: useInboxRows }],
   eventSources: [{ id: 'common-ground', label: 'Planned with Muse', useRows: useEventRows }],
   resetHooks: [{ id: 'common-ground', run: reset }],
 };
