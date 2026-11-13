@@ -189,7 +189,7 @@ def test_p7_owner_only(world):
     j = joins.join(world, "u_maya", "pl_walk")
     form_hero(world)
     dump = everything(world, "u_dan") + json.dumps([d for u, _, d in world.events if u != "u_maya"], default=str)
-    for leak in ("Lands End 4 times", "si_0001", "2026-11-19T02:00:00Z", j["joinId"]):
+    for leak in ("Little Fern Kitchen 4 times", "si_0001", "2026-11-19T02:00:00Z", j["joinId"]):
         assert leak not in dump, leak
     for m in meetups.list_meetups(world, "u_maya"):
         assert "Daniel" not in json.dumps(m["calendar"]) and "Rosa" not in json.dumps(m["calendar"])

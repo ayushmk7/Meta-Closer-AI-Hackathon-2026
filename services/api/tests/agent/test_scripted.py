@@ -236,6 +236,12 @@ def test_restaurant_reserves_a_table_without_an_approval():
     ev = list(r.start())
     assert not any(e["type"] == "approval" for e in ev)  # no money moves: nothing to OK
     labels = {s["kind"]: s["label"] for s in r.steps}
-    assert labels["check_availability"] == "Little Fern Kitchen has a table for 4 open at 7 PM"
+    assert labels["check_availability"] == "Little Fern Kitchen has a table for 4 at 7 PM"
     assert labels["book"] == "Reserved a table for 4 at Little Fern Kitchen · 7 PM"
+    assert next(e["booking"] for e in ev if e["type"] == "booking")["label"].startswith("Reserved · ")
+    events, _, _ = r.reschedule_to("2026-11-15T04:00:00Z", {})
+    assert events[0]["step"]["label"] == "Moved your table for 4 at Little Fern Kitchen to 8 PM"
+    full = ScriptedRun("mt_4", dinner, {**fern, "booking": {**fern["booking"], "capacityPerSlot": 2}}, four, "x", str)
+    assert ("check_availability", "failed") in steps(list(full.start()))
+    assert full.steps[2]["label"] == "Little Fern Kitchen has no table at 7 PM"
     assert next(e for e in ev if e["type"] == "confirmed")["eventLabel"] == "Private event · 4 going"

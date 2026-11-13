@@ -93,6 +93,11 @@ class ScriptedRun:
     def restaurant(self) -> bool:
         return self.venue.get("kind") == "restaurant"
 
+    def _full(self, at: str) -> str:
+        """Availability failure: "Little Fern Kitchen has no table at 7 PM" / "Clay Hour Studio is full at 10 AM"."""
+        name, t = self.venue["name"], clock(at, True)
+        return f"{name} has no table at {t}" if self.restaurant else f"{name} is full at {t}"
+
     def _seat(self, n: int) -> str:
         if self.restaurant:
             return f"a table for {n}"
@@ -111,13 +116,14 @@ class ScriptedRun:
         )
         if self.needs_booking:
             if simulated_book(v, p["startsAt"], n) is None:  # capacity check only; nothing is booked yet
-                yield self._step("check_availability", "failed", f"{v['name']} is full at {clock(p['startsAt'], True)}")
+                yield self._step("check_availability", "failed", self._full(p["startsAt"]))
                 if not (yield from self._shift(n, "No room")):
                     return
             yield self._step(
                 "check_availability",
                 "done",
-                f"{v['name']} has {self._seat(n)} open at {clock(self.plan['startsAt'], True)}",
+                f"{v['name']} has {self._seat(n)}{'' if self.restaurant else ' open'} at "
+                f"{clock(self.plan['startsAt'], True)}",
             )
         else:
             yield self._step("check_availability", "done", f"No booking needed at {v['name']}")
@@ -159,7 +165,8 @@ class ScriptedRun:
             yield self._step("payment", "needs_you", f"Waiting for you to OK {amount}", approval_id=ap_id, for_user=uid)
         if self.pending:
             # only the next step is queued: anything after a booking failure must append after it, in order
-            yield self._step("book", "queued", f"Book {self._seat(len(self.attendees))}")
+            verb = "Reserve" if self.restaurant else "Book"
+            yield self._step("book", "queued", f"{verb} {self._seat(len(self.attendees))}")
 
     def decide(self, approval_id: str, status: str) -> Iterator[dict]:
         """approved | declined | expired for one pending payment approval; continues the run when all are in."""
@@ -204,13 +211,13 @@ class ScriptedRun:
                 self._find("book"),
                 "book",
                 status="failed",
-                label=f"{v['name']} is full at {clock(p['startsAt'], True)}",
+                label=self._full(p["startsAt"]),
             )
             if not (yield from self._shift(party, "Full")):
                 return
             code = simulated_book(v, self.plan["startsAt"], party)
             if code is None:
-                yield self._step("book", "failed", f"{v['name']} is full at {clock(self.plan['startsAt'], True)} too")
+                yield self._step("book", "failed", f"{self._full(self.plan['startsAt'])} too")
                 yield self._booking("failed", "Couldn't book it", None)
                 yield from self._cancel()
                 return
@@ -223,7 +230,7 @@ class ScriptedRun:
             else f"Booked {self._seat(party)} at {v['name']}",
             detail=f"Confirmation {code}",
         )
-        yield self._booking("booked", f"Booked · {code}", code)
+        yield self._booking("booked", f"{'Reserved' if self.restaurant else 'Booked'} · {code}", code)
         yield from self._finish()
 
     def _booking(self, status: str, label: str, code: str | None) -> dict:
@@ -318,11 +325,12 @@ class ScriptedRun:
         n0 = len(self.steps)
         old_label = clock(p["startsAt"], True)
         self.plan = {**p, "startsAt": new_start, "endsAt": _iso(end)}
-        events = [
-            self._step(
-                "reschedule", "done", f"Moved it from {old_label} to {clock(new_start, True)}; everyone's still free"
-            )
-        ]
+        moved = (
+            f"Moved your table for {party} at {v['name']} to {clock(new_start, True)}"
+            if self.restaurant
+            else f"Moved it from {old_label} to {clock(new_start, True)}; everyone's still free"
+        )
+        events = [self._step("reschedule", "done", moved)]
         events.append({"type": "reschedule", "startsAt": new_start, "endsAt": self.plan["endsAt"]})
         booked = any(s["kind"] == "book" and s["status"] == "done" for s in self.steps)
         if self.needs_booking and booked:
@@ -332,7 +340,7 @@ class ScriptedRun:
                     "book", "done", f"Rebooked {self._seat(party)} at {v['name']}", detail=f"Confirmation {code}"
                 )
             )
-            events.append(self._booking("booked", f"Booked · {code}", code))
+            events.append(self._booking("booked", f"{'Reserved' if self.restaurant else 'Booked'} · {code}", code))
         events.append(self._step("calendar", "done", "Updated everyone's calendar"))
         events.append({"type": "calendar", "desired": "event"})
         room = f" and {v['name']} has room then" if self.needs_booking else ""
