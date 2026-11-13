@@ -328,7 +328,7 @@ def rule_signals(uid: str, recs: list[dict]) -> list[dict]:
             label = (
                 f"Regular visits to a {venue['kind'].replace('_', ' ')}"
                 if sensitive
-                else f"{len(rs)} visits to {venue['name']} this month"
+                else f"You've been to {venue['name']} {len(rs)} times this month"  # R12: "Because you've been to …"
             )
             last = max(r["at"] for r in rs)
             strength = min(1.0, len(rs) / (2 * p["frequentPlaceVisits30d"]) + 0.2)
