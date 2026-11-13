@@ -17,7 +17,7 @@
 - No `aps-environment`. Prebuild auto-applies the `expo-notifications` config plugin whenever the package is autolinked, and that plugin always writes `aps-environment` (default `mode: 'development'`). `package.json` sets `expo.autolinking.exclude: ["expo-notifications"]`, and then `npx expo config --type introspect` shows no `aps-environment`. Expo Go ships the notifications module natively, so local scheduling still works there. A development build would need its own local-only setup.
 - Clone code requests no permission. Common Ground requests its own.
 - Web icon: `Controls.web.tsx` has a `sparkles` path, and `sparkles-outline` is an alias for it. `Shell.web.tsx` already renders the contributed tab's `activeIcon` in the desktop header, so a `sparkles` / `sparkles-outline` tab renders with no further change.
-- Six tabs at 390pt: each tab is `flex: 1` (65pt). The longest label is "Notifications" at 9pt, about 57pt, on one line (`numberOfLines={1}`). Plans fits. Still needs a check on a real iPhone in Expo Go.
+- Six tabs at 390pt: each tab is `flex: 1` (65pt). The longest label is "Notifications" at 9pt, about 57pt, on one line (`numberOfLines={1}`). Meetups fits. Still needs a check on a real iPhone in Expo Go.
 - e2e stories swipe now measures the `.stories` box, because Home sections (the Common Ground card) push the strip down.
 - Note for ios: `tests/common-ground/contract.test.ts` fails on two tests (getMeetup example, getMe `setupComplete`) against the v2 openapi. That test is in ios paths and is expected to be rewritten in A1. It is not a shell regression.
 - `src/css.d.ts` (`declare module '*.css'`) lets `npm run typecheck` pass on a clean checkout or in CI without the gitignored `expo-env.d.ts`.
