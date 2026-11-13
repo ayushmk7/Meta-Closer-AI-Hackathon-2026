@@ -47,7 +47,7 @@ Open on main at `0e099d0` (2026-11-13). Evidence and smallest fixes: orchestrato
 
 | Gap | Area |
 | --- | ---- |
-| When a step needs the user ("Waiting for you to OK $35"), it and its approval card are below the fold on the meetup screen and nothing scrolls them into view, unlike the call. "Open group chat" turns secondary for a primary the user cannot see. | ios |
+| When a step needs the user ("Waiting for you to OK $35"), it and its approval card are below the fold on the meetup screen and nothing scrolls them into view, unlike the call. Fixed by #199 (open when this was written). "Open group chat" turns secondary for a primary the user cannot see. | ios |
 | The notifications permission alert appears on the first leave-by reminder, which is the moment the meetup confirms, and covers the screen. Left as designed (asked the first time a reminder is needed); grant it on demo phones beforehand. | ios, demo setup |
 | The Little Fern Kitchen meetup (the one with the call) has no payment approval; the approval sheet only appears on the hero plan. One meetup does not show both beats. | demo script |
 | The in-app mock goes from interested to matched in one tick, so people joining one by one is only visible on the live backend. | ios (mock) |
@@ -64,10 +64,11 @@ Design review of flow and motion, scored 1 to 10 from Simulator screenshot burst
 
 | Build | Flow | Motion | Seen in motion |
 | --- | --- | --- | --- |
+| main `0e099d0` plus #199 (approval scrolled into view) | 9 | 9 | the hero meetup screen scrolling to "Waiting for you to OK $35" and its "Review payment" card as the step arrives (`e2e-anim/approval-*`, shot on the #199 branch) |
 | main `0e099d0` | 8.5 | 9 | everything below, plus the held steps ticking after the call and no jump at confirmed (`e2e-anim/s9-hold-*`, `s10-hold-*`, shot on the branch that became #196) |
 | main `726755b` | 8 | 8.5 | Welcome, Log in, home, plan pop-up, joining, group set, steps, the call, confirmed, chat replies and Muse typing (`e2e-run/final-*`); setup (`e2e-anim/s8-*`) |
 | main `b373217` (before the motion fixes) | 6.5 | 6 | stills only |
 
 Reduce Motion was checked on the join, group set, meetup and call bursts (`e2e-anim/s4-reduce-*`): state changes only, and the call card shows its final state at once.
 
-What flow 9 needs: the first gap above. The step that needs the user must come into view on the meetup screen the way the call does.
+Flow reaches 9 when #199 merges; the first gap above is then closed and should be removed from the table.
