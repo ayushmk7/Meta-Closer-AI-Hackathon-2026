@@ -153,13 +153,15 @@ def approval_copy(plan: dict, venue: dict) -> dict:
     cents = plan["cost"]["perPersonCents"]
     seat = SEAT.get(plan.get("activityType", ""), "spot")
     vname = venue.get("name", "the venue")
+    # one voice on the approval sheet: Muse in the third person throughout (Fable UX #11)
     if (venue.get("booking") or {}).get("payAtVenueAllowed"):
-        fallback = f"If you'd rather not, I'll ask {vname} to hold your {seat} and you can pay there."
+        fallback = f"If you'd rather not, Muse asks {vname} to hold your {seat} and you pay there."
     else:
-        fallback = "If you'd rather not, I'll look for a free option or let the group know you can't make it."
+        fallback = "If you'd rather not, Muse looks for a free option or tells the group you can't make it."
     return {
         "title": f"OK {money(cents)} for your {seat}?",
-        "detail": f"Muse pays {vname} for your seat on {long_when(plan['startsAt'], plan['endsAt'])}.",
+        "detail": f"Muse pays {money(cents)} to {vname} for your {seat} on "
+        f"{long_when(plan['startsAt'], plan['endsAt'])}.",
         "fallback": fallback,
     }
 
