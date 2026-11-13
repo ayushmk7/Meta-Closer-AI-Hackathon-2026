@@ -331,6 +331,8 @@ export default function MeetupScreen() {
   return (
     <ScrollView
       ref={scroll}
+      // iOS: the header growing at confirm (event label, buttons) doesn't push the steps you're watching.
+      maintainVisibleContentPosition={{ minIndexForVisible: 0 }}
       keyboardShouldPersistTaps="handled"
       contentContainerStyle={{ paddingBottom: 24, gap: 8 }}
     >
@@ -413,12 +415,6 @@ export default function MeetupScreen() {
               <Label style={{ flex: 1 }}>{summary(m)}</Label>
             </View>
           )}
-          {settled && (
-            <Link
-              title={stepsOpen ? 'Hide steps' : `See all ${m.museSteps.length} steps`}
-              onPress={() => setStepsOpen((x) => !x)}
-            />
-          )}
           {/* The group just formed and no step has landed yet: show Muse working, not an empty card. */}
           {m.status === 'setting_up' && !m.museSteps.length && (
             <MuseThinking lines={STARTING} done={false} />
@@ -427,6 +423,13 @@ export default function MeetupScreen() {
             <View onLayout={(e) => (stepsAt.current.timeline = e.nativeEvent.layout.y)}>
               <StepTimeline meetupId={m.meetupId} steps={m.museSteps} onCall={showCall} />
             </View>
+          )}
+          {/* Below the steps, so it appearing at confirm never pushes them down. */}
+          {settled && (
+            <Link
+              title={stepsOpen ? 'Hide steps' : `See all ${m.museSteps.length} steps`}
+              onPress={() => setStepsOpen((x) => !x)}
+            />
           )}
           {loose.map((a) => (
             <ApprovalSheet key={a.approvalId} approval={a} />
