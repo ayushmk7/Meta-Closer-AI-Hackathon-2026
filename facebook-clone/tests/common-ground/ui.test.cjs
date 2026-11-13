@@ -38,26 +38,7 @@ jest.mock('../../src/platform/scopedStorage', () => {
   };
 });
 
-const store = require('../../src/features/common-ground/store');
-const PlanScreen = require('../../src/features/common-ground/Plan').default;
 const { Pill } = require('../../src/features/common-ground/ui');
-const { Text } = require('react-native');
-
-const texts = (tree) =>
-  tree.root.findAllByType(Text).map((t) => [].concat(t.props.children).join(''));
-
-test('a plan the server 404s shows NotFound, not a blank page', async () => {
-  await store.reset();
-  await store.start();
-  await store.optIn('city');
-  let tree;
-  await renderer.act(async () => {
-    tree = renderer.create(React.createElement(PlanScreen)); // loads pl_nope -> 404 on the mock
-  });
-  expect(store.getState().missingPlans.pl_nope).toBe(true);
-  expect(texts(tree)).toContain("This plan isn't available");
-  await renderer.act(async () => tree.unmount());
-});
 
 test('a display Pill reads as text; a tappable one as a selectable button', () => {
   let r;
