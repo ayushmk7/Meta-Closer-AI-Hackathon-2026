@@ -165,6 +165,11 @@ test('Explore filters by activity and neighborhood', async () => {
 
 test('Welcome: read-only gallery, Log in and Create new account enter Plans', async () => {
   const { text, press, has } = await render(React.createElement(WelcomeScreen));
+  // Full-screen modal: covers the logged-in Shell chrome (header, tabs).
+  const modal = (await render(React.createElement(WelcomeScreen))).tree.root.findByType(
+    require('react-native').Modal,
+  );
+  expect(modal.props.presentationStyle).toBe('fullScreen');
   expect(text()).toContain('facebook');
   expect(text()).toContain('Create new account');
   expect(has('Like Hayes Clay Studio')).toBe(false); // read-only
