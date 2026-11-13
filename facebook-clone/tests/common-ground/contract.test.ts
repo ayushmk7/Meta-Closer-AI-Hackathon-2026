@@ -107,6 +107,11 @@ test('the mock answers every operation with a body that carries every required k
   await call('POST', '/v1/plans/pl_0001/join', {});
   t.mock.timers.tick(60_000); // the staged group forms and Muse finishes its steps
   t.mock.timers.tick(3 * 86_400_000); // ... and the meetup is over, so it can be shared
+  // Venue photos come from bundled clone images (no network on web, D5).
+  const feed = (await call('GET', '/v1/feed')) as Json;
+  assert.ok(feed.plans.every((p: Json) => p.venue.photoUrl?.startsWith('asset:')));
+  const shares = (await call('GET', '/v1/shares')) as Json;
+  assert.ok(shares.items.some((x: Json) => x.photoUrl === 'asset:pottery'));
   const meetup = (await call('GET', '/v1/meetups')) as Json;
   assert.equal(meetup.items.length, 1);
   const ids: Record<string, string> = {

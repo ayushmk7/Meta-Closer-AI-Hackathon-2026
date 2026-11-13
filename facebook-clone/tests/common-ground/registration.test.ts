@@ -29,6 +29,7 @@ test('Common Ground contributes exactly one of each extension point, registered 
     },
   );
   assert.equal(c.menuItems[0].icon, 'sparkles-outline');
-  assert.equal(c.inboxSources[0].label, 'Common Ground');
+  assert.equal(c.inboxSources[0].label, 'Plans');
+  assert.equal(c.menuItems[0].label, 'Plans'); // one user-facing name
   assert.equal(c.eventSources[0].label, 'Planned with Muse');
 });
