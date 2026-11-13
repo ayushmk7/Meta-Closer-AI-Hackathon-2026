@@ -14,6 +14,7 @@ Milestone: v2 M2 device layer (A2, `cg/ios/v2-m2-device`)
 - 2026-11-13 Batch 5 Story prompt: after a completed meetup I went to, `StoryPrompt` (above Share to Explore) offers "Add to your story" with the venue photo and plan title only; one tap posts via shell `usePostStory` (`@/extensions/story`, CONTRACTS v2.1.3). Not now / posted is remembered per meetup in own prefs (`storyPrompt`). Test: `tests/common-ground/story.test.cjs`.
 
 ## Decisions
+- 2026-11-13 Meetup writes carry a per-meetup request stamp; a fetch that left before a newer write (step event, later fetch, approval decision, leave) is dropped. Why: out-of-order responses dropped Muse steps (rule 10) and flipped decided approvals back to pending.
 
 - 2026-11-13 Batch 2 core (B1): shares and verify in types/api/mock/store; stub props frozen: `ShareCard({share})`, `ShareMeetup({m})`, `VerifyButton({m})`, `FeedbackExtras({value, onChange})` (rating/tags go into `sendFeedback`); `planLikeThis(share)` likes, then `createPlan` if `canCreatePlans` else `askMuse`. Mock verify accepts any code but my own (`MAYA42`), since each phone runs its own mock. Mock meetup completes after its end time. Reset demo clears `common-ground-quests:v1`.
 
