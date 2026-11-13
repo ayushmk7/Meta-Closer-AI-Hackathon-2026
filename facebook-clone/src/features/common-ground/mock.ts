@@ -192,6 +192,7 @@ function world() {
         planId: card.planId,
         status: card.myJoin.status,
         progress: { joined: card.crowd.interestedCount, needed: card.size.min },
+        createdAt: now(), // today, so the demo's quests don't start at 0 of 4
         calendar: null,
       };
   return {
@@ -203,8 +204,9 @@ function world() {
       setupComplete: false,
       // Not in the openapi example (fixtures must match it); private progress for the demo.
       rewards: {
-        confirmedMeetups: 0,
-        streakWeeks: 0,
+        // Seeded so the progress card has history on stage; the staged meetup adds one.
+        confirmedMeetups: 2,
+        streakWeeks: 2,
         nextUnlock: { unlockId: 'create_plans', label: 'Create your own plans', remaining: 1 },
       },
     } as Me,
@@ -693,7 +695,15 @@ export function tick(t = Date.now()): void {
   m.endsAt = iso(Date.parse(base.endsAt) + shift);
   if (t >= Date.parse(m.endsAt)) {
     // Over: completed, and feedback is due once (the feedback route clears it).
-    if (!s.completed) m.feedbackDue = true;
+    if (!s.completed) {
+      m.feedbackDue = true;
+      const r = w.me.rewards!;
+      r.confirmedMeetups += 1;
+      if (r.nextUnlock && --r.nextUnlock.remaining <= 0) {
+        r.nextUnlock = null; // unlocked: Maya may now create plans
+        w.me.capabilities.canCreatePlans = true;
+      }
+    }
     s.completed = true;
     m.status = 'completed';
   }
@@ -731,6 +741,22 @@ export function tick(t = Date.now()): void {
   }
 }
 
+const VENUE_PHOTOS: Record<string, string> = {
+  vn_hayes_clay: 'pottery',
+  vn_lands_end: 'coast-1',
+  vn_long_table: 'cafe',
+  vn_basalt_bouldering: 'city-street',
+};
+function offline(_: string, v: unknown): unknown {
+  if (typeof v === 'string') return /^https?:\/\/localhost\b/.test(v) ? null : v;
+  if (v && typeof v === 'object' && 'photoUrl' in v) {
+    const x = v as { photoUrl: unknown; venueId?: string; venue?: { venueId?: string } };
+    const photo = VENUE_PHOTOS[x.venueId ?? x.venue?.venueId ?? ''];
+    if (photo && !x.photoUrl) x.photoUrl = `asset:${photo}`;
+  }
+  return v;
+}
+
 export async function mockRequest(
   user: string,
   method: string,
@@ -750,12 +776,9 @@ export async function mockRequest(
       user,
     );
     // D5: fixture media points at the backend (http://localhost:8000/static/…); the mock makes
-    // no network requests, so those URLs become null (avatars fall back to initials).
-    return out === undefined
-      ? undefined
-      : JSON.parse(JSON.stringify(out), (_, v) =>
-          typeof v === 'string' && /^https?:\/\/localhost\b/.test(v) ? null : v,
-        );
+    // no network requests, so those URLs become null (avatars fall back to initials) and venue
+    // photos (Venue, Share) come from the clone's bundled images by venue ID.
+    return out === undefined ? undefined : JSON.parse(JSON.stringify(out), offline);
   }
   throw new MockError(404, 'not_found', 'Unknown route.');
 }
