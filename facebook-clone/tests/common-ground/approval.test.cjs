@@ -130,3 +130,15 @@ test('a decided approval shows its outcome, not the review button', async () => 
   expect(byLabel('Review: OK $35 for your wheel?')).toBeUndefined();
   expect(text()).toContain('You approved this');
 });
+
+test("a payment with no fallback declines as Don't pay ahead", async () => {
+  const decide = jest
+    .spyOn(api, 'decideApproval')
+    .mockResolvedValue({ ...approval(), status: 'declined' });
+  const { press } = await render(
+    React.createElement(ApprovalSheet, { approval: { ...approval(), fallback: '' } }),
+  );
+  await press('Review: OK $35 for your wheel?');
+  await press("Don't pay ahead");
+  expect(decide).toHaveBeenCalledWith('ap_0001', 'decline');
+});

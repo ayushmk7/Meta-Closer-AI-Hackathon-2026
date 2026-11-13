@@ -74,7 +74,7 @@ export default function ApprovalSheet({ approval: a }: { approval: Approval }) {
               <Label style={{ fontWeight: '600' }}>Demo payment · no real money moves</Label>
             )}
           </View>
-          <Muted>{a.fallback}</Muted>
+          {!!a.fallback && <Muted>{a.fallback}</Muted>}
           <Button
             title="Approve"
             disabled={!amountShown || busy || !pending}
@@ -82,7 +82,9 @@ export default function ApprovalSheet({ approval: a }: { approval: Approval }) {
           />
           <Button
             // Decline says what happens (UX guide 1.1): a declined payment falls back to paying there.
-            title={a.kind === 'payment' ? 'Pay at the venue' : 'Decline'}
+            title={
+              a.kind !== 'payment' ? 'Decline' : a.fallback ? 'Pay at the venue' : "Don't pay ahead"
+            }
             secondary
             disabled={busy || !pending}
             onPress={() => void decide('decline')}
