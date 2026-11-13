@@ -53,6 +53,7 @@ export interface TabItem {
   activeIcon: string; // Ionicons name, active
   after: '/' | '/friends' | '/marketplace' | '/notifications'; // position in the bar
   useBadge?: () => number; // hook; 0 hides the badge
+  headerAction?: { icon: string; label: string; href: string }; // top-bar button shown beside search while this tab is open
 }
 export interface ExternalRow {
   id: string;
