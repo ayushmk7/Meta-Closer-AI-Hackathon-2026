@@ -47,6 +47,7 @@ Open on main at `726755b` (2026-11-13). Evidence and smallest fixes: orchestrato
 
 | Gap | Area |
 | --- | ---- |
+| When a step needs the user ("Waiting for you to OK $35"), it and its approval card are below the fold on the meetup screen and nothing scrolls them into view, unlike the call. "Open group chat" turns secondary for a primary the user cannot see. | ios |
 | During the faux call, steps after the booking get their checks early: "Added it to everyone's calendar" and "Created a private event" are done while the call is still talking. Only the last step waits for the call to end. | ios |
 | During the call the spinning booking row reads "Reserved a table" (past tense) under a card that says "Calling". | ios |
 | At confirmed, the "Hide steps" link is inserted above the timeline and the list moves down about 80 pt. | ios |
@@ -57,7 +58,7 @@ Open on main at `726755b` (2026-11-13). Evidence and smallest fixes: orchestrato
 | No typing signal for people in CONTRACTS §6; only Muse shows typing. | contracts, backend |
 | Synthetic chat lines fall back to templates when Muse times out. | backend |
 | `useReducedMotion()` is read once at launch; changing the setting mid-session needs an app restart to apply everywhere. | ios |
-| Not yet watched in motion on native: a chat reply arriving with the typing bubble, the first seconds of "Muse is setting this up" before any step exists, the approval sheet, verify, feedback, story, passport, and any pass with Reduce Motion on. The Simulator runs have no way to tap, so the tap-only ones are covered by `scripts/e2e_flow.py` and stills. | review |
+| Not yet watched in motion on native: the approval sheet, the first seconds of "Muse is setting this up" before any step exists, verify, feedback, story, passport, and any pass with Reduce Motion on. The Simulator runs have no way to tap, so the tap-only ones are covered by `scripts/e2e_flow.py` and stills. | review |
 
 Closed since the first version of this page: the Welcome top bar under the status bar; the 60 s refresh of joins and the open plan while a join is gathering; the timeline collapsing at confirmed; the faux call starting after its own result (the booking row now spins until the call ends); hard cuts at Log in and between setup steps; no feedback while people join or when the group forms.
 
@@ -67,7 +68,7 @@ Design review of flow and motion, scored 1 to 10 from Simulator screenshot burst
 
 | Build | Flow | Motion | Seen in motion |
 | --- | --- | --- | --- |
-| main `726755b` | 8 | 8 | Welcome, Log in, home, plan pop-up, joining, group set, steps, the call, confirmed (`e2e-run/final-*`); setup on an earlier build (`e2e-anim/s8-*`) |
+| main `726755b` | 8 | 8.5 | Welcome, Log in, home, plan pop-up, joining, group set, steps, the call, confirmed, a chat reply arriving (`e2e-run/final-*`); setup on an earlier build (`e2e-anim/s8-*`) |
 | main `b373217` (before the motion fixes) | 6.5 | 6 | stills only |
 
-What 9 needs: the first two gaps above fixed, and the chat reply seen in motion.
+What 9 needs: the first three gaps above fixed, then the layout jump at confirmed.
