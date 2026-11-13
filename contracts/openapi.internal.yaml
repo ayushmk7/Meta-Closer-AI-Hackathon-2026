@@ -338,6 +338,37 @@ paths:
           description: Done
         default: { $ref: "#/components/responses/Error" }
 
+  /internal/v1/connectors/{provider}/link:
+    parameters:
+      - { name: provider, in: path, required: true, schema: { type: string } }
+    get:
+      tags: [demo]
+      operationId: linkConnectorAccount
+      summary: Laptop only. Open in the laptop browser to link a real account for one demo user; forwards the browser to the provider's consent page. Only google_calendar has a live mode (404 otherwise, or for an unknown user, or when CONNECTORS_LIVE is off).
+      parameters:
+        - { name: userId, in: query, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Small page that forwards the laptop browser to the provider's consent page
+          content: { text/html: { schema: { type: string } } }
+        default: { $ref: "#/components/responses/Error" }
+
+  /internal/v1/connectors/{provider}/callback:
+    parameters:
+      - { name: provider, in: path, required: true, schema: { type: string } }
+    get:
+      tags: [demo]
+      operationId: connectorOAuthCallback
+      summary: OAuth redirect target. Stores the token for the userId carried in state and applies live records if the user is connected.
+      parameters:
+        - { name: code, in: query, required: true, schema: { type: string } }
+        - { name: state, in: query, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Small confirmation page ("Linked u_maya")
+          content: { text/html: { schema: { type: string } } }
+        default: { $ref: "#/components/responses/Error" }
+
 components:
   parameters:
     PoolId:

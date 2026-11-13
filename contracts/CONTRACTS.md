@@ -175,7 +175,7 @@ The backend guarantees these on every response. The app relies on them and does 
 - **P7 Owner-only signals.** Signals, `because` lines, busy blocks, connector records, evidence and calendar directives appear only in their owner's responses. Calendar directives never contain another user's name.
 - **P8 No location tracking.** There is no location endpoint. Travel estimates use the user's neighborhood centroid; the check-in location is used only for that check-in and not stored beyond the result. Directions links contain only the venue's coordinates.
 - **P9 Internal surfaces.** Nothing from `openapi.internal.yaml` is served on the public listener. Blocked users are removed from every public response of the blocker and are never placed in a group with them.
-- **P10 Data stays home.** User data goes only to the configured Muse endpoint and the configured Laya endpoint. No other third party, including connectors, booking and payment, which are simulated inside the backend in v2.
+- **P10 Data stays home.** User data goes only to the configured Muse endpoint and the configured Laya endpoint. Connectors, booking and payment are simulated inside the backend, except a Google Calendar account the demo operator linked on the laptop (Decisions, live Google Calendar): the backend reads only free/busy times from it with that user's token, the token never leaves the backend, and nothing is written back.
 - **P11 Money and actions.** No payment step completes without an approved `payment` approval from that user or an amount within their `spendWithoutAskingCents`. No change outside the autonomy bounds (§5) happens without a `change` approval.
 
 ## 9. Data layout
@@ -319,6 +319,8 @@ Copy `.env.example` to `.env` at the repo root (services) and `facebook-clone/.e
 | `CG_API_HOST` / `CG_API_PORT` | `0.0.0.0` / `8000` | backend public API (phones reach it on the LAN) |
 | `CG_INTERNAL_HOST` / `CG_INTERNAL_PORT` | `127.0.0.1` / `9001` | backend internal API |
 | `DATABASE_URL` | backend's choice | backend |
+| `CONNECTORS_LIVE` | `0` (`1` = linked real accounts replace seeded records) | backend |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | (secret) | backend |
 | `CG_DATA_DIR` | `<repo>/data` | backend, sim |
 | `CG_CONTRACTS_DIR` | `<repo>/contracts` | backend, sim |
 | `CG_INTERNAL_URL` | `http://127.0.0.1:9001` | sim, dashboard |
@@ -348,6 +350,7 @@ Standard commands (each owner provides its own; the root `Makefile` only calls t
 
 ### Changelog
 
+- v2.3.0 (2026-11-13): live Google Calendar. Internal `linkConnectorAccount` and `connectorOAuthCallback`; env `CONNECTORS_LIVE`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`; param `calendar.liveRefreshMinS`; P10 amended. No public API change.
 - v2.2.0 (2026-11-13, batch 5): `getPublicPlan` + `PublicPlan` (anonymous), `features.sharing`. Additive.
 - v2.1.3 (2026-11-13, batch 5): `usePostStory` from `@/extensions/story` (§11, R1), so Common Ground can offer to post a completed meetup to the user's own story. Additive.
 - v2.1.2 (2026-11-12, batch 4): optional `TabItem.headerAction` (§11), a top-bar button shown beside search while the tab is open; the shell also titles the top bar with the tab label. Additive.
@@ -383,3 +386,4 @@ Resolved open questions from the v2 build. Additive only; nothing renamed or tig
 - **Stories after the event (batch 5).** After a completed meetup I went to, the app may offer, never auto-post, to add it to my own Facebook story: the venue photo and the plan title only, never attendees' names, photos, ids, count or chat. Same rule as shares: sensitive venues are never offered. The client cannot see venue sensitivity, so it shows the offer only when `venue.photoUrl` is set, and producers keep `photoUrl` null for sensitive venues (true in today's seed). Dismissal is a local own-prefs flag (C1).
 - **Share links (batch 5).** Built on the client with `Linking.createURL('/common-ground/shared/<planId>')` (Expo Go `exp://…/--/…`, a build `facebook-demo://…`, web the page origin). The server never mints or stores links; a link grants nothing beyond `getPublicPlan`. Gallery shares link to `/common-ground/welcome?share=<shareId>`. Passport share is client-only text.
 - **Public plan page (batch 5).** `PublicPlan` has no people, no `because`/`reason`/`checks`/`travel`/`myJoin`, no address or coordinates. For `origin: user` plans the title is the server template (`<activity> at <venue>`), not the creator's wording. Invite, cancelled and sensitive-venue plans are 404, same as an unknown id.
+- **Live Google Calendar (2026-11-13).** With `CONNECTORS_LIVE=1`, the demo operator links one real Google account per demo user in the laptop browser (`linkConnectorAccount`; in the demo, only `u_maya`). Scope `calendar.freebusy`, primary calendar only, next `calendar.horizonDays`. On `connectConnector`, and then at most every `calendar.liveRefreshMinS` when the user's feed or a plan is fetched, the backend replaces that user's seeded `google_calendar` busy records with the real busy blocks. Any failure (no token, expired token, network) keeps the seeded records with a log line (D4). Demo reset re-applies the live records. Tokens stay in the backend's gitignored cache and never reach a client. `listConnectors` reports `simulated: false` to a linked user. Busy blocks stay owner-only (P7): other attendees see only the outcome. Synthetic users keep seeded records.

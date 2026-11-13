@@ -63,6 +63,7 @@ calendar:
   horizonDays: 14             # config.limits.calendarHorizonDays
   syncMinIntervalS: 300       # config.limits.calendarSyncMinIntervalS
   minFreeBufferMin: 30        # a plan "fits" only with this much free time either side
+  liveRefreshMinS: 60         # re-read a linked Google Calendar at most this often (feed/plan fetch)
 
 muse:
   askMaxChars: 500            # config.limits.museAskMaxChars
