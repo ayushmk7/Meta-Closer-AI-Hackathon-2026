@@ -27,13 +27,24 @@ def _cgm():
         return None
 
 
-def export(w: World) -> dict:
-    """schemas/pool_export.schema.json from the live world (also what exportPool can serve)."""
-    met = {k for k, c in w.connections.items() if c["status"] == "met"}
-    conn = set(w.connections)
+def _others(pairs) -> dict[str, list[str]]:
+    """uid -> the other side of every pair it is in, so export is O(pairs) instead of O(users x pairs)."""
+    out: dict[str, list[str]] = {}
+    for k in pairs:
+        for uid in k:
+            out.setdefault(uid, []).extend(k - {uid})
+    return out
+
+
+def export(w: World, only: set[str] | None = None) -> dict:
+    """schemas/pool_export.schema.json from the live world (also what exportPool can serve).
+    `only` limits users to those IDs (overlap lookups need two to a handful, not the whole pool)."""
+    conn = _others(w.connections)
+    met = _others(k for k, c in w.connections.items() if c["status"] == "met")
+    blocked = _others(w.blocks)
     users = []
     for uid, u in w.users.items():
-        if not u.get("optedIn") and uid != w.demo.get("mayaId"):
+        if (only is not None and uid not in only) or (not u.get("optedIn") and uid != w.demo.get("mayaId")):
             continue
         users.append(
             {
@@ -57,8 +68,8 @@ def export(w: World) -> dict:
                 ],
                 "groupOnly": True,
                 "trustFloorOk": True,
-                "connectionIds": sorted(o for k in conn if uid in k for o in k - {uid}),
-                "blockedIds": sorted(o for k in w.blocks if uid in k for o in k - {uid}),
+                "connectionIds": sorted(conn.get(uid, [])),
+                "blockedIds": sorted(blocked.get(uid, [])),
                 "travel": u.get("travel")
                 or {"maxMinutes": w.params["travel"]["defaultMaxMinutes"], "modes": ["transit"]},
                 "busy": u["busy"],
@@ -78,11 +89,21 @@ def export(w: World) -> dict:
                     }
                     for s in u["signals"]
                 ],
-                "metIds": sorted(o for k in met if uid in k for o in k - {uid}),
+                "metIds": sorted(met.get(uid, [])),
             }
         )
+    active: dict[str, list[dict]] = {}  # one pass over joins, same rows and order as w.active_joins(pid)
+    for j in w.joins.values():
+        if j["status"] in ("interested", "matched"):
+            active.setdefault(j["planId"], []).append(j)
     plans = [
-        {"planId": pid, "status": p["status"], "interestedIds": [j["userId"] for j in w.active_joins(pid)]}
+        {
+            "planId": pid,
+            "status": p["status"],
+            "interestedIds": [
+                j["userId"] for j in sorted(active.get(pid, []), key=lambda j: (j["createdAt"], j["joinId"]))
+            ],
+        }
         for pid, p in w.plans.items()
     ]
     return {
@@ -111,8 +132,8 @@ def _state(cgm, w: World):
     )
 
 
-def _ctx(cgm, w: World):
-    pool = cgm.PoolSnapshot.from_export(export(w))
+def _ctx(cgm, w: World, only: set[str] | None = None):
+    pool = cgm.PoolSnapshot.from_export(export(w, only))
     return pool, cgm.Params(w.params), random.Random(w.params["matching"]["rngSeedDefault"])
 
 
@@ -120,7 +141,7 @@ def shared_interests(w: World, a: str, b: str, level: int, limit: int) -> list[s
     cgm = _cgm()
     if not cgm or a not in w.users or b not in w.users:
         return stubs.shared_interests(w, a, b, level, limit)
-    pool, _, _ = _ctx(cgm, w)
+    pool, _, _ = _ctx(cgm, w, {a, b})
     if a not in pool.users or b not in pool.users:
         return stubs.shared_interests(w, a, b, level, limit)
     return cgm.shared_interests(pool, a, b, level, limit)
@@ -130,7 +151,7 @@ def plan_overlap(w: World, uid: str, plan: dict, joined_ids: list[str], level: i
     cgm = _cgm()
     if not cgm:
         return stubs.plan_overlap(w, uid, plan, joined_ids, level, limit)
-    pool, params, _ = _ctx(cgm, w)
+    pool, params, _ = _ctx(cgm, w, {uid, *joined_ids})
     if uid not in pool.users:
         return []
     ids = [o for o in joined_ids if o in pool.users]
