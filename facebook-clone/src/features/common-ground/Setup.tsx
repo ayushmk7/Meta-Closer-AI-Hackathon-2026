@@ -1,6 +1,7 @@
 // Setup flow (PRD-1 §8.5): intro -> connect apps -> what Muse picked up -> preferences.
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, View } from 'react-native';
+import { Pressable, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { router } from 'expo-router';
 import { Button, Icon, Label, Muted, Page, useColors } from '../../ui/native';
 import { api } from './api';
@@ -17,7 +18,7 @@ import type {
   TravelPrefs,
   Visibility,
 } from './types';
-import { AvailabilityGrid, Banners, InterestEditor, Section } from './ui';
+import { AvailabilityGrid, Banners, InterestEditor, MuseThinking, Section, enter } from './ui';
 
 const NO_MODES: ModeInfo[] = []; // stable fallback outside useCg (useSyncExternalStore)
 
@@ -41,6 +42,7 @@ function Intro({ onNext }: { onNext(): void }) {
   const modes = useCg((s) => s.config?.modes) ?? NO_MODES;
   const lastMode = useCg((s) => s.lastMode);
   const [picked, setPicked] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false); // optIn is out: no dead second tap
   const mode =
     modes.find((m) => m.mode === (picked ?? lastMode) && m.available) ??
     modes.find((m) => m.available);
@@ -101,14 +103,24 @@ function Intro({ onNext }: { onNext(): void }) {
       })}
       <Button
         title="Continue"
-        disabled={!mode}
+        disabled={!mode || busy}
         onPress={async () => {
-          if (mode && (await optIn(mode.mode, mode.poolId))) onNext();
+          if (!mode) return;
+          setBusy(true);
+          const ok = await optIn(mode.mode, mode.poolId);
+          setBusy(false);
+          if (ok) onNext();
         }}
       />
     </Section>
   );
 }
+
+const PICKING = [
+  'Looking at the apps you connected',
+  'Noticing what you’re into',
+  'Keeping anything sensitive just for you',
+];
 
 // Interest edits live here, overlaid on the fetched proposal, so a refetch of getSetup
 // (remount, connect, signal toggle) never undoes them.
@@ -127,7 +139,12 @@ function PickedUp({ edits, onEdit }: { edits: Edits; onEdit(id: string, e: Edits
   const me = useCg((s) => s.me);
   const [evidence, setEvidence] = useState(false);
   useEffect(() => void load.setup(), []);
-  if (!setup || !me) return <ActivityIndicator color={c.blue} style={{ marginTop: 40 }} />;
+  if (!setup || !me)
+    return (
+      <Section title="What Muse picked up">
+        <MuseThinking lines={PICKING} done={false} />
+      </Section>
+    );
   const interests = applyEdits(setup.proposedInterests, edits);
   return (
     <>
@@ -282,25 +299,28 @@ export default function SetupScreen() {
       <Muted style={{ paddingHorizontal: 16 }}>
         Step {connectorsOn || p < 2 ? p + 1 : p} of {connectorsOn ? 4 : 3}
       </Muted>
-      {p === 0 && <Intro onNext={next} />}
-      {p === 1 && (
-        <Section title="Connect your apps">
-          <Muted>
-            Muse uses these to notice what you&apos;re into. Turn any of them off later.
-          </Muted>
-          <Connectors />
-          <Button title="Continue" onPress={next} />
-        </Section>
-      )}
-      {p === 2 && (
-        <>
-          <PickedUp edits={edits} onEdit={(id, e) => setEdits({ ...edits, [id]: e })} />
-          <View style={{ paddingHorizontal: 16 }}>
+      {/* Each step slides in (the key above remounts it). */}
+      <Animated.View entering={enter()} style={{ gap: 8 }}>
+        {p === 0 && <Intro onNext={next} />}
+        {p === 1 && (
+          <Section title="Connect your apps">
+            <Muted>
+              Muse uses these to notice what you&apos;re into. Turn any of them off later.
+            </Muted>
+            <Connectors />
             <Button title="Continue" onPress={next} />
-          </View>
-        </>
-      )}
-      {p === 3 && <Preferences edits={edits} onDone={() => router.replace('/common-ground')} />}
+          </Section>
+        )}
+        {p === 2 && (
+          <>
+            <PickedUp edits={edits} onEdit={(id, e) => setEdits({ ...edits, [id]: e })} />
+            <View style={{ paddingHorizontal: 16 }}>
+              <Button title="Continue" onPress={next} />
+            </View>
+          </>
+        )}
+        {p === 3 && <Preferences edits={edits} onDone={() => router.replace('/common-ground')} />}
+      </Animated.View>
       <View style={{ flexDirection: 'row', paddingHorizontal: 16 }}>
         {p > 0 && (p !== first || router.canGoBack()) && <TextLink title="Back" onPress={back} />}
         <View style={{ flex: 1 }} />
