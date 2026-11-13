@@ -400,15 +400,57 @@ on('POST', '/v1/calendar/sync', (_, b) => {
   ].filter((d): d is CalendarDirective => !!d);
   return { acceptedBusy: body?.busy?.length ?? 0, directives };
 });
-// ponytail: one canned answer whatever the text; A2 may vary it by keyword.
-on('POST', '/v1/muse/ask', () => {
+// Muse bar on the mock: keyword filter over the plans (title, activity, venue, LA weekday).
+// ponytail: every meaningful word must match (plural 's' dropped, a few aliases); the live
+// backend does the real ranking.
+const STOP = new Set(
+  'a an and anything at do for go i in it let lets like me my next of on or people plan plans some something the this time to want week with'.split(
+    ' ',
+  ),
+);
+const ALIAS: Record<string, string> = {
+  pottery: 'ceramics',
+  clay: 'ceramics',
+  hike: 'walk',
+  climb: 'climbing',
+  boulder: 'climbing',
+};
+const words = (text: string) =>
+  text
+    .toLowerCase()
+    .split(/[^a-z]+/)
+    .filter((t) => t.length > 1 && !STOP.has(t));
+function matches(p: PlanCard, wanted: string[]): boolean {
+  const day = new Date(p.startsAt)
+    .toLocaleDateString('en-US', { weekday: 'long', timeZone: TZ })
+    .toLowerCase();
+  const hay = [p.title, p.activityType.replace(/_/g, ' '), p.venue.name, p.venue.neighborhood, day]
+    .concat(day.startsWith('s') ? ['weekend'] : [])
+    .join(' ')
+    .toLowerCase();
+  return wanted.every((t) => hay.includes(ALIAS[t] ?? t.replace(/s$/, '')));
+}
+on('POST', '/v1/muse/ask', (_, b) => {
   gate();
   w.conversationId ??= F.askMuse.conversationId;
+  const text = String(b?.text ?? '').trim();
+  const wanted = words(text);
+  const plans = Object.values(w.plans)
+    .filter((p) => p.status === 'open' && wanted.length > 0 && matches(p, wanted))
+    .map(withJoin);
   return {
     ...clone(F.askMuse),
     conversationId: w.conversationId,
-    reply: { ...F.askMuse.reply, createdAt: now() },
-    plans: F.askMuse.plans.map((p) => withJoin(w.plans[p.planId] ?? p)),
+    reply: {
+      ...F.askMuse.reply,
+      messageId: nextId('mm_'),
+      createdAt: now(),
+      text: plans.length
+        ? `Got it, I filtered for ${wanted.join(' ')}.`
+        : 'Nothing matches that yet. Try another day or activity.',
+    },
+    plans,
+    createdPlanId: null,
   };
 });
 on('GET', '/v1/feed', () => {
