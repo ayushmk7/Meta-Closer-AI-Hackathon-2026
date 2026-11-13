@@ -142,7 +142,7 @@ def list_nudges(w: World, viewer: str, surface: str | None = None) -> list[dict]
 
 def dismiss(w: World, viewer: str, nudge_id: str, mute: str | None = None) -> None:
     if mute not in (None, "none", "signal"):
-        raise Fail(400, "validation_failed", "Choose none or signal.")
+        raise Fail(400, "validation_failed", "Couldn't dismiss that. Try again.")
     n = w.nudges.get(nudge_id)
     if not n or n["userId"] != viewer:
         raise not_found()

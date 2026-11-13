@@ -284,6 +284,7 @@ async def understand(
                 {"role": "user", "content": text},
             ],
             schema=_SCHEMA,
+            effort="low",  # timeout: the client's default, params.muse.liveTimeoutS
         )
         j = r["json"]
         f = {

@@ -85,13 +85,13 @@ def pending(w: World, viewer: str) -> list[dict]:
 
 def decide(w: World, viewer: str, approval_id: str, decision: str) -> dict:
     if decision not in ("approve", "decline"):
-        raise Fail(400, "validation_failed", "Choose approve or decline.")
+        raise Fail(400, "validation_failed", "Couldn't read that answer. Choose approve or decline.")
     a = w.approvals.get(approval_id)
     if not a or a["userId"] != viewer:
         raise not_found()
     expire(w)
     if a["status"] != "pending":
-        raise Fail(409, "conflict", "This was already decided.")
+        raise Fail(409, "conflict", "This was already decided. Pull to refresh.")
     _settle(w, a, "approved" if decision == "approve" else "declined")
     return view(a)
 

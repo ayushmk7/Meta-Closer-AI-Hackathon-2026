@@ -159,7 +159,7 @@ def _eligible(w: World, viewer: str, meetup_id: str, caption) -> dict:
     if w.venues[m["venueId"]].get("sensitive"):
         raise Fail(422, "not_allowed", "This place stays private, so it can't be shared.")
     if screen.blocked(caption):
-        raise Fail(422, "screened", "I couldn't post that one. Try a different caption.")
+        raise Fail(422, "screened", "Couldn't post that caption. Try a different one.")
     if _names_someone(caption, _names(w, m, viewer)):
         # the gallery is public and logged-out: nobody is named there without their say
         raise Fail(422, "screened", "Shares stay anonymous, so leave people's names out of the caption.")
@@ -176,7 +176,7 @@ async def share_meetup(w: World, viewer: str, meetup_id: str, caption) -> dict:
     else:
         p, decisive = await ports.ports.laya.ask("plan_ok", {"text": caption.strip()})
         if decisive and p < 0.5:
-            raise Fail(422, "screened", "I couldn't post that one. Try a different caption.")
+            raise Fail(422, "screened", "Couldn't post that caption. Try a different one.")
     plan = {**w.plans[m["planId"]], "venueId": m["venueId"]}
     day = parse(m["startsAt"]).astimezone(plans.TZ).date().isoformat()
     s = _make(w, viewer, plan, caption.strip(), len(meetups.going(m)), day)
@@ -186,9 +186,9 @@ async def share_meetup(w: World, viewer: str, meetup_id: str, caption) -> dict:
 def like(w: World, viewer: str, share_id: str, liked) -> dict:
     s = w.shares.get(share_id)
     if not s or w.venues[s["venueId"]].get("sensitive"):
-        raise not_found()
+        raise not_found("page")
     if not isinstance(liked, bool):
-        raise Fail(400, "validation_failed", "liked must be true or false.")
+        raise Fail(400, "validation_failed", "Couldn't save that like. Try again.")
     if liked and viewer not in s["likers"]:
         s["likers"].add(viewer)
         if viewer not in s.setdefault("rewarded", set()):  # unlike + like again can't farm prefs

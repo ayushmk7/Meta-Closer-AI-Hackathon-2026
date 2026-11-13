@@ -78,9 +78,10 @@ export default function PassportScreen() {
         <Label style={{ fontWeight: '600' }}>{`${earned} of ${all.length} stamps`}</Label>
         <Muted>
           {earned
-            ? 'Check in at a meetup to collect more. Only you can see this.'
-            : 'Check in at a meetup to get your first stamp. Only you can see this.'}
+            ? 'Check in at a meetup to collect more.'
+            : 'Check in at a meetup to get your first stamp.'}
         </Muted>
+        <Muted>Only you can see this.</Muted>
       </View>
       {!all.length && (
         <Card style={{ marginHorizontal: 16 }}>

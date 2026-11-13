@@ -94,7 +94,7 @@ test('renders nothing when all unlocked, no streak and no Regular', async () => 
   expect(tree.toJSON()).toBeNull();
 });
 
-test('Same time next week? creates the same plan 7 days later, only once feedback is in', async () => {
+test('Plan it again next week creates the same plan 7 days later, only once feedback is in', async () => {
   const m = { ...fixtures.getMeetup, status: 'completed', feedbackDue: false };
   const can = { ...fixtures.getMe.capabilities, canCreatePlans: true };
   await setMe({ capabilities: { ...can, canCreatePlans: false } });
@@ -117,7 +117,7 @@ test('Same time next week? creates the same plan 7 days later, only once feedbac
   const create = jest.spyOn(api, 'createPlan').mockResolvedValue(fixtures.createPlan);
   const { tree } = await render(React.createElement(SameTimeNextWeek, { m }));
   const btn = tree.root.find(
-    (n) => n.props.accessibilityLabel === 'Same time next week?' && n.props.onPress,
+    (n) => n.props.accessibilityLabel === 'Plan it again next week' && n.props.onPress,
   );
   await renderer.act(async () => btn.props.onPress());
   // fixture starts Sat Nov 14 10 AM PT -> Sat Nov 21 (when() drops ":00", UX guide 1.1).

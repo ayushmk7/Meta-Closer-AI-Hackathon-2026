@@ -66,8 +66,8 @@ function Row({ q, onPress }: { q: Quest; onPress?: () => void }) {
     >
       <Icon
         name={q.done ? 'checkmark-circle' : 'ellipse-outline'}
-        size={24}
-        color={q.done ? c.blue : c.secondary}
+        size={22}
+        color={q.done ? c.online : c.secondary}
       />
       <Label style={{ flex: 1, fontWeight: '600' }}>{q.label}</Label>
     </Pressable>
