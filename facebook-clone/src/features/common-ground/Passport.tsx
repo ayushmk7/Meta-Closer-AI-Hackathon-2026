@@ -144,6 +144,7 @@ export default function PassportScreen() {
   const feed = useCg((s) => s.feed);
   const plans = useCg((s) => s.plans);
   const setUp = useCg((s) => !!s.me?.optedIn && !!s.me.setupComplete);
+  const sharing = useCg((s) => !!s.config?.features.sharing);
   useEffect(() => {
     // Cold deep link: Plans normally loaded these already.
     if (!setUp) return;
@@ -168,6 +169,7 @@ export default function PassportScreen() {
       {Platform.OS !== 'web' && (
         <Title
           aside={
+            sharing &&
             earned > 0 && (
               <IconButton name="share-outline" label="Share your passport" onPress={share} />
             )
