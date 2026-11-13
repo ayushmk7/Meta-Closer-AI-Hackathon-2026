@@ -22,6 +22,7 @@ dependencies = [
 [project.scripts]
 cg-api = "cg_api.cli:main"
 cg-api-load-seed = "cg_api.cli:load_seed"
+cg-api-precompute-muse = "cg_api.muse.precompute:main"  # slice D
 
 [dependency-groups]
 dev = ["pytest>=8.3", "ruff>=0.8"]
