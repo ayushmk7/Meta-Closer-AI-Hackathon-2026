@@ -235,10 +235,10 @@ def test_auto_spend_limit(world):
 
 
 def test_join_size_must_be_ints(world):
-    for bad in ({"min": "a", "max": 3}, {"min": 1, "max": 3}, {"min": 4, "max": 3}, "big"):
+    for bad in ({"min": "a", "max": 3}, {"min": 1, "max": 3}, {"min": 4, "max": 3}, {"min": 2, "max": 3}, "big"):
         with pytest.raises(Fail) as e:
             joins.join(world, "u_maya", "pl_walk", bad)
-        assert e.value.status == 400
+        assert e.value.status == 400 and "between 3 and 8" in e.value.message
 
 
 def test_spots_count_the_group_not_the_venue(world):

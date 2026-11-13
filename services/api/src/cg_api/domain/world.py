@@ -79,8 +79,9 @@ class Fail(Exception):
         }
 
 
-def not_found() -> Fail:
-    return Fail(404, "not_found", "This isn't available anymore.")
+def not_found(thing: str = "plan") -> Fail:
+    """UX guide not-found pattern: "This {plan|chat|profile} isn't available"."""
+    return Fail(404, "not_found", f"This {thing} isn't available. It may have been removed.")
 
 
 def iso(dt: datetime) -> str:
@@ -163,7 +164,7 @@ class World:
     def user(self, user_id: str) -> dict:
         u = self.users.get(user_id)
         if not u:
-            raise Fail(401, "unauthenticated", "Who's this? Pick a demo identity.")
+            raise Fail(401, "unauthenticated", "Pick a demo user to continue.")
         return u
 
     def base(self) -> str:
