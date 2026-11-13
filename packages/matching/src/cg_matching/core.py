@@ -710,7 +710,9 @@ def form_groups(
         low = {c: pair(c, group[0]) for c in rest}  # min pair(c, x) over the group, kept as the group grows
         while len(group) < size and rest and placed + len(group) < seats:
             n = len(group) + 1
-            fits = [c for c in rest if umax(c) >= n and low[c] >= 0] if all(umax(x) >= n for x in group) else []
+            fits = (
+                [c for c in rest if umax(c) >= n and low[c] >= 0] if all(umax(x) >= n for x in group) else []
+            )
             if not fits:
                 break
             window = set(rest[: seats - placed - len(group)])
