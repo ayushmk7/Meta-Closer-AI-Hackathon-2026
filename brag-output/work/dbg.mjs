@@ -1,0 +1,12 @@
+import { createRequire } from 'node:module';
+import { join, dirname } from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+const here = dirname(fileURLToPath(import.meta.url));
+const require = createRequire(join(here, '../../facebook-clone/package.json'));
+const { chromium } = require('playwright-core');
+const b = await chromium.launch({ executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' });
+const p = await b.newPage({ viewport: { width: 1920, height: 1080 } });
+p.on('pageerror', e => console.log('ERR', e.message)); p.on('console', m => console.log('LOG', m.text()));
+await p.goto(pathToFileURL(join(here, '../composition/index.html')).href);
+console.log(await p.evaluate(() => { try { render(136); window.__x=[T.s9b, document.querySelector("#scrAfter").dataset.disp]; } catch (e) { return 'THROW ' + e.message + e.stack } const e = document.querySelector('#scrAfter'); return [JSON.stringify(window.__x), e.style.display, e.style.transform, e.style.opacity, e.style.visibility, getComputedStyle(e).display].join(' | '); }));
+await b.close();

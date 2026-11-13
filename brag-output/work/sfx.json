@@ -1,0 +1,522 @@
+[
+ {
+  "t": 3.019,
+  "f": "impact/impactSoft_medium_004.ogg",
+  "g": 0.6
+ },
+ {
+  "t": 4.017,
+  "f": "impact/impactSoft_medium_004.ogg",
+  "g": 0.6
+ },
+ {
+  "t": 5.015,
+  "f": "impact/impactSoft_medium_004.ogg",
+  "g": 0.6
+ },
+ {
+  "t": 7.3,
+  "f": "casino/card-slide-1.ogg",
+  "g": 0.32
+ },
+ {
+  "t": 11.906,
+  "f": "casino/card-slide-1.ogg",
+  "g": 0.32
+ },
+ {
+  "t": 15.606,
+  "f": "interface/click_003.ogg",
+  "g": 0.7
+ },
+ {
+  "t": 15.656,
+  "f": "interface/switch_002.ogg",
+  "g": 0.35
+ },
+ {
+  "t": 16.606,
+  "f": "casino/card-slide-1.ogg",
+  "g": 0.32
+ },
+ {
+  "t": 17.306,
+  "f": "casino/card-slide-1.ogg",
+  "g": 0.32
+ },
+ {
+  "t": 18.006,
+  "f": "casino/card-slide-1.ogg",
+  "g": 0.32
+ },
+ {
+  "t": 19.206,
+  "f": "impact/impactSoft_medium_001.ogg",
+  "g": 0.55
+ },
+ {
+  "t": 23.606,
+  "f": "interface/click_003.ogg",
+  "g": 0.7
+ },
+ {
+  "t": 25.984,
+  "f": "interface/click_003.ogg",
+  "g": 0.7
+ },
+ {
+  "t": 26.484,
+  "f": "keyboard/keypress-001.wav",
+  "g": 0.16
+ },
+ {
+  "t": 26.604,
+  "f": "keyboard/keypress-008.wav",
+  "g": 0.16
+ },
+ {
+  "t": 26.724,
+  "f": "keyboard/keypress-015.wav",
+  "g": 0.16
+ },
+ {
+  "t": 26.844,
+  "f": "keyboard/keypress-022.wav",
+  "g": 0.16
+ },
+ {
+  "t": 26.964,
+  "f": "keyboard/keypress-029.wav",
+  "g": 0.16
+ },
+ {
+  "t": 27.084,
+  "f": "keyboard/keypress-004.wav",
+  "g": 0.16
+ },
+ {
+  "t": 27.204,
+  "f": "keyboard/keypress-011.wav",
+  "g": 0.16
+ },
+ {
+  "t": 27.324,
+  "f": "keyboard/keypress-018.wav",
+  "g": 0.16
+ },
+ {
+  "t": 27.444,
+  "f": "keyboard/keypress-025.wav",
+  "g": 0.16
+ },
+ {
+  "t": 27.564,
+  "f": "keyboard/keypress-032.wav",
+  "g": 0.16
+ },
+ {
+  "t": 27.684,
+  "f": "keyboard/keypress-007.wav",
+  "g": 0.16
+ },
+ {
+  "t": 27.804,
+  "f": "keyboard/keypress-014.wav",
+  "g": 0.16
+ },
+ {
+  "t": 27.924,
+  "f": "keyboard/keypress-021.wav",
+  "g": 0.16
+ },
+ {
+  "t": 28.044,
+  "f": "keyboard/keypress-028.wav",
+  "g": 0.16
+ },
+ {
+  "t": 28.164,
+  "f": "keyboard/keypress-003.wav",
+  "g": 0.16
+ },
+ {
+  "t": 28.284,
+  "f": "keyboard/keypress-010.wav",
+  "g": 0.16
+ },
+ {
+  "t": 28.404,
+  "f": "keyboard/keypress-017.wav",
+  "g": 0.16
+ },
+ {
+  "t": 28.524,
+  "f": "keyboard/keypress-024.wav",
+  "g": 0.16
+ },
+ {
+  "t": 28.644,
+  "f": "keyboard/keypress-031.wav",
+  "g": 0.16
+ },
+ {
+  "t": 28.764,
+  "f": "keyboard/keypress-006.wav",
+  "g": 0.16
+ },
+ {
+  "t": 29.084,
+  "f": "interface/click_003.ogg",
+  "g": 0.7
+ },
+ {
+  "t": 29.984,
+  "f": "interface/drop_002.ogg",
+  "g": 0.3
+ },
+ {
+  "t": 32.984,
+  "f": "casino/card-slide-1.ogg",
+  "g": 0.32
+ },
+ {
+  "t": 41.359,
+  "f": "interface/click_003.ogg",
+  "g": 0.7
+ },
+ {
+  "t": 41.559,
+  "f": "casino/card-slide-1.ogg",
+  "g": 0.32
+ },
+ {
+  "t": 49.959,
+  "f": "interface/click_003.ogg",
+  "g": 0.7
+ },
+ {
+  "t": 50.059,
+  "f": "impact/impactSoft_medium_001.ogg",
+  "g": 0.55
+ },
+ {
+  "t": 54.636,
+  "f": "impact/impactSoft_heavy_003.ogg",
+  "g": 0.28
+ },
+ {
+  "t": 56.536,
+  "f": "interface/bong_001.ogg",
+  "g": 0.7
+ },
+ {
+  "t": 57.036,
+  "f": "interface/bong_001.ogg",
+  "g": 0.7
+ },
+ {
+  "t": 57.536,
+  "f": "interface/bong_001.ogg",
+  "g": 0.7
+ },
+ {
+  "t": 61.536,
+  "f": "impact/impactSoft_medium_001.ogg",
+  "g": 0.55
+ },
+ {
+  "t": 62.536,
+  "f": "impact/impactBell_heavy_000.ogg",
+  "g": 0.22
+ },
+ {
+  "t": 66.617,
+  "f": "impact/impactSoft_heavy_003.ogg",
+  "g": 0.28
+ },
+ {
+  "t": 68.517,
+  "f": "interface/click_005.ogg",
+  "g": 0.45
+ },
+ {
+  "t": 69.917,
+  "f": "interface/click_005.ogg",
+  "g": 0.45
+ },
+ {
+  "t": 71.317,
+  "f": "interface/click_005.ogg",
+  "g": 0.45
+ },
+ {
+  "t": 72.717,
+  "f": "interface/drop_002.ogg",
+  "g": 0.3
+ },
+ {
+  "t": 77.517,
+  "f": "interface/click_003.ogg",
+  "g": 0.7
+ },
+ {
+  "t": 78.917,
+  "f": "interface/click_005.ogg",
+  "g": 0.45
+ },
+ {
+  "t": 80.317,
+  "f": "interface/click_005.ogg",
+  "g": 0.45
+ },
+ {
+  "t": 81.717,
+  "f": "interface/click_005.ogg",
+  "g": 0.45
+ },
+ {
+  "t": 82.517,
+  "f": "impact/impactBell_heavy_000.ogg",
+  "g": 0.22
+ },
+ {
+  "t": 83.417,
+  "f": "casino/card-slide-1.ogg",
+  "g": 0.32
+ },
+ {
+  "t": 85.217,
+  "f": "impact/impactSoft_medium_001.ogg",
+  "g": 0.55
+ },
+ {
+  "t": 91.379,
+  "f": "casino/card-slide-1.ogg",
+  "g": 0.32
+ },
+ {
+  "t": 92.079,
+  "f": "interface/drop_002.ogg",
+  "g": 0.3
+ },
+ {
+  "t": 97.679,
+  "f": "interface/drop_002.ogg",
+  "g": 0.3
+ },
+ {
+  "t": 98.879,
+  "f": "interface/click_005.ogg",
+  "g": 0.45
+ },
+ {
+  "t": 99.679,
+  "f": "interface/click_005.ogg",
+  "g": 0.45
+ },
+ {
+  "t": 100.479,
+  "f": "interface/click_005.ogg",
+  "g": 0.45
+ },
+ {
+  "t": 101.279,
+  "f": "interface/drop_002.ogg",
+  "g": 0.3
+ },
+ {
+  "t": 103.079,
+  "f": "interface/drop_002.ogg",
+  "g": 0.3
+ },
+ {
+  "t": 104.079,
+  "f": "interface/click_003.ogg",
+  "g": 0.7
+ },
+ {
+  "t": 104.279,
+  "f": "interface/drop_002.ogg",
+  "g": 0.3
+ },
+ {
+  "t": 105.479,
+  "f": "interface/drop_002.ogg",
+  "g": 0.3
+ },
+ {
+  "t": 106.454,
+  "f": "impact/impactSoft_heavy_003.ogg",
+  "g": 0.28
+ },
+ {
+  "t": 107.854,
+  "f": "interface/bong_001.ogg",
+  "g": 0.7
+ },
+ {
+  "t": 110.154,
+  "f": "interface/click_003.ogg",
+  "g": 0.7
+ },
+ {
+  "t": 111.054,
+  "f": "casino/card-slide-1.ogg",
+  "g": 0.32
+ },
+ {
+  "t": 112.154,
+  "f": "impact/footstep_concrete_000.ogg",
+  "g": 0.2
+ },
+ {
+  "t": 112.609,
+  "f": "impact/footstep_concrete_001.ogg",
+  "g": 0.2
+ },
+ {
+  "t": 113.064,
+  "f": "impact/footstep_concrete_002.ogg",
+  "g": 0.2
+ },
+ {
+  "t": 113.519,
+  "f": "impact/footstep_concrete_003.ogg",
+  "g": 0.2
+ },
+ {
+  "t": 113.543,
+  "f": "impact/impactSoft_heavy_003.ogg",
+  "g": 0.28
+ },
+ {
+  "t": 116.443,
+  "f": "impact/footstep_concrete_000.ogg",
+  "g": 0.2
+ },
+ {
+  "t": 116.898,
+  "f": "impact/footstep_concrete_002.ogg",
+  "g": 0.2
+ },
+ {
+  "t": 117.353,
+  "f": "impact/footstep_concrete_001.ogg",
+  "g": 0.2
+ },
+ {
+  "t": 117.808,
+  "f": "impact/footstep_concrete_003.ogg",
+  "g": 0.2
+ },
+ {
+  "t": 118.263,
+  "f": "impact/footstep_concrete_000.ogg",
+  "g": 0.2
+ },
+ {
+  "t": 118.718,
+  "f": "impact/footstep_concrete_002.ogg",
+  "g": 0.2
+ },
+ {
+  "t": 119.173,
+  "f": "impact/footstep_concrete_001.ogg",
+  "g": 0.2
+ },
+ {
+  "t": 119.628,
+  "f": "impact/footstep_concrete_003.ogg",
+  "g": 0.2
+ },
+ {
+  "t": 120.083,
+  "f": "impact/footstep_concrete_000.ogg",
+  "g": 0.2
+ },
+ {
+  "t": 120.532,
+  "f": "impact/impactSoft_heavy_003.ogg",
+  "g": 0.28
+ },
+ {
+  "t": 121.632,
+  "f": "interface/bong_001.ogg",
+  "g": 0.7
+ },
+ {
+  "t": 122.832,
+  "f": "interface/drop_002.ogg",
+  "g": 0.3
+ },
+ {
+  "t": 124.832,
+  "f": "interface/drop_002.ogg",
+  "g": 0.3
+ },
+ {
+  "t": 126.432,
+  "f": "interface/drop_002.ogg",
+  "g": 0.3
+ },
+ {
+  "t": 129.518,
+  "f": "impact/impactSoft_heavy_003.ogg",
+  "g": 0.28
+ },
+ {
+  "t": 131.318,
+  "f": "interface/click_005.ogg",
+  "g": 0.45
+ },
+ {
+  "t": 131.518,
+  "f": "interface/click_005.ogg",
+  "g": 0.45
+ },
+ {
+  "t": 131.718,
+  "f": "interface/click_005.ogg",
+  "g": 0.45
+ },
+ {
+  "t": 131.918,
+  "f": "interface/click_005.ogg",
+  "g": 0.45
+ },
+ {
+  "t": 132.118,
+  "f": "interface/click_005.ogg",
+  "g": 0.45
+ },
+ {
+  "t": 135.018,
+  "f": "impact/impactSoft_medium_004.ogg",
+  "g": 0.6
+ },
+ {
+  "t": 135.818,
+  "f": "impact/impactSoft_medium_004.ogg",
+  "g": 0.6
+ },
+ {
+  "t": 136.618,
+  "f": "interface/click_003.ogg",
+  "g": 0.7
+ },
+ {
+  "t": 136.818,
+  "f": "impact/impactBell_heavy_000.ogg",
+  "g": 0.22
+ },
+ {
+  "t": 138.504,
+  "f": "impact/impactSoft_heavy_003.ogg",
+  "g": 0.28
+ },
+ {
+  "t": 139.304,
+  "f": "impact/impactBell_heavy_000.ogg",
+  "g": 0.22
+ }
+]

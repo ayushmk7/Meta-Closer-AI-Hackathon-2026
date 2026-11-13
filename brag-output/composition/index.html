@@ -1,0 +1,960 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Common Ground demo</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:1920px;height:1080px;overflow:hidden;background:#000}
+body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",system-ui,sans-serif;-webkit-font-smoothing:antialiased;color:#050505}
+#stage{position:absolute;left:0;top:0;width:1920px;height:1080px;overflow:hidden;background:#F0F2F5}
+.layer{position:absolute;left:0;top:0;width:1920px;height:1080px;overflow:hidden}
+.abs{position:absolute;left:0;top:0}
+.person{position:absolute;left:0;top:0;transform-origin:0 0;overflow:visible}
+
+/* captions */
+#cap{position:absolute;left:64px;top:56px;z-index:80;max-width:1180px}
+.capc{position:absolute;left:0;top:0;width:max-content;max-width:1180px;background:#fff;border-radius:22px;padding:22px 30px 24px;box-shadow:0 10px 30px rgba(20,30,60,.16)}
+.capc .tag{display:inline-block;font-size:19px;font-weight:700;color:#0866FF;background:#E7F3FF;border-radius:12px;padding:5px 12px;margin-bottom:10px;letter-spacing:.2px}
+.capc .tx{font-size:40px;line-height:1.18;font-weight:700;letter-spacing:-.6px}
+.capc .tx em{font-style:normal;color:#0866FF}
+
+/* phone */
+#phone{position:absolute;left:0;top:0;width:418px;height:872px;transform-origin:0 0;z-index:40}
+.phone-body{position:absolute;inset:0;border-radius:66px;background:#1c1d21;box-shadow:0 40px 90px rgba(10,20,50,.35),inset 0 0 0 3px #45464c}
+.screen{position:absolute;left:14px;top:14px;width:390px;height:844px;border-radius:52px;overflow:hidden;background:#F0F2F5}
+.island{position:absolute;left:134px;top:11px;width:122px;height:35px;background:#000;border-radius:20px;z-index:90}
+.sb{position:absolute;top:0;left:0;right:0;height:52px;z-index:85;display:flex;justify-content:space-between;align-items:center;padding:8px 30px 0 44px;font-weight:600;font-size:16px}
+.sb .ic{display:flex;gap:6px;align-items:center}
+.scr{position:absolute;left:0;top:0;width:390px;height:844px;background:#F0F2F5;overflow:hidden;padding-top:54px}
+.ripple{position:absolute;width:64px;height:64px;margin:-32px 0 0 -32px;border-radius:50%;background:rgba(24,119,242,.22);border:3px solid rgba(24,119,242,.55);z-index:95;opacity:0}
+.finger{position:absolute;width:46px;height:46px;margin:-23px 0 0 -23px;border-radius:50%;background:rgba(255,255,255,.55);border:2px solid rgba(0,0,0,.25);box-shadow:0 4px 10px rgba(0,0,0,.25);z-index:96;opacity:0}
+
+/* app ui */
+.hdr{display:flex;align-items:center;gap:10px;padding:4px 16px 12px;background:#fff;border-bottom:1px solid #E4E6EB}
+.hdr .t{font-size:27px;font-weight:800;letter-spacing:-.5px;flex:1}
+.hdr .st{font-size:18px;font-weight:700;flex:1}
+.card{background:#fff;border-radius:12px;margin:8px 10px;padding:13px 14px;box-shadow:0 1px 2px rgba(0,0,0,.1)}
+.h{font-size:17px;font-weight:700;margin-bottom:8px}
+.muted{color:#65676B;font-size:14px;line-height:1.3}
+.ava{border-radius:50%;background:#1877F2;display:flex;align-items:center;justify-content:center;flex:none;overflow:hidden}
+.pill{display:inline-flex;align-items:center;height:34px;padding:0 13px;border-radius:17px;background:#F0F2F5;font-size:14px;font-weight:600;white-space:nowrap}
+.btn{height:46px;border-radius:8px;background:#1877F2;color:#fff;font-weight:600;font-size:17px;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn2{background:#E4E6EB;color:#050505}
+.bubble{background:#F0F2F5;border-radius:18px;padding:10px 13px;font-size:15.5px;line-height:1.36}
+.tog{width:51px;height:31px;border-radius:16px;background:#D8DADF;position:relative;flex:none}
+.tog i{position:absolute;top:2px;left:2px;width:27px;height:27px;border-radius:50%;background:#fff;box-shadow:0 2px 4px rgba(0,0,0,.2)}
+.row{display:flex;align-items:center;gap:11px}
+.chk{display:flex;align-items:center;gap:6px;font-size:14px;font-weight:600;color:#050505}
+.chk b{color:#31A24C;font-size:15px}
+.sec{font-size:17px;font-weight:700;padding:12px 16px 4px}
+.lbl{font-size:13px;font-weight:700;color:#65676B;text-transform:uppercase;letter-spacing:.4px;margin:12px 0 6px}
+.li{display:flex;gap:10px;align-items:center;font-size:15px;padding:5px 0}
+.li .d{width:26px;height:26px;border-radius:50%;background:#E7F3FF;display:flex;align-items:center;justify-content:center;flex:none}
+.step{display:flex;gap:11px;align-items:flex-start;padding:7px 0}
+.step .ic{width:24px;height:24px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;margin-top:1px}
+.step .lb{font-size:15px;font-weight:600;line-height:1.3}
+.step .dt{font-size:13px;color:#65676B;margin-top:1px}
+.msg{display:flex;gap:8px;align-items:flex-end;margin:6px 10px}
+.msg .b{max-width:270px;border-radius:18px;padding:9px 13px;font-size:15.5px;line-height:1.33;background:#F0F2F5}
+.msg.own{justify-content:flex-end}
+.msg.own .b{background:#1877F2;color:#fff}
+.who{font-size:12px;color:#65676B;margin:8px 0 0 52px}
+
+/* world bits */
+.orb{position:absolute;left:0;top:0;width:84px;height:84px;margin:-42px 0 0 -42px;z-index:30}
+.bub{position:absolute;background:#fff;border-radius:22px;padding:14px 20px;font-size:30px;font-weight:700;box-shadow:0 8px 24px rgba(0,0,0,.15);white-space:nowrap;transform-origin:20% 100%}
+.bub:after{content:"";position:absolute;left:34px;bottom:-14px;border:14px solid transparent;border-top-color:#fff;border-bottom:0}
+.thought{position:absolute;width:170px;height:170px;border-radius:50%;background:#fff;box-shadow:0 10px 30px rgba(0,0,0,.18);display:flex;align-items:center;justify-content:center}
+.stamp{position:absolute;left:50%;top:128px;transform-origin:50% 50%;font-size:26px;font-weight:800;letter-spacing:1px;padding:3px 12px;border-radius:8px;white-space:nowrap}
+.stamp.a{color:#E41E3F;border:3px solid #E41E3F;background:#fff}
+.stamp.w{color:#0866FF;border:3px solid #0866FF;background:#fff}
+.toast{position:absolute;background:#fff;border-radius:20px;padding:14px 18px;box-shadow:0 12px 32px rgba(0,0,0,.18);display:flex;gap:12px;align-items:center;font-size:22px;font-weight:600}
+.panel{position:absolute;width:560px;height:600px;border-radius:32px;overflow:hidden;box-shadow:0 14px 40px rgba(20,30,60,.16);background:#fff}
+.plabel{position:absolute;left:0;right:0;bottom:0;height:86px;background:#fff;display:flex;flex-direction:column;justify-content:center;padding:0 26px}
+.plabel b{font-size:27px}
+.plabel span{font-size:20px;color:#65676B;margin-top:2px}
+#wipe{position:absolute;left:0;top:0;width:1920px;height:1080px;background:#0866FF;z-index:200;display:flex;align-items:center;justify-content:center;color:#fff;font-size:64px;font-weight:800;letter-spacing:-1px}
+</style>
+</head>
+<body>
+<div id="stage">
+  <div class="layer" id="room"></div>
+  <div class="layer" id="s5" style="background:#F0F2F5"></div>
+  <div class="layer" id="street"></div>
+  <div class="layer" id="studio"></div>
+  <div class="layer" id="outro"></div>
+  <div id="phone">
+    <div class="phone-body"></div>
+    <div class="screen" id="screen"></div>
+    <div class="island"></div>
+  </div>
+  <div id="cap"></div>
+  <div id="wipe"><span id="wipetx"></span></div>
+  <div class="layer" id="fade" style="background:#000;z-index:300;pointer-events:none"></div>
+</div>
+<script>
+// ---------- time helpers ----------
+const clamp=(x,a=0,b=1)=>Math.min(b,Math.max(a,x));
+const lerp=(a,b,p)=>a+(b-a)*p;
+const E={
+  out:p=>1-Math.pow(1-p,3),
+  inOut:p=>p<.5?4*p*p*p:1-Math.pow(-2*p+2,3)/2,
+  back:p=>{const c1=1.5,c3=c1+1;return 1+c3*Math.pow(p-1,3)+c1*Math.pow(p-1,2)},
+  lin:p=>p,
+  in:p=>p*p*p,
+};
+const P=(t,a,d,e=E.out)=>e(clamp((t-a)/d));
+// in at a, out at b (each over d), returns 0..1
+const win=(t,a,b,d=.35)=>Math.min(P(t,a,d),1-P(t,b-d,d,E.in));
+const $=(s,r=document)=>r.querySelector(s);
+const $$=(s,r=document)=>[...r.querySelectorAll(s)];
+function tf(el,x=0,y=0,s=1,r=0){el.style.transform=`translate(${x}px,${y}px) scale(${s}) rotate(${r}deg)`}
+function op(el,o){el.style.opacity=o;el.style.visibility=o<=0.001?'hidden':'visible'}
+function show(el,on){if(el.dataset.disp===undefined)el.dataset.disp=el.style.display==='none'?'':el.style.display;el.style.display=on?el.dataset.disp:'none'}
+// beat grid: 120.19 BPM, first beat 3.0186 s
+const BEAT=60/120.19, B0=3.0186, bar=n=>B0+n*4*BEAT;
+
+// ---------- sound cues (read by mix.py) ----------
+const SFX=[];
+const cue=(t,f,g)=>SFX.push({t:+t.toFixed(3),f,g});
+const S={tap:['interface/click_003.ogg',.7],tap2:['ui/click2.ogg',.45],slide:['casino/card-slide-1.ogg',.32],
+  soft:['impact/impactSoft_medium_001.ogg',.55],stamp:['impact/impactSoft_medium_004.ogg',.6],bell:['impact/impactBell_heavy_000.ogg',.22],
+  tog:['interface/switch_002.ogg',.35],note:['interface/bong_001.ogg',.7],pop:['interface/drop_002.ogg',.3],tick:['interface/click_005.ogg',.45],
+  whoosh:['impact/impactSoft_heavy_003.ogg',.28]};
+const sfx=(t,k)=>cue(t,S[k][0],S[k][1]);
+const keys=(t0,n,dt)=>{for(let i=0;i<n;i++)cue(t0+i*dt,`keyboard/keypress-${String(1+(i*7)%32).padStart(3,'0')}.wav`,.16)};
+const steps=(t0,n,dt,which=[0,1,2,3,4])=>{for(let i=0;i<n;i++)cue(t0+i*dt,`impact/footstep_concrete_00${which[i%which.length]}.ogg`,.2)};
+
+// ---------- scene times ----------
+const T={s1:0,s2:bar(4),s3:bar(11),s4:bar(19),s5:bar(26),s6:bar(32),s7:bar(44),s8:bar(52),s8b:bar(55.5),s9:bar(59),s9b:bar(63.5),s10:bar(68),end:150};
+
+// ---------- icons ----------
+const spk=(sz,c='#fff')=>`<svg width="${sz}" height="${sz}" viewBox="-20 -20 40 40"><path d="M0 -16 Q2.6 -2.6 16 0 Q2.6 2.6 0 16 Q-2.6 2.6 -16 0 Q-2.6 -2.6 0 -16Z" fill="${c}"/><path d="M11 -15 Q11.8 -11.8 15 -11 Q11.8 -10.2 11 -7 Q10.2 -10.2 7 -11 Q10.2 -11.8 11 -15Z" fill="${c}"/></svg>`;
+const museAva=(sz)=>`<div class="ava" style="width:${sz}px;height:${sz}px">${spk(sz*.56)}</div>`;
+const ic={
+  cal:(c='#1877F2')=>`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${c}" stroke-width="2.4" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>`,
+  pin:(c='#1877F2')=>`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${c}" stroke-width="2.4"><path d="M12 22s7-7 7-12a7 7 0 1 0-14 0c0 5 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/></svg>`,
+  chat:(c='#1877F2')=>`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${c}" stroke-width="2.4" stroke-linejoin="round"><path d="M4 5h16v11H9l-5 4z"/></svg>`,
+  card:(c='#1877F2')=>`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${c}" stroke-width="2.4"><rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M2.5 10h19"/></svg>`,
+  bell:(c='#1877F2')=>`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${c}" stroke-width="2.4" stroke-linejoin="round"><path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 20a2 2 0 0 0 4 0"/></svg>`,
+  ticket:(c='#1877F2')=>`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${c}" stroke-width="2.4" stroke-linejoin="round"><path d="M3 7h18v4a2 2 0 0 0 0 4v4H3v-4a2 2 0 0 0 0-4z"/></svg>`,
+  lock:(c='#65676B')=>`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="${c}" stroke-width="2.4"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>`,
+  eye:(c='#65676B')=>`<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="${c}" stroke-width="2.2"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>`,
+  shield:(c='#1877F2')=>`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${c}" stroke-width="2.4" stroke-linejoin="round"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/></svg>`,
+  send:(c='#1877F2')=>`<svg width="22" height="22" viewBox="0 0 24 24" fill="${c}"><path d="M3 20l18-8L3 4v6l12 2-12 2z"/></svg>`,
+  back:(c='#050505')=>`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="${c}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>`,
+  fb:()=>`<svg width="16" height="16" viewBox="0 0 24 24"><circle cx="12" cy="12" r="11" fill="#0866FF"/><path d="M13.3 19v-6h2l.3-2.4h-2.3V9.2c0-.7.2-1.2 1.2-1.2h1.2V5.9c-.2 0-1-.1-1.8-.1-1.8 0-3 1.1-3 3.1v1.7H9V13h1.9v6z" fill="#fff"/></svg>`,
+  maps:()=>`<svg width="30" height="30" viewBox="0 0 30 30"><rect width="30" height="30" rx="7" fill="#fff" stroke="#E4E6EB"/><path d="M15 6a6 6 0 0 0-6 6c0 4.5 6 11 6 11s6-6.5 6-11a6 6 0 0 0-6-6z" fill="#EA4335"/><circle cx="15" cy="12" r="2.3" fill="#fff"/></svg>`,
+  calApp:()=>`<svg width="30" height="30" viewBox="0 0 30 30"><rect width="30" height="30" rx="7" fill="#fff" stroke="#E4E6EB"/><text x="15" y="10" text-anchor="middle" font-size="6.5" font-weight="700" fill="#E41E3F" font-family="system-ui">SAT</text><text x="15" y="24" text-anchor="middle" font-size="13" font-weight="400" fill="#050505" font-family="system-ui">14</text></svg>`,
+  strava:()=>`<svg width="30" height="30" viewBox="0 0 30 30"><rect width="30" height="30" rx="7" fill="#FC5200"/><path d="M13 7l-5 10h3l2-4 2 4h3z" fill="#fff"/><path d="M17 17l-1.5 3-1.5-3h-2l3.5 7 3.5-7z" fill="#ffd2bd"/></svg>`,
+  star:(c)=>`<svg width="30" height="30" viewBox="0 0 24 24"><path d="M12 2.5l2.9 6.1 6.6.8-4.9 4.6 1.3 6.6L12 17.3l-5.9 3.3 1.3-6.6-4.9-4.6 6.6-.8z" fill="${c}"/></svg>`,
+};
+const okIc=`<div class="ic" style="background:#31A24C"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg></div>`;
+
+// ---------- characters ----------
+const CAST={
+  maya:{skin:'#F2C9A8',skin2:'#E3AE8B',hair:'#1E1A22',style:'bob',shirt:'#2A9D8F',shirt2:'#23867A',pants:'#3B4A63',shoe:'#F4F1EA',cheek:'#F08A7E'},
+  daniel:{skin:'#8A5A3C',skin2:'#74482E',hair:'#1B1410',style:'short',shirt:'#E9A23B',shirt2:'#D08A26',pants:'#2F3A56',shoe:'#2B2B2B',cheek:'#B5644E'},
+  rosa:{skin:'#D9A47E',skin2:'#C48D66',hair:'#5A3424',style:'curly',shirt:'#E76F51',shirt2:'#CF5B3F',pants:'#264653',shoe:'#F4F1EA',cheek:'#E07A6A'},
+};
+function hairBack(o){
+  if(o.style==='bob')return `<path d="M86 142 Q82 66 150 62 Q218 66 214 142 L216 206 Q150 220 84 206 Z" fill="${o.hair}"/>`;
+  if(o.style==='curly'){let s='';for(let i=0;i<16;i++){const a=Math.PI*(0.95+i*1.1/15)*1;const ang=-Math.PI*0.05+i*(Math.PI*1.1)/15;const x=150+Math.cos(Math.PI+ang)*66,y=134+Math.sin(Math.PI+ang)*62;s+=`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="27" fill="${o.hair}"/>`}
+    s+=`<circle cx="92" cy="190" r="24" fill="${o.hair}"/><circle cx="208" cy="190" r="24" fill="${o.hair}"/><circle cx="96" cy="214" r="18" fill="${o.hair}"/><circle cx="204" cy="214" r="18" fill="${o.hair}"/>`;return s}
+  return '';
+}
+function hairFront(o){
+  if(o.style==='bob')return `<path d="M89 136 Q90 72 150 70 Q210 72 211 136 Q196 106 166 100 Q156 118 124 114 Q102 118 89 136Z" fill="${o.hair}"/>`;
+  if(o.style==='short')return `<path d="M91 128 Q88 70 150 70 Q212 70 209 128 Q204 100 186 96 Q150 88 114 96 Q96 100 91 128Z" fill="${o.hair}"/>`;
+  if(o.style==='curly'){let s='';[[104,102],[126,86],[150,80],[174,86],[196,102],[114,110],[186,110]].forEach(([x,y])=>s+=`<circle cx="${x}" cy="${y}" r="20" fill="${o.hair}"/>`);return s}
+  return '';
+}
+function headSVG(o){
+  return `${hairBack(o)}
+  <rect x="136" y="180" width="28" height="48" rx="10" fill="${o.skin2}"/>
+  <circle cx="90" cy="148" r="11" fill="${o.skin}"/><circle cx="210" cy="148" r="11" fill="${o.skin}"/>
+  <circle cx="150" cy="140" r="60" fill="${o.skin}"/>
+  <ellipse class="glow" cx="150" cy="150" rx="56" ry="52" fill="#BFE3FF" opacity="0"/>
+  <circle cx="117" cy="166" r="10" fill="${o.cheek}" opacity=".4"/><circle cx="183" cy="166" r="10" fill="${o.cheek}" opacity=".4"/>
+  <path class="browL" d="M116 124 Q127 118 138 123" stroke="${o.hair}" stroke-width="5" fill="none" stroke-linecap="round"/>
+  <path class="browR" d="M162 123 Q173 118 184 124" stroke="${o.hair}" stroke-width="5" fill="none" stroke-linecap="round"/>
+  <g class="eyes"><ellipse class="eyeL" cx="128" cy="146" rx="6.5" ry="8.5" fill="#2A1F1F"/><ellipse class="eyeR" cx="172" cy="146" rx="6.5" ry="8.5" fill="#2A1F1F"/>
+  <circle class="hl" cx="130.5" cy="143" r="2.2" fill="#fff"/><circle class="hl" cx="174.5" cy="143" r="2.2" fill="#fff"/></g>
+  <path d="M150 151 Q145 162 152 164" stroke="${o.skin2}" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+  <path class="mouth" d="M136 174 Q150 186 164 174" stroke="#5B2A2A" stroke-width="4.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  ${hairFront(o)}`;
+}
+function personSVG(key){
+  const o=CAST[key];
+  const leg=(side,hx)=>`<g class="leg${side}"><rect class="thigh${side}" x="${hx-15}" y="352" width="30" height="112" rx="15" fill="${o.pants}"/>
+     <g class="knee${side}"><rect x="${hx-14}" y="450" width="28" height="114" rx="13" fill="${o.pants}"/><ellipse cx="${hx+(side==='L'?-4:4)}" cy="568" rx="25" ry="13" fill="${o.shoe}"/></g></g>`;
+  const arm=(side,sx)=>`<g class="arm${side}"><rect x="${sx-14}" y="222" width="28" height="96" rx="14" fill="${o.shirt}"/>
+     <g class="elbow${side}"><rect x="${sx-12.5}" y="304" width="25" height="84" rx="12.5" fill="${o.shirt2}"/><circle cx="${sx}" cy="392" r="14.5" fill="${o.skin}"/>
+     ${side==='R'?`<g class="prop"><rect x="${sx-17}" y="352" width="34" height="62" rx="7" fill="#26282E"/><rect x="${sx-17}" y="352" width="34" height="62" rx="7" fill="none" stroke="#4A4D55" stroke-width="2"/><circle cx="${sx-7}" cy="362" r="4" fill="#4A4D55"/><circle cx="${sx}" cy="396" r="13" fill="${o.skin}"/></g>`:''}</g></g>`;
+  return `<svg class="person" data-k="${key}" viewBox="0 0 300 600" width="300" height="600" style="overflow:visible">
+   <ellipse class="shadow" cx="150" cy="582" rx="78" ry="12" fill="#000" opacity=".12"/>
+   <g class="body">
+    ${leg('L',131)}${leg('R',169)}
+    <path d="M98 226 Q150 206 202 226 L210 362 Q150 380 90 362 Z" fill="${o.shirt}"/>
+    <path d="M128 214 Q150 232 172 214" stroke="${o.shirt2}" stroke-width="7" fill="none" stroke-linecap="round"/>
+    <g class="lap"><ellipse cx="150" cy="404" rx="62" ry="12" fill="#000" opacity=".12"/><path d="M96 352 Q150 340 204 352 L206 384 Q206 404 186 404 L114 404 Q94 404 94 384 Z" fill="${o.pants}"/><circle cx="124" cy="392" r="21" fill="${o.pants}"/><circle cx="176" cy="392" r="21" fill="${o.pants}"/><path d="M150 356 L150 396" stroke="#000" stroke-opacity=".15" stroke-width="3"/></g>
+    <g class="head">${headSVG(o)}</g>
+    ${arm('L',104)}${arm('R',196)}
+   </g></svg>`;
+}
+function avatarSVG(key,sz){
+  if(key==='rosaP')return `<div class="ava" style="width:${sz}px;height:${sz}px;background:#BCC0C4;color:#fff;font-weight:700;font-size:${sz*.42}px">R</div>`;
+  const o=CAST[key];
+  return `<div class="ava" style="width:${sz}px;height:${sz}px;background:#DDE9F7"><svg width="${sz}" height="${sz}" viewBox="66 58 168 168"><path d="M70 260 Q80 214 150 210 Q220 214 230 260Z" fill="${o.shirt}"/>${headSVG(o).replace('class="mouth" d="M136 174 Q150 186 164 174"','class="mouth" d="M134 172 Q150 190 166 172"')}</svg></div>`;
+}
+const MOUTH={smile:'M136 174 Q150 186 164 174',neutral:'M139 177 Q150 180 161 177',sad:'M139 181 Q150 173 161 181',
+  open:'M137 172 Q150 194 163 172 Q150 177 137 172Z',grin:'M131 170 Q150 200 169 170 Q150 176 131 170Z',o:'M144 176 Q150 186 156 176 Q150 168 144 176Z'};
+class Person{
+  constructor(parent,key){
+    parent.insertAdjacentHTML('beforeend',personSVG(key));
+    this.el=parent.lastElementChild;this.k=key;
+    const q=s=>this.el.querySelector(s);
+    Object.assign(this,{body:q('.body'),head:q('.head'),legL:q('.legL'),legR:q('.legR'),kneeL:q('.kneeL'),kneeR:q('.kneeR'),thighL:q('.thighL'),thighR:q('.thighR'),
+      armL:q('.armL'),armR:q('.armR'),elL:q('.elbowL'),elR:q('.elbowR'),prop:q('.prop'),mouth:q('.mouth'),eyeL:q('.eyeL'),eyeR:q('.eyeR'),hl:$$('.hl',this.el),glow:q('.glow'),shadow:q('.shadow'),lap:q('.lap'),browL:q('.browL'),browR:q('.browR')});
+  }
+  // x,y = feet position in parent px; s = scale
+  pose(x,y,s,q={}){
+    const sit=q.sit||0,k=lerp(1,.3,sit);
+    const foot=lerp(584,514,sit);
+    this.el.style.transform=`translate(${x-150*s}px,${y-foot*s}px) scale(${s})`;
+    const by=q.bob||0;
+    this.body.setAttribute('transform',`translate(0 ${by}) rotate(${q.lean||0} 150 360)`);
+    const kn=(1-k)*100;
+    this.thighL.setAttribute('transform',`translate(0 352) scale(1 ${k}) translate(0 -352)`);
+    this.thighR.setAttribute('transform',`translate(0 352) scale(1 ${k}) translate(0 -352)`);
+    this.legL.setAttribute('transform',`rotate(${(q.hipL||0)+sit*6} 131 360)`);
+    this.legR.setAttribute('transform',`rotate(${(q.hipR||0)-sit*6} 169 360)`);
+    this.kneeL.setAttribute('transform',`translate(0 ${-kn}) rotate(${q.kneeL||0} 131 ${460})`);
+    this.kneeR.setAttribute('transform',`translate(0 ${-kn}) rotate(${q.kneeR||0} 169 ${460})`);
+    const shL=q.shL??0,elL=q.elL??0,shR=q.shR??0,elR=q.elR??0;
+    this.armL.setAttribute('transform',`rotate(${shL} 104 232)`);
+    this.elL.setAttribute('transform',`rotate(${elL} 104 312)`);
+    this.armR.setAttribute('transform',`rotate(${shR} 196 232)`);
+    this.elR.setAttribute('transform',`rotate(${elR} 196 312)`);
+    if(this.prop){this.prop.style.display=q.phone?'':'none';this.prop.setAttribute('transform',`rotate(${-(shR+elR)} 196 392)`)}
+    this.head.setAttribute('transform',`translate(0 ${q.headY||0}) rotate(${q.tilt||0} 150 205)`);
+    const bl=clamp(q.blink||0);
+    const ry=Math.max(1,8.5*(1-bl));
+    this.eyeL.setAttribute('ry',ry);this.eyeR.setAttribute('ry',ry);
+    const lx=q.look||0;
+    this.eyeL.setAttribute('cx',128+lx);this.eyeR.setAttribute('cx',172+lx);
+    this.eyeL.setAttribute('cy',146+(q.lookY||0));this.eyeR.setAttribute('cy',146+(q.lookY||0));
+    this.hl.forEach(h=>h.style.opacity=bl>.5?0:1);
+    const m=q.mouth||'smile',filled=['open','grin','o'].includes(m);
+    this.mouth.setAttribute('d',MOUTH[m]);
+    this.mouth.setAttribute('fill',filled?'#7A2E36':'none');
+    const br=q.brow||0;
+    this.browL.setAttribute('transform',`translate(0 ${-br})`);this.browR.setAttribute('transform',`translate(0 ${-br})`);
+    this.glow.setAttribute('opacity',q.glow||0);
+    this.shadow.setAttribute('opacity',q.noShadow?0:.12);
+    this.lap.style.display=sit>.5?'':'none';
+  }
+}
+// blink pattern: deterministic blinks every ~3.3 s with offset
+const blink=(t,off=0)=>{const p=((t+off)%3.3);return p<.14?Math.sin(p/.14*Math.PI):0};
+const walk=(t,speed=1)=>{const ph=t*Math.PI*2*speed*1.0;const s=Math.sin(ph);return{hipL:s*24,hipR:-s*24,kneeL:Math.max(0,-Math.cos(ph))*-18,kneeR:Math.max(0,Math.cos(ph))*18,shL:6+Math.max(0,s)*14,shR:-6-Math.max(0,-s)*14,elL:-6,elR:6,bob:-Math.abs(Math.cos(ph))*7}};
+// holding phone at chest (right hand), optional two-handed typing
+const HOLD={shR:-10,elR:120,shL:-6,elL:-28};
+const TYPE2={shL:10,elL:-117};
+
+// ---------- builders ----------
+const room=$('#room'),s5=$('#s5'),street=$('#street'),studio=$('#studio'),outro=$('#outro'),phone=$('#phone'),screen=$('#screen'),cap=$('#cap');
+
+// ROOM (world coords 1920 wide, inside a camera group)
+room.innerHTML=`<div id="cam" class="abs" style="width:2600px;height:1080px;transform-origin:0 0">
+<svg class="abs" width="2600" height="1080" viewBox="0 0 2600 1080">
+ <defs>
+  <linearGradient id="skyN" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#16203D"/><stop offset="1" stop-color="#2F3E6B"/></linearGradient>
+  <linearGradient id="skyD" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8FD0F5"/><stop offset="1" stop-color="#D9F0FB"/></linearGradient>
+  <linearGradient id="skyE" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F6A66B"/><stop offset="1" stop-color="#FBD9A4"/></linearGradient>
+  <radialGradient id="lampG" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#FFD58A" stop-opacity=".55"/><stop offset="1" stop-color="#FFD58A" stop-opacity="0"/></radialGradient>
+ </defs>
+ <rect width="2600" height="1080" fill="#EFE3D3"/>
+ <rect id="wallN" width="2600" height="1080" fill="#4A4F72"/>
+ <rect id="wallE" width="2600" height="1080" fill="#F2C9A0" opacity="0"/>
+ <rect x="0" y="880" width="2600" height="200" fill="#B98B66"/>
+ <rect id="floorN" x="0" y="880" width="2600" height="200" fill="#3B3550" opacity=".55"/>
+ <rect x="0" y="872" width="2600" height="14" fill="#D9C2A8"/>
+ <!-- window -->
+ <g transform="translate(170 170)">
+  <rect x="-16" y="-16" width="452" height="412" rx="10" fill="#F7F1E8"/>
+  <rect width="420" height="380" fill="url(#skyD)"/>
+  <rect id="winE" width="420" height="380" fill="url(#skyE)" opacity="0"/>
+  <rect id="winN" width="420" height="380" fill="url(#skyN)"/>
+  <circle id="moon" cx="330" cy="80" r="30" fill="#F6F1D5"/>
+  <circle id="sun" cx="320" cy="90" r="38" fill="#FFD25E" opacity="0"/>
+  <g id="cityN">${(()=>{let s='';const b=[[0,210,70],[64,170,60],[118,230,80],[190,150,50],[236,200,70],[300,180,64],[358,220,70]];b.forEach(([x,y,w],i)=>{s+=`<rect class="bld" x="${x}" y="${y}" width="${w}" height="${380-y}" fill="#2A3355"/>`;for(let yy=y+16;yy<370;yy+=26)for(let xx=x+10;xx<x+w-12;xx+=18){if(((xx*7+yy*3+i)%5)<2)s+=`<rect class="lit" x="${xx}" y="${yy}" width="8" height="11" fill="#FFD98A"/>`}});return s})()}</g>
+  <rect x="204" y="0" width="12" height="380" fill="#F7F1E8"/><rect x="0" y="184" width="420" height="12" fill="#F7F1E8"/>
+  <rect x="-30" y="392" width="480" height="20" rx="6" fill="#E9DFD1"/>
+ </g>
+ <!-- wall calendar -->
+ <g id="wcal" transform="translate(1330 250)">
+  <rect width="170" height="200" rx="10" fill="#fff"/><rect width="170" height="44" rx="10" fill="#E41E3F"/><rect y="30" width="170" height="14" fill="#E41E3F"/>
+  <text x="85" y="31" text-anchor="middle" font-size="22" font-weight="800" fill="#fff" font-family="system-ui">NOV</text>
+  ${(()=>{let s='';for(let r=0;r<4;r++)for(let c=0;c<7;c++){const d=r*7+c+1+0;s+=`<rect x="${10+c*22.5}" y="${56+r*34}" width="19" height="28" rx="3" fill="${(r===1&&c===6)?'#FDECEC':'#F0F2F5'}"/>`}return s})()}
+  <text x="157" y="116" text-anchor="middle" font-size="12" font-weight="700" fill="#E41E3F" font-family="system-ui">14</text>
+  <g id="note1" opacity="0"><rect x="118" y="78" width="62" height="54" rx="4" fill="#1877F2" transform="rotate(6 149 105)"/><text x="149" y="100" text-anchor="middle" font-size="12" font-weight="800" fill="#fff" font-family="system-ui" transform="rotate(6 149 105)" id="noteTime">10 AM</text><text x="149" y="117" text-anchor="middle" font-size="11" font-weight="700" fill="#fff" font-family="system-ui" transform="rotate(6 149 105)">Pottery</text></g>
+  <g id="note2" opacity="0"><rect x="118" y="146" width="62" height="54" rx="4" fill="#31A24C" transform="rotate(-5 149 173)"/><text x="149" y="168" text-anchor="middle" font-size="12" font-weight="800" fill="#fff" font-family="system-ui" transform="rotate(-5 149 173)">Sat 21</text><text x="149" y="185" text-anchor="middle" font-size="11" font-weight="700" fill="#fff" font-family="system-ui" transform="rotate(-5 149 173)">Again!</text></g>
+ </g>
+ <!-- lamp -->
+ <circle id="lampGlow" cx="1590" cy="420" r="330" fill="url(#lampG)"/>
+ <g transform="translate(1590 0)"><rect x="-5" y="430" width="10" height="450" fill="#3C3A40"/><ellipse cx="0" cy="880" rx="50" ry="10" fill="#3C3A40"/><path d="M-70 430 L-46 350 L46 350 L70 430Z" fill="#F4E3C3"/></g>
+ <!-- plant -->
+ <g transform="translate(1790 880)"><path d="M-46 0 L-38 -90 L38 -90 L46 0Z" fill="#C9744F"/><g fill="#4F9B6E"><ellipse cx="-30" cy="-150" rx="22" ry="60" transform="rotate(-25 -30 -150)"/><ellipse cx="0" cy="-180" rx="22" ry="70"/><ellipse cx="32" cy="-150" rx="22" ry="60" transform="rotate(25 32 -150)"/><ellipse cx="-50" cy="-110" rx="16" ry="44" transform="rotate(-55 -50 -110)"/><ellipse cx="52" cy="-110" rx="16" ry="44" transform="rotate(55 52 -110)"/></g></g>
+ <!-- rug -->
+ <ellipse cx="960" cy="985" rx="520" ry="62" fill="#E9B872" opacity=".85"/>
+ <!-- couch -->
+ <g>
+  <rect x="610" y="545" width="700" height="230" rx="44" fill="#D9785A"/>
+  <rect x="640" y="575" width="310" height="170" rx="30" fill="#E4876A"/><rect x="970" y="575" width="310" height="170" rx="30" fill="#E4876A"/>
+  <rect x="610" y="735" width="700" height="105" rx="26" fill="#C9694D"/>
+  <rect x="640" y="725" width="640" height="46" rx="20" fill="#E4876A"/>
+  <rect x="566" y="650" width="98" height="200" rx="40" fill="#C9694D"/><rect x="1256" y="650" width="98" height="200" rx="40" fill="#C9694D"/>
+  <rect x="640" y="840" width="18" height="40" fill="#5A3E2E"/><rect x="1262" y="840" width="18" height="40" fill="#5A3E2E"/>
+  <rect x="1140" y="610" width="110" height="90" rx="20" fill="#F2D17A" transform="rotate(8 1195 655)"/>
+ </g>
+ <rect id="nightTint" width="2600" height="1080" fill="#1A2147" opacity=".18"/>
+</svg>
+<div id="roomPeople" class="abs"></div>
+<div id="thoughts" class="abs"></div>
+<div class="orb" id="orb"><svg width="84" height="84" viewBox="-42 -42 84 84"><circle r="40" fill="#1877F2" opacity=".25"/><circle r="31" fill="#1877F2"/><path d="M0 -17 Q2.8 -2.8 17 0 Q2.8 2.8 0 17 Q-2.8 2.8 -17 0 Q-2.8 -2.8 0 -17Z" fill="#fff"/><path d="M11 -16 Q11.8 -11.8 16 -11 Q11.8 -10.2 11 -6 Q10.2 -10.2 6 -11 Q10.2 -11.8 11 -16Z" fill="#fff"/></svg></div>
+<div id="portraits" class="abs"></div>
+</div>`;
+const maya=new Person($('#roomPeople'),'maya');
+
+// hobby thoughts (scene 1 and the callback in scene 9)
+const hobbyIcon={
+ wheel:`<svg width="110" height="110" viewBox="0 0 110 110"><ellipse cx="55" cy="84" rx="44" ry="12" fill="#8C6B52"/><rect x="11" y="78" width="88" height="10" fill="#8C6B52"/><path d="M36 78 Q30 52 42 40 L68 40 Q80 52 74 78Z" fill="#C98B62"/><ellipse cx="55" cy="40" rx="13" ry="4" fill="#A86E4A"/><path d="M44 58 Q55 62 66 58" stroke="#E0A87F" stroke-width="3" fill="none"/></svg>`,
+ boot:`<svg width="110" height="110" viewBox="0 0 110 110"><path d="M30 20 L62 20 L64 62 L92 70 Q100 74 98 86 L22 86 Q20 60 30 20Z" fill="#8A5A3C"/><rect x="20" y="84" width="80" height="10" rx="4" fill="#3C2B22"/><path d="M36 34h22M36 44h22M36 54h22" stroke="#F2D17A" stroke-width="3"/><path d="M14 98 Q55 104 96 98" stroke="#7FB59A" stroke-width="5" fill="none"/></svg>`,
+ game:`<svg width="110" height="110" viewBox="0 0 110 110"><rect x="14" y="56" width="82" height="34" rx="6" fill="#4F7BC2"/><rect x="18" y="60" width="74" height="26" rx="4" fill="#E9F0FB"/><path d="M40 46 Q40 30 50 30 Q60 30 60 46 L66 56 L34 56Z" fill="#E76F51"/><circle cx="50" cy="26" r="9" fill="#E76F51"/><rect x="66" y="30" width="20" height="20" rx="4" fill="#fff" stroke="#050505" stroke-width="2"/><circle cx="72" cy="36" r="2" fill="#050505"/><circle cx="80" cy="44" r="2" fill="#050505"/></svg>`,
+};
+$('#thoughts').innerHTML=['wheel','boot','game'].map((k,i)=>`<div class="thought" id="th${i}">${hobbyIcon[k]}<div class="stamp a" id="st${i}">ALONE</div><div class="stamp w" id="sw${i}" style="opacity:0">${['WITH FRIENDS','WITH DANIEL',''][i]}</div></div>`).join('')+
+ `<div class="thought" style="width:34px;height:34px" id="thd1"></div><div class="thought" style="width:22px;height:22px" id="thd2"></div>`;
+$('#portraits').innerHTML=`<div id="pD" class="abs" style="display:flex;gap:14px;align-items:center">${avatarSVG('daniel',110)}<div class="bub" style="position:relative;font-size:24px;padding:10px 16px" id="pDb">Bowls, always.</div></div>
+<div id="pR" class="abs" style="display:flex;gap:14px;align-items:center">${avatarSVG('rosa',110)}<div class="bub" style="position:relative;font-size:24px;padding:10px 16px" id="pRb">Mugs. Obviously.</div></div>`;
+
+// stat card (scene 1)
+room.insertAdjacentHTML('beforeend',`<div id="stat" class="abs" style="left:1330px;top:640px;width:500px;background:#fff;border-radius:26px;padding:28px 32px;box-shadow:0 14px 40px rgba(0,0,0,.25)">
+ <div style="font-size:84px;font-weight:800;letter-spacing:-2px;color:#0866FF;line-height:1">1 in 3</div>
+ <div style="font-size:30px;font-weight:700;line-height:1.2;margin-top:8px">young adults (18 to 25) feel lonely.</div>
+ <div style="font-size:17px;color:#65676B;margin-top:12px">Harvard Making Caring Common</div></div>`);
+
+// ---------- phone screens ----------
+const studioPhoto=(h)=>`<svg width="390" height="${h}" viewBox="0 0 390 ${h}" preserveAspectRatio="xMidYMid slice"><rect width="390" height="${h}" fill="#E9CDAE"/><rect x="250" y="0" width="140" height="${h}" fill="#F6E7D3"/><rect x="262" y="14" width="116" height="${h*.55}" fill="#BFE0EE"/><rect x="0" y="${h*.36}" width="230" height="8" fill="#9C6F4E"/><rect x="0" y="${h*.68}" width="230" height="8" fill="#9C6F4E"/>${[20,64,108,152,192].map((x,i)=>`<path d="M${x} ${h*.36} q-4 -${22+i%2*8} 8 -${30+i%2*8} h${14+i%3*4} q12 8 8 ${30+i%2*8}z" fill="${['#5E8C9E','#D98E6B','#E8D7C0','#8BAF8E','#C46B5A'][i]}"/>`).join('')}${[30,90,150].map((x,i)=>`<ellipse cx="${x+20}" cy="${h*.68-12}" rx="${18+i*3}" ry="12" fill="${['#F2E6D6','#C98B62','#7DA0C4'][i]}"/>`).join('')}<ellipse cx="300" cy="${h-18}" rx="70" ry="16" fill="#8C6B52"/><path d="M276 ${h-22} q-8 -36 10 -46 h28 q18 10 10 46z" fill="#C98B62"/></svg>`;
+const planCard=`<div class="card" style="padding:0;overflow:hidden;width:300px;flex:none;margin:0">
+  <div style="height:132px;overflow:hidden">${studioPhoto(132)}</div>
+  <div style="padding:11px 13px 13px">
+   <div style="font-size:18px;font-weight:700">Wheel-throwing drop-in</div>
+   <div class="muted" style="margin-top:2px">Hayes Clay Studio · Hayes Valley</div>
+   <div style="font-size:14.5px;font-weight:600;margin-top:6px">Sat 10 AM · 2 h · $35</div>
+   <div style="display:grid;gap:4px;margin-top:8px">
+    <div class="chk"><b>✓</b>Fits your Saturday</div><div class="chk"><b>✓</b>22 min by transit</div><div class="chk"><b>✓</b>3 spots left</div><div class="chk"><b>✓</b>$35 · Muse can book it</div></div>
+   <div style="display:flex;align-items:center;gap:6px;margin-top:9px;font-size:14px;font-weight:600"><span style="display:flex">${avatarSVG('daniel',22)}<span style="margin-left:-6px">${avatarSVG('rosaP',22)}</span></span>2 in · 3 spots left</div>
+   <div class="muted" style="margin-top:6px;font-style:italic">Three people who love ceramics, on your free Saturday morning.</div>
+  </div></div>`;
+
+screen.innerHTML=`<div class="sb"><span id="sbt">9:41</span><span class="ic"><svg width="18" height="12" viewBox="0 0 18 12"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5" width="3" height="7" rx="1"/><rect x="10" y="2.5" width="3" height="9.5" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/></svg><svg width="26" height="13" viewBox="0 0 26 13"><rect x=".5" y=".5" width="22" height="12" rx="3.5" fill="none" stroke="currentColor" opacity=".45"/><rect x="2.5" y="2.5" width="16" height="8" rx="2"/><rect x="23.5" y="4.5" width="2" height="4" rx="1" opacity=".45"/></svg></span></div>
+
+<!-- A: setup -->
+<div class="scr" id="scrSetup">
+ <div class="hdr"><div class="t">Plans</div><span class="pill" style="background:#E7F3FF;color:#0866FF">Setup</span></div>
+ <div style="display:flex;gap:9px;padding:12px 12px 4px;align-items:flex-start">${museAva(34)}<div class="bubble" style="background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.1)" id="setupMuse"></div></div>
+ <div class="card" id="setupApps">
+  <div class="h">Connect apps</div>
+  <div class="row" style="padding:5px 0">${ic.maps()}<div style="flex:1"><div style="font-weight:600;font-size:15.5px">Google Maps</div><div class="muted" style="font-size:13px">Places you visit often, saved places</div></div><div class="tog" id="togMaps"><i></i></div></div>
+  <div class="row" style="padding:5px 0">${ic.calApp()}<div style="flex:1"><div style="font-weight:600;font-size:15.5px">Calendar</div><div class="muted" style="font-size:13px">Free and busy only, never titles</div></div><div class="tog" style="background:#31A24C"><i style="left:22px"></i></div></div>
+  <div class="row" style="padding:5px 0">${ic.strava()}<div style="flex:1"><div style="font-weight:600;font-size:15.5px">Strava</div><div class="muted" style="font-size:13px">Routines: activity, area, day, time</div></div><div class="tog"><i></i></div></div>
+ </div>
+ <div class="card" id="setupInt">
+  <div class="h">What Muse picked up</div>
+  <div class="irow row" style="padding:6px 0"><div style="flex:1"><div style="font-weight:600;font-size:15.5px">Coastal hikes</div><div class="muted" style="font-size:13px">4 visits to Lands End Trail in October (Google Maps)</div></div>${ic.eye()}</div>
+  <div class="irow row" style="padding:6px 0"><div style="flex:1"><div style="font-weight:600;font-size:15.5px">Wheel throwing</div><div class="muted" style="font-size:13px">Member of SF Clay Collective</div></div>${ic.eye()}</div>
+  <div class="irow row" style="padding:6px 0"><div style="flex:1"><div style="font-weight:600;font-size:15.5px">Strategy board games</div><div class="muted" style="font-size:13px">From your Facebook activity</div></div>${ic.eye()}</div>
+  <div class="irow row" id="sensRow" style="padding:8px 10px;margin:4px -10px 0;border-radius:10px;background:#F0F2F5"><div style="flex:1"><div style="font-weight:600;font-size:15.5px;color:#65676B">Buddhism</div><div class="muted" style="font-size:13px">Hidden. Only you can see this.</div></div><span id="lock">${ic.lock()}</span></div>
+ </div>
+ <div style="padding:6px 10px"><div class="btn" id="setupDone">Done</div></div>
+</div>
+
+<!-- B: plans home -->
+<div class="scr" id="scrPlans">
+ <div class="hdr"><div class="t">Plans</div><span class="pill" style="background:#E7F3FF;color:#0866FF">San Francisco</span></div>
+ <div class="card" style="margin-top:10px">
+  <div class="row"><div style="font-size:17px;font-weight:700;flex:1;display:flex;align-items:center;gap:8px">${museAva(28)}Muse</div></div>
+  <div style="display:flex;align-items:center;margin-top:10px;background:#F0F2F5;border-radius:22px;height:46px;padding:0 8px 0 16px"><div id="mbText" style="flex:1;font-size:16px;color:#65676B">What do you want to do?</div>${ic.send()}</div>
+  <div id="mbChips" style="display:flex;gap:7px;margin-top:10px;overflow:hidden"><span class="pill">Something Sunday afternoon</span><span class="pill">Board games this week</span></div>
+  <div id="mbReply" style="display:flex;gap:9px;margin-top:12px;align-items:flex-start">${museAva(28)}<div class="bubble" id="mbReplyTx" style="flex:1"></div></div>
+ </div>
+ <div id="nudge" class="card" style="background:#fff;border:1px solid #E4E6EB">
+  <div class="row">${museAva(34)}<div style="flex:1"><div style="font-weight:700;font-size:15.5px">Lands End on Saturday?</div><div class="muted" style="font-size:13.5px">You've walked Lands End 4 times this month. 5 people want a Saturday morning coastal walk crew. Want in?</div></div></div>
+ </div>
+ <div id="forYou"><div class="sec">For you</div>
+  <div id="carousel" style="display:flex;gap:10px;padding:2px 10px 10px">${planCard}<div class="card" style="padding:0;overflow:hidden;width:300px;flex:none;margin:0;opacity:.95"><div style="height:132px;background:linear-gradient(#C8E6F0,#9CC9B7)"></div><div style="padding:11px 13px"><div style="font-size:18px;font-weight:700">Hand-building night</div></div></div></div>
+ </div>
+</div>
+
+<!-- C: plan pop-up -->
+<div class="scr" id="scrPlan" style="background:rgba(0,0,0,.4);padding-top:0">
+ <div id="sheet" class="abs" style="top:60px;width:390px;height:784px;background:#fff;border-radius:18px 18px 0 0;overflow:hidden">
+  <div id="sheetIn" class="abs" style="width:390px">
+   <div style="height:170px;overflow:hidden">${studioPhoto(170)}</div>
+   <div style="padding:12px 16px">
+    <div style="font-size:23px;font-weight:800;letter-spacing:-.3px">Wheel-throwing drop-in</div>
+    <div class="muted" style="font-size:15px;margin-top:2px">Hayes Clay Studio · Hayes Valley</div>
+    <div style="font-size:15.5px;font-weight:600;margin-top:6px">Sat, Nov 14 · 10 AM to 12 PM · $35</div>
+    <div class="muted" style="margin-top:8px;font-size:14.5px">A two-hour open wheel session for beginners and regulars. Clay, tools and firing included.</div>
+    <div class="lbl">Because</div>
+    <div class="li">${ic.fb()}<span>You're in SF Clay Collective</span></div>
+    <div class="lbl">Who's in</div>
+    <div class="li"><span style="display:flex">${avatarSVG('daniel',26)}<span style="margin-left:-8px">${avatarSVG('rosaP',26)}</span></span><span>2 people · 2 also do <b>Ceramics</b></span></div>
+    <div class="lbl">Muse will handle</div>
+    <div class="li"><span class="d">${ic.ticket()}</span>Book wheels for the group</div>
+    <div class="li"><span class="d">${ic.card()}</span>Ask you before paying $35</div>
+    <div class="li"><span class="d">${ic.cal()}</span>Add it to your calendar</div>
+    <div class="li"><span class="d">${ic.chat()}</span>Open a group chat with an intro</div>
+    <div class="li"><span class="d">${ic.bell()}</span>Remind you when to leave</div>
+    <div class="lbl">Safety</div>
+    <div class="li"><span class="d">${ic.shield()}</span>Public studio</div>
+    <div class="li"><span class="d">${ic.shield()}</span>Groups of 3 or more</div>
+    <div style="height:120px"></div>
+   </div>
+  </div>
+  <div class="abs" style="top:auto;bottom:0;width:390px;background:#fff;border-top:1px solid #E4E6EB;padding:12px 16px 30px">
+   <div class="btn" id="imIn">I'm in</div>
+   <div id="youreIn" class="abs" style="left:16px;top:12px;width:358px;height:46px;border-radius:8px;background:#E7F3FF;color:#0866FF;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15.5px;gap:8px;opacity:0">${spk(18,'#0866FF')} You're in. Muse is forming your group.</div>
+  </div>
+ </div>
+</div>
+
+<!-- E: meetup -->
+<div class="scr" id="scrMeet" style="background:#fff">
+ <div class="hdr" style="border:0">${ic.back()}<div class="st">Wheel-throwing drop-in</div></div>
+ <div style="padding:0 16px">
+  <div class="muted" style="font-size:15px">Hayes Clay Studio · Sat, Nov 14 · <span id="meetTime">10 AM</span></div>
+  <div style="display:flex;gap:14px;margin-top:12px;align-items:center">
+   <div style="text-align:center;font-size:13px">${avatarSVG('maya',48)}<div style="margin-top:3px">You</div></div>
+   <div style="text-align:center;font-size:13px">${avatarSVG('daniel',48)}<div style="margin-top:3px">Daniel</div></div>
+   <div style="text-align:center;font-size:13px">${avatarSVG('rosaP',48)}<div style="margin-top:3px">Rosa</div></div>
+   <span class="pill" style="background:#E7F3FF;color:#0866FF;margin-left:auto">Wheel throwing</span>
+  </div>
+  <div id="meetHead" style="display:flex;align-items:center;gap:8px;margin-top:16px;font-size:17px;font-weight:700">${museAva(26)}<span id="meetHeadTx">Muse is setting it up</span></div>
+  <div id="stepList" style="margin-top:6px"></div>
+ </div>
+ <div id="appr" class="abs" style="top:0;width:390px;height:844px;background:rgba(0,0,0,.4)">
+  <div id="apprSheet" class="abs" style="top:auto;bottom:0;width:390px;background:#fff;border-radius:18px 18px 0 0;padding:10px 18px 34px">
+   <div style="width:40px;height:5px;border-radius:3px;background:#D8DADF;margin:0 auto 14px"></div>
+   <div style="display:flex;gap:10px;align-items:center">${museAva(36)}<div style="font-size:21px;font-weight:800">OK $35 for your wheel?</div></div>
+   <div style="font-size:15px;line-height:1.4;margin-top:12px">Muse pays $35 to Hayes Clay Studio for your wheel on Sat, Nov 14 · 10 AM to 12 PM.</div>
+   <div class="muted" style="margin-top:10px">Daniel and Rosa already said yes.</div>
+   <div class="muted" style="margin-top:6px">If you'd rather not, Muse asks Hayes Clay Studio to hold your wheel and you pay there.</div>
+   <div class="btn" id="apprBtn" style="margin-top:16px">Approve $35</div>
+   <div class="btn btn2" style="margin-top:8px">Not now</div>
+  </div>
+ </div>
+</div>
+
+<!-- F: calendar app -->
+<div class="scr" id="scrCal" style="background:#fff">
+ <div style="padding:6px 16px 0;color:#E41E3F;font-size:17px;font-weight:600">‹ November</div>
+ <div style="padding:2px 16px 8px;font-size:30px;font-weight:800">Saturday</div>
+ <div style="display:flex;justify-content:space-around;padding:0 6px 10px;border-bottom:1px solid #E4E6EB;font-size:12px;color:#65676B;text-align:center">${['S 8','M 9','T 10','W 11','T 12','F 13','S 14'].map((d,i)=>`<div><div>${d.split(' ')[0]}</div><div style="margin-top:4px;width:34px;height:34px;border-radius:17px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:${i===6?700:400};${i===6?'background:#E41E3F;color:#fff':'color:#050505'}">${d.split(' ')[1]}</div></div>`).join('')}</div>
+ <div style="position:relative;height:640px">
+  ${[8,9,10,11,12,1,2].map((h,i)=>`<div class="abs" style="top:${20+i*86}px;left:0;width:390px;display:flex;align-items:center;gap:8px;font-size:12px;color:#65676B"><span style="width:52px;text-align:right">${h} ${i<4?'AM':'PM'}</span><span style="flex:1;height:1px;background:#E4E6EB"></span></div>`).join('')}
+  <div id="calEv" class="abs" style="left:64px;top:${20+2*86}px;width:310px;height:172px;border-radius:8px;background:#DCEBFF;border-left:5px solid #1877F2;padding:10px 12px">
+   <div style="font-weight:700;font-size:16px;color:#0B4FB3">Wheel-throwing drop-in</div><div style="font-size:14px;color:#0B4FB3;margin-top:3px">Hayes Clay Studio</div><div style="font-size:13px;color:#3A6FC2;margin-top:3px">10 AM to 12 PM · Common Ground</div></div>
+ </div>
+</div>
+
+<!-- G: chat -->
+<div class="scr" id="scrChat" style="background:#fff">
+ <div class="hdr" style="gap:8px">${ic.back()}<span style="display:flex">${avatarSVG('maya',34)}<span style="margin-left:-12px">${avatarSVG('daniel',34)}</span><span style="margin-left:-12px">${avatarSVG('rosaP',34)}</span></span><div style="flex:1;line-height:1.15"><div style="font-weight:700;font-size:16px">Wheel-throwing drop-in</div><div class="muted" style="font-size:12.5px">Maya, Daniel, Rosa and Muse</div></div></div>
+ <div id="chatWin" class="abs" style="top:118px;width:390px;height:650px;overflow:hidden"><div id="chatIn" class="abs" style="width:390px"></div></div>
+ <div class="abs" style="top:auto;bottom:0;width:390px;height:76px;border-top:1px solid #E4E6EB;background:#fff;display:flex;align-items:center;gap:10px;padding:0 12px 18px"><div style="flex:1;height:38px;border-radius:19px;background:#F0F2F5;display:flex;align-items:center;padding:0 14px;color:#65676B;font-size:15px">Aa</div>${ic.send()}</div>
+</div>
+
+<!-- H: lock screen -->
+<div class="scr" id="scrLock" style="background:linear-gradient(#7FB6E8,#F2B8A0);color:#fff;text-align:center">
+ <div style="font-size:19px;font-weight:600;margin-top:46px">Saturday, November 14</div>
+ <div style="font-size:92px;font-weight:700;letter-spacing:-2px;line-height:1">10:38</div>
+ <div id="lockNote" class="abs" style="left:12px;top:300px;width:366px;background:rgba(255,255,255,.88);color:#050505;border-radius:22px;padding:13px 15px;text-align:left">
+  <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:#65676B">${museAva(22)}<span style="font-weight:600;letter-spacing:.3px">COMMON GROUND</span><span style="margin-left:auto">now</span></div>
+  <div style="font-weight:700;font-size:16px;margin-top:7px">Wheel-throwing drop-in</div>
+  <div style="font-size:15px;margin-top:2px">Leave by 10:38 for Hayes Clay Studio · 22 min by transit</div></div>
+ <div id="dirs" class="abs" style="top:0;width:390px;height:844px;background:#EAF1E4">
+  <svg class="abs" width="390" height="844" viewBox="0 0 390 844"><rect width="390" height="844" fill="#EEF0E8"/>${[60,170,300,430,560,690].map(y=>`<rect x="0" y="${y}" width="390" height="14" fill="#fff"/>`).join('')}${[40,150,260,350].map(x=>`<rect x="${x}" y="0" width="12" height="844" fill="#fff"/>`).join('')}<rect x="180" y="90" width="70" height="60" fill="#CDE8C2"/><rect x="20" y="460" width="110" height="90" fill="#CDE8C2"/><path id="route" d="M60 690 L60 567 L156 567 L156 307 L266 307 L266 176" stroke="#1877F2" stroke-width="9" fill="none" stroke-linecap="round" stroke-linejoin="round"/><circle cx="60" cy="690" r="11" fill="#fff" stroke="#1877F2" stroke-width="5"/><circle cx="266" cy="176" r="13" fill="#E41E3F"/></svg>
+  <div class="abs" style="top:auto;bottom:0;width:390px;background:#fff;border-radius:18px 18px 0 0;padding:16px 18px 34px;color:#050505;text-align:left"><div style="font-size:22px;font-weight:800">22 min</div><div class="muted" style="font-size:15px">Transit to Hayes Clay Studio · arrive 11:00</div><div class="btn" style="margin-top:12px">Start</div></div>
+ </div>
+</div>
+
+<!-- J: after -->
+<div class="scr" id="scrAfter">
+ <div class="hdr"><div class="t">Plans</div></div>
+ <div class="card" id="fbCard">
+  <div class="h">How did it go?</div>
+  <div class="muted">Did they show up?</div>
+  <div style="display:flex;gap:8px;margin:6px 0 10px"><span class="pill" style="background:#E7F3FF;color:#0866FF">✓ Daniel</span><span class="pill" style="background:#E7F3FF;color:#0866FF">✓ Rosa</span></div>
+  <div class="muted">Rate it</div>
+  <div id="stars" style="display:flex;gap:4px;margin-top:4px">${[0,1,2,3,4].map(i=>`<span class="star" data-i="${i}">${ic.star('#D8DADF')}</span>`).join('')}</div>
+ </div>
+ <div class="card" id="pymCard">
+  <div class="h">People you've met</div>
+  <div style="display:flex;gap:18px">
+   <div style="text-align:center;font-size:14px;font-weight:600">${avatarSVG('daniel',62)}<div style="margin-top:4px">Daniel</div></div>
+   <div style="text-align:center;font-size:14px;font-weight:600">${avatarSVG('rosaP',62)}<div style="margin-top:4px">Rosa</div></div>
+  </div>
+  <div class="muted" style="margin-top:8px">You both like <b style="color:#050505">Wheel throwing</b></div>
+ </div>
+ <div class="card" id="againCard">
+  <div class="row">${museAva(34)}<div style="flex:1"><div style="font-weight:700;font-size:16px">Same time next week?</div><div class="muted">Daniel and Rosa are in. Muse can book the wheels again.</div></div></div>
+  <div class="btn" id="againBtn" style="margin-top:12px">I'm in</div>
+ </div>
+</div>
+<div class="ripple" id="rip"></div><div class="finger" id="fing"></div>`;
+
+// meetup steps (from fixtures)
+const STEPS=[
+ ['Opened your group chat',null],
+ ["Everyone's free Saturday 10 to 12",'Checked 3 calendars'],
+ ['Hayes Clay Studio has 3 wheels open at 10',null],
+ ['Waiting for you to OK $35','Daniel and Rosa already said yes'],
+ ['Book 3 wheels',null],
+ ["Add it to everyone's calendar",null],
+ ['Remind everyone when to leave',null],
+];
+$('#stepList').innerHTML=STEPS.map((s,i)=>`<div class="step" id="stp${i}"><div class="ic"></div><div><div class="lb">${s[0]}</div>${s[1]?`<div class="dt">${s[1]}</div>`:''}</div></div>`).join('');
+const stepIcon={
+ queued:`<div class="ic" style="border:2px solid #CED0D4"></div>`,
+ running:(a)=>`<div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" style="transform:rotate(${a}deg)"><circle cx="12" cy="12" r="9" stroke="#E4E6EB" stroke-width="3" fill="none"/><path d="M12 3a9 9 0 0 1 9 9" stroke="#1877F2" stroke-width="3" fill="none" stroke-linecap="round"/></svg></div>`,
+ done:okIc,
+ needs:`<div class="ic" style="background:#F7B928"><svg width="14" height="14" viewBox="0 0 24 24"><rect x="10.5" y="4" width="3" height="10" rx="1.5" fill="#fff"/><circle cx="12" cy="19" r="2" fill="#fff"/></svg></div>`,
+};
+
+// chat messages
+const CHAT=[
+ {k:'muse',tx:"Maya, Daniel and Rosa, meet each other! You're all into wheel throwing, and Saturday's drop-in at Hayes Clay Studio is yours. I'm handling the booking and the calendar.",starters:['What was the first thing you ever made on a wheel?','Mugs or bowls?','Any favorite coastal trail for after?']},
+ {k:'daniel',tx:'Hi both! Bowls, always. Muse, can we do 11 instead?'},
+ {k:'think'},
+ {k:'muse',tx:"Done. Everyone's free at 11 and the studio has 3 wheels then, so I moved it. Your calendars are updated."},
+ {k:'rosa',tx:'Mugs. Obviously. 11 works!'},
+ {k:'maya',tx:'What was the first thing you ever made on a wheel?'},
+ {k:'daniel',tx:'A bowl that turned into a plate.'},
+];
+$('#chatIn').innerHTML=CHAT.map((m,i)=>{
+ if(m.k==='think')return `<div class="cm" id="cm${i}" style="margin:6px 10px 6px 50px;background:#F0F2F5;border-radius:12px;padding:10px 12px;font-size:14px">
+   <div style="display:flex;gap:8px;align-items:center" id="th0"><span class="thi"></span>Checking 3 calendars at 11</div>
+   <div style="display:flex;gap:8px;align-items:center;margin-top:6px" id="th1"><span class="thi"></span>Hayes Clay Studio at 11: 3 wheels open</div>
+   <div style="display:flex;gap:8px;align-items:center;margin-top:6px" id="th2"><span class="thi"></span>Rebooked and updated calendars</div></div>`;
+ const own=m.k==='maya';
+ const name={muse:'Muse',daniel:'Daniel',rosa:'Rosa'}[m.k];
+ const av=m.k==='muse'?museAva(34):m.k==='daniel'?avatarSVG('daniel',34):avatarSVG('rosaP',34);
+ return `<div class="cm" id="cm${i}">${own?'':`<div class="who">${name}</div>`}<div class="msg${own?' own':''}">${own?'':av}<div class="b">${m.tx}</div></div>
+  ${m.starters?`<div style="margin:4px 10px 0 52px;display:flex;flex-direction:column;gap:5px;align-items:flex-start">${m.starters.map((s,j)=>`<span class="pill starter" id="sr${j}" style="background:#fff;border:1.5px solid #1877F2;color:#1877F2;height:auto;padding:6px 12px;white-space:normal;font-size:13.5px">${s}</span>`).join('')}</div>`:''}</div>`;
+}).join('');
+
+// ---------- S5: the group forms ----------
+s5.innerHTML=`
+<div class="panel" id="pa" style="left:80px;top:300px"><svg class="abs" width="560" height="600"><rect width="560" height="600" fill="#F6E1C6"/><rect y="0" width="560" height="80" fill="#3E5C50"/>${[40,140,240,340,440].map(x=>`<rect x="${x}" y="20" width="70" height="40" rx="6" fill="#F6E1C6" opacity=".25"/>`).join('')}<rect x="0" y="390" width="560" height="210" fill="#8C6B52"/><rect x="0" y="380" width="560" height="22" fill="#6E513D"/><path d="M420 340 h40 v40 a20 20 0 0 1 -40 0z" fill="#fff"/><path d="M460 352 a10 10 0 0 1 0 20" stroke="#fff" stroke-width="5" fill="none"/><path d="M432 330 q6 -12 0 -24 M446 330 q6 -12 0 -24" stroke="#fff" stroke-width="3" fill="none" opacity=".7"/></svg><div class="abs" id="paP"></div><div class="plabel"><b>Daniel</b><span>Said I'm in this morning</span></div></div>
+<div class="panel" id="pb" style="left:680px;top:300px"><svg class="abs" width="560" height="600"><rect width="560" height="600" fill="#4A4F72"/><rect x="60" y="250" width="440" height="180" rx="34" fill="#D9785A"/><rect x="40" y="330" width="480" height="120" rx="30" fill="#C9694D"/><rect y="510" width="560" height="90" fill="#3B3550"/></svg><div class="abs" id="pbP"></div><div class="plabel"><b>Maya</b><span>Said I'm in just now</span></div></div>
+<div class="panel" id="pc" style="left:1280px;top:300px"><svg class="abs" width="560" height="600"><rect width="560" height="600" fill="#DDE7EF"/><rect x="30" y="40" width="500" height="250" rx="22" fill="#9FD0F2"/><g id="busCity">${Array.from({length:14},(_,i)=>`<rect x="${i*90}" y="${130+(i*37)%90}" width="70" height="${200}" fill="${['#F2B8A0','#F6D58E','#B9D7C6','#E8A7B5'][i%4]}"/>`).join('')}</g><rect x="30" y="40" width="500" height="250" rx="22" fill="none" stroke="#C7D3DD" stroke-width="16"/><rect x="270" y="40" width="14" height="250" fill="#C7D3DD"/><rect x="0" y="420" width="560" height="180" fill="#5C6B7A"/><rect x="0" y="300" width="560" height="14" fill="#F7B928"/><rect x="150" y="330" width="260" height="150" rx="26" fill="#2A63B8"/><rect x="130" y="440" width="300" height="60" rx="20" fill="#24539A"/><rect x="270" y="500" width="20" height="40" fill="#3A4450"/></svg><div class="abs" id="pcP"></div><div class="plabel"><b>Rosa</b><span>Said I'm in at lunch</span></div></div>
+${['a','b','c'].map(k=>`<div class="toast" id="n${k}" style="left:0;top:0;font-size:19px;width:400px;padding:12px 16px">${museAva(38)}<div style="line-height:1.25"><div style="font-weight:700">Your group is ready</div><div style="font-weight:500;color:#65676B;font-size:17px">Wheel-throwing drop-in · Sat</div></div></div>`).join('')}
+<div id="tri" class="abs" style="width:1920px;height:1080px">
+ <svg class="abs" width="1920" height="1080"><path id="triL" d="M560 640 L960 640 L1360 640" stroke="#0866FF" stroke-width="8" stroke-dasharray="14 12" fill="none" stroke-linecap="round"/></svg>
+ <div id="avD" class="abs">${avatarSVG('daniel',230)}</div><div id="avM" class="abs">${avatarSVG('maya',230)}</div><div id="avR" class="abs">${avatarSVG('rosaP',230)}</div>
+ <div id="nmD" class="abs" style="width:300px;text-align:center;font-size:36px;font-weight:800">Daniel</div>
+ <div id="nmM" class="abs" style="width:300px;text-align:center;font-size:36px;font-weight:800">Maya</div>
+ <div id="nmR" class="abs" style="width:300px;text-align:center;font-size:36px;font-weight:800">Rosa</div>
+ <div id="shared" class="abs" style="left:0;top:0;background:#0866FF;color:#fff;font-size:34px;font-weight:800;padding:16px 30px;border-radius:40px;white-space:nowrap">All into wheel throwing</div>
+</div>`;
+const pDan=new Person($('#paP'),'daniel'),pMaya5=new Person($('#pbP'),'maya'),pRosa=new Person($('#pcP'),'rosa');
+
+// ---------- S8b: street ----------
+street.innerHTML=`<svg class="abs" width="1920" height="1080"><defs><linearGradient id="sk2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8FD0F5"/><stop offset="1" stop-color="#E3F4FC"/></linearGradient></defs>
+<rect width="1920" height="1080" fill="url(#sk2)"/><circle cx="1680" cy="150" r="70" fill="#FFD25E"/>
+<path d="M0 520 Q300 380 640 470 Q980 560 1300 420 Q1600 300 1920 440 L1920 1080 L0 1080Z" fill="#B9D7C6"/>
+${(()=>{let s='';const cols=['#F2B8A0','#F6D58E','#B9D7EE','#E8A7B5','#C9E3B6','#F4C9D6'];for(let i=0;i<7;i++){const x=i*200-20,h=330+(i%3)*30,c=cols[i%6];s+=`<rect x="${x}" y="${860-h}" width="190" height="${h}" fill="${c}"/><path d="M${x-6} ${860-h} L${x+95} ${860-h-46} L${x+196} ${860-h}Z" fill="${c}" opacity=".85"/><rect x="${x+24}" y="${860-h+40}" width="60" height="80" fill="#fff" opacity=".75"/><rect x="${x+106}" y="${860-h+40}" width="60" height="80" fill="#fff" opacity=".75"/><rect x="${x+24}" y="${860-h+150}" width="60" height="80" fill="#fff" opacity=".75"/><rect x="${x+120}" y="${860-h+150}" width="44" height="${h-150}" fill="#7A5A48"/>`}return s})()}
+<g transform="translate(1360 0)"><rect x="0" y="470" width="480" height="390" fill="#F4EBDD"/><rect x="-10" y="450" width="500" height="34" fill="#2A9D8F"/><rect x="30" y="380" width="420" height="70" rx="8" fill="#fff" stroke="#2A9D8F" stroke-width="5"/><text x="240" y="428" text-anchor="middle" font-size="38" font-weight="800" fill="#2A9D8F" font-family="system-ui">Hayes Clay Studio</text>
+<rect x="30" y="530" width="240" height="200" fill="#BFE0EE"/><ellipse cx="90" cy="700" rx="34" ry="12" fill="#8C6B52"/><path d="M70 700 q-8 -40 8 -50 h24 q16 10 8 50z" fill="#C98B62"/><path d="M160 700 q-6 -30 6 -40 h22 q12 10 6 40z" fill="#5E8C9E"/><rect x="320" y="560" width="110" height="300" fill="#7A5A48"/><circle cx="410" cy="710" r="7" fill="#F7B928"/></g>
+<rect x="0" y="860" width="1920" height="80" fill="#D6D2CB"/><rect x="0" y="940" width="1920" height="140" fill="#5C6470"/>${Array.from({length:12},(_,i)=>`<rect x="${i*170+30}" y="1004" width="90" height="10" fill="#E9E6DF"/>`).join('')}
+<g transform="translate(560 860)"><rect x="-6" y="-200" width="12" height="200" fill="#5C6470"/><rect x="-40" y="-236" width="80" height="44" rx="6" fill="#2A63B8"/><text x="0" y="-206" text-anchor="middle" font-size="22" font-weight="800" fill="#fff" font-family="system-ui">BUS</text></g>
+</svg>
+<div id="bus" class="abs"><svg width="640" height="250" viewBox="0 0 640 250"><rect x="0" y="20" width="620" height="190" rx="30" fill="#F4F1EA"/><rect x="0" y="150" width="620" height="60" rx="0" fill="#C9694D"/><rect x="0" y="180" width="620" height="30" rx="14" fill="#C9694D"/>${[30,150,270,390].map(x=>`<rect x="${x}" y="45" width="100" height="80" rx="10" fill="#9FD0F2"/>`).join('')}<rect x="510" y="45" width="90" height="150" rx="8" fill="#9FD0F2" id="busDoor"/><circle class="wh" cx="130" cy="214" r="34" fill="#2B2B2B"/><circle cx="130" cy="214" r="13" fill="#9AA0A8"/><circle class="wh" cx="490" cy="214" r="34" fill="#2B2B2B"/><circle cx="490" cy="214" r="13" fill="#9AA0A8"/></svg></div>
+<div id="streetP" class="abs"></div>`;
+const mayaSt=new Person($('#streetP'),'maya');
+
+// ---------- S9a: studio ----------
+studio.innerHTML=`<svg class="abs" width="1920" height="1080"><rect width="1920" height="1080" fill="#F2DFC6"/><rect x="0" y="0" width="1920" height="70" fill="#E3CBAE"/>
+<rect x="120" y="140" width="420" height="300" fill="#CFE7F2"/><rect x="120" y="140" width="420" height="300" fill="none" stroke="#fff" stroke-width="14"/><rect x="324" y="140" width="12" height="300" fill="#fff"/>
+${[[1180,250],[1180,420]].map(([x,y])=>`<rect x="${x}" y="${y}" width="640" height="14" fill="#9C6F4E"/>`).join('')}
+${Array.from({length:9},(_,i)=>`<path d="M${1200+i*68} 250 q-6 -${30+i%3*12} 10 -${44+i%3*12} h${22+i%2*6} q16 12 10 ${44+i%3*12}z" fill="${['#5E8C9E','#D98E6B','#E8D7C0','#8BAF8E','#C46B5A'][i%5]}"/>`).join('')}
+${Array.from({length:8},(_,i)=>`<ellipse cx="${1220+i*76}" cy="404" rx="${22+i%3*5}" ry="16" fill="${['#F2E6D6','#C98B62','#7DA0C4','#E8A7B5'][i%4]}"/>`).join('')}
+<rect x="0" y="760" width="1920" height="320" fill="#C9A27F"/><rect x="0" y="750" width="1920" height="16" fill="#B08A68"/></svg>
+<div id="studioP" class="abs"></div>
+<svg class="abs" width="1920" height="1080" id="wheels">${[520,960,1400].map((x,i)=>`<g transform="translate(${x} 0)"><rect x="-170" y="790" width="340" height="190" rx="24" fill="#E9E4DC"/><rect x="-170" y="790" width="340" height="34" rx="16" fill="#D7D0C5"/><ellipse cx="0" cy="790" rx="120" ry="26" fill="#8C8F96"/><ellipse cx="0" cy="784" rx="104" ry="20" fill="#A7AAB0"/><g class="clay" data-i="${i}"><path d="M-54 784 Q-62 730 -40 704 L40 704 Q62 730 54 784Z" fill="#C98B62"/><ellipse cx="0" cy="704" rx="40" ry="10" fill="#A86E4A"/><g class="stripes"></g></g></g>`).join('')}</svg>
+<div id="stB1" class="bub" style="left:0;top:0">Bowls, always.</div>
+<div id="stB2" class="bub" style="left:0;top:0">Mine's leaning.</div>
+<div id="stB3" class="bub" style="left:0;top:0">Haha!</div>
+<div id="checkT" class="toast" style="left:0;top:0">${museAva(44)}<div><div>Checked in at Hayes Clay Studio</div><div style="font-size:18px;color:#65676B;font-weight:500">Maya, Daniel and Rosa · 11:02 AM</div></div></div>`;
+const stD=new Person($('#studioP'),'daniel'),stM=new Person($('#studioP'),'maya'),stR=new Person($('#studioP'),'rosa');
+
+// ---------- S10: outro ----------
+outro.innerHTML=`<div class="abs" style="width:1920px;height:1080px;background:linear-gradient(135deg,#0866FF,#1877F2 55%,#4C8DF6)"></div>
+<div id="oLogo" class="abs" style="left:0;top:150px;width:1920px;display:flex;justify-content:center"><div style="width:150px;height:150px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center">${spk(84,'#0866FF')}</div></div>
+<div id="oTitle" class="abs" style="left:0;top:322px;width:1920px;text-align:center;color:#fff;font-size:118px;font-weight:800;letter-spacing:-3px">Common Ground</div>
+<div id="oTag1" class="abs" style="left:0;top:478px;width:1920px;text-align:center;color:#fff;font-size:44px;font-weight:600;line-height:1.3">Tell Muse what you want to do. It finds the plan,<br>finds the people, and makes it happen.</div>
+<div id="oTag2" class="abs" style="left:0;top:610px;width:1920px;text-align:center;color:#fff;font-size:56px;font-weight:800">You just show up.</div>
+<div id="oPeople" class="abs"></div>
+<div id="oFoot" class="abs" style="left:0;top:44px;width:1920px;text-align:center;color:rgba(255,255,255,.8);font-size:19px">Unofficial hackathon demo; not affiliated with or endorsed by Meta or Facebook. · Music: Sascha Ende, ende.app (CC BY 4.0) · Sound effects: Kenney</div>`;
+const oD=new Person($('#oPeople'),'daniel'),oM=new Person($('#oPeople'),'maya'),oR=new Person($('#oPeople'),'rosa');
+
+// ---------- captions ----------
+const CAPS=[
+ [0.5,3.1,'','Meet Maya.'],
+ [3.9,10.6,'','She loves wheel throwing, coastal hikes and board games. <em>She does all of them alone.</em>'],
+ [T.s2+1.2,T.s2+7.6,'1 · Open Plans','Muse already knows what she’s into, from the apps she chose to connect.'],
+ [T.s2+8.2,T.s3-.2,'1 · Open Plans','Sensitive things start hidden. <em>Only Maya sees them.</em>'],
+ [T.s3+.5,T.s4-.2,'2 · Ask Muse','She types what she wants to do. Muse finds a plan that fits her <em>calendar, budget and commute.</em>'],
+ [T.s4+.4,T.s4+8.4,'3 · Tap I’m in','Everything she needs to decide, on one card.'],
+ [T.s4+9.2,T.s5-.3,'3 · Tap I’m in','One tap. <em>That’s her only decision.</em>'],
+ [T.s5+.6,T.s5+6.4,'4 · Muse forms the group','Daniel and Rosa joined the same plan earlier today.'],
+ [T.s5+6.8,T.s6-.3,'4 · Muse forms the group','Plans, not people. <em>Nobody gets picked or passed over.</em>'],
+ [T.s6+.5,T.s6+9.0,'5 · Muse sets it up','Every step happens in front of her: time, booking, calendar, reminders.'],
+ [T.s6+9.4,T.s6+15.4,'5 · Muse sets it up','Muse asks before <em>any</em> money moves.'],
+ [T.s6+16.0,T.s7-.3,'5 · Muse sets it up','Saturday is already in her calendar. <em>She tapped twice.</em>'],
+ [T.s7+.5,T.s7+6.4,'6 · The group chat','Muse breaks the ice with conversation starters.'],
+ [T.s7+6.8,T.s8-.5,'6 · The group chat','Plans change. Muse checks <em>everyone’s calendar and the studio</em>, then moves it.'],
+ [T.s8+.9,T.s8b-.3,'7 · Saturday','Muse tells her when to leave.'],
+ [T.s8b+.3,T.s9-.3,'7 · Saturday','22 minutes by transit, exactly like the card said.'],
+ [T.s9+.6,T.s9b-.3,'8 · Show up','The one part Muse leaves to Maya: <em>showing up and talking.</em>'],
+ [T.s9b+.6,T.s10-.4,'9 · After','Two people she’ll see again. <em>Same time next week?</em>'],
+];
+cap.innerHTML=CAPS.map((c,i)=>`<div class="capc" id="cap${i}">${c[2]?`<div class="tag">${c[2]}</div><br>`:''}<div class="tx" style="max-width:${c[2]?1100:1100}px">${c[3]}</div></div>`).join('');
+
+// ---------- sound cue list (static) ----------
+(function(){
+ // s1
+ sfx(B0,'stamp');sfx(B0+BEAT*2,'stamp');sfx(B0+BEAT*4,'stamp');sfx(7.3,'slide');
+ // s2
+ const a=T.s2; sfx(a+.9,'slide'); sfx(a+4.6,'tap'); sfx(a+4.65,'tog'); [5.6,6.3,7.0].forEach(d=>sfx(a+d,'slide')); sfx(a+8.2,'soft'); sfx(a+12.6,'tap');
+ // s3
+ const b=T.s3; sfx(b+1.0,'tap'); keys(b+1.5,20,.12); sfx(b+4.1,'tap'); sfx(b+5.0,'pop'); sfx(b+8.0,'slide');
+ // s4
+ const c=T.s4; sfx(c+.4,'tap'); sfx(c+.6,'slide'); sfx(c+9.0,'tap'); sfx(c+9.1,'soft');
+ // s5
+ const d=T.s5; sfx(d-.3,'whoosh'); [1.6,2.1,2.6].forEach(x=>sfx(d+x,'note')); sfx(d+6.6,'soft'); sfx(d+7.6,'bell');
+ // s6
+ const e=T.s6; sfx(e-.3,'whoosh'); [1.6,3.0,4.4].forEach(x=>sfx(e+x,'tick')); sfx(e+5.8,'pop'); sfx(e+10.6,'tap'); [12.0,13.4,14.8].forEach(x=>sfx(e+x,'tick')); sfx(e+15.6,'bell'); sfx(e+16.5,'slide'); sfx(e+18.3,'soft');
+ // s7
+ const f=T.s7; sfx(f+.5,'slide'); sfx(f+1.2,'pop'); sfx(f+6.8,'pop'); [8.0,8.8,9.6].forEach(x=>sfx(f+x,'tick')); sfx(f+10.4,'pop'); sfx(f+12.2,'pop'); sfx(f+13.2,'tap'); sfx(f+13.4,'pop'); sfx(f+14.6,'pop');
+ // s8
+ const g=T.s8; sfx(g-.4,'whoosh'); sfx(g+1.0,'note'); sfx(g+3.3,'tap'); sfx(g+4.2,'slide'); steps(g+5.3,4,.455);
+ const g2=T.s8b; sfx(g2-.3,'whoosh'); steps(g2+2.6,9,.455,[0,2,1,3]);
+ // s9
+ const h=T.s9; sfx(h-.3,'whoosh'); sfx(h+.8,'note'); sfx(h+2.0,'pop'); sfx(h+4.0,'pop'); sfx(h+5.6,'pop');
+ const h2=T.s9b; sfx(h2-.3,'whoosh'); [1.5,1.7,1.9,2.1,2.3].forEach(x=>sfx(h2+x,'tick')); sfx(h2+5.2,'stamp');sfx(h2+6.0,'stamp'); sfx(h2+6.8,'tap'); sfx(h2+7.0,'bell');
+ // s10
+ sfx(T.s10-.3,'whoosh'); sfx(T.s10+.5,'bell');
+})();
+window.SFX=SFX;
+
+// ---------- render ----------
+function capRender(t){
+ CAPS.forEach((c,i)=>{const el=$('#cap'+i);const v=win(t,c[0],c[1],.4);op(el,v);tf(el,0,(1-P(t,c[0],.5))*24)});
+}
+function setScreen(id,t,a,b,{from='right',to='left'}={}){
+ const el=$('#'+id);const vIn=P(t,a,.45,E.inOut),vOut=P(t,b,.45,E.inOut);
+ const vis=t>=a-0.001&&t<b+.45;
+ show(el,vis);if(!vis)return false;
+ let x=0;
+ if(t<a+.45&&from)x=from==='right'?(1-vIn)*390:from==='up'?0:0;
+ if(t>=b&&to)x=to==='left'?-vOut*390:0;
+ let y=0; if(from==='up'&&t<a+.45)y=(1-vIn)*844;
+ tf(el,x,y);op(el,from==='fade'?vIn*(1-vOut):1);
+ return true;
+}
+function tap(t,at,x,y){ // ripple + finger on the phone screen
+ const r=$('#rip'),f=$('#fing');
+ const d=t-at;
+ if(d>-.45&&d<.6){
+  const fi=d<0?P(t,at-.45,.4):1-P(t,at+.25,.3);
+  op(f,fi*.9);tf(f,x,y+(d<0?(1-P(t,at-.45,.45))*30:0),d>-.06&&d<.12?.85:1);
+  if(d>=0){op(r,1-P(t,at,.55,E.lin));tf(r,x,y,.4+P(t,at,.55)*1.2)}else op(r,0);
+  return true;
+ }
+ return false;
+}
+function tapPos(sel){const el=$(sel);if(!el)return null;const r=el.getBoundingClientRect(),pr=screen.getBoundingClientRect();if(!r.width)return null;return [(r.left+r.width/2-pr.left)/1.12,(r.top+r.height/2-pr.top)/1.12]}
+function tapY(sel){const p=tapPos(sel);return p?p[1]:0}
+function tapEl(t,at,sel){if(t<at-.45||t>at+.6)return false;const p=tapPos(sel);if(!p)return false;return tap(t,at,p[0],p[1])}
+function typeText(t,a,str,cps=14){const n=Math.floor(clamp((t-a)*cps,0,str.length));return str.slice(0,n)}
+
+function render(t){
+ // layers visibility
+ const inRoom=(t<T.s5)||(t>=T.s6&&t<T.s8b)||(t>=T.s9b&&t<T.s10);
+ show(room,inRoom);show(s5,t>=T.s5&&t<T.s6);show(street,t>=T.s8b&&t<T.s9);show(studio,t>=T.s9&&t<T.s9b);show(outro,t>=T.s10);
+ const phoneOn=(t>=T.s2&&t<T.s5)||(t>=T.s6&&t<T.s8+4.6)||(t>=T.s9b&&t<T.s10);
+ // ---- room ----
+ if(inRoom){
+  // camera
+  let camX=-lerp(0,380,P(t,T.s2,1.1,E.inOut));
+  if(t>=T.s8+4.2&&t<T.s9b)camX=-380+P(t,T.s8+4.2,1.0,E.inOut)*380*0;
+  $('#cam').style.transform=`translate(${camX}px,0)`;
+  // lighting
+  const day=(t>=T.s8&&t<T.s8b)?1:0, eve=(t>=T.s9b)?1:0, night=1-day-eve;
+  op($('#winN'),night);op($('#cityN'),night);op($('#moon'),night);op($('#wallN'),night*.9+eve*0);op($('#floorN'),night);op($('#nightTint'),night*.18);
+  op($('#winE'),eve);op($('#wallE'),eve*.55);op($('#sun'),day);op($('#lampGlow'),night+eve*.6);
+  // maya
+  let mx=960,my=905,q={sit:1,phone:true,...HOLD,tilt:-3,lookY:3,blink:blink(t),mouth:'neutral',glow:night*.22};
+  if(t<T.s2){ // scrolling, sighs on stamps
+   q.elR=120+Math.sin(t*5)*2; q.mouth=t>B0?'sad':'neutral'; q.tilt=-3-P(t,B0,1)*3; q.headY=P(t,B0+1,.6)*4;
+  } else if(t<T.s3){q.mouth=t>T.s2+5.5?'smile':'neutral';q.tilt=-2;}
+  else if(t<T.s4){Object.assign(q,TYPE2);const ty=(t>T.s3+1.5&&t<T.s3+4)?Math.sin(t*38)*3:0;q.elL+=ty;q.elR-=ty;q.mouth=t>T.s3+8?'smile':'neutral';q.tilt=t>T.s3+8?3:-2;q.brow=t>T.s3+5&&t<T.s3+7?3:0}
+  else if(t<T.s5){const tp=T.s4+9.0;q.mouth=t>tp?'grin':'smile';q.elR=120+(Math.abs(t-tp)<.2?-6:0);q.tilt=t>tp?5:0;q.brow=t>tp?4:0;q.lean=t>tp?-P(t,tp+.4,.8)*3:0}
+  else if(t<T.s7){const ap=T.s6+10.6;q.mouth=t>ap?'smile':'neutral';q.elR=120+(Math.abs(t-ap)<.2?-6:0);q.tilt=t>T.s6+16?4:0;if(t>T.s6+16){q.mouth='grin'}}
+  else if(t<T.s8){q.mouth=(t>T.s7+6.8&&t<T.s7+12)||t>T.s7+14.6?'grin':'smile';q.tilt=Math.sin(t*1.3)*3;if(t>T.s7+13&&t<T.s7+13.6){Object.assign(q,TYPE2)}}
+  else if(t<T.s8b){ // saturday: notification, stand up, walk off
+   const st=T.s8+4.6,wk=T.s8+5.3;q.mouth='smile';q.glow=0;
+   if(t>st){const p=P(t,st,.6,E.inOut);q.sit=1-p;q.phone=t<wk;q.shR=lerp(-10,0,p);q.elR=lerp(120,10,p);q.shL=lerp(-6,0,p);q.elL=lerp(-28,-10,p);q.lean=Math.sin(p*Math.PI)*-4}
+   if(t>wk){Object.assign(q,walk(t-wk,1.1));q.sit=0;q.phone=false;mx=960+(t-wk)*330}
+   if(t<T.s8+1)q.blink=1; // sleepy start
+  } else { // evening after
+   q.mouth='smile';q.glow=0;q.tilt=Math.sin(t*1.1)*2;
+   if(t>T.s9b+5.0)q.mouth='grin';
+   const ag=T.s9b+6.8;q.elR=120+(Math.abs(t-ag)<.2?-6:0);
+  }
+  maya.pose(mx,my,.98,q);
+  // thoughts: scene 1 + callback in 9b
+  const thV=t<T.s2?win(t,1.0,T.s2+.2,.4):(t>=T.s9b?win(t,T.s9b+4.0,T.s10+1,.4):0);
+  const thEl=$('#thoughts');op(thEl,thV);
+  if(thV>0){
+   const cx=960; const base=[[cx-330,290],[cx-85,232],[cx+160,290]];
+   [0,1,2].forEach(i=>{const el=$('#th'+i);const a0=(t<T.s2?1.0:T.s9b+4.0)+i*.25;const s=P(t,a0,.5,E.back);
+    el.style.left=base[i][0]+'px';el.style.top=base[i][1]+'px';tf(el,0,Math.sin(t*1.5+i)*5,s);
+    const stA=t<T.s2?B0+i*BEAT*2:-9;const st=$('#st'+i),sw=$('#sw'+i);
+    if(t<T.s2){op(st,P(t,stA,.18));st.style.transform=`translate(-50%,0) rotate(-8deg) scale(${lerp(1.8,1,P(t,stA,.22))})`;op(sw,0)}
+    else{const flip=T.s9b+5.2+i*.8;const isW=i<2;op(st,isW?1-P(t,flip,.2):1);st.style.transform=`translate(-50%,0) rotate(-8deg)`;op(sw,isW?P(t,flip,.2):0);sw.style.transform=`translate(-50%,0) rotate(-6deg) scale(${lerp(1.8,1,P(t,flip,.22))})`}
+   });
+   $('#thd1').style.left=(cx-24)+'px';$('#thd1').style.top='428px';$('#thd2').style.left=(cx-6)+'px';$('#thd2').style.top='470px';
+  }
+  // stat card
+  const sv=t<T.s2?win(t,7.2,T.s2-.1,.45):0;op($('#stat'),sv);tf($('#stat'),(1-P(t,7.2,.5))*80,0);
+  // orb (muse in the world)
+  const orb=$('#orb');
+  let ov=0,ox=0,oy=0,os=1;
+  if(t>=T.s6&&t<T.s7){
+   const a=T.s6, hand=[905,690], calP=[1480,340], ticket=[1260,560];
+   const k=[[a+.4,hand],[a+1.4,[760,520]],[a+3.0,[760,500]],[a+12.0,ticket],[a+13.6,calP],[a+15.0,calP],[a+16.2,[780,480]],[a+24,[780,480]]];
+   ov=win(t,a+.4,T.s7+.2,.4);
+   for(let i=0;i<k.length-1;i++){if(t>=k[i][0]&&t<k[i+1][0]){const p=E.inOut(clamp((t-k[i][0])/Math.min(1.1,k[i+1][0]-k[i][0])));ox=lerp(k[i][1][0],k[i+1][1][0],p);oy=lerp(k[i][1][1],k[i+1][1][1],p)}}
+   oy+=Math.sin(t*3)*8; os=.7+P(t,a+.4,.6,E.back)*.3+(Math.abs(t-(a+13.8))<.3?.15:0);
+  }
+  op(orb,ov);tf(orb,ox,oy,os);
+  op($('#note1'),t>=T.s6+13.8&&t<T.s8b?P(t,T.s6+13.8,.25):0);
+  $('#noteTime').textContent=t>=T.s7+10.4?'11 AM':'10 AM';
+  op($('#note2'),t>=T.s9b+7.2?P(t,T.s9b+7.2,.3):0);
+  // portraits during chat
+  const pD=$('#pD'),pR=$('#pR');
+  const vD=t>=T.s7?win(t,T.s7+6.8,T.s8-.4,.4):0, vR=t>=T.s7?win(t,T.s7+12.2,T.s8-.4,.4):0;
+  op(pD,vD);op(pR,vR);
+  pD.style.left='520px';pD.style.top='300px';tf(pD,0,(1-P(t,T.s7+6.8,.5,E.back))*30);
+  pR.style.left='400px';pR.style.top='560px';tf(pR,0,(1-P(t,T.s7+12.2,.5,E.back))*30);
+  $('#pDb').textContent=t<T.s7+14.6?'Bowls, always.':'A bowl that turned into a plate.';
+ }
+ // ---- phone ----
+ show(phone,phoneOn);
+ if(phoneOn){
+  let px=1370,py=52,ps=1.12;
+  const inA=t<T.s5?P(t,T.s2+.2,.9,E.out):t<T.s9b?P(t,T.s6,.7,E.out):P(t,T.s9b+.3,.8,E.out);
+  let off=(1-inA)*700;
+  if(t>=T.s8+4.0&&t<T.s8b)off=P(t,T.s8+4.0,.6,E.in)*700;
+  if(t>=T.s4+11.8&&t<T.s5)off=P(t,T.s4+11.8,.8,E.in)*0;
+  phone.style.transform=`translate(${px+off}px,${py}px) scale(${ps})`;
+  $('#sbt').textContent=t>=T.s9b?'7:12':t>=T.s8?'10:38':'9:41';
+  $('#sbt').parentElement.style.color=(t>=T.s8&&t<T.s8b&&t<T.s8+3.2)?'#fff':'#050505';
+  ['scrSetup','scrPlans','scrPlan','scrMeet','scrCal','scrChat','scrLock','scrAfter'].forEach(id=>show($('#'+id),false));
+  let tapped=false;
+  // setup
+  if(t<T.s3+.45){
+   const a=T.s2;
+   setScreen('scrSetup',t,a,T.s3,{from:null});
+   const msg="Hi Maya, I'm Muse. From your posts and Google Maps, here's what I think you're into. Hide anything you'd rather keep to yourself.";
+   $('#setupMuse').textContent=typeText(t,a+.9,msg,48)||' ';
+   const tg=$('#togMaps'),tp=P(t,a+4.6,.25);tg.style.background=tp>.5?'#31A24C':'#D8DADF';tg.firstElementChild.style.left=(2+tp*20)+'px';
+   const ints=$$('.irow');ints.forEach((r,i)=>{const at=a+5.6+i*.7+(i===3?.5:0);op(r,P(t,at,.35));tf(r,(1-P(t,at,.45))*40,0)});
+   const lk=P(t,a+8.2,.4,E.back);$('#lock').style.display='inline-block';$('#lock').style.transform=`scale(${.4+lk*.6+Math.sin(clamp((t-a-8.2)/1.2)*Math.PI)*.35})`;
+   $('#sensRow').style.boxShadow=`0 0 0 ${3*Math.sin(clamp((t-a-8.2)/1.2)*Math.PI)}px #1877F2`;
+   tapped=tapEl(t,a+4.6,'#togMaps')||tapEl(t,a+12.6,'#setupDone')||tapped;
+  }
+  // plans home + muse bar
+  if(t>=T.s3-.01&&t<T.s4+.6){
+   const a=T.s3;
+   setScreen('scrPlans',t,a,T.s4+5,{to:null});
+   const q='pottery this weekend';
+   const typed=typeText(t,a+1.5,q,8.5);
+   const mb=$('#mbText');mb.textContent=typed||'What do you want to do?';mb.style.color=typed?'#050505':'#65676B';
+   if(t>a+4.1){mb.textContent=q;mb.style.color='#050505'}
+   const rep="I found two ceramics plans that fit your weekend. Saturday's wheel-throwing drop-in already has 2 people in.";
+   const rv=P(t,a+5.0,.3);op($('#mbReply'),rv);show($('#mbReply'),t>a+4.9);
+   $('#mbReplyTx').textContent=typeText(t,a+5.0,rep,40)||' ';
+   show($('#mbChips'),t<a+4.9);
+   const nv=1-P(t,a+4.6,.4);op($('#nudge'),nv);show($('#nudge'),nv>0);
+   const fy=$('#forYou');op(fy,P(t,a+7.8,.4));tf(fy,(1-P(t,a+7.8,.6))*120,0);
+   tapped=tapEl(t,a+1.0,'#mbText')||tap(t,a+4.1,355,tapY('#mbText'))||tapped;
+   if(t>=T.s4)show($('#scrPlans'),true);
+  }
+  // plan pop-up
+  if(t>=T.s4&&t<T.s5){
+   const a=T.s4;
+   show($('#scrPlans'),true);
+   const el=$('#scrPlan');show(el,true);op(el,P(t,a+.5,.3));
+   const sh=$('#sheet');tf(sh,0,(1-P(t,a+.5,.5,E.out))*784);
+   const sc=P(t,a+3.0,2.4,E.inOut)*250;
+   $('#sheetIn').style.transform=`translateY(${-sc}px)`;
+   const tp=a+9.0;op($('#imIn'),t<tp+.15?1:0);op($('#youreIn'),P(t,tp+.15,.3));
+   tapped=tap(t,a+.4,160,520)||tapEl(t,tp,'#imIn')||tapped;
+  }
+  // meetup
+  if(t>=T.s6&&t<T.s6+17.0){
+   const a=T.s6;
+   setScreen('scrMeet',t,a,a+16.5,{from:null});
+   // statuses over time
+   const doneAt=[a+1.6,a+3.0,a+4.4,a+11.0,a+12.0,a+13.4,a+14.8];
+   const startAt=[a+.9,a+2.0,a+3.4,a+4.6,a+11.0,a+12.4,a+13.8];
+   STEPS.forEach((s,i)=>{
+    const el=$('#stp'+i);let st='queued';
+    if(t>=startAt[i])st='running';
+    if(i===3&&t>=startAt[i])st='needs';
+    if(t>=doneAt[i])st='done';
+    const icn=st==='running'?stepIcon.running(t*400%360):stepIcon[st];
+    if(el.dataset.s!==st+(st==='running'?Math.floor(t*30):'')){el.firstElementChild.outerHTML=icn;el.dataset.s=st+(st==='running'?Math.floor(t*30):'')}
+    el.querySelector('.lb').textContent=(i===3&&t>=doneAt[3])?'You approved $35':s[0];
+    el.querySelector('.lb').style.color=st==='queued'?'#65676B':'#050505';
+    el.style.background=st==='needs'?'#FFF6DE':'transparent';el.style.borderRadius='10px';el.style.margin='0 -8px';el.style.padding='7px 8px';
+   });
+   $('#meetHeadTx').textContent=t>=a+14.9?'Confirmed. See you Saturday.':'Muse is setting it up';
+   const ap=$('#appr');const av=win(t,a+5.8,a+11.0,.4);show(ap,av>0);op(ap,av);tf($('#apprSheet'),0,(1-P(t,a+5.8,.5))*420);
+   tapped=tapEl(t,a+10.6,'#apprBtn')||tapped;
+  }
+  // calendar
+  if(t>=T.s6+16.5&&t<T.s7+.5){
+   const a=T.s6+16.5;setScreen('scrCal',t,a,T.s7,{});
+   const ev=$('#calEv');tf(ev,0,0,lerp(.6,1,P(t,a+1.6,.5,E.back)));op(ev,P(t,a+1.6,.3));
+  }
+  // chat
+  if(t>=T.s7&&t<T.s8+.5){
+   const a=T.s7;setScreen('scrChat',t,a,T.s8,{});
+   const at=[a+1.2,a+6.8,a+7.8,a+10.4,a+12.2,a+13.4,a+14.6];
+   let h=0;const shown=[];
+   CHAT.forEach((m,i)=>{const el=$('#cm'+i);const v=P(t,at[i],.3);show(el,t>=at[i]);op(el,v);if(t>=at[i])shown.push(el)});
+   // starters tap
+   const sr=$('#sr0');sr.style.background=t>=a+13.2&&t<a+13.5?'#E7F3FF':'#fff';
+   // thinking ticks
+   [0,1,2].forEach(j=>{const ti=$$('#cm2 .thi')[j];const d=t>=a+8.0+j*.8;ti.innerHTML=d?okIc:stepIcon.running(t*400%360);ti.style.display='inline-flex';ti.style.transform='scale(.8)'});
+   // scroll to bottom
+   const inner=$('#chatIn');const hh=inner.offsetHeight;const target=Math.max(0,hh-640);
+   const cur=parseFloat(inner.dataset.y||0);const y=t<a+.1?0:lerp(cur,target,.35);inner.dataset.y=y;
+   inner.style.transform=`translateY(${-target}px)`;
+   const scr=$('#scrChat');
+   $('#meetTime').textContent='11 AM';
+   tapped=tapEl(t,a+13.2,'#sr0')||tapped;
+  }
+  if(t<T.s7)$('#meetTime').textContent='10 AM';
+  // lock + directions
+  if(t>=T.s8&&t<T.s8b){
+   const a=T.s8;setScreen('scrLock',t,a,T.s8b+5,{from:null});
+   const n=$('#lockNote');tf(n,0,(1-P(t,a+1.0,.5,E.back))*-200);op(n,P(t,a+1.0,.3));
+   const d=$('#dirs');show(d,t>a+3.3);op(d,P(t,a+3.3,.3));
+   const rt=$('#route');const L=rt.getTotalLength?rt.getTotalLength():800;rt.style.strokeDasharray=L;rt.style.strokeDashoffset=L*(1-P(t,a+3.4,.8));
+   tapped=tapEl(t,a+3.3,'#lockNote')||tapped;
+  }
+  // after
+  if(t>=T.s9b){
+   const a=T.s9b;setScreen('scrAfter',t,a,999,{from:null});
+   $$('#stars .star').forEach((s,i)=>{const on=t>=a+1.5+i*.2;s.innerHTML=ic.star(on?'#F7B928':'#D8DADF');s.style.display='inline-block';s.style.transform=`scale(${on?lerp(1.4,1,P(t,a+1.5+i*.2,.2)):1})`});
+   const pc=$('#pymCard');op(pc,P(t,a+3.0,.4));tf(pc,0,(1-P(t,a+3.0,.5))*30);
+   const ag=$('#againCard');op(ag,P(t,a+4.6,.4));tf(ag,0,(1-P(t,a+4.6,.5))*30);
+   const b=$('#againBtn');const done=t>=a+6.95;b.textContent=done?"You're in · Muse is booking":"I'm in";b.style.background=done?'#E7F3FF':'#1877F2';b.style.color=done?'#0866FF':'#fff';
+   tapped=tapEl(t,a+2.3,'#stars .star[data-i="4"]')||tapEl(t,a+6.8,'#againBtn')||tapped;
+  }
+  if(!tapped){op($('#rip'),0);op($('#fing'),0)}
+ }
+ // ---- s5 ----
+ if(t>=T.s5&&t<T.s6){
+  const a=T.s5;
+  const pv=1-P(t,a+6.2,.5,E.in);
+  [['pa',0],['pb',1],['pc',2]].forEach(([id,i])=>{const el=$('#'+id);op(el,pv*P(t,a+.2+i*.15,.4));tf(el,0,(1-P(t,a+.2+i*.15,.5))*60+(1-pv)*40,1-(1-pv)*.08)});
+  pDan.pose(300,480,.62,{phone:true,...HOLD,mouth:t>a+1.6?'grin':'smile',blink:blink(t,.7),tilt:t>a+1.6?4:-2,elR:120+(Math.abs(t-(a+1.4))<.2?-6:0)});
+  pMaya5.pose(280,500,.62,{sit:1,phone:true,...HOLD,mouth:t>a+2.1?'grin':'smile',blink:blink(t,1.4),tilt:t>a+2.1?-4:0});
+  pRosa.pose(280,500,.62,{sit:1,phone:true,...HOLD,mouth:t>a+2.6?'grin':'smile',blink:blink(t,2.1),tilt:t>a+2.6?5:0,bob:Math.sin(t*9)*1.5});
+  $('#busCity').setAttribute('transform',`translate(${-((t-a)*160)%360} 0)`);
+  ['a','b','c'].forEach((k,i)=>{const el=$('#n'+k);const at=a+1.6+i*.5;const v=P(t,at,.4,E.back)*pv;op(el,P(t,at,.25)*pv);el.style.left=(80+i*600+80)+'px';el.style.top='210px';tf(el,0,(1-v)*-30,lerp(.8,1,v))});
+  // triangle
+  const tv=P(t,a+6.4,.6,E.out);
+  const tri=$('#tri');op(tri,tv);
+  const pos=[[560,640,'avD','nmD'],[960,640,'avM','nmM'],[1360,640,'avR','nmR']];
+  pos.forEach(([x,y,av,nm],i)=>{const s=P(t,a+6.5+i*.15,.5,E.back);const el=$('#'+av);el.style.left=(x-115)+'px';el.style.top=(y-160)+'px';tf(el,0,0,s);
+   const n=$('#'+nm);n.style.left=(x-150)+'px';n.style.top=(y-160+240)+'px';op(n,P(t,a+6.9+i*.15,.3))});
+  const ln=$('#triL');ln.style.strokeDashoffset=-((t-a)*40);op(ln,P(t,a+7.2,.4));
+  const sh=$('#shared');const sv=P(t,a+7.6,.5,E.back);op(sh,P(t,a+7.6,.2));sh.style.left='960px';sh.style.top='840px';sh.style.transform=`translate(-50%,0) scale(${sv})`;
+ }
+ // ---- street ----
+ if(t>=T.s8b&&t<T.s9){
+  const a=T.s8b;
+  const bx=lerp(-700,560,P(t,a,2.0,E.out));
+  const bus=$('#bus');tf(bus,bx-320,690);
+  $$('.wh',bus);
+  const ex=a+2.4;
+  const walking=t>ex;
+  let mx=bx+270,my=905,q={mouth:'smile',blink:blink(t,.4)};
+  op(mayaSt.el,t>ex-.2?P(t,ex-.2,.3):0);
+  if(walking){const wt=t-ex;mx=830+wt*175;if(mx>1700){mx=1700}Object.assign(q,mx<1700?walk(wt,1.1):{});}
+  else mx=830;
+  mayaSt.pose(mx,my,.78,q);
+ }
+ // ---- studio ----
+ if(t>=T.s9&&t<T.s9b){
+  const a=T.s9;
+  const arms={shL:20,elL:-70,shR:-20,elR:70};
+  stD.pose(520,900,.86,{sit:1,...arms,mouth:(t>a+2.0&&t<a+3.6)?'open':'smile',blink:blink(t,.2),tilt:Math.sin(t*1.2)*3+(t>a+5.6?5:0),noShadow:1});
+  stM.pose(960,900,.86,{sit:1,...arms,mouth:t>a+5.4?'grin':'smile',blink:blink(t,1.1),tilt:t>a+5.4?-6:Math.sin(t*1.4)*2,noShadow:1});
+  stR.pose(1400,900,.86,{sit:1,...arms,mouth:(t>a+4.0&&t<a+5.3)?'open':(t>a+5.6?'grin':'smile'),blink:blink(t,2.3),tilt:Math.sin(t*1.1+1)*3,noShadow:1});
+  // clay spin: moving highlight stripes
+  $$('.clay').forEach((c,i)=>{const g=c.querySelector('.stripes');let s='';for(let k=0;k<3;k++){const ph=((t*2.2+k/3+i*.2)%1);const x=lerp(-50,50,ph);const w=6*Math.sin(ph*Math.PI);s+=`<rect x="${x-w/2}" y="712" width="${w}" height="66" fill="#E0A87F" opacity="${.6*Math.sin(ph*Math.PI)}"/>`}g.innerHTML=s});
+  const B=[['stB1',a+2.0,a+5.0,450,420],['stB2',a+4.0,a+7.2,1330,420],['stB3',a+5.6,a+8.6,900,380]];
+  B.forEach(([id,s,e,x,y])=>{const el=$('#'+id);el.style.left=x+'px';el.style.top=y+'px';op(el,win(t,s,e,.3));el.style.transform=`scale(${lerp(.6,1,P(t,s,.35,E.back))})`});
+  const ct=$('#checkT');ct.style.left='1300px';ct.style.top='60px';op(ct,win(t,a+.8,a+4.6,.35));tf(ct,(1-P(t,a+.8,.45))*120,0);
+ }
+ // ---- outro ----
+ if(t>=T.s10){
+  const a=T.s10;
+  op($('#oLogo'),P(t,a+.3,.4));tf($('#oLogo'),0,0,lerp(.5,1,P(t,a+.3,.6,E.back)));
+  op($('#oTitle'),P(t,a+.7,.4));tf($('#oTitle'),0,(1-P(t,a+.7,.5))*30);
+  op($('#oTag1'),P(t,a+1.6,.4));tf($('#oTag1'),0,(1-P(t,a+1.6,.5))*20);
+  op($('#oTag2'),P(t,a+4.0,.4));tf($('#oTag2'),0,0,lerp(.8,1,P(t,a+4.0,.5,E.back)));
+  op($('#oFoot'),P(t,a+5.0,.5));
+  const wave=(o)=>({shR:-150+Math.sin(t*7+o)*12,elR:-30+Math.sin(t*7+o)*20,mouth:'grin',blink:blink(t,o),noShadow:1});
+  const pv=P(t,a+2.4,.6,E.out);
+  oD.pose(760,1080+(1-pv)*300+110,.55,wave(0));oM.pose(960,1080+(1-pv)*300+90,.55,wave(1));oR.pose(1160,1080+(1-pv)*300+110,.55,wave(2));
+ }
+ // ---- captions ----
+ capRender(t);
+ op(cap,t>=T.s10-.2?0:1);
+ // ---- wipes ----
+ const W=[[T.s5,''],[T.s6,''],[T.s8,'Saturday morning'],[T.s8b,''],[T.s9,''],[T.s9b,'That evening'],[T.s10,'']];
+ const wipe=$('#wipe');let wx=null,label='';
+ for(const [c,lb] of W){const hold=lb?.7:0;const d=.38;
+  if(t>=c-d-hold/2&&t<c+d+hold/2){label=lb;const s=c-d-hold/2;if(t<s+d)wx=-1920*(1-E.inOut((t-s)/d));else if(t<s+d+hold)wx=0;else wx=1920*E.inOut((t-s-d-hold)/d)}}
+ show(wipe,wx!==null);if(wx!==null){wipe.style.transform=`translateX(${wx}px)`;$('#wipetx').textContent=label}
+ // ---- fade in/out ----
+ const f=$('#fade');op(f,Math.max(1-P(t,0,.6,E.lin),P(t,149.0,1.0,E.lin)));
+}
+window.render=render;
+window.T=T;
+render(0);
+</script>
+</body>
+</html>
