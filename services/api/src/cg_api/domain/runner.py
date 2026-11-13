@@ -17,6 +17,7 @@ from cg_api.domain import approvals, chat, meetups, plans, privacy
 from cg_api.domain.world import World, iso
 from cg_api.domain.world import _spawn as world_spawn
 from cg_api.domain.world import parse as parse_iso
+from cg_api.muse.copy import chore
 
 log = logging.getLogger("cg_api.domain.runner")
 
@@ -170,12 +171,13 @@ async def post_intro(w: World, meetup_id: str) -> None:
     people = meetups.going(m)
     names = [privacy.person_card(w, u)["displayName"].split()[0] for u in people]
     shared = group_interests(w, people)
-    plan = {**w.plans[m["planId"]], "venueName": w.venues[m["venueId"]]["name"]}
+    v = w.venues[m["venueId"]]
+    plan = {**w.plans[m["planId"]], "venueName": v["name"], "venueKind": v.get("kind")}
     try:
         text, starters = await ports.ports.copy.intro(names, [privacy.copy_interest(w, i) for i in shared], plan)
     except Exception:
         log.warning("runner: intro copy failed for %s; using template", meetup_id)
-        text = f"{', '.join(names)}, meet each other! I'm handling the booking and the calendar."
+        text = f"{', '.join(names)}, meet each other! I'm handling {chore(plan)} and the calendar."
         starters = ["What got you into this?", "Been here before?", "Anyone up for food after?"]
     chat.post(
         w,

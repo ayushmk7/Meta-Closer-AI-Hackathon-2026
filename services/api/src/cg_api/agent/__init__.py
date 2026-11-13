@@ -89,7 +89,13 @@ class ScriptedRun:
     def _party(self) -> int:
         return sum(1 for a in self.attendees if self.decided.get(a["userId"]) != "declined" or not self.prepaid)
 
+    @property
+    def restaurant(self) -> bool:
+        return self.venue.get("kind") == "restaurant"
+
     def _seat(self, n: int) -> str:
+        if self.restaurant:
+            return f"a table for {n}"
         noun = SEAT.get(self.plan.get("activityType", ""), "spot")
         return f"{n} {noun}s" if n != 1 else f"1 {noun}"
 
@@ -212,7 +218,9 @@ class ScriptedRun:
             self._find("book"),
             "book",
             status="done",
-            label=f"Booked {self._seat(party)} at {v['name']}",
+            label=f"Reserved {self._seat(party)} at {v['name']} · {clock(p['startsAt'], True)}"
+            if self.restaurant
+            else f"Booked {self._seat(party)} at {v['name']}",
             detail=f"Confirmation {code}",
         )
         yield self._booking("booked", f"Booked · {code}", code)

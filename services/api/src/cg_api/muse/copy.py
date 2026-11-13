@@ -131,12 +131,17 @@ def on_day(title: str, iso: str) -> str:
 
 
 # ---------- templates (also the MUSE_FAKE output) ----------
+def chore(plan: dict) -> str:
+    """What Muse says it's handling: "the reservation" at a restaurant, else "the booking"."""
+    return "the reservation" if plan.get("venueKind") == "restaurant" else "the booking"
+
+
 def intro_text(first_names: list[str], shared_labels: list[str], plan: dict) -> str:
     p = public_plan(plan)
     # UX guide 1.1: at most 2 sentences; the group intro is the one line allowed an exclamation mark
     common = f"You're all into {lc(shared_labels[0])}, and " if shared_labels else ""
     when = f" for {day(p['startsAt'])} at {p['venue']}" if p["startsAt"] and p["venue"] else ""
-    rest = f"{common}I'm handling the booking and the calendar{when}."
+    rest = f"{common}I'm handling {chore(plan)} and the calendar{when}."
     return f"{names(first_names)}, meet each other! {rest[0].upper()}{rest[1:]}"
 
 
@@ -359,8 +364,8 @@ class MuseCopy:
         facts = {"firstNames": first_names, "sharedInterests": shared_labels, "plan": public_plan(plan)}
         j = await self._ask(
             "copy.intro",
-            "Introduce the group in 2 sentences and end with \"I'm handling the "
-            'booking and the calendar." Give 3 conversation starters under 90 characters.',
+            f'Introduce the group in 2 sentences and end with "I\'m handling {chore(plan)} and the calendar." '
+            "Give 3 conversation starters under 90 characters.",
             facts,
             _INTRO,
             live=True,

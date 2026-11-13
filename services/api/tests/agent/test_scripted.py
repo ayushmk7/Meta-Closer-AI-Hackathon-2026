@@ -216,3 +216,26 @@ def test_reschedule_out_of_bounds_changes_nothing_and_offers_a_slot():
     assert r.reschedule_to("2026-11-14T19:00:00Z", full)[1] == (
         "11 AM doesn't work for everyone. I couldn't find another time today that works."
     )
+
+
+def test_restaurant_reserves_a_table_without_an_approval():
+    fern = {
+        "venueId": "vn_little_fern",
+        "name": "Little Fern Kitchen",
+        "kind": "restaurant",
+        "booking": {"kind": "reservation", "capacityPerSlot": 8, "payAtVenueAllowed": False},
+    }
+    dinner = {
+        "activityType": "food_crawl",
+        "startsAt": "2026-11-15T03:00:00Z",
+        "endsAt": "2026-11-15T05:00:00Z",
+        "cost": {"kind": "pay_at_venue", "perPersonCents": 4500, "currency": "USD"},
+    }
+    four = PEOPLE + [{"userId": "u_0169", "firstName": "Sam"}]
+    r = ScriptedRun("mt_3", dinner, fern, four, "2026-11-12T18:12:00Z", lambda p: p)
+    ev = list(r.start())
+    assert not any(e["type"] == "approval" for e in ev)  # no money moves: nothing to OK
+    labels = {s["kind"]: s["label"] for s in r.steps}
+    assert labels["check_availability"] == "Little Fern Kitchen has a table for 4 open at 7 PM"
+    assert labels["book"] == "Reserved a table for 4 at Little Fern Kitchen · 7 PM"
+    assert next(e for e in ev if e["type"] == "confirmed")["eventLabel"] == "Private event · 4 going"
