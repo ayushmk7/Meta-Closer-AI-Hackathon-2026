@@ -48,7 +48,9 @@ def test_extraction_never_sends_busy_blocks_or_user_ids():
         "at": "2026-11-13T17:00:00Z",
         "end": "2026-11-13T18:00:00Z",
     }
-    asyncio.run(Extractor(spy, LayaClient(CONTRACTS, fake=True), CONTRACTS).extract("u_0125", [], [busy]))
+    asyncio.run(
+        Extractor(spy, LayaClient(CONTRACTS, fake=True), CONTRACTS, inline_muse=True).extract("u_0125", [], [busy])
+    )
     assert spy.prompts and all("cr_secret" not in p and "u_0125" not in p for _, p in spy.prompts)
 
 

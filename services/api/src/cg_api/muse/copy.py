@@ -12,6 +12,7 @@ import json
 import logging
 import time
 from datetime import datetime
+from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from cg_api.muse import Unavailable
@@ -211,13 +212,23 @@ class MuseCopy:
     the template at once and fill a cache in the background (bounded concurrency, retry with backoff); later requests
     get Muse's text. Only `intro` and `plan_title` (createPlan) wait for Muse, up to LIVE_BUDGET_S. Any failure or over-long answer = template."""
 
-    def __init__(self, muse, contracts_dir=None, *, concurrency: int = 3, retries: int = 3, backoff_s: float = 2.0):
+    def __init__(
+        self,
+        muse,
+        contracts_dir=None,
+        *,
+        concurrency: int = 3,
+        retries: int = 3,
+        backoff_s: float = 1.0,
+        cache_path: Path | None = None,
+    ):
         self.muse = muse
         tax = taxonomy(contracts_dir) if contracts_dir else {}
         self.sensitive = {v["label"] for v in tax.values() if v["sensitive"]}
         self.concurrency, self.retries, self.backoff_s = concurrency, retries, backoff_s
         # ponytail: unbounded in-process cache keyed by prompt; a few thousand short strings for the demo pools
-        self.cache: dict[str, dict] = {}
+        self.cache_path = cache_path
+        self.cache: dict[str, dict] = json.loads(cache_path.read_text()) if cache_path and cache_path.exists() else {}
         self._pending: dict[str, asyncio.Task] = {}
         self._failed: dict[str, float] = {}  # key -> monotonic time of the last failed fill
         self._sem: asyncio.Semaphore | None = None
@@ -231,15 +242,15 @@ class MuseCopy:
 
     async def _ask(self, purpose: str, task: str, facts: dict, schema: dict = _TEXT, *, live: bool = False):
         msgs = self._messages(task, facts)
+        key = hashlib.sha256(f"{purpose}|{msgs[1]['content']}".encode()).hexdigest()
+        if key in self.cache:
+            return self.cache[key]
         if live:
             try:
                 r = await self.muse.respond(purpose, msgs, schema=schema, effort="minimal", timeout_s=LIVE_BUDGET_S)
                 return r["json"]
             except Unavailable:
                 return None
-        key = hashlib.sha256(f"{purpose}|{msgs[1]['content']}".encode()).hexdigest()
-        if key in self.cache:
-            return self.cache[key]
         self._fill(key, purpose, msgs, schema)
         return None  # template now; Muse's text on a later request
 
@@ -251,6 +262,15 @@ class MuseCopy:
         except RuntimeError:
             return  # no loop (pure tests, sync callers): template only
         self._pending[key] = loop.create_task(self._fill_task(key, purpose, msgs, schema))
+
+    def _save(self) -> None:
+        """Persist to services/api/.cache (gitignored) so a restarted or precomputed server starts warm."""
+        if not self.cache_path:
+            return
+        self.cache_path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = self.cache_path.with_suffix(".tmp")
+        tmp.write_text(json.dumps(self.cache))
+        tmp.replace(self.cache_path)
 
     async def drain(self) -> None:
         """Wait for every background fill (tests, and seed-load warmup)."""
@@ -268,11 +288,12 @@ class MuseCopy:
                         )
                     if isinstance(r.get("json"), dict):
                         self.cache[key] = r["json"]
+                        self._save()
                     return
                 except Unavailable:  # 503 overloaded, timeout, MUSE_FAKE: back off, then give up for 60 s
                     if getattr(self.muse, "fake", False):
                         break
-                    await asyncio.sleep(self.backoff_s * 2**attempt)
+                    await asyncio.sleep(min(5.0, self.backoff_s * 2**attempt))  # capped: a 503's Retry-After is ignored
             self._failed[key] = time.monotonic()
         finally:
             self._pending.pop(key, None)
