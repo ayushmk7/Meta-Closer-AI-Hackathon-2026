@@ -37,10 +37,32 @@ The grid best regressed on held-out seeds (+4.1 to +5.0), a winner's-curse effec
 crowd 0.5 holds up best at +3.9, but both lower bounds sit well above 0. The 25-cell run was skipped because a
 combination that fails the center cell cannot satisfy "CG better in the center and not worse anywhere".
 
+## 25-cell held-out confirmation (seeds 10-59, all cells)
+
+Arms: greedy, CG current, and CG + fillToMax true / reunionBoost 1 / crowdBoost 0.5 (3,750 sims, seed-paired 95% CIs).
+Scripts: `confirm25.py` (runs) and `summarize25.py` (table). Raw rows: `confirm25.jsonl`. Full per-cell table:
+`CONFIRM25.md`.
+
+Adoption bar: combo isolation better than CG current in every cell (upper bound < 0) and fill vs CG current >= -3 pts.
+
+| | range over 25 cells |
+|---|---|
+| combo - CG current, isolated low w8 | -1.6% to -5.6%, every upper bound < 0 (worst cell 0.5 x 1.25: -1.6% [-2.6, -0.7]) |
+| combo - CG current, fill | -1.9 to -2.3 pts (bar -3) |
+| combo - CG current, friendship share w8 | +2.2 to +6.4 pts, all CIs > 0 |
+| combo - CG current, show-up | -0.1 to +0.5 pts (flat) |
+| combo - greedy, isolated low w8 | +1.0% to +9.4%, still worse than greedy in all 25 cells (1.5 x 1.5 CI touches 0) |
+| CG current - greedy, isolated low w8 | +5.7% to +12.5% |
+
+The combo passes the adoption bar in all 25 of 25 cells. It is a strict improvement on current CG, and it cuts the gap
+to greedy by about half (most in high flake / high join cells). It does not beat greedy anywhere, so the PRD-3
+headline ("CG beats greedy in all 25 cells") still does not hold.
+
 ## Conclusion
 
-The b3 levers together close about half the gap (from +8.3 to +3.9 held out) but never reach parity. What is left
+Adopt `matching.fillToMax: true`, `matching.reunionBoost: 1` and `matching.crowdBoost: 0.5` (cg/contracts PR,
+citing this run). Together they close about half the gap to greedy and never reach parity. What is left
 is greedy's 5-person groups, which override members' `groupSize.max`. Matching that is a product decision, not a
 params change.
 
-DONE: none (best held out = fillToMax true, reunionBoost 1, crowdBoost 0.5; CG - greedy +3.9% [+2.7, +5.1], seeds 10-59)
+DONE: fillToMax=true + reunionBoost=1 + crowdBoost=0.5 beats current CG in 25/25 cells (isolation -1.6 to -5.6 pts, fill -1.9 to -2.3 pts, held-out seeds 10-59); vs greedy: none (worse in 25/25)
