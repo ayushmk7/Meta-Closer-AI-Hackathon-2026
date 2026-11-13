@@ -135,7 +135,9 @@ function StampTile({ stamp, i, fresh }: { stamp: Stamp; i: number; fresh: boolea
       >
         {stamp.label}
       </Label>
-      {on && !!stamp.earnedOn && <Muted style={{ fontSize: 12, lineHeight: 16 }}>{stamp.earnedOn}</Muted>}
+      {on && !!stamp.earnedOn && (
+        <Muted style={{ fontSize: 12, lineHeight: 16 }}>{stamp.earnedOn}</Muted>
+      )}
     </Animated.View>
   );
 }
@@ -200,7 +202,11 @@ export default function PassportScreen() {
       >
         <View
           accessible
-          accessibilityLabel={`Passport. ${earned} of ${all.length} stamps collected.`}
+          accessibilityLabel={
+            all.length
+              ? `Passport. ${earned} of ${all.length} stamps collected.`
+              : 'Passport. No stamps yet.'
+          }
           style={{ gap: 12 }}
         >
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
@@ -219,19 +225,21 @@ export default function PassportScreen() {
             <Label
               style={{ flex: 1, fontSize: 20, lineHeight: 25, fontWeight: '800', color: '#fff' }}
             >
-              {`${earned} of ${all.length} stamps`}
+              {all.length ? `${earned} of ${all.length} stamps` : 'No stamps yet'}
             </Label>
           </View>
-          <View style={{ height: 6, borderRadius: 3, backgroundColor: '#ffffff44' }}>
-            <View
-              style={{
-                height: 6,
-                borderRadius: 3,
-                backgroundColor: '#fff',
-                width: `${all.length ? (earned / all.length) * 100 : 0}%`,
-              }}
-            />
-          </View>
+          {!!all.length && (
+            <View style={{ height: 6, borderRadius: 3, backgroundColor: '#ffffff44' }}>
+              <View
+                style={{
+                  height: 6,
+                  borderRadius: 3,
+                  backgroundColor: '#fff',
+                  width: `${(earned / all.length) * 100}%`,
+                }}
+              />
+            </View>
+          )}
           <Label style={{ fontSize: 13, lineHeight: 18, color: '#fff', opacity: 0.9 }}>
             {earned
               ? 'Check in at a meetup to collect more.'
@@ -242,7 +250,10 @@ export default function PassportScreen() {
       <Muted style={{ paddingHorizontal: 16 }}>Only you can see this.</Muted>
       {!all.length && (
         <Card style={{ paddingBottom: 16, alignItems: 'center' }}>
-          <Empty title="No stamps yet" message="Join a meetup to see what you can collect." />
+          <Empty
+            title="Nothing to collect yet"
+            message="Join a meetup to see what you can collect."
+          />
           <Button title="See meetups" secondary onPress={() => router.push('/common-ground')} />
         </Card>
       )}

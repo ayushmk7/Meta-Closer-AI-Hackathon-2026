@@ -69,7 +69,7 @@ export function ScanPage({
   if (!m?.verifyCode)
     return (
       <Page>
-        <Banners />
+        <Banners quiet />
         {ready && <NotFound title="This code isn't available" />}
       </Page>
     );

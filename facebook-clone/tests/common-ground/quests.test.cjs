@@ -174,6 +174,18 @@ test('Passport shows collected and locked stamps', async () => {
   await renderer.act(async () => tree.unmount());
 });
 
+test('Passport with no stamp catalogue says "No stamps yet" once, no "0 of 0", no bar (P2-19)', async () => {
+  await renderer.act(async () =>
+    store.setState({ meetups: {}, plans: {}, feed: { ...fixtures.getFeed, plans: [] } }),
+  );
+  const { tree, labels } = await render(React.createElement(Passport));
+  expect(labels()).toContain('Passport. No stamps yet.');
+  expect(labels()).not.toContain('0 of 0');
+  expect(labels().split('No stamps yet').length - 1).toBe(2); // banner text + its a11y label
+  expect(tree.root.findAll((n) => n.props.style?.backgroundColor === '#ffffff44')).toHaveLength(0);
+  await renderer.act(async () => tree.unmount());
+});
+
 test('Passport: fresh stamps pop once with one haptic, then stay still', async () => {
   const Haptics = require('expo-haptics');
   const { Pop } = require('../../src/features/common-ground/ui');
