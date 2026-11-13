@@ -65,7 +65,11 @@ def test_fake_copy_is_templated_and_bounded():
     assert len(asyncio.run(copy.plan_reason(PLAN, [ok("Ceramics")]))) <= 160
     assert FAKE.calls == {"copy.intro.fake": 1, "copy.title.fake": 1, "copy.reason.fake": 1}
     a = approval_copy(PLAN, {"name": "Clay Hour Studio", "booking": {"payAtVenueAllowed": True}})
-    assert a["detail"] == "Muse pays Clay Hour Studio for your seat on Sat, Nov 14 · 10 AM–12 PM."
+    assert a["detail"] == "Muse pays $35 to Clay Hour Studio for your wheel on Sat, Nov 14 · 10 AM–12 PM."
+    assert a["fallback"] == "If you'd rather not, Muse asks Clay Hour Studio to hold your wheel and you pay there."
+    assert "I" not in a["detail"].split() + a["fallback"].replace("'", " ").split()  # third person only
+    other = approval_copy(PLAN, {"name": "Trail", "booking": {"payAtVenueAllowed": False}})["fallback"]
+    assert other == "If you'd rather not, Muse looks for a free option or tells the group you can't make it."
     # over-long live answers fall back to the template
     long = MuseCopy(Spy({"text": "y" * 200, "starters": ["a", "b", "c"]}))
     assert asyncio.run(long.plan_reason(PLAN, [])).startswith("Something new at Clay Hour Studio")
