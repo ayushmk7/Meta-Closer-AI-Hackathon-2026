@@ -23,7 +23,7 @@ CAPTIONS = [  # ponytail: seed captions that fit any card; real ones come from s
     "Strangers at the start, friends by the end.",
     "Nobody knew anyone. Everyone stayed for food after.",
     "{n} of us, zero awkward silences.",
-    "Came for the plan, stayed for the people.",
+    "Came for the meetup, stayed for the people.",
     "Already planning the next one.",
 ]
 
@@ -155,7 +155,7 @@ def _eligible(w: World, viewer: str, meetup_id: str, caption) -> dict:
     over = m["status"] == "completed" or parse(m["endsAt"]) <= w.now()
     attended = me["rsvp"] == "going" and (me["checkedIn"] or me.get("verified") or me.get("counted"))
     if m["status"] == "cancelled" or not over or not attended:
-        raise Fail(422, "not_allowed", "You can share a plan once you've been to it.")
+        raise Fail(422, "not_allowed", "You can share a meetup once you've been to it.")
     if w.venues[m["venueId"]].get("sensitive"):
         raise Fail(422, "not_allowed", "This place stays private, so it can't be shared.")
     if screen.blocked(caption):

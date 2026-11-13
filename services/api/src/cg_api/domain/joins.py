@@ -28,7 +28,7 @@ def hold(w: World, j: dict) -> dict | None:
         "startsAt": p["startsAt"],
         "endsAt": p["endsAt"],
         "location": f"{v['name']}, {v.get('address', '')}".rstrip(", "),
-        "notes": "Muse is gathering people. This hold disappears if the plan doesn't fill.",
+        "notes": "Muse is gathering people. This hold disappears if the meetup doesn't fill.",
     }
 
 
@@ -66,7 +66,7 @@ def join(w: World, viewer: str, plan_id: str, size: dict | None = None) -> dict:
     if j and j["status"] != "withdrawn":
         return view(w, j)  # idempotent
     if p["status"] != "open":
-        raise Fail(409, "conflict", "This plan isn't taking people anymore.")
+        raise Fail(409, "conflict", "This meetup isn't taking people anymore.")
     if size is not None and not (
         isinstance(size, dict)
         and type(size.get("min")) is int
@@ -83,7 +83,7 @@ def join(w: World, viewer: str, plan_id: str, size: dict | None = None) -> dict:
         raise Fail(
             429,
             "rate_limited",
-            "You're in a lot of plans already. Wait for one to fill first.",
+            "You're in a lot of meetups already. Wait for one to fill first.",
         )
     if j:  # re-join after withdrawing: same join, fresh place in the queue
         j.update(status="interested", createdAt=iso(w.now()), size=size, alternatives=[])
@@ -154,7 +154,7 @@ def form(w: World, plan_id: str) -> list[str]:
     """Run form_groups; seat groups as meetups; leftovers become not_filled with alternatives."""
     p = w.plans[plan_id]
     if p["status"] in ("closed", "cancelled"):
-        raise Fail(409, "conflict", "This plan already formed.")
+        raise Fail(409, "conflict", "This group already formed.")
     waiting = [j for j in w.active_joins(plan_id) if j["status"] == "interested"]
     by_user = {j["userId"]: j for j in waiting}
     groups, unseated = w.match.form_groups(w, p, list(by_user))

@@ -90,7 +90,7 @@ def test_hero_forms_at_min_and_meetup_validates(world):
     ]
     assert m["calendar"]["desired"] == "hold" and m["travel"]["leaveBy"] < m["startsAt"]
     assert len(people.list_connections(world, "u_maya")) == 2
-    assert plans.feed(world, "u_maya")["museStatus"] == "Muse is setting up 1 plan for you"
+    assert plans.feed(world, "u_maya")["museStatus"] == "Muse is setting up 1 meetup for you"
     with pytest.raises(Fail) as e:
         joins.join(world, "u_kai", "pl_hero")
     assert e.value.status == 409

@@ -70,7 +70,13 @@ def test_answer_adapter_odd_shapes_and_score_distribution():
 def test_parse_real_laya_serve_answers():
     """Shapes captured from laya-serve 0.2.1 with real weights (2026-11-13)."""
     from cg_api.laya import _parse_answer
+
     assert _parse_answer({"type": "noul", "noul": 0.0889}, "noul") == 0.0889
-    score = {"type": "score", "score": 1.0, "legend": {"0": "weak", "1": "medium", "2": "strong"},
-             "probabilities": {"0": 0.2, "1": 0.3, "2": 0.5}, "confidence": 0.4}
+    score = {
+        "type": "score",
+        "score": 1.0,
+        "legend": {"0": "weak", "1": "medium", "2": "strong"},
+        "probabilities": {"0": 0.2, "1": 0.3, "2": 0.5},
+        "confidence": 0.4,
+    }
     assert abs(_parse_answer(score, "score", ["weak", "medium", "strong"]) - (0.3 * 0.5 + 0.5 * 1.0)) < 1e-9

@@ -115,7 +115,7 @@ class StubCopy:
     async def setup_review(self, user_id: str, interests: list[CopyInterest]) -> str:
         interest_labels = safe_labels(interests)
         if not interest_labels:
-            return "I didn't find much yet. Add a few things you like and I'll find plans."
+            return "I didn't find much yet. Add a few things you like and I'll find meetups."
         return f"I noticed you're into {', '.join(interest_labels[:3]).lower()}. Here's what I'd suggest."
 
     async def intro(self, first_names, shared: list[CopyInterest], plan) -> tuple[str, list[str]]:
@@ -126,8 +126,11 @@ class StubCopy:
         return text, ["What got you into this?", "Been here before?", "Anyone want to grab food after?"]
 
     async def nudge(self, signal_label: str, plan: dict) -> tuple[str, str]:
-        title = (plan.get("title") or "A plan you might like")[:60]
-        return title, f"Muse noticed {signal_label[:1].lower() + signal_label[1:]}. There's a plan for that this week."
+        title = (plan.get("title") or "A meetup you might like")[:60]
+        return (
+            title,
+            f"Muse noticed {signal_label[:1].lower() + signal_label[1:]}. There's a meetup for that this week.",
+        )
 
 
 def _store():
