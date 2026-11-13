@@ -6,8 +6,14 @@ setup + connectors -> calendar sync -> home (nudge, Surprise me, Muse bar) -> jo
 Little Fern Kitchen nudge plan -> group forms -> Muse steps + approvals -> confirmed ->
 chat -> verify by code -> completed -> feedback, share, story offer, passport stamp.
 
-    python3 scripts/e2e_flow.py            # expects a fresh u_maya (or run with --reset)
+    python3 scripts/e2e_flow.py            # needs a fresh u_maya: exits 2 if she already joined a plan
     python3 scripts/e2e_flow.py --reset    # POST /internal/v1/demo/reset first (resets EVERY user)
+
+Precondition: u_maya has no joins. The flow can't be repeated on a used backend without a reset:
+the Little Fern nudge disappears once its plan is joined, and walking it as another seeded user
+would take a seat at the demo's own table. On a shared backend, either ask whoever owns it to run
+`curl -X POST http://127.0.0.1:9001/internal/v1/demo/reset`, or run a private backend (system
+docs runbook) and point CG_API_URL / CG_INTERNAL_URL at it with --reset.
 
 Env: CG_API_URL (default http://127.0.0.1:8000), CG_INTERNAL_URL (http://127.0.0.1:9001).
 Exit code 0 when every step passed; prints one line per step with its wall time.
@@ -336,6 +342,12 @@ def _():
 def main():
     if "--reset" in sys.argv:
         call("POST", "/internal/v1/demo/reset", user=None, base=INTERNAL)
+    me = call("GET", "/v1/me")
+    if me["optedIn"] and call("GET", "/v1/joins")["items"]:
+        print(
+            f"u_maya on {API} already joined a plan: rerun with --reset (resets every user) or a fresh backend"
+        )
+        sys.exit(2)
     failed = 0
     for i, (name, fn) in enumerate(STEPS, 1):
         t = time.monotonic()
