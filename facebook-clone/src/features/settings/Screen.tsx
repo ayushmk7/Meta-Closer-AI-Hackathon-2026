@@ -185,7 +185,8 @@ export default function SettingsScreen() {
                       notifications: { ...settings.notifications, [category.id]: value },
                     })
                   }
-                  trackColor={{ true: c.blue, false: c.divider }}
+                  trackColor={{ true: c.blue, false: c.secondary }}
+                  ios_backgroundColor={c.secondary} // iOS ignores trackColor.false
                 />
               </View>
             ))}

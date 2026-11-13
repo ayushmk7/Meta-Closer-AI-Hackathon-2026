@@ -174,7 +174,7 @@ export function Button({
           alignItems: 'center',
           flexDirection: 'row',
           gap: 7,
-          backgroundColor: secondary ? c.input : c.blue,
+          backgroundColor: secondary ? c.input : c.brand,
           opacity: disabled ? 0.4 : pressed ? 0.7 : 1,
         },
         style,
