@@ -61,9 +61,11 @@ def test_fake_copy_is_templated_and_bounded():
         "the calendar for Saturday at Clay Hour Studio."
     )
     assert len(starters) == 3 and all(len(s) < 90 for s in starters)
+    text, _ = asyncio.run(copy.intro(["Maya"], [], {**PLAN, "venueKind": "restaurant"}))
+    assert "I'm handling the reservation and the calendar" in text
     assert len(asyncio.run(copy.plan_title({**PLAN, "title": "x" * 99}))) == 60
     assert len(asyncio.run(copy.plan_reason(PLAN, [ok("Ceramics")]))) <= 160
-    assert FAKE.calls == {"copy.intro.fake": 1, "copy.title.fake": 1, "copy.reason.fake": 1}
+    assert FAKE.calls == {"copy.intro.fake": 2, "copy.title.fake": 1, "copy.reason.fake": 1}
     a = approval_copy(PLAN, {"name": "Clay Hour Studio", "booking": {"payAtVenueAllowed": True}})
     assert a["detail"] == "Muse pays $35 to Clay Hour Studio for your wheel on Sat, Nov 14 · 10 AM–12 PM."
     assert a["fallback"] == "If you'd rather not, Muse asks Clay Hour Studio to hold your wheel and you pay there."

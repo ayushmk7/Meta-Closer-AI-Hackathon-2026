@@ -15,6 +15,7 @@ Milestone: slice A M2 (platform) done
 - 2026-11-12 Perf guard `tests/perf/test_budgets.py` writes the real city seed scaled to 400 people and 600 plans as a seed dir and loads it for real: load 1.7 s, reset 0.09 s; p95 over 20 samples (2xx checked): getMe 4 ms, export 113 ms, graph 7 ms, the rest ≤ 3 ms (stub extraction). Asserts load < 60 s, reset < 10 s, GET p95 < 300 ms.
 
 ## Decisions
+- 2026-11-13 Restaurant venues (`venue.kind == "restaurant"`): seats read "a table for N"; book step "Reserved a table for N at <venue> · 7 PM"; Muse intro (template + prompt) says "the reservation". Tiny seed nudge is now Little Fern Kitchen (pay at venue, no approval).
 - 2026-11-12 The extraction cache key is `{Extractor}-{live|fake}-v{cache_version}-{sha256(input)}`, from `ports.extractor.muse_live` and `.cache_version` (default 1). Fake and live Muse never share results; bump `cache_version` when extraction logic changes.
 - 2026-11-12 `cg-api-precompute-muse` script → `cg_api.muse.precompute:main` (slice D, PR #65).
 - 2026-11-12 `Me.unlocks` and `Me.capabilities` come from `store.views.earned_unlocks` (counted meetups vs `params.unlocks`). C's `domain/create_plan.can_create` applies the same `create_plans` rule on its own World. If you change the rule, change both (or switch C to call `earned_unlocks`).
