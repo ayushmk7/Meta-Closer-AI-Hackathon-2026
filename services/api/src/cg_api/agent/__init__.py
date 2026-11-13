@@ -302,12 +302,11 @@ class ScriptedRun:
             asked = clock(new_start, True)
             if slot:
                 alt = clock(_iso(slot), True)
-                lead = (
-                    f"{asked} is too far for me to move it on my own" if far else f"{asked} doesn't work for everyone"
-                )
-                return [], f"{lead}, but {alt} does. Ask me for {alt} and I'll move it.", []  # never who is busy (P6)
+                lead = f"{asked} is too far for me to move it on my own" if far else f"{asked} doesn't work"
+                reply = f"{lead}, but {alt} works for everyone. Ask me for {alt} and I'll move it."  # never who (P6)
+                return [], reply, []
             lead = f"{asked} is too far for me to move it on my own." if far else f"{asked} doesn't work for everyone."
-            return [], f"{lead} I couldn't find another time today that works for everyone.", []
+            return [], f"{lead} I couldn't find another time today that works.", []
         n0 = len(self.steps)
         old_label = clock(p["startsAt"], True)
         self.plan = {**p, "startsAt": new_start, "endsAt": _iso(end)}

@@ -205,11 +205,14 @@ def test_reschedule_out_of_bounds_changes_nothing_and_offers_a_slot():
     n = len(r.steps)
     events, reply, ids = r.reschedule_to("2026-11-14T19:00:00Z", busy)
     assert (events, ids, len(r.steps)) == ([], [], n)
-    assert reply == "11 AM doesn't work for everyone, but 12 PM does. Ask me for 12 PM and I'll move it."
+    assert reply == "11 AM doesn't work, but 12 PM works for everyone. Ask me for 12 PM and I'll move it."
     assert "u_0125" not in reply and "Rosa" not in reply  # never who is busy (P6)
     events, reply, _ = r.reschedule_to("2026-11-14T23:00:00Z", {})
-    assert (
-        events == []
-        and reply == "3 PM is too far for me to move it on my own, but 12 PM does. Ask me for 12 PM and I'll move it."
+    assert events == [] and reply == (
+        "3 PM is too far for me to move it on my own, but 12 PM works for everyone. Ask me for 12 PM and I'll move it."
     )
     assert r.plan["startsAt"] == HERO["startsAt"]
+    full = {"u_0125": [{"start": "2026-11-14T15:00:00Z", "end": "2026-11-15T03:00:00Z"}]}  # busy all day: no slot
+    assert r.reschedule_to("2026-11-14T19:00:00Z", full)[1] == (
+        "11 AM doesn't work for everyone. I couldn't find another time today that works."
+    )
