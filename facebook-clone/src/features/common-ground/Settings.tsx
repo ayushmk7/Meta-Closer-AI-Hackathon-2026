@@ -2,7 +2,7 @@
 import { useEffect } from 'react';
 import { Alert, Switch, View } from 'react-native';
 import { router } from 'expo-router';
-import { Button, Chips, Icon, Label, Muted, Page, Title, useColors } from '../../ui/native';
+import { Button, Icon, Label, Muted, Page, Title, useColors } from '../../ui/native';
 import { api } from './api';
 import Connectors from './Connectors';
 import Rewards from './Rewards';
@@ -59,15 +59,31 @@ export function Toggle({
         accessibilityLabel={label}
         value={value}
         onValueChange={onChange}
-        trackColor={{ false: c.divider, true: c.blue }}
+        trackColor={{ false: c.secondary, true: c.blue }}
         thumbColor="#fff"
       />
     </View>
   );
 }
 
-// Chips puts 16pt padding around itself; undo it inside a padded card.
-const flush = { marginHorizontal: -16, marginBottom: -12 } as const;
+// Chips-shaped row of shared Pills (44pt, wraps): CG settings and setup use this, not Chips.
+export function PillRow({
+  items,
+  value,
+  onChange,
+}: {
+  items: string[];
+  value: string;
+  onChange(v: string): void;
+}) {
+  return (
+    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+      {items.map((x) => (
+        <Pill key={x} label={x} selected={x === value} onPress={() => onChange(x)} />
+      ))}
+    </View>
+  );
+}
 
 export function GroupSizeSetting({
   value,
@@ -94,13 +110,11 @@ export function TravelPicker({
   return (
     <View style={{ gap: 8 }}>
       <Muted>Up to {value.maxMinutes} minutes</Muted>
-      <View style={flush}>
-        <Chips
-          items={MINUTES}
-          value={String(value.maxMinutes)}
-          onChange={(m) => onChange({ ...value, maxMinutes: Number(m) })}
-        />
-      </View>
+      <PillRow
+        items={MINUTES}
+        value={String(value.maxMinutes)}
+        onChange={(m) => onChange({ ...value, maxMinutes: Number(m) })}
+      />
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
         {MODES.map((m) => {
           const on = value.modes.includes(m);
@@ -145,16 +159,14 @@ export function MusePermissions() {
   return (
     <Section title="What Muse can do without asking">
       <Muted>Spend up to</Muted>
-      <View style={flush}>
-        <Chips
-          items={items.includes(spend) ? items : [...items, spend]}
-          value={spend}
-          onChange={(l) => {
-            const v = SPEND.find(([x]) => x === l)?.[1];
-            if (v !== undefined) save({ spendWithoutAskingCents: v });
-          }}
-        />
-      </View>
+      <PillRow
+        items={items.includes(spend) ? items : [...items, spend]}
+        value={spend}
+        onChange={(l) => {
+          const v = SPEND.find(([x]) => x === l)?.[1];
+          if (v !== undefined) save({ spendWithoutAskingCents: v });
+        }}
+      />
       <Toggle
         label="Reschedule when plans change"
         value={settings.autoReschedule}
@@ -236,16 +248,14 @@ export default function SettingsScreen() {
       <Title>Settings</Title>
       {available.length > 1 && (
         <Section title="Mode">
-          <View style={flush}>
-            <Chips
-              items={available.map((m) => m.label)}
-              value={modes.find((m) => m.mode === me.mode)?.label ?? ''}
-              onChange={(label) => {
-                const m = available.find((x) => x.label === label);
-                if (m) void optIn(m.mode, m.poolId);
-              }}
-            />
-          </View>
+          <PillRow
+            items={available.map((m) => m.label)}
+            value={modes.find((m) => m.mode === me.mode)?.label ?? ''}
+            onChange={(label) => {
+              const m = available.find((x) => x.label === label);
+              if (m) void optIn(m.mode, m.poolId);
+            }}
+          />
         </Section>
       )}
       {connectorsOn && (
@@ -272,15 +282,13 @@ export default function SettingsScreen() {
         />
       </Section>
       <Section title="Profile">
-        <View style={flush}>
-          <Chips
-            items={['Public', 'Private']}
-            value={me.profileVisibility === 'public' ? 'Public' : 'Private'}
-            onChange={(v) =>
-              void saveMe({ profileVisibility: v === 'Public' ? 'public' : 'private' })
-            }
-          />
-        </View>
+        <PillRow
+          items={['Public', 'Private']}
+          value={me.profileVisibility === 'public' ? 'Public' : 'Private'}
+          onChange={(v) =>
+            void saveMe({ profileVisibility: v === 'Public' ? 'public' : 'private' })
+          }
+        />
         <Muted>
           {me.profileVisibility === 'public'
             ? 'People in your groups can see your profile.'

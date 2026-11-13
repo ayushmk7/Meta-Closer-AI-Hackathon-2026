@@ -2,11 +2,11 @@
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, View } from 'react-native';
 import { router } from 'expo-router';
-import { Button, Chips, Icon, Label, Muted, Page, useColors } from '../../ui/native';
+import { Button, Icon, Label, Muted, Page, useColors } from '../../ui/native';
 import { api } from './api';
 import Connectors from './Connectors';
 import { MuseAvatar } from './MuseBar';
-import { GroupSizeSetting, MusePermissions, SignalRow, TravelPicker } from './Settings';
+import { GroupSizeSetting, MusePermissions, PillRow, SignalRow, TravelPicker } from './Settings';
 import { act, load, optIn, refreshAll, setState, useCg } from './store';
 import type {
   AvailabilitySlot,
@@ -217,13 +217,11 @@ function Preferences({ edits, onDone }: { edits: Edits; onDone(): void }) {
   return (
     <>
       <Section title="Your profile">
-        <View style={{ marginHorizontal: -16, marginBottom: -12 }}>
-          <Chips
-            items={['Public', 'Private']}
-            value={v === 'public' ? 'Public' : 'Private'}
-            onChange={(x) => setVisibility(x === 'Public' ? 'public' : 'private')}
-          />
-        </View>
+        <PillRow
+          items={['Public', 'Private']}
+          value={v === 'public' ? 'Public' : 'Private'}
+          onChange={(x) => setVisibility(x === 'Public' ? 'public' : 'private')}
+        />
       </Section>
       <Section title="Group size">
         <GroupSizeSetting value={g} onChange={setSize} />

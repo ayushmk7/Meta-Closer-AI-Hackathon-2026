@@ -57,7 +57,7 @@ export default function Connectors() {
               value={on}
               disabled={soon}
               onValueChange={(v) => void (v ? turnOn(x.provider) : disconnect(x.provider))}
-              trackColor={{ false: c.divider, true: c.blue }}
+              trackColor={{ false: c.secondary, true: c.blue }}
               thumbColor="#fff"
             />
           </View>

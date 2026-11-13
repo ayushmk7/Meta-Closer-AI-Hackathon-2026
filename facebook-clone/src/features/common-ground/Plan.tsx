@@ -134,7 +134,7 @@ export function BottomBar({ plan }: { plan: PlanDetail }) {
               accessibilityLabel="+1 a friend"
               value={plusOne}
               onValueChange={setPlusOne}
-              trackColor={{ false: c.divider, true: c.blue }}
+              trackColor={{ false: c.secondary, true: c.blue }}
               thumbColor="#fff"
             />
           </>
