@@ -22,6 +22,7 @@ import StoryPrompt from './StoryPrompt';
 import VerifyButton from './VerifyButton';
 import StepTimeline from './StepTimeline';
 import { PlanPhoto } from './PlanCard';
+import { SharePlanButton } from './Plan';
 import { api } from './api';
 import { act, currentLocation, leaveMeetup, load, setState, getState, useCg } from './store';
 import { TZ, type Attendee, type Feedback, type Meetup, type PlanCard } from './types';
@@ -307,6 +308,7 @@ export default function MeetupScreen() {
           plan={{ venue: m.venue, activityType: m.activityType } as PlanCard}
           height={200}
         />
+        <SharePlanButton plan={m} />
         <View style={{ padding: 16, gap: 6 }}>
           <Label style={{ color: c.badge, fontWeight: '700', fontSize: 13 }}>
             {when(m.startsAt).toUpperCase()}

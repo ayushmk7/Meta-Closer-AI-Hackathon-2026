@@ -80,3 +80,4 @@ export const WelcomeScreen = page(Welcome, null);
 export const ExploreScreen = page(Explore, named('Explore'));
 export const PassportScreen = page(Passport, named('Your passport'));
 export const ScanScreen = page(Scan, named('Verify in person'));
+export { default as PublicPlanScreen } from './PublicPlan';

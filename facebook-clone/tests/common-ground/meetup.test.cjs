@@ -4,6 +4,7 @@ const renderer = require('react-test-renderer');
 
 global.IS_REACT_ACT_ENVIRONMENT = true;
 const mockParams = { meetupId: 'mt_0001' };
+jest.mock('expo-linking', () => ({ createURL: (p) => `app://${p}` }));
 jest.mock('expo-location', () => ({
   requestForegroundPermissionsAsync: jest.fn(async () => ({ granted: true })),
   getCurrentPositionAsync: jest.fn(async () => ({ coords: { latitude: 1, longitude: 2 } })),

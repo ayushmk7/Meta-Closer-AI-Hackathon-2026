@@ -3,6 +3,7 @@ const React = require('react');
 const renderer = require('react-test-renderer');
 
 global.IS_REACT_ACT_ENVIRONMENT = true;
+jest.mock('expo-linking', () => ({ createURL: (p) => `app://${p}` }));
 jest.mock('../../src/core/store', () => ({
   useDemo: () => ({ state: { settings: { theme: 'light' } } }),
 }));
