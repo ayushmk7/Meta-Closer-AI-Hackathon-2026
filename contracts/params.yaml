@@ -49,6 +49,7 @@ matching:
   prefBoost: 0.3              # rank_plans: base x (1 + prefBoost x mean(prefs over the plan's matching keys))
   reunionBoost: 0.0           # x (1 + N) on plans a met person already joined; off by default; tuned by sim run TBD
   crowdBoost: 0.0             # x (1 + N x min(1, joins / size.min)) on filling plans; off by default; tuned by sim run TBD
+  fillToMax: false            # true = plans fill toward size.max instead of stopping at size.min; off by default; tuned by sim run TBD
   prefAlpha: 0.3              # update_prefs EMA rate: w = (1 - alpha) x w + alpha x r
 
 travel:
