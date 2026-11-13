@@ -5,6 +5,7 @@ from __future__ import annotations
 import dataclasses
 import functools
 import json
+import math
 import os
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
@@ -214,6 +215,10 @@ class LayaTables:
     ):
         self.activity = activity or {}
         self.meet_again = meet_again or {}
+        # NaN breaks min()/sorted() order in rank_plans/form_groups; float64 columns don't rule it out.
+        probs = [default, *self.meet_again.values(), *(x for v in self.activity.values() for x in v)]
+        if not all(map(math.isfinite, probs)):
+            raise ValueError("LayaTables: non-finite probability")
         self.manifest = manifest or {}
         self.default = default
 

@@ -3,6 +3,7 @@ import random
 
 import pyarrow as pa
 import pyarrow.parquet as pq
+import pytest
 from conftest import NOW, export, plan, user, venue
 
 import cg_matching as cgm
@@ -59,3 +60,8 @@ def test_every_function_runs(ctx, params):
     )
     assert isinstance(res, cgm.FormResult) and res.to_dict()["groups"]
     assert cgm.travel_minutes((37.77, -122.42), (37.77, -122.42), "walk", params) == 0
+
+
+def test_laya_tables_reject_nan():
+    with pytest.raises(ValueError):
+        cgm.LayaTables(meet_again={("u_a", "u_b"): float("nan")})
