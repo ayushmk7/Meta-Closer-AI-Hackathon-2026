@@ -145,7 +145,7 @@ def dismiss(w: World, viewer: str, nudge_id: str, mute: str | None = None) -> No
         raise Fail(400, "validation_failed", "Couldn't dismiss that. Try again.")
     n = w.nudges.get(nudge_id)
     if not n or n["userId"] != viewer:
-        raise not_found()
+        raise not_found("suggestion")
     n["dismissed"] = True
     if mute == "signal":
         w.users[viewer].setdefault("mutedSignals", set()).add(n["signalId"])

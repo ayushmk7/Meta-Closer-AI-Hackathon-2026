@@ -186,7 +186,7 @@ async def share_meetup(w: World, viewer: str, meetup_id: str, caption) -> dict:
 def like(w: World, viewer: str, share_id: str, liked) -> dict:
     s = w.shares.get(share_id)
     if not s or w.venues[s["venueId"]].get("sensitive"):
-        raise not_found("page")
+        raise not_found("post")
     if not isinstance(liked, bool):
         raise Fail(400, "validation_failed", "Couldn't save that like. Try again.")
     if liked and viewer not in s["likers"]:

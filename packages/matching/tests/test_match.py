@@ -162,9 +162,10 @@ MAKER = {"arts_crafts.ceramics": 0.9, "food_drink.coffee_tea": 0.5}
 def test_form_balanced_split_and_min(params):
     users = [user(f"u_{i}", MAKER) for i in range(7)]
     ids = [u["userId"] for u in users]
-    res = _form(params, users, ids)
+    off = _off(params)  # balanced split is the fillToMax=false path
+    res = _form(off, users, ids)
     assert sorted(len(g.member_ids) for g in res.groups) == [3, 4] and res.unseated_ids == []
-    res = _form(params, users[:2], ids[:2], p=plan(size=(2, 6)))
+    res = _form(off, users[:2], ids[:2], p=plan(size=(2, 6)))
     assert res.groups == [] and res.unseated_ids == ids[:2]  # strangers never below strangerSizeMin
     assert _form(params, users, ids) == _form(params, users, ids)  # deterministic
 
@@ -228,6 +229,21 @@ def _with(params, **kw):
     return cgm.Params(params | {"matching": params["matching"] | kw})
 
 
+ISO_KEYS = ("reunionBoost", "crowdBoost", "fillToMax")
+
+
+def _off(params):
+    """Isolation knobs pinned off (contracts now turn them on)."""
+    return _with(params, reunionBoost=0.0, crowdBoost=0.0, fillToMax=False)
+
+
+def _bare(params):
+    """Isolation knobs absent, as before they existed."""
+    return cgm.Params(
+        params | {"matching": {k: v for k, v in params["matching"].items() if k not in ISO_KEYS}}
+    )
+
+
 def _reunion_world():
     v = {
         "vn_clay": cgm.Venue.from_record(venue()),
@@ -250,26 +266,26 @@ def _reunion_world():
 
 def test_reunion_zero_is_identity(params):
     users, plans, v = _reunion_world()
-    for prm in (_with(params, reunionBoost=0.0, crowdBoost=0.0), _with(params, reunionBoost=0)):
-        assert _rank(prm, users, plans, venues=v) == _rank(params, users, plans, venues=v)
+    for prm in (_off(params), _with(_bare(params), reunionBoost=0)):
+        assert _rank(prm, users, plans, venues=v) == _rank(_bare(params), users, plans, venues=v)
     ids = [f"u_{i}" for i in range(8)]
     us = [user(u, MAKER, metIds=["u_x"]) for u in ids]
     st = cgm.MatchState(met_pairs=[["u_0", "u_7"]])
-    zero = _with(params, reunionBoost=0.0)
-    assert _form(zero, us, ids, p=plan(size=(3, 4)), state=st) == _form(
-        params, us, ids, p=plan(size=(3, 4)), state=st
+    assert _form(_off(params), us, ids, p=plan(size=(3, 4)), state=st) == _form(
+        _bare(params), us, ids, p=plan(size=(3, 4)), state=st
     )
 
 
 def test_rank_reunion_lifts_plan_with_met_joiner(params):
     users, plans, v = _reunion_world()
     ids = lambda out, u: [s.plan_id for s in out[u]]  # noqa: E731
-    before = _rank(params, users, plans, venues=v)
+    off = _off(params)
+    before = _rank(off, users, plans, venues=v)
     assert ids(before, "u_u") == ids(before, "u_w") == ["pl_a", "pl_b"]
-    after = _rank(_with(params, reunionBoost=1.0), users, plans, venues=v)
+    after = _rank(_with(off, reunionBoost=1.0), users, plans, venues=v)
     assert ids(after, "u_u") == ["pl_b", "pl_a"] and after["u_u"][0].debug["reunion"] is True
     assert after["u_w"] == before["u_w"]  # never met anyone going: unchanged
-    crowd = _rank(_with(params, crowdBoost=4.0), users, plans, venues=v)
+    crowd = _rank(_with(off, crowdBoost=4.0), users, plans, venues=v)
     assert ids(crowd, "u_w") == ["pl_b", "pl_a"]  # fallback: concentration on the plan already filling
 
 
@@ -283,9 +299,10 @@ def test_form_keeps_met_pair_together(params):
         assert len(res.groups) == 2
         return any({"u_0", "u_7"} <= set(g.member_ids) for g in res.groups)
 
-    assert not together(params) and together(_with(params, reunionBoost=1.0))
+    off = _off(params)
+    assert not together(off) and together(_with(off, reunionBoost=1.0))
     fixed = cgm.MatchState(met_pairs=[["u_0", "u_7"]], fixed_ids={"pl_wheel": ["u_0", "u_1"]})
-    res = _form(_with(params, reunionBoost=1.0), us, ids[2:], p=plan(size=(3, 4)), state=fixed)
+    res = _form(_with(off, reunionBoost=1.0), us, ids[2:], p=plan(size=(3, 4)), state=fixed)
     assert "u_7" in res.groups[0].member_ids  # backfill pulls the met person in first
 
 
@@ -293,8 +310,9 @@ def test_fill_to_max(params):
     ids = [f"u_{i}" for i in range(8)]
     us = [user(u, MAKER, groupSize={"min": 3, "max": 6}) for u in ids]
     p = plan(size=(3, 6))
-    assert _form(_with(params, fillToMax=False), us, ids, p=p) == _form(params, us, ids, p=p)  # default off
-    assert [len(g.member_ids) for g in _form(params, us, ids, p=p).groups] == [4, 4]
+    off = _off(params)
+    assert _form(off, us, ids, p=p) == _form(_bare(params), us, ids, p=p)  # absent = off
+    assert [len(g.member_ids) for g in _form(off, us, ids, p=p).groups] == [4, 4]
     res = _form(_with(params, fillToMax=True), us, ids, p=p)
     assert [g.member_ids for g in res.groups] == [ids[:6]] and res.unseated_ids == ids[6:]  # 6 + backfill
     # 11 people: 6 + 5. Members' own max still holds: a max-4 person caps their group.
