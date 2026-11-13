@@ -90,7 +90,7 @@ def test_p7_signals_owner_only(api):
 def test_sensitive_venue_signal_starts_hidden():
     from cg_api import seed
 
-    store.venues["vn_quiet"] = {**store.venues["vn_lands_end"], "venueId": "vn_quiet", "kind": "meditation_center",
+    store.venues["vn_quiet"] = {**store.venues["vn_little_fern"], "venueId": "vn_quiet", "kind": "meditation_center",
                                 "sensitive": True}  # fmt: skip
     recs = [{"recordId": f"cr_q{i}", "userId": "u_maya", "provider": "google_maps", "kind": "place_visit",
              "at": f"2026-11-0{i}T17:00:00Z", "venueId": "vn_quiet"} for i in range(1, 5)]  # fmt: skip
@@ -140,7 +140,7 @@ def test_config_demo_from_seed(api):
 def test_extractor_gets_venue_lookup(apps):
     from cg_api.ports import ports
 
-    assert ports.extractor.venue("vn_lands_end")["name"] == "Lands End Trail"
+    assert ports.extractor.venue("vn_little_fern")["name"] == "Little Fern Kitchen"
     assert ports.extractor.venue("vn_nope") is None
 
 
