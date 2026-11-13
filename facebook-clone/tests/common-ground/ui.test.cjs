@@ -76,22 +76,27 @@ test('a private person keeps initials on the circle, with a lock badge and no bl
   expect(JSON.stringify(r.toJSON())).toContain('"R"');
 });
 
-test("Maya (the clone's viewer) shows her profile photo when the server has none", () => {
+test("only my own avatar falls back to Maya's clone photo; others never get a photo", () => {
   const { PersonAvatar } = require('../../src/features/common-ground/ui');
-  let r;
-  renderer.act(() => {
-    r = renderer.create(
-      React.createElement(PersonAvatar, {
-        person: {
-          userId: 'u_maya',
-          displayName: 'Maya Chen',
-          initials: 'MC',
-          avatarUrl: null,
-          profileVisibility: 'public',
-        },
-      }),
-    );
+  const { setUser } = require('../../src/features/common-ground/api');
+  const maya = (visibility) => ({
+    userId: 'u_maya',
+    displayName: 'Maya',
+    initials: 'M',
+    avatarUrl: null,
+    profileVisibility: visibility,
   });
-  expect(r.root.findAllByType('Image')).toHaveLength(1);
-  expect(JSON.stringify(r.toJSON())).not.toContain('"MC"');
+  const images = (person) => {
+    let r;
+    renderer.act(() => {
+      r = renderer.create(React.createElement(PersonAvatar, { person }));
+    });
+    return r.root.findAllByType('Image').length;
+  };
+  setUser(null); // default identity: I am Maya
+  expect(images(maya('public'))).toBe(1);
+  setUser('u_0042'); // second phone: Daniel sees Maya, private, photo nulled by the server
+  expect(images(maya('private'))).toBe(0);
+  expect(images(maya('public'))).toBe(0);
+  setUser(null);
 });

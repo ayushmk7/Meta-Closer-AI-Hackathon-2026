@@ -15,6 +15,7 @@ import {
   Page,
   useColors,
 } from '../../ui/native';
+import { getUser } from './api';
 import { setIdentity, setState, start, useCg } from './store';
 import type { AvailabilitySlot, GroupSize, InterestRef, MyInterest, PersonCard } from './types';
 
@@ -110,8 +111,10 @@ export const personName = (p: PersonCard): string => p.displayName ?? 'Someone n
 export function PersonAvatar({ person, size = 40 }: { person: PersonCard; size?: number }) {
   const c = useColors();
   const box = { width: size, height: size, borderRadius: size / 2, backgroundColor: c.input };
-  // The clone's viewer is u_maya (CONTRACTS §2): without a server photo, use her clone photo.
-  const url = person.avatarUrl ?? (person.userId === 'u_maya' ? 'asset:maya' : null);
+  // Only my own avatar may fall back to the clone's photo of Maya (the viewer is u_maya,
+  // CONTRACTS §2). Anyone else's null stays null: the server nulls private photos (P3).
+  const self = person.userId === 'u_maya' && person.userId === getUser();
+  const url = person.avatarUrl ?? (self ? 'asset:maya' : null);
   if (url)
     return (
       <Image
