@@ -106,6 +106,7 @@ test('Common Ground store runs the core loop on the in-app mock', async (t) => {
       'homeCardDismissed',
       'lastMode',
       'reminders',
+      'storyPrompt',
       'userOverride',
     ]);
   });

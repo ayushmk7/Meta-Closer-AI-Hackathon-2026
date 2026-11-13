@@ -18,6 +18,7 @@ import ApprovalSheet, { money } from './ApprovalSheet';
 import { SameTimeNextWeek } from './Rewards';
 import FeedbackExtras, { type Extras } from './FeedbackExtras';
 import ShareMeetup from './ShareMeetup';
+import StoryPrompt from './StoryPrompt';
 import VerifyButton from './VerifyButton';
 import StepTimeline from './StepTimeline';
 import { PlanPhoto } from './PlanCard';
@@ -519,6 +520,7 @@ export default function MeetupScreen() {
       ) : (
         m.feedbackDue && <Feedback m={m} onSent={() => setFeedbackSent(true)} />
       )}
+      <StoryPrompt m={m} />
       <ShareMeetup m={m} />
       <SameTimeNextWeek m={m} />
 

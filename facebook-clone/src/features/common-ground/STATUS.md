@@ -11,6 +11,7 @@ Milestone: v2 M2 device layer (A2, `cg/ios/v2-m2-device`)
 - 2026-11-12 batch4 plans (`cg/ios/batch4-plans`): Muse bar shows `MuseThinking` + two PlanCard skeletons while asking/creating; reply and plan cards stagger in (native only: Reanimated web pins `enter()`'s custom keyframes to `position:absolute`); PlanCard presses with PressScale; "You're in." pops after I'm in; Connectors drop demo labels.
 - 2026-11-12 batch4 meetup (`cg/ios/batch4-meetup`): done step checks and Like pop; steps and new chat messages enter with `enter()` (not initial history); Muse typing bubble while a toMuse send is pending; demo labels removed from approvals and booking details (C8 amount + payee kept); "Coming soon" call-venues teaser under the booking row.
 - 2026-11-12 batch4 header (`cg/ios/b4-tab-header`): Plans tab registers `headerAction` (gear -> settings); native drops the in-screen "Plans" + gear row since the shell top bar now shows both, so the Muse bar sits under the top bar. Web keeps the row (web shell draws no tab title).
+- 2026-11-13 Batch 5 Story prompt: after a completed meetup I went to, `StoryPrompt` (above Share to Explore) offers "Add to your story" with the venue photo and plan title only; one tap posts via shell `usePostStory` (`@/extensions/story`, CONTRACTS v2.1.3). Not now / posted is remembered per meetup in own prefs (`storyPrompt`). Test: `tests/common-ground/story.test.cjs`.
 
 ## Decisions
 
@@ -26,9 +27,11 @@ Milestone: v2 M2 device layer (A2, `cg/ios/v2-m2-device`)
 - 2026-11-12 Web is always on the mock (`api.MOCK` true when `document` exists, D5).
 - 2026-11-12 Badge = pending approvals + unread threads + plans-surface nudges. Home card: setup card when not opted in, else newest home nudge.
 - 2026-11-12 Storage key `common-ground:v2`; persisted fields: userOverride, homeCardDismissed, lastMode, drafts, calendar (own calendar ID, directive key -> event ID map, pending `applied`), reminders (meetup -> notification ID). Reset deletes our calendar events and cancels reminders first.
+- 2026-11-13 Story prompt shows only when `venue.photoUrl` is set: the client can't see venue sensitivity and producers keep sensitive venues photo-less (CONTRACTS Decisions "Stories after the event"). Share to story is secondary while the Feedback card is due (one primary). Persisted prefs now also include `storyPrompt` (meetupId -> posted|dismissed, C1).
 
 ## Needs
 
+- needs: sim venue photos (`venues.jsonl` `photo`) for the after-meetup Story prompt on the live backend; today no seeded venue has one, so live meetups send `photoUrl: null` and the prompt stays hidden (the mock shows it).
 - needs: shell PR #6 merged (A2 branch merges `origin/cg/shell/v2-m0` for `expo-calendar`/`expo-notifications`).
 - needs: backend live API (Checkpoint A); the real `fetch` path is untested against a server.
 
