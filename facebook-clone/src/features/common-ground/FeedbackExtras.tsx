@@ -1,8 +1,82 @@
-// STUB (B1). Owned by slice 4: replace freely, keep the default export and props.
+// Stars + tag chips under the three feedback questions. Both optional; unknown tags in `value` are kept.
+import { Pressable, View } from 'react-native';
+import { Icon, Label, Muted, useColors } from '../../ui/native';
 import type { Feedback } from './types';
 
 export type Extras = Pick<Feedback, 'rating' | 'tags'>;
+type Tag = NonNullable<Feedback['tags']>[number];
 
-export default function FeedbackExtras(_props: { value: Extras; onChange(next: Extras): void }) {
-  return null;
+const TAGS: [Tag, string][] = [
+  ['great_venue', 'Great venue'],
+  ['good_group', 'Good group'],
+  ['too_far', 'Too far'],
+  ['too_long', 'Too long'],
+];
+
+export default function FeedbackExtras({
+  value,
+  onChange,
+}: {
+  value: Extras;
+  onChange(next: Extras): void;
+}) {
+  const c = useColors();
+  const tags = value.tags ?? [];
+  const selectedBg = c.canvas === '#18191A' ? '#263951' : '#e7f3ff'; // the clone's Chips pair
+  return (
+    <View style={{ gap: 8 }}>
+      <Label style={{ fontWeight: '600' }}>
+        Rate it <Muted>· optional</Muted>
+      </Label>
+      <View accessibilityRole="radiogroup" style={{ flexDirection: 'row' }}>
+        {[1, 2, 3, 4, 5].map((n) => {
+          const on = (value.rating ?? 0) >= n;
+          return (
+            <Pressable
+              key={n}
+              accessibilityRole="radio"
+              accessibilityLabel={`${n} star${n === 1 ? '' : 's'}`}
+              accessibilityState={{ checked: value.rating === n }}
+              // Tapping the current rating again clears it.
+              onPress={() => onChange({ ...value, rating: value.rating === n ? undefined : n })}
+              style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}
+            >
+              <Icon
+                name={on ? 'star' : 'star-outline'}
+                size={28}
+                color={on ? c.blue : c.secondary}
+              />
+            </Pressable>
+          );
+        })}
+      </View>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+        {TAGS.map(([tag, label]) => {
+          const on = tags.includes(tag);
+          return (
+            <Pressable
+              key={tag}
+              accessibilityRole="button"
+              accessibilityLabel={label}
+              accessibilityState={{ selected: on }}
+              onPress={() =>
+                onChange({ ...value, tags: on ? tags.filter((t) => t !== tag) : [...tags, tag] })
+              }
+              style={{
+                minHeight: 44,
+                justifyContent: 'center',
+                paddingHorizontal: 15,
+                borderRadius: 22,
+                backgroundColor: on ? selectedBg : c.input,
+              }}
+            >
+              <Label style={{ color: on ? c.blue : c.text, fontWeight: '600', fontSize: 14 }}>
+                {label}
+              </Label>
+            </Pressable>
+          );
+        })}
+      </View>
+    </View>
+  );
 }
