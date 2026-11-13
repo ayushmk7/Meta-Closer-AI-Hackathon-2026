@@ -384,7 +384,10 @@ export default function Shell({ children }: { children: ReactNode }) {
               href={href}
               key={href}
               className={
-                pathname === href || (href !== '/' && pathname.startsWith(`${href}/`))
+                pathname === href ||
+                (href !== '/' && pathname.startsWith(`${href}/`)) ||
+                // Contributed tabs live in the Menu on the mobile web bar, so Menu stays lit there.
+                (href === '/menu' && tabs.some((t) => pathname.startsWith(t.href)))
                   ? 'active'
                   : ''
               }

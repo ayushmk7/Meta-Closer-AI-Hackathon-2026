@@ -357,44 +357,64 @@ export function Sheet({
   children: ReactNode;
 }) {
   const c = useColors();
+  const web = Platform.OS === 'web';
+  // Facebook pattern: a centred dialog on web, a content-height bottom sheet on phone.
   return (
-    <Modal
-      visible={visible}
-      animationType="none"
-      presentationStyle="pageSheet"
-      onRequestClose={onClose}
-    >
-      <SafeAreaView edges={['top', 'bottom']} style={{ flex: 1, backgroundColor: c.card }}>
-        <View
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={{
+          flex: 1,
+          justifyContent: web ? 'center' : 'flex-end',
+          alignItems: 'center',
+          padding: web ? 16 : 0,
+          paddingTop: 60,
+        }}
+      >
+        <Pressable
+          accessible={false}
+          onPress={onClose}
+          style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.4)' }]}
+        />
+        <SafeAreaView
+          edges={web ? [] : ['bottom']}
           style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            paddingHorizontal: 8,
-            borderBottomWidth: StyleSheet.hairlineWidth,
-            borderBottomColor: c.divider,
+            width: '100%',
+            maxWidth: web ? 500 : undefined,
+            maxHeight: '100%',
+            backgroundColor: c.card,
+            borderRadius: web ? 8 : 0,
+            borderTopLeftRadius: 8,
+            borderTopRightRadius: 8,
+            overflow: 'hidden',
           }}
         >
-          <IconButton name="close" label={`Close ${title}`} onPress={onClose} />
-          <Label
-            accessibilityRole="header"
+          <View
             style={{
-              fontWeight: '700',
-              fontSize: 18,
-              flex: 1,
-              textAlign: 'center',
-              paddingRight: 44,
+              flexDirection: 'row',
+              alignItems: 'center',
+              paddingHorizontal: 8,
+              borderBottomWidth: StyleSheet.hairlineWidth,
+              borderBottomColor: c.divider,
             }}
           >
-            {title}
-          </Label>
-        </View>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={{ flex: 1 }}
-        >
+            <IconButton name="close" label={`Close ${title}`} onPress={onClose} />
+            <Label
+              accessibilityRole="header"
+              style={{
+                fontWeight: '700',
+                fontSize: 18,
+                flex: 1,
+                textAlign: 'center',
+                paddingRight: 44,
+              }}
+            >
+              {title}
+            </Label>
+          </View>
           {children}
-        </KeyboardAvoidingView>
-      </SafeAreaView>
+        </SafeAreaView>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }

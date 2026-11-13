@@ -457,3 +457,12 @@ test('account nesting, notifications, Messenger and composer overlays fit and di
   await page.getByRole('radio', { name: 'Dark', exact: true }).check();
   await page.screenshot({ path: 'docs/verification/web/settings-dark-390x844.png' });
 });
+
+test('mobile web keeps Menu selected on contributed-tab routes', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  for (const route of ['/common-ground', '/common-ground/settings']) {
+    await page.goto(route);
+    const nav = page.getByRole('navigation', { name: 'Mobile navigation' });
+    await expect(nav.locator('a.active')).toHaveAttribute('href', '/menu');
+  }
+});
