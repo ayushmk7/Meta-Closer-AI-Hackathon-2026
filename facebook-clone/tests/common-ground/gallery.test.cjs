@@ -164,7 +164,9 @@ test('Explore filters by activity and neighborhood', async () => {
 });
 
 test('Welcome: read-only gallery, Log in and Create new account enter Plans', async () => {
+  const list = jest.spyOn(api, 'listShares');
   const { text, press, has } = await render(React.createElement(WelcomeScreen));
+  expect(list).toHaveBeenCalledWith({}, { anonymous: true }); // logged out: no X-CG-User
   // Full-screen modal: covers the logged-in Shell chrome (header, tabs).
   const modal = (await render(React.createElement(WelcomeScreen))).tree.root.findByType(
     require('react-native').Modal,

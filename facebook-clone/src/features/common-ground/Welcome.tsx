@@ -160,7 +160,8 @@ function Phone() {
 export default function WelcomeScreen() {
   const c = useColors();
   const { width } = useWindowDimensions();
-  useEffect(() => void load.shares(), []);
+  // Logged out: no X-CG-User on the only call this screen makes.
+  useEffect(() => void load.shares({}, { anonymous: true }), []);
   return (
     <Modal visible animationType="none" presentationStyle="fullScreen" onRequestClose={enter}>
       <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: c.canvas }}>
