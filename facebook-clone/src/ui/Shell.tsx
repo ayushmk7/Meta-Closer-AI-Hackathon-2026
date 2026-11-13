@@ -54,6 +54,8 @@ function TabShell({ children }: { children: ReactNode }) {
   const path = usePathname();
   const insets = useSafeAreaInsets();
   const topLevel = tabs.some((tab) => tab.href === path);
+  const ownTab = contributedTabs.find((tab) => tab.href === path);
+  const action = ownTab?.headerAction;
   // Badge hooks run every render, in registry order, before any early return.
   const badges = tabs.map((tab) => tab.useBadge?.() ?? 0);
   if (!demo.ready) return <Busy />;
@@ -97,7 +99,7 @@ function TabShell({ children }: { children: ReactNode }) {
             onPress={() => router.replace('/')}
             accessibilityRole="button"
             accessibilityLabel="Facebook Home"
-            style={{ flex: 1, minHeight: 44, justifyContent: 'center' }}
+            style={{ flex: ownTab ? undefined : 1, minHeight: 44, justifyContent: 'center' }}
           >
             <Image
               source={imageSource('facebook-logo')}
@@ -116,6 +118,22 @@ function TabShell({ children }: { children: ReactNode }) {
               {title}
             </Label>
           </>
+        )}
+        {ownTab && (
+          <Label
+            accessibilityRole="header"
+            numberOfLines={1}
+            style={{ fontSize: 24, fontWeight: '800', flex: 1, marginLeft: 4 }}
+          >
+            {ownTab.label}
+          </Label>
+        )}
+        {action && (
+          <IconButton
+            name={action.icon as ComponentProps<typeof Icon>['name']}
+            label={action.label}
+            onPress={() => go(action.href)}
+          />
         )}
         {path !== '/search' && (
           <IconButton name="search" label="Search Facebook" onPress={() => go('/search')} />

@@ -31,3 +31,4 @@
 ## Batch 4
 
 - Done: `Sheet` (`src/ui/native.tsx`) slides up from the bottom in 250 ms (ease-out) over the existing backdrop fade, using RN `Animated` and no new dependency. Under reduce motion (`AccessibilityInfo.isReduceMotionEnabled`) it appears instantly. It only slides in: closing still uses the Modal fade, because the Modal unmounts on close and a slide-out would need delayed-unmount state. Reanimated was not used because it doesn't load in the jest preset.
+- Done: a top-level contributed tab gets its `label` as a bold top-bar title beside the logo, plus its optional `headerAction` (contracts §11 `TabItem.headerAction`) as an icon button before search. Home and every other route are unchanged.

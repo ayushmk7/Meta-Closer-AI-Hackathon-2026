@@ -5,8 +5,15 @@ const renderer = require('react-test-renderer');
 global.IS_REACT_ACT_ENVIRONMENT = true;
 let mockPath = '/common-ground/welcome';
 const mockBadge = jest.fn(() => 0);
+let mockReady = false;
 jest.mock('../../src/core/store', () => ({
-  useDemo: () => ({ ready: false, state: { settings: { theme: 'light' } } }),
+  useDemo: () => ({
+    ready: mockReady,
+    state: { settings: { theme: 'light' } },
+    seed: { viewerId: 'u' },
+    person: () => ({ avatar: 'a' }),
+    unreadCount: 0,
+  }),
 }));
 jest.mock('../../src/data/media', () => ({ imageSource: () => 1 }));
 jest.mock('../../src/extensions/registry', () => ({
@@ -18,6 +25,7 @@ jest.mock('../../src/extensions/registry', () => ({
       activeIcon: 'b',
       after: '/friends',
       useBadge: mockBadge,
+      headerAction: { icon: 'settings-outline', label: 'Plans settings', href: '/x' },
     },
   ],
 }));
@@ -39,4 +47,24 @@ test('logged-out Welcome renders without tab chrome or badge hooks; other routes
   mockPath = '/';
   renderer.act(() => tree.update(React.createElement(Shell, null, 'home')));
   expect(mockBadge).toHaveBeenCalled();
+});
+
+test('a contributed tab root titles the top bar and shows its header action; Home does not', () => {
+  mockReady = true;
+  mockPath = '/common-ground';
+  let tree;
+  renderer.act(() => {
+    tree = renderer.create(React.createElement(Shell, null, 'plans'));
+  });
+  const has = (label) => tree.root.findAll((n) => n.props.accessibilityLabel === label).length > 0;
+  const header = () =>
+    tree.root.findAll(
+      (n) => n.props.accessibilityRole === 'header' && n.props.children === 'Plans',
+    );
+  expect(header().length).toBeGreaterThan(0);
+  expect(has('Plans settings')).toBe(true);
+  mockPath = '/';
+  renderer.act(() => tree.update(React.createElement(Shell, null, 'home')));
+  expect(has('Plans settings')).toBe(false);
+  expect(header()).toHaveLength(0);
 });
