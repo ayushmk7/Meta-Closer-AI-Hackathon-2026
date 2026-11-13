@@ -299,7 +299,8 @@ export default function MeetupScreen() {
     <Page>
       <Banners />
       <Card>
-        <VenueMap venue={m.venue} />
+        {/* Web has no map: the venue is one row under the venue line instead of a hero tile. */}
+        {!web && <VenueMap venue={m.venue} />}
         <View style={{ padding: 16, gap: 6 }}>
           <Label style={{ color: c.badge, fontWeight: '700', fontSize: 13 }}>
             {when(m.startsAt).toUpperCase()}
@@ -311,6 +312,7 @@ export default function MeetupScreen() {
             {m.title}
           </Label>
           <Muted>{[m.venue.name, m.venue.neighborhood].filter(Boolean).join(' · ')}</Muted>
+          {web && <VenueMap venue={m.venue} />}
           {!!m.eventLabel && <Muted>{m.eventLabel}</Muted>}
           {m.status === 'cancelled' && (
             <Label style={{ fontWeight: '700' }}>This plan was cancelled</Label>

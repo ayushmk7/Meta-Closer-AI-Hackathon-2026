@@ -319,7 +319,8 @@ export default function ChatScreen() {
       style={{ flex: 1, backgroundColor: c.card }}
     >
       <Banners />
-      {header}
+      {/* Web: the shell's back row already shows the thread title (#84). */}
+      {Platform.OS !== 'web' && header}
       <ScrollView
         ref={scroll}
         keyboardShouldPersistTaps="handled"
