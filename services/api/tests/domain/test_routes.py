@@ -1,5 +1,7 @@
 """Routes on the live world: real responses validate against openapi.yaml; Fail maps to the §7 envelope."""
 
+from datetime import UTC, datetime
+
 import pytest
 
 from cg_api import contracts
@@ -118,10 +120,11 @@ def test_social_routes_validate(live, public):
     assert ok(public.post(f"/v1/meetups/{mt}/checkin", headers=MAYA, json={"location": loc}), "checkIn")["accepted"]
     r = ok(public.post(f"/v1/meetups/{mt}/verify", headers=MAYA, json={"code": m["verifyCode"]}), "verifyAttendee")
     assert r["accepted"] and verify.code(live, mt, "u_dan") == m["verifyCode"]
+    live.now = lambda: datetime(2026, 11, 14, 18, 30, tzinfo=UTC)  # feedback opens once it started
     body = {"answers": [{"userId": "u_dan", "showedUp": True, "meetAgain": True}], "rating": 5, "tags": ["good_group"]}
     ok(public.post(f"/v1/meetups/{mt}/feedback", headers=MAYA, json=body), "sendFeedback")
     meetups.set_status(live, mt, "completed")
-    live.meetups[mt]["endsAt"] = "2026-11-12T17:00:00Z"
+    live.meetups[mt]["endsAt"] = "2026-11-14T18:15:00Z"
     sh = ok(public.post(f"/v1/meetups/{mt}/share", headers=MAYA, json={"caption": "Lopsided bowls."}), "shareMeetup")
     assert sh["mine"] and not ok(anon.get("/v1/shares"), "listShares")["items"][0]["mine"]
     r = public.post(f"/v1/meetups/{mt}/share", headers=DAN, json={"caption": "x" * 141})

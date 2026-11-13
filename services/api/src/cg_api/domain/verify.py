@@ -14,6 +14,8 @@ from itertools import combinations
 from cg_api.domain import meetups, people, prefs, privacy
 from cg_api.domain.world import Fail, World, not_found, parse
 
+MAX_MISSES = 10  # wrong codes per (meetup, user); guessing a 31^6 code can't make a meetup count
+
 CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"  # no 0/O/1/I/L: typed codes stay unambiguous
 
 
@@ -63,11 +65,15 @@ def verify(w: World, viewer: str, meetup_id: str, typed: str) -> dict:
         return {"accepted": False, "reason": "not_attendee"}
     if not (_relaxed(w) or _in_window(w, m)):
         return {"accepted": False, "reason": "outside_window"}
+    tries = m["members"][viewer].setdefault("verifyMisses", 0)
+    if tries >= MAX_MISSES:
+        raise Fail(429, "rate_limited", "Too many tries. Ask them to show their code again in a bit.")
     typed = (typed or "").strip().upper()
     if typed == code(w, meetup_id, viewer):
         return {"accepted": False, "reason": "self"}
     other = next((u for u in meetups.going(m) if u != viewer and code(w, meetup_id, u) == typed), None)
     if other is None or w.blocked(viewer, other):
+        m["members"][viewer]["verifyMisses"] = tries + 1
         return {"accepted": False, "reason": "invalid_code"}
     for u in (viewer, other):
         m["members"][u]["verified"] = True
@@ -124,8 +130,9 @@ TAGS = {"great_venue", "good_group", "too_far", "too_long"}
 
 def feedback(w: World, viewer: str, meetup_id: str, body: dict) -> None:
     m = meetups.get(w, viewer, meetup_id)
-    if m["members"][viewer]["rsvp"] != "going" or m["status"] not in ("confirmed", "completed"):
-        raise Fail(409, "conflict", "Feedback opens once the meetup is on.")
+    started = m["status"] == "completed" or (m["status"] == "confirmed" and w.now() >= parse(m["startsAt"]))
+    if m["members"][viewer]["rsvp"] != "going" or not started:
+        raise Fail(409, "conflict", "Feedback opens once the meetup has started.")
     answers, rating, tags = body.get("answers"), body.get("rating"), body.get("tags") or []
     others = set(meetups.going(m)) - {viewer}
     ok = (

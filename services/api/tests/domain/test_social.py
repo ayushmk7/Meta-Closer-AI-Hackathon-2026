@@ -18,6 +18,10 @@ def confirmed(world):
     return mt
 
 
+def started(world):
+    world.now = lambda: NOW + timedelta(days=2)  # 2026-11-14T18:00Z, the start
+
+
 def finished(world, mt):
     world.now = lambda: NOW + timedelta(days=3)  # after the Saturday session
     meetups.set_status(world, mt, "completed")
@@ -58,7 +62,7 @@ def test_share_needs_attended_finished_and_not_sensitive(world):
     world.venues["vn_clay"]["sensitive"] = True
     with pytest.raises(Fail) as e:
         shares.share_meetup(world, "u_maya", mt, "hi")
-    assert e.value.status == 422 and e.value.code == "screened"
+    assert e.value.status == 422 and e.value.code == "not_allowed"
     assert all(s["venue"]["venueId"] != "vn_clay" for s in shares.list_shares(world, None))  # P4
 
 
@@ -127,6 +131,7 @@ def test_check_in_geofence_window_and_mutual_count(world):
 
 def test_feedback_validation(world):
     mt = confirmed(world)
+    started(world)
     for bad in (
         {},
         {"answers": [{"userId": "u_kai", "showedUp": True, "meetAgain": True}]},
@@ -144,6 +149,7 @@ def _order(world, viewer):
 def test_feedback_reorders_feed_deterministically(world):
     """A 5-star ceramics meetup lifts ceramics plans; same inputs, same order, every time."""
     mt = confirmed(world)
+    started(world)
     world.demo_mode = False  # no featured pins, no beat
     before = _order(world, "u_dan")
     assert before.index("pl_walk") < before.index("pl_hero2")  # coastal walk ahead first
@@ -160,6 +166,7 @@ def test_feedback_reorders_feed_deterministically(world):
 
 def test_too_far_tag_lowers_only_the_venue(world):
     mt = confirmed(world)
+    started(world)
     verify.feedback(world, "u_dan", mt, {"answers": [], "rating": 4, "tags": ["too_far"]})
     p = world.prefs["u_dan"]
     assert p["act:ceramics_studio"] > 0 and p["vn:vn_clay"] < p["act:ceramics_studio"]
@@ -171,6 +178,7 @@ def test_feedback_reorders_through_real_rank_plans():
 
     w = make_world(matching)
     mt = confirmed(w)
+    started(w)
     w.demo_mode = False
     for u in w.users.values():  # rank_plans needs availability to place the plans
         u["availability"] = [{"day": d, "part": p} for d in ("sat", "sun") for p in ("morning", "afternoon", "evening")]
@@ -219,3 +227,37 @@ def test_activity_only_pref_gives_no_because_line(world):
     assert prefs.liked_label(world, "u_dan", world.plans["pl_hero2"]) is None
     prefs.reward(world, "u_dan", ["vn:vn_clay"], 1.0)
     assert prefs.liked_label(world, "u_dan", world.plans["pl_hero2"]) == "Because you liked Clay Hour Studio"
+
+
+def test_caption_naming_a_coattendee_is_refused(world):
+    mt = confirmed(world)
+    verify.check_in(world, "u_maya", mt, world.venues["vn_clay"]["location"])
+    finished(world, mt)
+    for cap in ("With Daniel Okafor and Rosa!", "rosa made the best bowl"):
+        with pytest.raises(Fail) as e:
+            shares.share_meetup(world, "u_maya", mt, cap)
+        assert (e.value.status, e.value.code) == (422, "not_allowed")
+    assert shares.share_meetup(world, "u_maya", mt, "Rosary beads? No, bowls.")["mine"]  # word match, not substring
+
+
+def test_verify_guessing_is_capped(world):
+    mt = confirmed(world)
+    for _ in range(verify.MAX_MISSES):
+        assert verify.verify(world, "u_maya", mt, "AAAAAA")["reason"] == "invalid_code"
+    with pytest.raises(Fail) as e:
+        verify.verify(world, "u_maya", mt, meetups.view(world, "u_dan", mt)["verifyCode"])
+    assert e.value.status == 429
+
+
+def test_feedback_waits_for_the_start(world):
+    mt = confirmed(world)
+    with pytest.raises(Fail) as e:
+        verify.feedback(world, "u_dan", mt, {"answers": [], "rating": 5})
+    assert e.value.status == 409 and "u_dan" not in world.prefs
+
+
+def test_relike_does_not_farm_prefs(world):
+    s = shares.list_shares(world, "u_kai")[0]
+    for liked in (True, False, True, False, True):
+        shares.like(world, "u_kai", s["shareId"], liked)
+    assert world.prefs["u_kai"][f"act:{s['activityType']}"] == pytest.approx(0.09)

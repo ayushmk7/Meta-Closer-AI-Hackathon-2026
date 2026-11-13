@@ -7,6 +7,7 @@ Who shared it and who liked it stay server-side; `mine` and `likedByMe` are only
 from __future__ import annotations
 
 import hashlib
+import re
 from datetime import timedelta
 
 from cg_api.domain import meetups, plans, prefs
@@ -116,13 +117,18 @@ def share_meetup(w: World, viewer: str, meetup_id: str, caption) -> dict:
         raise Fail(400, "validation_failed", "Add a caption to share it.")
     if len(caption) > 140:
         raise Fail(400, "validation_failed", "Keep the caption under 140 characters.")
+    names = {n for u in m["members"] for n in (w.users[u].get("firstName"), w.users[u].get("displayName")) if n}
+    if any(re.search(rf"\b{re.escape(n)}\b", caption, re.I) for n in names):
+        # the gallery is public and anonymous: nobody is named without their say (P5/P6 spirit)
+        # ponytail: no Laya message_flag here yet (chat lacks it too); LAYA_FAKE would reject ~15% at random
+        raise Fail(422, "not_allowed", "Shares stay anonymous, so leave names out of the caption.")
     me = m["members"][viewer]
     over = m["status"] == "completed" or parse(m["endsAt"]) <= w.now()
     attended = me["rsvp"] == "going" and (me["checkedIn"] or me.get("verified") or me.get("counted"))
     if m["status"] == "cancelled" or not over or not attended:
-        raise Fail(422, "screened", "You can share a plan once you've been to it.")
+        raise Fail(422, "not_allowed", "You can share a plan once you've been to it.")
     if w.venues[m["venueId"]].get("sensitive"):
-        raise Fail(422, "screened", "This place stays private, so it can't be shared.")
+        raise Fail(422, "not_allowed", "This place stays private, so it can't be shared.")
     plan = {**w.plans[m["planId"]], "venueId": m["venueId"]}
     day = parse(m["startsAt"]).astimezone(plans.TZ).date().isoformat()
     s = _make(w, viewer, plan, caption.strip(), len(meetups.going(m)), day)
@@ -137,7 +143,9 @@ def like(w: World, viewer: str, share_id: str, liked) -> dict:
         raise Fail(400, "validation_failed", "liked must be true or false.")
     if liked and viewer not in s["likers"]:
         s["likers"].add(viewer)
-        prefs.reward(w, viewer, prefs.keys(w, s["activityType"], s["venueId"], s["targetInterestIds"]), 0.3)
+        if viewer not in s.setdefault("rewarded", set()):  # unlike + like again can't farm prefs
+            s["rewarded"].add(viewer)
+            prefs.reward(w, viewer, prefs.keys(w, s["activityType"], s["venueId"], s["targetInterestIds"]), 0.3)
     elif not liked:
         s["likers"].discard(viewer)
     return view(w, viewer, s)
