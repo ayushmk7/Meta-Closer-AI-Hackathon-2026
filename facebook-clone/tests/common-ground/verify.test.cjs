@@ -24,11 +24,7 @@ jest.mock('expo-haptics', () => ({
   notificationAsync: jest.fn(async () => {}),
   NotificationFeedbackType: { Success: 'success' },
 }));
-jest.mock('react-native-reanimated', () => ({
-  __esModule: true,
-  default: { View: require('react-native').View },
-  FadeInDown: {},
-}));
+jest.mock('react-native-reanimated', () => require('./reanimated.cjs'));
 jest.mock('expo-camera', () => ({
   CameraView: 'CameraView',
   // Like the real hook: state that the request updates. `answer` is what the user taps.

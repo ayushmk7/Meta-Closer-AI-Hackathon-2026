@@ -19,6 +19,7 @@ jest.mock('expo-router', () => ({
   useFocusEffect: (cb) => require('react').useEffect(cb, [cb]),
 }));
 jest.mock('@expo/vector-icons/Ionicons', () => 'Icon');
+jest.mock('react-native-reanimated', () => require('./reanimated.cjs'));
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: require('react-native').View }));
 jest.mock('expo-image', () => ({ Image: 'Image' }));
 jest.mock('expo-blur', () => ({ BlurView: 'BlurView' }));
@@ -99,4 +100,43 @@ test("only my own avatar falls back to Maya's clone photo; others never get a ph
   expect(images(maya('private'))).toBe(0);
   expect(images(maya('public'))).toBe(0);
   setUser(null);
+});
+
+test('MuseThinking spins on its only line until done, then ticks', () => {
+  const { MuseThinking } = require('../../src/features/common-ground/ui');
+  const { ActivityIndicator } = require('react-native');
+  const lines = ['Reading your interests', 'Checking calendars'];
+  let r;
+  renderer.act(() => {
+    r = renderer.create(React.createElement(MuseThinking, { lines, done: false }));
+  });
+  const box = r.root.findByProps({ accessibilityRole: 'progressbar' }).props;
+  expect(box.accessibilityLabel).toBe('Reading your interests');
+  expect(r.root.findAllByType(ActivityIndicator)).toHaveLength(1);
+  renderer.act(() => r.update(React.createElement(MuseThinking, { lines, done: true })));
+  expect(r.root.findAllByType(ActivityIndicator)).toHaveLength(0);
+  expect(r.root.findAllByType('Icon').map((i) => i.props.name)).toEqual(['checkmark-circle']);
+  renderer.act(() => r.unmount());
+});
+
+test('Skeleton, Pop and PressScale render under reduce motion', () => {
+  const { Skeleton, Pop, PressScale } = require('../../src/features/common-ground/ui');
+  global.__reduceMotion = true;
+  const onPress = jest.fn();
+  let r;
+  renderer.act(() => {
+    r = renderer.create(
+      React.createElement(React.Fragment, null, [
+        React.createElement(Skeleton, { key: 1, width: 80, height: 12 }),
+        React.createElement(Pop, { key: 2 }, 'popped'),
+        React.createElement(PressScale, { key: 3, testID: 'ps', onPress, hitSlop: 8 }, 'tap'),
+      ]),
+    );
+  });
+  global.__reduceMotion = false;
+  const ps = r.root.findByProps({ testID: 'ps' });
+  renderer.act(() => ps.props.onPress());
+  expect(onPress).toHaveBeenCalled();
+  expect(ps.props.hitSlop).toBe(8);
+  expect(JSON.stringify(r.toJSON())).toContain('popped');
 });

@@ -1,6 +1,24 @@
 // Shared Common Ground pieces, built only from the clone's tokens and primitives.
-import { useCallback, useEffect, useRef, type ReactNode } from 'react';
-import { Pressable, View } from 'react-native';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import {
+  ActivityIndicator,
+  Pressable,
+  View,
+  type PressableProps,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native';
+import Animated, {
+  cancelAnimation,
+  Easing,
+  FadeInDown,
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withRepeat,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
 import { Image } from 'expo-image';
 import { router, useFocusEffect } from 'expo-router';
 import { imageSource } from '../../data/media';
@@ -76,7 +94,7 @@ export function Pill({
   const c = useColors();
   const color = selected || outlined ? c.blue : c.text;
   return (
-    <Pressable
+    <PressScale
       // A display chip (no onPress) reads as text, not a dimmed button.
       accessibilityRole={onPress ? 'button' : 'text'}
       accessibilityLabel={accessibilityLabel ?? label}
@@ -102,7 +120,126 @@ export function Pill({
     >
       {icon && <Icon name={icon} size={16} color={color} />}
       <Label style={{ fontSize: 14, fontWeight: '600', color, flexShrink: 1 }}>{label}</Label>
-    </Pressable>
+    </PressScale>
+  );
+}
+
+// Motion. Layout animations (enter) honour system reduce motion by themselves; the
+// hand-driven ones below check useReducedMotion. Only Skeleton loops.
+export const enter = (i = 0) =>
+  FadeInDown.duration(220)
+    .easing(Easing.out(Easing.quad))
+    .withInitialValues({ opacity: 0, transform: [{ translateY: 12 }] })
+    .delay(Math.min(i, 4) * 60);
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
+// Pressable whose whole box dips to 0.97 while held (cards, pills).
+export function PressScale({
+  style,
+  children,
+  onPressIn,
+  onPressOut,
+  ...rest
+}: PressableProps & { style?: StyleProp<ViewStyle>; children?: ReactNode }) {
+  const reduce = useReducedMotion();
+  const scale = useSharedValue(1);
+  const anim = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+  const to = (v: number) => {
+    if (!reduce) scale.value = withTiming(v, { duration: 100 });
+  };
+  return (
+    <AnimatedPressable
+      {...rest}
+      onPressIn={(e) => (to(0.97), onPressIn?.(e))}
+      onPressOut={(e) => (to(1), onPressOut?.(e))}
+      style={[style, anim]}
+    >
+      {children}
+    </AnimatedPressable>
+  );
+}
+
+export function Skeleton({
+  width,
+  height,
+  radius = 8,
+  style,
+}: {
+  width: ViewStyle['width'];
+  height: ViewStyle['height'];
+  radius?: number;
+  style?: StyleProp<ViewStyle>;
+}) {
+  const c = useColors();
+  const reduce = useReducedMotion();
+  const opacity = useSharedValue(1);
+  useEffect(() => {
+    if (reduce) return;
+    opacity.value = withRepeat(withTiming(0.5, { duration: 800 }), -1, true);
+    return () => cancelAnimation(opacity);
+  }, [reduce, opacity]);
+  const anim = useAnimatedStyle(() => ({ opacity: opacity.value }));
+  return (
+    <Animated.View
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      style={[{ width, height, borderRadius: radius, backgroundColor: c.input }, style, anim]}
+    />
+  );
+}
+
+// Springs 0.6 -> 1 once on mount; change `key` to replay.
+export function Pop({ children, style }: { children: ReactNode; style?: StyleProp<ViewStyle> }) {
+  const reduce = useReducedMotion();
+  const scale = useSharedValue(reduce ? 1 : 0.6);
+  useEffect(() => {
+    scale.value = withSpring(1, { duration: 250, dampingRatio: 1 });
+  }, [scale]);
+  const anim = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+  return <Animated.View style={[style, anim]}>{children}</Animated.View>;
+}
+
+// Line i shows at 0, 1.2, 3 s, then every 1.8 s.
+const lineAt = (i: number) => (i < 3 ? [0, 1200, 3000][i] : 3000 + (i - 2) * 1800);
+
+// Muse's checklist while it works. Earlier lines tick once a later one shows; the last
+// line spins until `done`.
+export function MuseThinking({ lines, done }: { lines: string[]; done: boolean }) {
+  const c = useColors();
+  const reduce = useReducedMotion();
+  const [shown, setShown] = useState(1);
+  useEffect(() => {
+    const timers = lines.slice(1).map((_, k) => setTimeout(() => setShown(k + 2), lineAt(k + 1)));
+    return () => timers.forEach(clearTimeout);
+  }, [lines.length]);
+  const visible = lines.slice(0, shown);
+  return (
+    <View
+      accessibilityRole="progressbar"
+      accessibilityLiveRegion="polite"
+      accessibilityLabel={visible[visible.length - 1]}
+      style={{ gap: 8 }}
+    >
+      {visible.map((line, i) => (
+        <Animated.View
+          key={i}
+          entering={reduce ? undefined : enter()}
+          style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}
+        >
+          <View style={{ width: 20, alignItems: 'center' }}>
+            {done || i < shown - 1 ? (
+              <Pop>
+                <Icon name="checkmark-circle" size={18} color={c.blue} />
+              </Pop>
+            ) : (
+              <ActivityIndicator size="small" color={c.secondary} />
+            )}
+          </View>
+          <Muted style={{ flex: 1 }}>{line}</Muted>
+        </Animated.View>
+      ))}
+    </View>
   );
 }
 
