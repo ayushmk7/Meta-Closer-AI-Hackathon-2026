@@ -13,6 +13,7 @@ from pydantic import BaseModel
 
 from cg_api import realtime
 from cg_api.errors import ApiError
+from cg_api.internal import gcal
 from cg_api.ports import Unavailable, matching
 from cg_api.settings import get_settings
 from cg_api.store import store
@@ -54,9 +55,10 @@ def set_demo_state(body: DemoState):
 
 
 @router.post("/internal/v1/demo/reset", operation_id="resetDemo", status_code=204)
-def reset_demo():
+async def reset_demo():
     t = time.monotonic()
     store.reset()
+    await gcal.reapply_all()
     log.info("demo reset in %.2fs", time.monotonic() - t)
     return Response(status_code=204)
 

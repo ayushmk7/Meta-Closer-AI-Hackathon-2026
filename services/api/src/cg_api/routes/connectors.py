@@ -7,6 +7,7 @@ from fastapi import APIRouter, Response
 from cg_api import seed
 from cg_api.deps import Base, User
 from cg_api.errors import ApiError
+from cg_api.internal import gcal
 from cg_api.routes.me import VisibilityBody
 from cg_api.settings import get_settings
 from cg_api.store import now_iso, store
@@ -41,7 +42,9 @@ async def connect_connector(provider: str, uid: User):
     if provider not in u["connectors"]:
         at = now_iso()
         u["connectors"][provider] = {"connectedAt": at, "lastSyncAt": at}
-        await seed.derive(uid)  # activates this provider's seeded records (device_calendar: busy via syncCalendar)
+        # live Google busy blocks replace the seeded ones when linked; else this activates the seeded records
+        if not await gcal.refresh(uid, force=True):
+            await seed.derive(uid)  # (device_calendar: busy via syncCalendar)
         _changed(uid)
     return connector_view(uid, provider)
 
