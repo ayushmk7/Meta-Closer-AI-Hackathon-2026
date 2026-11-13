@@ -1,6 +1,172 @@
-// STUB (B1). Owned by slice 3: replace freely, keep the default export.
-import { Stub } from './ui';
+// Logged-out Welcome, after facebook.com logged out. Rendered in a full-screen Modal so the
+// logged-in Shell chrome (header, tabs) is covered on native and web without a Shell change.
+// Phone: wordmark bar with Log in, pitch, read-only gallery, sticky Log in / Create new account.
+// Desktop (>= 900pt): wordmark + pitch left, login card right, gallery below.
+import { useEffect } from 'react';
+import { Modal, ScrollView, View, useWindowDimensions } from 'react-native';
+import { router } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Button, Card, Divider, Label, Muted, useColors } from '../../ui/native';
+import { MuseAvatar } from './MuseBar';
+import ShareCard from './ShareCard';
+import { load, useCg } from './store';
+
+const GREEN = '#42B72A'; // Facebook's "Create new account" green
+const enter = () => router.replace('/common-ground');
+const PITCH =
+  'Tell Muse what you want to do. It finds the plan, finds the people, and handles the rest. You just show up.';
+const PROMISE = 'People only see what you have in common, and only after a group forms.';
+
+function Wordmark({ size }: { size: number }) {
+  const c = useColors();
+  return (
+    <Label
+      accessibilityRole="header"
+      style={{
+        color: c.blue,
+        fontSize: size,
+        lineHeight: size * 1.15,
+        fontWeight: '800',
+        letterSpacing: -size / 30,
+      }}
+    >
+      facebook
+    </Label>
+  );
+}
+
+function Gallery() {
+  const shares = useCg((s) => s.publicShares); // anonymous slot, never the signed-in gallery
+  return (
+    <>
+      <Label style={{ fontSize: 17, fontWeight: '700', paddingHorizontal: 16, paddingTop: 8 }}>
+        What people did this week
+      </Label>
+      {shares.slice(0, 6).map((s) => (
+        <ShareCard key={s.shareId} share={s} readOnly />
+      ))}
+    </>
+  );
+}
+
+function Desktop() {
+  return (
+    <ScrollView contentContainerStyle={{ alignItems: 'center', paddingVertical: 72, gap: 8 }}>
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 64,
+          maxWidth: 980,
+          paddingHorizontal: 24,
+          paddingBottom: 56,
+        }}
+      >
+        <View style={{ flex: 1, gap: 12, maxWidth: 520 }}>
+          <Wordmark size={60} />
+          <Label style={{ fontSize: 28, lineHeight: 34 }}>
+            Do more of what you love, with people who love it too.
+          </Label>
+          <Label style={{ fontSize: 17, lineHeight: 24 }}>{PITCH}</Label>
+          <Muted>{PROMISE}</Muted>
+        </View>
+        <Card
+          style={{
+            width: 396,
+            padding: 16,
+            gap: 12,
+            boxShadow: '0 2px 4px rgba(0,0,0,.1), 0 8px 16px rgba(0,0,0,.1)',
+          }}
+        >
+          <View style={{ alignItems: 'center', gap: 8, paddingVertical: 8 }}>
+            <MuseAvatar size={48} />
+            <Label style={{ fontSize: 17, fontWeight: '700' }}>Plans with Muse</Label>
+          </View>
+          <Button title="Log in" onPress={enter} style={{ minHeight: 48 }} />
+          <Divider />
+          <Button
+            title="Create new account"
+            onPress={enter}
+            style={{ backgroundColor: GREEN, minHeight: 48, alignSelf: 'center' }}
+          />
+        </Card>
+      </View>
+      <View style={{ width: '100%', maxWidth: 680, gap: 8 }}>
+        <Gallery />
+      </View>
+    </ScrollView>
+  );
+}
+
+function Phone() {
+  const c = useColors();
+  return (
+    <>
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          paddingHorizontal: 16,
+          minHeight: 56,
+          backgroundColor: c.card,
+          borderBottomWidth: 1,
+          borderBottomColor: c.divider,
+        }}
+      >
+        <View style={{ flex: 1 }}>
+          <Wordmark size={30} />
+        </View>
+        <Button title="Log in" secondary onPress={enter} />
+      </View>
+      <ScrollView contentContainerStyle={{ gap: 8, paddingVertical: 8, paddingBottom: 170 }}>
+        <Card style={{ padding: 16, gap: 10 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+            <MuseAvatar size={40} />
+            <Label style={{ flex: 1, fontSize: 22, lineHeight: 28, fontWeight: '800' }}>
+              Do more of what you love, with people who love it too.
+            </Label>
+          </View>
+          <Label>{PITCH}</Label>
+          <Muted>{PROMISE}</Muted>
+        </Card>
+        <Gallery />
+      </ScrollView>
+      <View
+        style={{
+          position: 'absolute',
+          left: 0,
+          right: 0,
+          bottom: 0,
+          padding: 16,
+          paddingBottom: 28,
+          gap: 8,
+          backgroundColor: c.card,
+          borderTopWidth: 1,
+          borderTopColor: c.divider,
+        }}
+      >
+        <Label style={{ fontWeight: '700', textAlign: 'center' }}>See more plans on Facebook</Label>
+        <Button title="Log in" onPress={enter} />
+        <Button
+          title="Create new account"
+          onPress={enter}
+          style={{ backgroundColor: GREEN, alignSelf: 'center', paddingHorizontal: 24 }}
+        />
+      </View>
+    </>
+  );
+}
 
 export default function WelcomeScreen() {
-  return <Stub title="Common Ground" />;
+  const c = useColors();
+  const { width } = useWindowDimensions();
+  // Logged out: no X-CG-User on the only call this screen makes.
+  useEffect(() => void load.shares({}, { anonymous: true }), []);
+  return (
+    <Modal visible animationType="none" presentationStyle="fullScreen" onRequestClose={enter}>
+      <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: c.canvas }}>
+        {width >= 900 ? <Desktop /> : <Phone />}
+      </SafeAreaView>
+    </Modal>
+  );
 }
