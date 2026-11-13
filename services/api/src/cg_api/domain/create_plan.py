@@ -152,8 +152,9 @@ async def create(w: World, viewer: str, text, invite_ids=None) -> dict:
     size = dict(w.params["plans"]["defaultSize"])
     if met_only:
         size["min"] = w.params["groups"]["metSizeMin"]
-    # seed copy for this activity says what it's like; time, place and price are already in the header
-    blurb = next((x["description"] for x in w.plans.values() if x["origin"] != "user" and x["activityType"] == activity), None)
+    # seed copy for this activity says what it's like; time, place and price are already in the header.
+    # food_crawl copy implies several stops, but a created plan is one venue: use the generic line
+    blurb = next((x["description"] for x in w.plans.values() if x["origin"] != "user" and x["activityType"] == activity != "food_crawl"), None)
     rec = {
         "planId": w.next_id("pl_u"),
         "poolId": pool,
