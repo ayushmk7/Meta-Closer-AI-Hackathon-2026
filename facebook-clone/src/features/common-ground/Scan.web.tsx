@@ -149,7 +149,7 @@ export function ScanPage({
             </Pressable>
           </View>
         )}
-        {done && <Button title="Back to the plan" onPress={() => router.back()} />}
+        {done && <Button title="See plan" onPress={() => router.back()} />}
       </Card>
     </Page>
   );

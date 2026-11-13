@@ -1,7 +1,7 @@
 // Group chat (PRD-1 §8.4): Messenger look, Muse cards, attachments, Ask Muse toggle.
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, View } from 'react-native';
-import { useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import {
   Icon,
   IconButton,
@@ -273,43 +273,56 @@ export default function ChatScreen() {
     void sendMessage(threadId, text, { toMuse });
     setToMuse(false);
   };
+  // Messenger-style single header: (web) back arrow, avatar stack, title, "See plan".
+  // On web this is the back row; native keeps the stack header's back button above it.
   const header = thread && (
-    <Pressable
-      disabled={!thread.meetupId}
-      accessibilityRole="button"
-      accessibilityLabel={`${thread.title}, open the plan`}
-      onPress={() => go(`/common-ground/meetup/${thread.meetupId}`)}
+    <View
       style={{
         flexDirection: 'row',
         alignItems: 'center',
-        padding: 12,
-        gap: 10,
+        paddingHorizontal: Platform.OS === 'web' ? 4 : 12,
+        paddingVertical: 8,
         borderBottomWidth: 1,
         borderBottomColor: c.divider,
       }}
     >
-      <View style={{ flexDirection: 'row' }}>
-        {thread.participants.slice(0, 4).map((p, i) => (
-          <View
-            key={p.userId}
-            style={{
-              marginLeft: i ? -8 : 0,
-              borderWidth: 2,
-              borderColor: c.card,
-              borderRadius: 16,
-            }}
-          >
-            <PersonAvatar person={p} size={28} />
-          </View>
-        ))}
-      </View>
-      <View style={{ flex: 1 }}>
-        <Label style={{ fontWeight: '700' }} numberOfLines={1}>
-          {thread.title}
-        </Label>
-        {!!thread.meetupId && <Muted>See plan</Muted>}
-      </View>
-    </Pressable>
+      {Platform.OS === 'web' && (
+        <IconButton
+          name="arrow-back"
+          label="Back"
+          onPress={() => (router.canGoBack() ? router.back() : router.replace('/common-ground'))}
+        />
+      )}
+      <Pressable
+        disabled={!thread.meetupId}
+        accessibilityRole="button"
+        accessibilityLabel={`${thread.title}, see plan`}
+        onPress={() => go(`/common-ground/meetup/${thread.meetupId}`)}
+        style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 44 }}
+      >
+        <View style={{ flexDirection: 'row' }}>
+          {thread.participants.slice(0, 4).map((p, i) => (
+            <View
+              key={p.userId}
+              style={{
+                marginLeft: i ? -8 : 0,
+                borderWidth: 2,
+                borderColor: c.card,
+                borderRadius: 16,
+              }}
+            >
+              <PersonAvatar person={p} size={28} />
+            </View>
+          ))}
+        </View>
+        <View style={{ flex: 1 }}>
+          <Label style={{ fontWeight: '700' }} numberOfLines={1}>
+            {thread.title}
+          </Label>
+          {!!thread.meetupId && <Muted>See plan</Muted>}
+        </View>
+      </Pressable>
+    </View>
   );
 
   return (
@@ -319,8 +332,7 @@ export default function ChatScreen() {
       style={{ flex: 1, backgroundColor: c.card }}
     >
       <Banners />
-      {/* Web: the shell's back row already shows the thread title (#84). */}
-      {Platform.OS !== 'web' && header}
+      {header}
       <ScrollView
         ref={scroll}
         keyboardShouldPersistTaps="handled"
