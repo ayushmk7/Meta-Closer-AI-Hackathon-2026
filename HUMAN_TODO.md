@@ -62,7 +62,7 @@ Optional. Without it, everything runs on seeded data.
 2. Create an OAuth client (Web application) with the redirect URI `http://127.0.0.1:9001/internal/v1/connectors/google_calendar/callback`.
 3. In `.env`: `CONNECTORS_LIVE=1`, `GOOGLE_CLIENT_ID=...`, `GOOGLE_CLIENT_SECRET=...`.
 4. With `make api` running, open `http://127.0.0.1:9001/internal/v1/connectors/google_calendar/link?userId=u_maya` on the laptop and approve.
-5. On the phone, turn on Google Calendar in Common Ground settings. Plans show "Fits your …" or "You're busy …" from the real calendar.
+5. On the phone, turn on Google Calendar in Common Ground settings. Meetups show "Fits your …" or "You're busy …" from the real calendar.
 6. Testing-mode tokens expire after 7 days, so link again on demo morning.
 7. Hero plan: Sat 14 Nov, 10:00. Keep that time free, or block it on purpose to show "You're busy Saturday".
 
