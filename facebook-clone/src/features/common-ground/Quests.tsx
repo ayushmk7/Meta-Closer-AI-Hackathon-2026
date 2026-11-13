@@ -13,7 +13,7 @@ import {
   type Quest,
   type QuestLog,
 } from './questLog';
-import { RewardRow } from './Rewards';
+import { PopOn, RewardRow } from './Rewards';
 import { QUESTS_KEY, getState, useCg } from './store';
 
 function box() {
@@ -70,11 +70,13 @@ function Row({ q, onPress }: { q: Quest; onPress?: () => void }) {
       onPress={onPress}
       style={{ flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 44 }}
     >
-      <Icon
-        name={q.done ? 'checkmark-circle' : 'ellipse-outline'}
-        size={22}
-        color={q.done ? c.online : c.secondary}
-      />
+      <PopOn on={q.done}>
+        <Icon
+          name={q.done ? 'checkmark-circle' : 'ellipse-outline'}
+          size={22}
+          color={q.done ? c.online : c.secondary}
+        />
+      </PopOn>
       <Label style={{ flex: 1, fontWeight: '600' }}>{q.label}</Label>
     </Pressable>
   );

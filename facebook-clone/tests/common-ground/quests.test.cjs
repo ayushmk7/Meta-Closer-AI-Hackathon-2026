@@ -17,7 +17,12 @@ jest.mock('react-native-reanimated', () => require('./reanimated.cjs'));
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: require('react-native').View }));
 jest.mock('expo-image', () => ({ Image: 'Image' }));
 jest.mock('expo-blur', () => ({ BlurView: 'BlurView' }));
-jest.mock('expo-haptics', () => ({ impactAsync: async () => {}, ImpactFeedbackStyle: {} }));
+jest.mock('expo-haptics', () => ({
+  impactAsync: async () => {},
+  ImpactFeedbackStyle: {},
+  notificationAsync: jest.fn(async () => {}),
+  NotificationFeedbackType: { Success: 'success' },
+}));
 const mockSaved = {};
 jest.mock('../../src/platform/scopedStorage', () => ({
   createScopedStorage: (key) => ({
@@ -61,8 +66,12 @@ test('Verify in person ticks, saves and starts the streak; Surprise me ticks fro
     (n) => n.props.accessibilityLabel === 'Verify in person' && n.props.onPress,
   );
   expect(talk.props.accessibilityState).toEqual({ checked: false });
+  const Haptics = require('expo-haptics');
+  Haptics.notificationAsync.mockClear();
   await renderer.act(async () => talk.props.onPress());
   expect(labels()).toContain('1 of 4 done');
+  // The tick pops with one success haptic on the transition.
+  expect(Haptics.notificationAsync).toHaveBeenCalledTimes(1);
   expect(labels()).toContain('1-day streak');
   const saved = JSON.parse(mockSaved['common-ground-quests:v1']);
   expect(saved[fixtures.getMe.userId]).toMatchObject({ talked: true, streak: 1 });
@@ -152,9 +161,12 @@ test('a meetup I am newly verified at ticks Verify in person once', async () => 
     attendees: m.attendees.map((a) => (a.isMe ? { ...a, verified: true } : a)),
   };
   await renderer.act(async () => store.setState({ meetups: { [m.meetupId]: verified } }));
+  const Haptics = require('expo-haptics');
+  Haptics.notificationAsync.mockClear();
   const { tree } = await render(React.createElement(Quests));
   await renderer.act(async () => {});
   expect(talkBox(tree).props.accessibilityState).toEqual({ checked: true });
+  expect(Haptics.notificationAsync).not.toHaveBeenCalled(); // already done on load: no buzz
   expect(JSON.parse(mockSaved[KEY])[fixtures.getMe.userId]).toMatchObject({
     talked: true,
     verified: [m.meetupId],

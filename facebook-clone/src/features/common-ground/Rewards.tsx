@@ -1,10 +1,11 @@
 // Private progress (DESIGN Rewards): only the user sees it; never shown to others or used in ranking.
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { View, type StyleProp, type ViewStyle } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { Button, Card, Icon, Label, Muted, go, useColors } from '../../ui/native';
 import { createPlan, load, useCg } from './store';
 import { TZ, type Meetup } from './types';
-import { when } from './ui';
+import { Pop, when } from './ui';
 
 const s = (n: number) => (n === 1 ? '' : 's');
 const goalText = (next: { unlockId: string; label: string; remaining: number }) =>
@@ -27,6 +28,30 @@ export const nextWeek = (iso: string): string => {
   const naive = t + 7 * 86_400_000;
   return new Date(naive + offset(t) - offset(naive)).toISOString();
 };
+
+// Pops its child (plus one success haptic unless `quiet`) when `on` turns truthy or changes
+// after mount; items already done on load stay still.
+export function PopOn({
+  on,
+  quiet,
+  children,
+}: {
+  on: unknown;
+  quiet?: boolean;
+  children: ReactNode;
+}) {
+  const prev = useRef(on);
+  const [n, setN] = useState(0);
+  useEffect(() => {
+    if (on && on !== prev.current) {
+      setN((k) => k + 1);
+      if (!quiet)
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+    }
+    prev.current = on;
+  }, [on]);
+  return n ? <Pop key={n}>{children}</Pop> : children;
+}
 
 // Under the Quests card: the latest unlock earned (the goal stays on the Rewards card).
 export function RewardRow() {
@@ -52,7 +77,9 @@ export function RewardRow() {
       accessibilityLabel={`Unlocked: ${latest}`}
       style={{ flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 44 }}
     >
-      <Icon name="ribbon" size={22} color={c.blue} />
+      <PopOn on={latest}>
+        <Icon name="ribbon" size={22} color={c.blue} />
+      </PopOn>
       <Label style={{ flex: 1, fontWeight: '600' }}>{`Unlocked: ${latest}`}</Label>
     </View>
   );
@@ -82,18 +109,19 @@ export default function Rewards({ style }: { style?: StyleProp<ViewStyle> }) {
           <Label>{goal}</Label>
           <View style={{ flexDirection: 'row', gap: 6 }}>
             {Array.from({ length: total }, (_, i) => (
-              <View
-                key={i}
-                style={{
-                  width: 10,
-                  height: 10,
-                  borderRadius: 5,
-                  // Unfilled: a ring in secondary text color (divider is ~1.2:1, WCAG 1.4.11 wants 3:1).
-                  borderWidth: 1.5,
-                  borderColor: i < r.confirmedMeetups ? c.blue : c.secondary,
-                  backgroundColor: i < r.confirmedMeetups ? c.blue : 'transparent',
-                }}
-              />
+              <PopOn key={i} on={i < r.confirmedMeetups} quiet>
+                <View
+                  style={{
+                    width: 10,
+                    height: 10,
+                    borderRadius: 5,
+                    // Unfilled: a ring in secondary text color (divider is ~1.2:1, WCAG 1.4.11 wants 3:1).
+                    borderWidth: 1.5,
+                    borderColor: i < r.confirmedMeetups ? c.blue : c.secondary,
+                    backgroundColor: i < r.confirmedMeetups ? c.blue : 'transparent',
+                  }}
+                />
+              </PopOn>
             ))}
           </View>
         </View>
@@ -106,7 +134,9 @@ export default function Rewards({ style }: { style?: StyleProp<ViewStyle> }) {
       )}
       {regular && (
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-          <Icon name="ribbon-outline" size={17} color={c.blue} />
+          <PopOn on={regular}>
+            <Icon name="ribbon-outline" size={17} color={c.blue} />
+          </PopOn>
           <Label style={{ fontWeight: '600' }}>Regular</Label>
         </View>
       )}
