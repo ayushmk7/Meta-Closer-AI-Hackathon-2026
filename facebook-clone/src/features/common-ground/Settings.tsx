@@ -249,7 +249,7 @@ export default function SettingsScreen() {
       {/* Web: the Shell's back row already shows the screen title. */}
       {Platform.OS !== 'web' && <Title>Settings</Title>}
       {available.length > 1 && (
-        <Section title="Mode">
+        <Section title="Where Muse looks">
           <PillRow
             items={available.map((m) => m.label)}
             value={modes.find((m) => m.mode === me.mode)?.label ?? ''}
