@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useDemo } from '../../core/store';
-import { menuItems } from '../../extensions/registry';
+import { menuItems, tabs } from '../../extensions/registry';
 import { Avatar, Icon, Nav, PageTitle } from '../../ui/Controls.web';
 export default function MenuScreen() {
   const { seed, person } = useDemo();
@@ -26,6 +26,10 @@ export default function MenuScreen() {
       <div className="menu-grid">
         {menuItems
           .filter((item) => !['profile', 'settings'].includes(item.id))
+          // A feature's own tab destination (Plans) leads the Menu.
+          .sort(
+            (a, b) => +tabs.some((t) => t.href === b.href) - +tabs.some((t) => t.href === a.href),
+          )
           .map((item) => (
             <Nav href={item.href} key={item.id} className="card menu-tile">
               <span className={`rail-icon rail-${item.id}`}>

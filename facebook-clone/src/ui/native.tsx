@@ -12,6 +12,7 @@ import {
   Text,
   TextInput,
   View,
+  useWindowDimensions,
   type StyleProp,
   type TextInputProps,
   type TextProps,
@@ -357,17 +358,17 @@ export function Sheet({
   children: ReactNode;
 }) {
   const c = useColors();
-  const web = Platform.OS === 'web';
-  // Facebook pattern: a centred dialog on web, a content-height bottom sheet on phone.
+  // Facebook pattern: a centred dialog on wide screens, a full-width bottom sheet below 600px.
+  const dialog = useWindowDimensions().width >= 600;
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={{
           flex: 1,
-          justifyContent: web ? 'center' : 'flex-end',
+          justifyContent: dialog ? 'center' : 'flex-end',
           alignItems: 'center',
-          padding: web ? 16 : 0,
+          padding: dialog ? 16 : 0,
           paddingTop: 60,
         }}
       >
@@ -377,13 +378,13 @@ export function Sheet({
           style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.4)' }]}
         />
         <SafeAreaView
-          edges={web ? [] : ['bottom']}
+          edges={dialog ? [] : ['bottom']}
           style={{
             width: '100%',
-            maxWidth: web ? 500 : undefined,
+            maxWidth: dialog ? 500 : undefined,
             maxHeight: '100%',
             backgroundColor: c.card,
-            borderRadius: web ? 8 : 0,
+            borderRadius: dialog ? 8 : 0,
             borderTopLeftRadius: 8,
             borderTopRightRadius: 8,
             overflow: 'hidden',

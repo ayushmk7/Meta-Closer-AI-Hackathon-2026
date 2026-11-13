@@ -465,4 +465,6 @@ test('mobile web keeps Menu selected on contributed-tab routes', async ({ page }
     const nav = page.getByRole('navigation', { name: 'Mobile navigation' });
     await expect(nav.locator('a.active')).toHaveAttribute('href', '/menu');
   }
+  await page.goto('/menu');
+  await expect(page.locator('.menu-tile').first()).toHaveAttribute('href', '/common-ground');
 });
