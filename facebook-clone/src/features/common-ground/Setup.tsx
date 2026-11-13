@@ -58,8 +58,8 @@ function Intro({ onNext }: { onNext(): void }) {
           }}
         >
           <Label>
-            Tell me what you want to do. I&apos;ll find the plan and the people and handle the rest.
-            You just show up.
+            Tell me what you want to do. I&apos;ll find the meetup and the people and handle the
+            rest. You just show up.
           </Label>
         </View>
       </View>
@@ -237,7 +237,7 @@ function Preferences({ edits, onDone }: { edits: Edits; onDone(): void }) {
       )}
       <MusePermissions />
       <View style={{ paddingHorizontal: 16 }}>
-        <Button title="Find plans" disabled={saving} onPress={() => void done()} />
+        <Button title="Find meetups" disabled={saving} onPress={() => void done()} />
       </View>
     </>
   );

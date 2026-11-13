@@ -26,7 +26,7 @@ type Titler = (s: CgState, p: Record<string, string | undefined>) => string | un
 function BackRow({ title }: { title: Titler }) {
   const c = useColors();
   const params = useLocalSearchParams<Record<string, string>>();
-  const text = useCg((s) => title(s, params)) ?? 'Plans';
+  const text = useCg((s) => title(s, params)) ?? 'Meetups';
   return (
     <View
       style={{
@@ -68,9 +68,9 @@ const named =
     name;
 export const PlansScreen = page(Plans, null);
 // Plan and meetup show their title as a hero, so the row says Plans (no doubled title).
-export const PlanScreen = page(Plan, named('Plans'));
-export const SetupScreen = page(Setup, named('Plans'));
-export const MeetupScreen = page(Meetup, named('Plans'));
+export const PlanScreen = page(Plan, named('Meetups'));
+export const SetupScreen = page(Setup, named('Meetups'));
+export const MeetupScreen = page(Meetup, named('Meetups'));
 // Chat draws its own Messenger header (back, avatars, title, See plan): no BackRow here.
 export const ChatScreen = page(Chat, null);
 export const PersonScreen = page(Person, named('Profile'));

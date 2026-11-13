@@ -171,7 +171,7 @@ test('Explore filters by activity and neighborhood', async () => {
   for (const p of people) expect(text()).not.toContain(p);
 });
 
-test('Welcome: read-only gallery, Log in and Create new account enter Plans', async () => {
+test('Welcome: read-only gallery, Log in and Create new account enter Meetups', async () => {
   const list = jest.spyOn(api, 'listShares');
   const { text, press, has } = await render(React.createElement(WelcomeScreen));
   expect(list).toHaveBeenCalledWith({}, { anonymous: true }); // logged out: no X-CG-User

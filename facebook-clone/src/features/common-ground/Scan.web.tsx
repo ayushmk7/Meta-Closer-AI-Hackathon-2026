@@ -21,8 +21,8 @@ import type { VerifyResult } from './types';
 import { Banners, NotFound, personName, usePoll } from './ui';
 
 const REASON: Record<string, string> = {
-  invalid_code: "That code doesn't match anyone on this plan.",
-  not_attendee: "That person isn't on this plan.",
+  invalid_code: "That code doesn't match anyone in this meetup.",
+  not_attendee: "That person isn't in this meetup.",
   outside_window: 'Codes work only around the meetup time.',
   self: "That's your own code. Scan theirs instead.",
 };
@@ -149,7 +149,7 @@ export function ScanPage({
             </Pressable>
           </View>
         )}
-        {done && <Button title="See plan" onPress={() => router.back()} />}
+        {done && <Button title="See meetup" onPress={() => router.back()} />}
       </Card>
     </Page>
   );

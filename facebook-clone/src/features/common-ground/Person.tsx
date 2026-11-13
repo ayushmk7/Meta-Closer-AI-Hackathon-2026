@@ -69,7 +69,7 @@ export default function PersonScreen() {
         <Muted>
           {together
             ? `${together} ${together === 1 ? 'meetup' : 'meetups'} together`
-            : 'You met through Plans'}
+            : 'You met through Meetups'}
         </Muted>
         {profile.sharedInterests.length > 0 && (
           <>
@@ -79,8 +79,8 @@ export default function PersonScreen() {
         )}
         {connection?.canPlanAgain && (
           <Button
-            title="Plan something again"
-            accessibilityLabel={`Plan something again with ${first}`}
+            title="Meet up again"
+            accessibilityLabel={`Meet up again with ${first}`}
             onPress={() => router.navigate(`/common-ground?with=${encodeURIComponent(userId)}`)}
           />
         )}

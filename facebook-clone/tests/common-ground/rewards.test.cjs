@@ -72,11 +72,11 @@ test('shows next unlock, dots, streak, Regular badge and the privacy line', asyn
     rewards: {
       confirmedMeetups: 0,
       streakWeeks: 3,
-      nextUnlock: { unlockId: 'create_plans', label: 'Create your own plans', remaining: 1 },
+      nextUnlock: { unlockId: 'create_plans', label: 'Create your own meetups', remaining: 1 },
     },
   });
   const r1 = await render(React.createElement(Rewards));
-  expect(r1.text()).toContain('1 more meetup to create your own plans');
+  expect(r1.text()).toContain('1 more meetup to create your own meetups');
   expect(r1.text()).toContain('3-week streak');
   expect(r1.text()).toContain('Only you can see this.');
   expect(r1.text()).not.toContain('Regular');
@@ -99,7 +99,7 @@ test('renders nothing when all unlocked, no streak and no Regular', async () => 
   expect(tree.toJSON()).toBeNull();
 });
 
-test('Plan it again next week creates the same plan 7 days later, only once feedback is in', async () => {
+test('Meet up again next week creates the same plan 7 days later, only once feedback is in', async () => {
   const m = { ...fixtures.getMeetup, status: 'completed', feedbackDue: false };
   const can = { ...fixtures.getMe.capabilities, canCreatePlans: true };
   await setMe({ capabilities: { ...can, canCreatePlans: false } });
@@ -122,7 +122,7 @@ test('Plan it again next week creates the same plan 7 days later, only once feed
   const create = jest.spyOn(api, 'createPlan').mockResolvedValue(fixtures.createPlan);
   const { tree } = await render(React.createElement(SameTimeNextWeek, { m }));
   const btn = tree.root.find(
-    (n) => n.props.accessibilityLabel === 'Plan it again next week' && n.props.onPress,
+    (n) => n.props.accessibilityLabel === 'Meet up again next week' && n.props.onPress,
   );
   await renderer.act(async () => btn.props.onPress());
   // fixture starts Sat Nov 14 10 AM PT -> Sat Nov 21 (when() drops ":00", UX guide 1.1).

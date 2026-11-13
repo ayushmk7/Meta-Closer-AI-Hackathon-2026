@@ -11,7 +11,7 @@ export { PopOn };
 const s = (n: number) => (n === 1 ? '' : 's');
 const goalText = (next: { unlockId: string; label: string; remaining: number }) =>
   `${next.remaining} more meetup${s(next.remaining)} to ${
-    next.unlockId === 'create_plans' ? 'create your own plans' : `unlock ${next.label}`
+    next.unlockId === 'create_plans' ? 'create your own meetups' : `unlock ${next.label}`
   }`;
 // ms the TZ wall clock is ahead of UTC at instant t (negative in LA).
 const wall = new Intl.DateTimeFormat('en-US', {
@@ -45,7 +45,7 @@ export function RewardRow() {
   const latest = unlocks?.length
     ? [...unlocks].sort((a, b) => a.earnedAt.localeCompare(b.earnedAt)).at(-1)!.label
     : canCreate // the mock flips this without adding an Unlock
-      ? 'Create your own plans'
+      ? 'Create your own meetups'
       : null;
   if (!latest) return null;
   return (
@@ -138,7 +138,7 @@ export function SameTimeNextWeek({ m }: { m: Meetup }) {
   };
   return (
     <Button
-      title="Plan it again next week"
+      title="Meet up again next week"
       icon="repeat-outline"
       disabled={busy}
       onPress={() => void onPress()}

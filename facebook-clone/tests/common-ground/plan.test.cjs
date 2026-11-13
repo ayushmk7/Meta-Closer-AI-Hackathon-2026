@@ -146,7 +146,7 @@ test('interested and full count: Muse is forming the group', async () => {
   expect(text()).toContain("You're in. Muse is forming your group.");
 });
 
-test('matched: See plan goes to the meetup', async () => {
+test('matched: See meetup goes to the meetup', async () => {
   const { router } = require('expo-router');
   const m = fixtures.getMeetup;
   const going = m.attendees.filter((a) => a.rsvp === 'going').length;
@@ -156,7 +156,7 @@ test('matched: See plan goes to the meetup', async () => {
   });
   const { text, press } = await render(bar({ myJoin: { joinId: 'jn_0001', status: 'matched' } }));
   expect(text()).toContain(`Your group is set · ${going} going`);
-  await press('See plan');
+  await press('See meetup');
   expect(router.push).toHaveBeenCalledWith('/common-ground/meetup/mt_x');
 });
 
@@ -173,7 +173,7 @@ test('Surprise me plan: Try another replaces with a different pick', async () =>
 
 test('full and not joined: status as muted text', async () => {
   const { text, has } = await render(bar({ myJoin: null, status: 'full' }));
-  expect(text()).toContain('This plan is full');
+  expect(text()).toContain('This meetup is full');
   expect(has("I'm in")).toBe(false);
 });
 

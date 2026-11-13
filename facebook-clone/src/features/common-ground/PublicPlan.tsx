@@ -103,9 +103,12 @@ export default function PublicPlanScreen() {
         <TopBar />
         {shown === null ? (
           <Card style={{ margin: 16 }}>
-            <Empty title="This plan isn't available" message="See what people are doing instead." />
+            <Empty
+              title="This meetup isn't available"
+              message="See what people are doing instead."
+            />
             <View style={{ padding: 16 }}>
-              <Button title="See plans" onPress={welcome} />
+              <Button title="See meetups" onPress={welcome} />
             </View>
           </Card>
         ) : (
@@ -131,7 +134,7 @@ export default function PublicPlanScreen() {
               >
                 {!open && (
                   <Muted style={{ textAlign: 'center' }}>
-                    {shown.status === 'full' ? 'This plan is full.' : 'This plan has closed.'}
+                    {shown.status === 'full' ? 'This meetup is full.' : 'This meetup has closed.'}
                   </Muted>
                 )}
                 {open ? (
@@ -140,7 +143,7 @@ export default function PublicPlanScreen() {
                     onPress={() => router.replace(`/common-ground/plan/${shown.planId}`)}
                   />
                 ) : (
-                  <Button title="See more plans" onPress={welcome} />
+                  <Button title="See more meetups" onPress={welcome} />
                 )}
                 {sharing && (
                   <Button

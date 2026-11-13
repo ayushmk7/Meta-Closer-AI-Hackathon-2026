@@ -127,26 +127,26 @@ test('public plan page: no count line at 0, Empty on 404, not available when sha
   expect(zero.text()).not.toContain('people are in');
   mockParams.planId = 'pl_nope';
   const gone = await render(React.createElement(PublicPlan));
-  expect(gone.text()).toContain("This plan isn't available");
+  expect(gone.text()).toContain("This meetup isn't available");
   expect(gone.text()).not.toContain('Log in to join');
   sharingOff();
   mockParams.planId = 'pl_0001';
   const off = await render(React.createElement(PublicPlan));
-  expect(off.text()).toContain("This plan isn't available");
+  expect(off.text()).toContain("This meetup isn't available");
   sharingOn();
 });
 
-test('plan pop-up: Share plan sends title, time, neighborhood and the link; hidden when off', async () => {
+test('plan pop-up: Share meetup sends title, time, neighborhood and the link; hidden when off', async () => {
   sharingOn();
   mockParams.planId = 'pl_0001';
   const { press, has } = await render(React.createElement(PlanScreen));
   const spy = shareSpy();
-  await press('Share plan');
+  await press('Share meetup');
   const { message } = spy.mock.calls[0][0];
   expect(message).toContain('app:///common-ground/shared/pl_0001');
   for (const p of people) expect(message).not.toContain(p);
   await renderer.act(async () => sharingOff());
-  expect(has('Share plan')).toBe(false);
+  expect(has('Share meetup')).toBe(false);
   sharingOn();
 });
 

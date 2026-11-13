@@ -32,7 +32,7 @@ export default function ExploreScreen() {
       {/* Web: the Shell's back row already shows the screen title. */}
       {Platform.OS !== 'web' && <Title>Explore</Title>}
       <Muted style={{ paddingHorizontal: 16, marginTop: Platform.OS === 'web' ? 8 : -16 }}>
-        Plans people nearby went to. No names or faces.
+        Meetups people nearby went to. No names or faces.
       </Muted>
       <Card style={{ paddingTop: 12 }}>
         <Chips

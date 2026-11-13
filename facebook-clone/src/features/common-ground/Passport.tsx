@@ -246,8 +246,8 @@ export default function PassportScreen() {
       <Muted style={{ paddingHorizontal: 16 }}>Only you can see this.</Muted>
       {!all.length && (
         <Card style={{ marginHorizontal: 16, paddingBottom: 16, alignItems: 'center' }}>
-          <Empty title="No stamps yet" message="Join a plan to see what you can collect." />
-          <Button title="See plans" secondary onPress={() => router.push('/common-ground')} />
+          <Empty title="No stamps yet" message="Join a meetup to see what you can collect." />
+          <Button title="See meetups" secondary onPress={() => router.push('/common-ground')} />
         </Card>
       )}
       {SECTIONS.map(({ kind, title }) => {

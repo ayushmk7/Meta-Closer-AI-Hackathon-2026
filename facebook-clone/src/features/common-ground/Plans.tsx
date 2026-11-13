@@ -49,7 +49,7 @@ export function NudgeCard({ nudge }: { nudge: Nudge }) {
       {/* Skip the Because line when the body already says it. */}
       {because && !nudge.text.includes(because.label) && <Muted>Because: {because.label}</Muted>}
       <View style={{ flexDirection: 'row', gap: 8 }}>
-        <Button title="See plan" onPress={() => openPlan(nudge)} style={{ flex: 1 }} />
+        <Button title="See meetup" onPress={() => openPlan(nudge)} style={{ flex: 1 }} />
         <Button
           title="Not now"
           secondary
@@ -139,7 +139,7 @@ function YourPlanRow({ join, meetup }: { join?: Join; meetup?: Meetup }) {
     meetup?.title ??
     join?.plan?.title ??
     (join && (plans[join.planId] ?? feed.find((p) => p.planId === join.planId))?.title) ??
-    'Your plan';
+    'Your meetup';
   const openMeetup = meetup && (() => go(`/common-ground/meetup/${meetup.meetupId}`));
   if (meetup?.status === 'completed' && meetup.feedbackDue)
     return <Row title={title} lines={['How was it?']} onPress={openMeetup} />;
@@ -261,17 +261,17 @@ export default function PlansScreen() {
             aside={
               <IconButton
                 name="settings-outline"
-                label="Plans settings"
+                label="Meetups settings"
                 onPress={() => go('/common-ground/settings')}
               />
             }
           >
-            Plans
+            Meetups
           </Title>
         )}
         <MuseBar
           key={invite?.connectionId ?? 'ask'}
-          prefill={invite ? `Plan something with ${firstName(invite)}…` : undefined}
+          prefill={invite ? `Meet up with ${firstName(invite)}…` : undefined}
           inviteUserIds={invite ? [invite.person.userId] : undefined}
           onEndInvite={endInvite}
         />
@@ -285,7 +285,7 @@ export default function PlansScreen() {
         {!invite && <Quests />}
         {(sorted.length > 0 || orphans.length > 0) && (
           <>
-            <Section title="Your plans" />
+            <Section title="Your meetups" />
             <Card style={{ marginHorizontal: 16 }}>
               <View style={{ marginTop: -StyleSheet.hairlineWidth }}>
                 {sorted.map((j, i) => (
@@ -346,7 +346,7 @@ export default function PlansScreen() {
             <InterestChips interests={sheet.sharedInterests} />
             {sheet.canPlanAgain && (
               <Button
-                title="Plan something again"
+                title="Meet up again"
                 onPress={() => {
                   setAgain(sheet);
                   setSheet(null);

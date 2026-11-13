@@ -211,7 +211,7 @@ test('a cancelled meetup shows no day-of actions', async () => {
   m.status = 'cancelled';
   m.checkinWindow = { opensAt: m.startsAt, closesAt: m.endsAt };
   const { byLabel, text } = await show(m);
-  expect(text()).toContain('This plan was cancelled');
+  expect(text()).toContain('This meetup was cancelled');
   expect(byLabel('Coming soon: Muse will soon call venues to book for you')).toBeUndefined();
   expect(byLabel('On my way')).toBeUndefined();
   expect(byLabel('Check in')).toBeUndefined();

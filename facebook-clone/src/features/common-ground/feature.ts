@@ -14,7 +14,7 @@ export const commonGroundFeature: FeatureDefinition = {
   tabs: [
     {
       id: 'common-ground',
-      label: 'Plans',
+      label: 'Meetups',
       href: '/common-ground',
       icon: 'sparkles-outline',
       activeIcon: 'sparkles',
@@ -22,7 +22,7 @@ export const commonGroundFeature: FeatureDefinition = {
       useBadge,
       headerAction: {
         icon: 'settings-outline',
-        label: 'Plans settings',
+        label: 'Meetups settings',
         href: '/common-ground/settings',
       },
     },
@@ -30,14 +30,14 @@ export const commonGroundFeature: FeatureDefinition = {
   menuItems: [
     {
       id: 'common-ground',
-      label: 'Plans',
+      label: 'Meetups',
       icon: 'sparkles-outline',
       href: '/common-ground',
-      description: "Plans with people who are into what you're into",
+      description: "Meet up with people who are into what you're into",
     },
   ],
   homeSections: [{ id: 'common-ground-home', Component: HomeSection }],
-  inboxSources: [{ id: 'common-ground', label: 'Plans', useRows: useInboxRows }],
+  inboxSources: [{ id: 'common-ground', label: 'Meetups', useRows: useInboxRows }],
   eventSources: [{ id: 'common-ground', label: 'Planned with Muse', useRows: useEventRows }],
   resetHooks: [{ id: 'common-ground', run: reset }],
 };

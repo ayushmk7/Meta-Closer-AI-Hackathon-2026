@@ -69,7 +69,7 @@ const PAYMENT: Record<string, string> = {
 const REASON: Record<string, string> = {
   outside_geofence: "You don't seem to be at the venue yet.",
   outside_window: "Check-in isn't open yet.",
-  not_attendee: "You're not on this plan.",
+  not_attendee: "You're not in this meetup.",
 };
 const put = (m: Meetup) => setState({ meetups: { ...getState().meetups, [m.meetupId]: m } });
 // iOS calshow takes seconds since 2001-01-01.
@@ -247,7 +247,7 @@ export default function MeetupScreen() {
     return (
       <Page>
         <Banners />
-        {ready && <NotFound title="This plan isn't available" />}
+        {ready && <NotFound title="This meetup isn't available" />}
       </Page>
     );
 
@@ -348,9 +348,9 @@ export default function MeetupScreen() {
             ))}
           {!!m.eventLabel && <Muted>{m.eventLabel}</Muted>}
           {m.status === 'cancelled' && (
-            <Label style={{ fontWeight: '700' }}>This plan was cancelled</Label>
+            <Label style={{ fontWeight: '700' }}>This meetup was cancelled</Label>
           )}
-          {left && <Label style={{ fontWeight: '700' }}>You left this plan</Label>}
+          {left && <Label style={{ fontWeight: '700' }}>You left this meetup</Label>}
           <View
             accessible
             accessibilityLabel={`${going.length} going`}

@@ -140,7 +140,7 @@ function StepsAttachment({ meetupId, stepIds }: { meetupId: string; stepIds: str
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityHint="Opens the plan"
+      accessibilityHint="Opens the meetup"
       onPress={() => go(`/common-ground/meetup/${meetupId}`)}
       style={{ backgroundColor: c.input, borderRadius: 8, padding: 12, gap: 6 }}
     >
@@ -346,7 +346,7 @@ export default function ChatScreen() {
     void sendMessage(threadId, text, { toMuse });
     setToMuse(false);
   };
-  // Messenger-style single header: (web) back arrow, avatar stack, title, "See plan".
+  // Messenger-style single header: (web) back arrow, avatar stack, title, "See meetup".
   // On web this is the back row; native keeps the stack header's back button above it.
   const header = thread && (
     <View
@@ -369,7 +369,7 @@ export default function ChatScreen() {
       <Pressable
         disabled={!thread.meetupId}
         accessibilityRole="button"
-        accessibilityLabel={`${thread.title}, see plan`}
+        accessibilityLabel={`${thread.title}, see meetup`}
         onPress={() => go(`/common-ground/meetup/${thread.meetupId}`)}
         style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 44 }}
       >
@@ -392,7 +392,7 @@ export default function ChatScreen() {
           <Label style={{ fontWeight: '700' }} numberOfLines={1}>
             {thread.title}
           </Label>
-          {!!thread.meetupId && <Muted>See plan</Muted>}
+          {!!thread.meetupId && <Muted>See meetup</Muted>}
         </View>
       </Pressable>
     </View>

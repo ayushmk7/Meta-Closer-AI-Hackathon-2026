@@ -190,7 +190,7 @@ const detailOf = (card: PlanCard): PlanDetail => {
     safety: [
       'Public place',
       `Groups of ${card.size.min} or more`,
-      'Share your plan with a friend in one tap',
+      'Share your meetup with a friend in one tap',
     ],
     formsAt: iso(Date.parse(card.startsAt) - 86_400_000),
     alternatives: [],
@@ -226,7 +226,7 @@ function world() {
         // Seeded so the progress card has history on stage; the staged meetup adds one.
         confirmedMeetups: 2,
         streakWeeks: 2,
-        nextUnlock: { unlockId: 'create_plans', label: 'Create your own plans', remaining: 1 },
+        nextUnlock: { unlockId: 'create_plans', label: 'Create your own meetups', remaining: 1 },
       },
     } as Me,
     setup: clone(F.getSetup),
@@ -270,7 +270,7 @@ export function resetMock(): void {
 
 const gate = () => {
   if (!w.me.optedIn)
-    throw new MockError(403, 'not_opted_in', 'Turn on Common Ground to see plans.');
+    throw new MockError(403, 'not_opted_in', 'Turn on Common Ground to see meetups.');
 };
 const withJoin = <T extends PlanCard>(p: T): T => {
   const j = w.joins[p.planId];
@@ -467,7 +467,7 @@ on('POST', '/v1/plans', (_, b) => {
   const p: PlanDetail = {
     ...clone(F.getPlan),
     planId: nextId('pl_'),
-    title: String(b?.text ?? 'A new plan'),
+    title: String(b?.text ?? 'A new meetup'),
     origin: (b?.inviteUserIds as string[] | undefined)?.length ? 'invite' : 'user',
     myJoin: null,
   };
@@ -509,7 +509,7 @@ on('POST', '/v1/plans/{id}/join', ([id], b) => {
   const p = plan(id);
   const existing = w.joins[id];
   if (existing && existing.status !== 'withdrawn') return existing;
-  if (p.status !== 'open') throw new MockError(409, 'conflict', 'This plan is closed.');
+  if (p.status !== 'open') throw new MockError(409, 'conflict', 'This meetup is closed.');
   const size = (b?.size as GroupSize | undefined) ?? p.size;
   const j: Join =
     id === F.joinPlan.planId
@@ -668,7 +668,7 @@ on('PUT', '/v1/shares/{id}/like', ([id], b) => {
 on('POST', '/v1/meetups/{id}/share', ([id], b) => {
   const m = meetup(id);
   if (m.status !== 'completed' || mine(m).rsvp !== 'going')
-    throw new MockError(422, 'screened', 'You can share a plan after you have been to it.');
+    throw new MockError(422, 'screened', "You can share a meetup once you've been to it.");
   const x: Share = {
     shareId: nextId('sh_'),
     activityType: m.activityType,
