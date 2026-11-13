@@ -13,6 +13,7 @@ import {
   type Quest,
   type QuestLog,
 } from './questLog';
+import { RewardRow } from './Rewards';
 import { QUESTS_KEY, getState, useCg } from './store';
 
 function box() {
@@ -29,11 +30,14 @@ async function readAll(): Promise<Record<string, QuestLog>> {
     return {}; // unreadable: start fresh
   }
 }
-async function readLog(userId: string, today: string): Promise<QuestLog> {
+// Demo: the staged meetup jumps the clock days ahead, so the quest day stays at the Reset demo
+// day instead of rolling over (Reset demo clears the log). today = null means "don't roll".
+const demoDay = () => !!getState().config?.demo?.enabled;
+async function readLog(userId: string, today: string | null): Promise<QuestLog> {
   const x = (await readAll())[userId];
-  return typeof x?.day === 'string' && typeof x.streak === 'number'
-    ? rollover(x, today)
-    : emptyLog(today);
+  if (typeof x?.day !== 'string' || typeof x.streak !== 'number')
+    return emptyLog(today ?? laDay(Date.now()));
+  return today ? rollover(x, today) : x;
 }
 const writeLog = async (userId: string, log: QuestLog) => {
   try {
@@ -47,7 +51,7 @@ let push: ((log: QuestLog) => void) | null = null; // the mounted card, if any
 async function note(patch: Partial<QuestLog>): Promise<void> {
   const userId = getState().me?.userId;
   if (!userId) return;
-  const log = { ...(await readLog(userId, laDay(Date.now()))), ...patch };
+  const log = { ...(await readLog(userId, demoDay() ? null : laDay(Date.now()))), ...patch };
   await writeLog(userId, log);
   push?.(log);
 }
@@ -89,7 +93,9 @@ export default function Quests() {
     const t = setInterval(() => tick((n) => n + 1), 60_000);
     return () => clearInterval(t);
   }, []);
-  const today = laDay(Date.now());
+  const demo = useCg((st) => !!st.config?.demo?.enabled);
+  const wallToday = laDay(Date.now());
+  const today = demo && stored ? stored.day : wallToday;
   const verifiedAt = Object.values(meetups)
     .filter((m) => m.attendees.some((a) => a.isMe && a.verified))
     .map((m) => m.meetupId);
@@ -103,13 +109,13 @@ export default function Quests() {
     if (!myId) return;
     let live = true;
     setLog(null);
-    void readLog(myId, today).then((l) => live && setLog(l));
+    void readLog(myId, demo ? null : wallToday).then((l) => live && setLog(l));
     push = setLog;
     return () => {
       live = false;
       push = null;
     };
-  }, [myId, today]);
+  }, [myId, wallToday, demo]);
   const list = log ? quests(log, joins, messages, myId, today) : [];
   const anyDone = list.some((q) => q.done);
   useEffect(() => {
@@ -148,6 +154,7 @@ export default function Quests() {
           onPress={q.id === 'talk' ? () => save({ ...log, talked: !log.talked }) : undefined}
         />
       ))}
+      <RewardRow />
     </Card>
   );
 }
