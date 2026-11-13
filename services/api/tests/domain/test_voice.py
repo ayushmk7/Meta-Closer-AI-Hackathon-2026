@@ -13,4 +13,5 @@ def test_error_messages_follow_the_voice():
     for name, m in msgs:
         assert not re.search(r"\bI\b|\bI'", m), (name, m)  # chrome speaks about Muse, never as "I"
         assert m.endswith((".", "?")) and "!" not in m, (name, m)
+        assert m[0].isupper() or m[0] == "{", (name, m)  # sentence case ("{" = an f-string slot first)
         assert not re.search(r"\b(Could not|cannot|do not|does not|is not)\b", m), (name, m)  # contractions

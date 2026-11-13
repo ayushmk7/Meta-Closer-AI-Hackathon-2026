@@ -71,12 +71,12 @@ def join(w: World, viewer: str, plan_id: str, size: dict | None = None) -> dict:
         isinstance(size, dict)
         and type(size.get("min")) is int
         and type(size.get("max")) is int
-        and 2 <= size["min"] <= size["max"] <= w.params["groups"]["sizeMax"]
+        and w.params["groups"]["strangerSizeMin"] <= size["min"] <= size["max"] <= w.params["groups"]["sizeMax"]
     ):
         raise Fail(
             400,
             "validation_failed",
-            f"That group size doesn't work. Pick between 2 and {w.params['groups']['sizeMax']}.",
+            f"That group size doesn't work. Pick between {w.params['groups']['strangerSizeMin']} and {w.params['groups']['sizeMax']}.",
         )
     open_n = sum(1 for x in w.joins.values() if x["userId"] == viewer and x["status"] == "interested")
     if open_n >= w.params["plans"]["openJoinsMax"]:

@@ -188,7 +188,7 @@ def like(w: World, viewer: str, share_id: str, liked) -> dict:
     if not s or w.venues[s["venueId"]].get("sensitive"):
         raise not_found("page")
     if not isinstance(liked, bool):
-        raise Fail(400, "validation_failed", "liked must be true or false.")
+        raise Fail(400, "validation_failed", "Couldn't save that like. Try again.")
     if liked and viewer not in s["likers"]:
         s["likers"].add(viewer)
         if viewer not in s.setdefault("rewarded", set()):  # unlike + like again can't farm prefs
