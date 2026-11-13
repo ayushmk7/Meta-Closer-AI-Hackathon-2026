@@ -228,6 +228,18 @@ test('IdeasRow: compact cards from the gallery; See all opens Explore', async ()
   expect(router.push).toHaveBeenCalledWith('/common-ground/explore');
 });
 
+test('IdeasRow: photo-less shares are left out (Explore still lists them)', async () => {
+  const IdeasRow = require('../../src/features/common-ground/IdeasRow').default;
+  const before = shares();
+  const a = before[0];
+  const b = { ...a, shareId: 'sh_nophoto', caption: 'No photo here', photoUrl: null };
+  await renderer.act(async () => store.setState({ shares: [b, a] }));
+  const { text } = await render(React.createElement(IdeasRow));
+  expect(text()).not.toContain(b.caption);
+  expect(text()).toContain(a.caption);
+  await renderer.act(async () => store.setState({ shares: before }));
+});
+
 test('Plan something like this: a second tap while in flight is dropped', async () => {
   const { planFromShare } = require('../../src/features/common-ground/ShareCard');
   let resolve;

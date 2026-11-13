@@ -11,7 +11,9 @@ export default function IdeasRow() {
   useEffect(() => {
     if (!shares.length) void load.shares();
   }, [shares.length]);
-  if (!shares.length) return null;
+  // A teaser row: photo cards only (a placeholder reads as a failed image). Explore lists all.
+  const shown = shares.filter((s) => s.photoUrl).slice(0, 6);
+  if (!shown.length) return null;
   return (
     <View style={{ gap: 8 }}>
       <View
@@ -34,7 +36,7 @@ export default function IdeasRow() {
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={{ paddingHorizontal: 16, gap: 12 }}
       >
-        {shares.slice(0, 6).map((s) => (
+        {shown.map((s) => (
           <Pressable
             key={s.shareId}
             accessibilityRole="button"
