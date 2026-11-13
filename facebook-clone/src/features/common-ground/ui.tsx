@@ -120,19 +120,33 @@ export function PersonAvatar({ person, size = 40 }: { person: PersonCard; size?:
         style={box}
       />
     );
+  const lock = Math.max(14, Math.round(size * 0.38));
   return (
     <View
       accessible
       accessibilityLabel={personName(person)}
-      style={[box, { alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }]}
+      style={[box, { alignItems: 'center', justifyContent: 'center' }]}
     >
-      {person.profileVisibility === 'private' ? (
-        // Facebook's default avatar: a gray person silhouette, no initials.
-        <Icon name="person" size={Math.round(size * 0.6)} color={c.secondary} />
-      ) : (
-        <Label style={{ fontWeight: '700', fontSize: Math.round(size * 0.36) }}>
-          {person.initials}
-        </Label>
+      <Label style={{ fontWeight: '700', fontSize: Math.round(size * 0.36) }}>
+        {person.initials}
+      </Label>
+      {person.profileVisibility === 'private' && (
+        // Private profile: initials on the usual circle plus a small lock badge.
+        <View
+          style={{
+            position: 'absolute',
+            right: -2,
+            bottom: -2,
+            width: lock,
+            height: lock,
+            borderRadius: lock / 2,
+            backgroundColor: c.card,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Icon name="lock-closed" size={Math.round(lock * 0.62)} color={c.secondary} />
+        </View>
       )}
     </View>
   );

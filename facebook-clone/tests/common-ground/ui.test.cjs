@@ -56,7 +56,7 @@ test('a display Pill reads as text; a tappable one as a selectable button', () =
   expect([tap.accessibilityRole, tap.accessibilityState]).toEqual(['button', { selected: true }]);
 });
 
-test('a private person shows the gray silhouette, never initials or a blur', () => {
+test('a private person keeps initials on the circle, with a lock badge and no blur', () => {
   const { PersonAvatar } = require('../../src/features/common-ground/ui');
   let r;
   renderer.act(() => {
@@ -71,7 +71,7 @@ test('a private person shows the gray silhouette, never initials or a blur', () 
       }),
     );
   });
-  expect(r.root.findAllByType('Icon').map((i) => i.props.name)).toEqual(['person']);
+  expect(r.root.findAllByType('Icon').map((i) => i.props.name)).toEqual(['lock-closed']);
   expect(r.root.findAllByType('BlurView')).toHaveLength(0);
-  expect(JSON.stringify(r.toJSON())).not.toContain('"R"');
+  expect(JSON.stringify(r.toJSON())).toContain('"R"');
 });

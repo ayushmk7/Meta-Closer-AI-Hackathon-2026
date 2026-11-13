@@ -67,10 +67,10 @@ const named =
   () =>
     name;
 export const PlansScreen = page(Plans, null);
-// Plan and meetup show their title as a hero, so the row just says Back.
-export const PlanScreen = page(Plan, named('Back'));
+// Plan and meetup show their title as a hero, so the row says Plans (no doubled title).
+export const PlanScreen = page(Plan, named('Plans'));
 export const SetupScreen = page(Setup, named('Plans'));
-export const MeetupScreen = page(Meetup, named('Back'));
+export const MeetupScreen = page(Meetup, named('Plans'));
 export const ChatScreen = page(
   Chat,
   (s, p) => s.threads.find((t) => t.threadId === p.threadId)?.title,

@@ -110,7 +110,20 @@ const extraShares: [string, string, string, string, string, number, string, stri
     'Strategy games at Long Table Games',
   ],
 ];
+// Bundled clone images per venue (D5: no network). A venue uses the first; shares at the same
+// venue rotate through the list so the gallery never repeats a photo back to back.
+const VENUE_PHOTOS: Record<string, string[]> = {
+  vn_hayes_clay: ['pottery', 'paintbrushes'],
+  vn_lands_end: ['coast-1', 'coast-2', 'coast-3'],
+  vn_long_table: ['cafe', 'coffee'],
+  vn_basalt_bouldering: ['city-street', 'city-bridge'],
+};
+const sharePhoto = (venueId: string, nth: number): string | null => {
+  const list = VENUE_PHOTOS[venueId];
+  return list ? `asset:${list[nth % list.length]}` : null;
+};
 function seedShares(): Share[] {
+  const seen: Record<string, number> = {};
   return [
     ...clone(F.listShares.items),
     ...extraShares.map(
@@ -131,7 +144,13 @@ function seedShares(): Share[] {
         promptText,
       }),
     ),
-  ];
+  ].map((x) => ({
+    ...x,
+    photoUrl: sharePhoto(
+      x.venue.venueId,
+      (seen[x.venue.venueId] = (seen[x.venue.venueId] ?? -1) + 1),
+    ),
+  }));
 }
 const now = () => new Date().toISOString();
 const iso = (ms: number) => new Date(ms).toISOString();
@@ -593,7 +612,10 @@ on('POST', '/v1/meetups/{id}/share', ([id], b) => {
     },
     groupSize: m.attendees.filter((a) => a.rsvp === 'going').length,
     happenedOn: new Date(m.startsAt).toLocaleDateString('en-CA', { timeZone: TZ }), // LA date
-    photoUrl: m.venue.photoUrl ?? null,
+    photoUrl: sharePhoto(
+      m.venue.venueId,
+      w.shares.filter((s) => s.venue.venueId === m.venue.venueId).length,
+    ),
     likes: 0,
     likedByMe: false,
     mine: true,
@@ -741,18 +763,12 @@ export function tick(t = Date.now()): void {
   }
 }
 
-const VENUE_PHOTOS: Record<string, string> = {
-  vn_hayes_clay: 'pottery',
-  vn_lands_end: 'coast-1',
-  vn_long_table: 'cafe',
-  vn_basalt_bouldering: 'city-street',
-};
 function offline(_: string, v: unknown): unknown {
   if (typeof v === 'string') return /^https?:\/\/localhost\b/.test(v) ? null : v;
   if (v && typeof v === 'object' && 'photoUrl' in v) {
     const x = v as { photoUrl: unknown; venueId?: string; venue?: { venueId?: string } };
-    const photo = VENUE_PHOTOS[x.venueId ?? x.venue?.venueId ?? ''];
-    if (photo && !x.photoUrl) x.photoUrl = `asset:${photo}`;
+    const photo = sharePhoto(x.venueId ?? x.venue?.venueId ?? '', 0);
+    if (photo && !x.photoUrl) x.photoUrl = photo;
   }
   return v;
 }
