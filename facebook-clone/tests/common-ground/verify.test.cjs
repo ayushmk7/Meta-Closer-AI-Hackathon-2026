@@ -137,7 +137,7 @@ test('typed code: trimmed, upper-cased, sent once; accepted shows who', async ()
   expect(verify).toHaveBeenCalledTimes(1);
   expect(verify).toHaveBeenCalledWith('mt_0001', 'DAN042');
   expect(text()).toContain('You and Daniel are verified.');
-  expect(text()).toContain('Back to the plan');
+  expect(text()).toContain('See plan');
   // Done: no field, no Verify, so a second submit can't verify the next attendee.
   expect(tree.root.findAll((n) => n.props.accessibilityLabel === 'Their code')).toHaveLength(0);
   expect(tree.root.findAll((n) => n.props.accessibilityLabel === 'Verify')).toHaveLength(0);

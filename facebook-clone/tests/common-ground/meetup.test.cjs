@@ -299,3 +299,12 @@ test('a pending approval keeps Open group chat secondary (Review payment is the 
   );
   expect(JSON.stringify(chat.props.style)).toContain('#F0F2F5'); // c.input = secondary fill
 });
+
+test('photo hero; the address is the Directions link; approval sheet says Approve payment', async () => {
+  const { tree, byLabel, press, text } = await show(clone(F.getMeetup));
+  expect(tree.root.findAll((n) => n.type === 'Image').length).toBeGreaterThan(0);
+  expect(tree.root.findAll((n) => n.type === 'MapView')).toHaveLength(0);
+  expect(byLabel('Directions').props.accessibilityHint).toBe('Hayes St, San Francisco');
+  await press('Review: OK $35 for your wheel?');
+  expect(text()).toContain('Approve payment');
+});

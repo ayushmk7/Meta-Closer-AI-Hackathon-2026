@@ -20,10 +20,10 @@ import FeedbackExtras, { type Extras } from './FeedbackExtras';
 import ShareMeetup from './ShareMeetup';
 import VerifyButton from './VerifyButton';
 import StepTimeline from './StepTimeline';
-import VenueMap from './VenueMap';
+import { PlanPhoto } from './PlanCard';
 import { api } from './api';
 import { act, currentLocation, leaveMeetup, load, setState, getState, useCg } from './store';
-import { TZ, type Attendee, type Feedback, type Meetup } from './types';
+import { TZ, type Attendee, type Feedback, type Meetup, type PlanCard } from './types';
 import {
   Banners,
   clock,
@@ -261,6 +261,7 @@ export default function MeetupScreen() {
   // A step waiting on me keeps the timeline open, or its linked approval would show nowhere.
   const showSteps =
     m.status !== 'confirmed' || stepsOpen || m.museSteps.some((s) => s.status === 'needs_you');
+  const address = m.venue.address ?? null;
   const pendingApproval = m.approvals.some((a) => a.status === 'pending');
   const linked = new Set(m.museSteps.map((s) => s.approvalId).filter(Boolean));
   const loose = m.approvals.filter((a) => a.status === 'pending' && !linked.has(a.approvalId));
@@ -299,7 +300,12 @@ export default function MeetupScreen() {
     <Page>
       <Banners />
       <Card>
-        <VenueMap venue={m.venue} />
+        {/* Web has no map: the venue is one row under the venue line instead of a hero tile. */}
+        {/* Same photo hero as the plan pop-up. ponytail: PlanPhoto reads only venue + activityType. */}
+        <PlanPhoto
+          plan={{ venue: m.venue, activityType: m.activityType } as PlanCard}
+          height={200}
+        />
         <View style={{ padding: 16, gap: 6 }}>
           <Label style={{ color: c.badge, fontWeight: '700', fontSize: 13 }}>
             {when(m.startsAt).toUpperCase()}
@@ -311,6 +317,22 @@ export default function MeetupScreen() {
             {m.title}
           </Label>
           <Muted>{[m.venue.name, m.venue.neighborhood].filter(Boolean).join(' · ')}</Muted>
+          {!!address &&
+            (!web && m.travel ? (
+              // The address is the Directions link (C4: opens the server URL on tap only).
+              <Pressable
+                accessibilityRole="link"
+                accessibilityLabel="Directions"
+                accessibilityHint={address}
+                onPress={() => openDirections(m)}
+                style={{ minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 6 }}
+              >
+                <Icon name="navigate-outline" size={16} color={c.blue} />
+                <Label style={{ color: c.blue, fontWeight: '600', flexShrink: 1 }}>{address}</Label>
+              </Pressable>
+            ) : (
+              <Muted>{address}</Muted>
+            ))}
           {!!m.eventLabel && <Muted>{m.eventLabel}</Muted>}
           {m.status === 'cancelled' && (
             <Label style={{ fontWeight: '700' }}>This plan was cancelled</Label>
@@ -420,27 +442,16 @@ export default function MeetupScreen() {
             <Muted>Leave by {clock(m.travel.leaveBy)}</Muted>
           </Row>
         )}
-        <View style={{ flexDirection: 'row', gap: 8 }}>
-          {!web && m.travel && (
-            <Button
-              title="Directions"
-              icon="navigate"
-              style={{ flex: 1 }}
-              onPress={() => openDirections(m)}
-            />
-          )}
-          <Button
-            title="Share"
-            icon="share-outline"
-            secondary
-            style={{ flex: 1 }}
-            onPress={() =>
-              void Share.share({
-                message: `${m.title} · ${when(m.startsAt)} · ${m.venue.name}`,
-              }).catch(() => {})
-            }
-          />
-        </View>
+        <Button
+          title="Share"
+          icon="share-outline"
+          secondary
+          onPress={() =>
+            void Share.share({
+              message: `${m.title} · ${when(m.startsAt)} · ${m.venue.name}`,
+            }).catch(() => {})
+          }
+        />
       </Section>
 
       {(dayOf || canCheckIn) && (

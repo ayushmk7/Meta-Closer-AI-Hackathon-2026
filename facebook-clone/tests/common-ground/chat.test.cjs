@@ -189,7 +189,7 @@ test('header falls back to getThread; others get avatar + first name on the firs
   const list = [daniel, { ...daniel, messageId: 'ms_d2', text: 'Mugs too.' }];
   const { byLabel, text, tree } = await show(list);
   expect(get).toHaveBeenCalledWith('th_0001');
-  expect(byLabel('Wheel-throwing drop-in, open the plan')).toBeTruthy();
+  expect(byLabel('Wheel-throwing drop-in, see plan')).toBeTruthy();
   expect(text().match(/"Daniel"/g)).toHaveLength(1);
   expect(
     tree.root.findAll((n) => n.props.accessibilityLabel === 'Daniel Okafor').length,

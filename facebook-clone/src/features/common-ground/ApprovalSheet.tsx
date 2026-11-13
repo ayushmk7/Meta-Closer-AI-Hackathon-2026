@@ -56,7 +56,11 @@ export default function ApprovalSheet({ approval: a }: { approval: Approval }) {
       ) : (
         <Muted>{DONE[a.status] ?? a.status}</Muted>
       )}
-      <Sheet visible={open} title="Muse needs your OK" onClose={close}>
+      <Sheet
+        visible={open}
+        title={a.kind === 'payment' ? 'Approve payment' : 'Muse needs your OK'}
+        onClose={close}
+      >
         <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
           <Label accessibilityRole="header" style={{ fontSize: 17, fontWeight: '700' }}>
             {a.title}
@@ -70,9 +74,7 @@ export default function ApprovalSheet({ approval: a }: { approval: Approval }) {
           >
             <Label style={{ fontSize: 28, lineHeight: 34, fontWeight: '800' }}>{amountOf(a)}</Label>
             {!!a.payee && <Muted>{`To ${a.payee}`}</Muted>}
-            {a.simulated && (
-              <Label style={{ fontWeight: '600' }}>Demo payment · no real money moves</Label>
-            )}
+            {a.simulated && <Muted>Demo payment · no real money moves</Muted>}
           </View>
           {!!a.fallback && <Muted>{a.fallback}</Muted>}
           <Button
