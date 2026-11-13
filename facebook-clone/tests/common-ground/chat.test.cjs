@@ -219,3 +219,21 @@ test('opening a chat clears its unread count even when the thread list answers l
   await renderer.act(() => new Promise((r) => setTimeout(r, 5)));
   expect(store.getState().threads[0].unreadCount).toBe(0);
 });
+
+test('polls that return the same data do not re-render the open chat', async () => {
+  let commits = 0;
+  const list = msgs();
+  store.setState({ messages: { th_0001: list }, drafts: {} });
+  jest.spyOn(api, 'listMessages').mockImplementation(async () => clone(list));
+  jest.spyOn(api, 'markThreadRead').mockResolvedValue(undefined);
+  jest.spyOn(api, 'getMeetup').mockResolvedValue(clone(F.getMeetup));
+  await render(
+    React.createElement(React.Profiler, { id: 'chat', onRender: () => commits++ }, [
+      React.createElement(Chat.default, { key: 'c' }),
+    ]),
+  );
+  await renderer.act(() => new Promise((r) => setTimeout(r, 5)));
+  const settled = commits;
+  for (let i = 0; i < 5; i++) await renderer.act(() => store.load.messages('th_0001'));
+  expect(commits - settled).toBe(0);
+});

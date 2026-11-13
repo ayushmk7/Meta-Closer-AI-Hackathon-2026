@@ -150,6 +150,7 @@ export function getState(): CgState {
 }
 export function setState(patch: Partial<CgState>): void {
   const prev = state;
+  if (Object.keys(patch).length === 0) return;
   state = { ...state, ...patch };
   notify();
   if (PREFS.some((k) => k in patch && patch[k] !== prev[k])) persist();
@@ -177,6 +178,14 @@ function withPending(threadId: string, items: Message[]) {
   );
   return { ...state.messages, [threadId]: [...items, ...pending] };
 }
+// Polls mostly return what we already hold: keep those references so useCg readers don't re-render.
+function changed(patch: Partial<CgState>): Partial<CgState> {
+  const out: Partial<CgState> = {};
+  for (const [k, v] of Object.entries(patch) as [keyof CgState, unknown][])
+    if (v !== state[k] && JSON.stringify(v) !== JSON.stringify(state[k]))
+      (out as Record<string, unknown>)[k] = v;
+  return out;
+}
 // Bumped by reset/setIdentity so in-flight work for the old identity is dropped.
 let gen = 0;
 function loader<A extends unknown[]>(get: (...args: A) => Promise<Partial<CgState> | null>) {
@@ -185,7 +194,7 @@ function loader<A extends unknown[]>(get: (...args: A) => Promise<Partial<CgStat
     try {
       const patch = await get(...args);
       // Drop responses from before a reset/identity switch; a success clears the error banner.
-      if (g === gen) setState({ ...patch, error: null });
+      if (g === gen) setState(changed({ ...patch, error: null }));
     } catch (e) {
       if (g === gen) fail(e, () => void run(...args));
     }
