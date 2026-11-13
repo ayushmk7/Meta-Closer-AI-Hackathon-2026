@@ -120,7 +120,7 @@ function StampTile({ stamp, i, fresh }: { stamp: Stamp; i: number; fresh: boolea
       entering={enter(Math.min(i, 8))}
       accessible
       accessibilityLabel={`${stamp.label}, ${on ? `collected ${stamp.earnedOn ?? ''}`.trim() : 'not collected yet'}`}
-      style={{ width: 96, alignItems: 'center', gap: 6 }}
+      style={{ width: '33.33%', alignItems: 'center', gap: 6 }}
     >
       {fresh ? <Pop>{stampArt}</Pop> : stampArt}
       <Label
@@ -260,7 +260,8 @@ export default function PassportScreen() {
               </Label>
               <Muted>{`${items.filter((x) => x.earned).length} of ${items.length}`}</Muted>
             </View>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
+            {/* Three equal columns across the card; partial last rows stay aligned. */}
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', rowGap: 12 }}>
               {items.map((x, i) => (
                 <StampTile
                   key={x.key}
