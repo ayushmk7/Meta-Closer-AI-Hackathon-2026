@@ -31,12 +31,14 @@ jest.mock('react-native-reanimated', () => ({
 }));
 jest.mock('expo-camera', () => ({
   CameraView: 'CameraView',
-  useCameraPermissions: () => [
-    mockPermission.current,
-    async () => (mockPermission.current = { granted: true, canAskAgain: true }),
-  ],
+  // Like the real hook: state that the request updates. `answer` is what the user taps.
+  useCameraPermissions: () => {
+    const [p, setP] = require('react').useState(mockPermission.initial);
+    return [p, async () => (setP(mockPermission.answer), mockPermission.answer)];
+  },
 }));
-const mockPermission = { current: { granted: false, canAskAgain: true } };
+const GRANTED = { granted: true, canAskAgain: true };
+const mockPermission = { initial: { granted: false, canAskAgain: true }, answer: GRANTED };
 jest.mock('react-native-maps', () => ({ __esModule: true, default: 'MapView', Marker: 'Marker' }));
 jest.mock('../../src/platform/scopedStorage', () => {
   let saved = null;
@@ -180,4 +182,15 @@ test('no code for this plan shows not found', async () => {
   confirmed({ verifyCode: null });
   const { text } = await render(React.createElement(ScanWeb.default));
   expect(text()).toContain("There's no code for this plan");
+});
+
+test('native: a denied camera stays closed and points to typed entry', async () => {
+  confirmed();
+  mockPermission.answer = { granted: false, canAskAgain: false };
+  const { tree, press, text, byLabel } = await render(React.createElement(Scan.default));
+  await press('Open camera');
+  expect(tree.root.findAll((x) => x.type === 'CameraView')).toHaveLength(0);
+  expect(text()).toContain('Camera is off for this app. Type their code below instead.');
+  expect(byLabel('Their code')).toBeTruthy();
+  mockPermission.answer = GRANTED;
 });
