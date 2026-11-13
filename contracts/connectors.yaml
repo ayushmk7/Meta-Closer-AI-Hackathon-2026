@@ -30,8 +30,11 @@ providers:
     reads: "When you're busy. Never what your events are."
     recordKinds: [busy]
     signalKinds: []
-    simulated: true
+    simulated: true           # false in listConnectors for a user with a linked real account (CONTRACTS Decisions)
     status: available
+    notes: >-
+      Live when the demo operator linked a Google account for this user (CONNECTORS_LIVE=1): free/busy only,
+      primary calendar. Otherwise seeded busy records.
 
   strava:
     label: "Strava"
