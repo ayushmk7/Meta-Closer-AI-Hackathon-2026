@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import {
   ActivityIndicator,
+  Platform,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -254,17 +255,20 @@ export default function PlansScreen() {
           />
         }
       >
-        <Title
-          aside={
-            <IconButton
-              name="settings-outline"
-              label="Plans settings"
-              onPress={() => go('/common-ground/settings')}
-            />
-          }
-        >
-          Plans
-        </Title>
+        {/* Native: the shell top bar shows "Plans" and the gear (feature.ts headerAction). */}
+        {Platform.OS === 'web' && (
+          <Title
+            aside={
+              <IconButton
+                name="settings-outline"
+                label="Plans settings"
+                onPress={() => go('/common-ground/settings')}
+              />
+            }
+          >
+            Plans
+          </Title>
+        )}
         <MuseBar
           key={invite?.connectionId ?? 'ask'}
           prefill={invite ? `Plan something with ${firstName(invite)}…` : undefined}

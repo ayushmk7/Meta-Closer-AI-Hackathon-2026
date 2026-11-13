@@ -10,6 +10,7 @@ Milestone: v2 M2 device layer (A2, `cg/ios/v2-m2-device`)
 - 2026-11-12 batch4 motion (`cg/ios/batch4-motion`): `ui.tsx` exports `enter(i)`, `PressScale`, `Skeleton`, `Pop`, `MuseThinking` (all reduce-motion aware; only Skeleton loops); Pill uses PressScale. Jest tests mock reanimated via `tests/common-ground/reanimated.cjs`.
 - 2026-11-12 batch4 plans (`cg/ios/batch4-plans`): Muse bar shows `MuseThinking` + two PlanCard skeletons while asking/creating; reply and plan cards stagger in (native only: Reanimated web pins `enter()`'s custom keyframes to `position:absolute`); PlanCard presses with PressScale; "You're in." pops after I'm in; Connectors drop demo labels.
 - 2026-11-12 batch4 meetup (`cg/ios/batch4-meetup`): done step checks and Like pop; steps and new chat messages enter with `enter()` (not initial history); Muse typing bubble while a toMuse send is pending; demo labels removed from approvals and booking details (C8 amount + payee kept); "Coming soon" call-venues teaser under the booking row.
+- 2026-11-12 batch4 header (`cg/ios/b4-tab-header`): Plans tab registers `headerAction` (gear -> settings); native drops the in-screen "Plans" + gear row since the shell top bar now shows both, so the Muse bar sits under the top bar. Web keeps the row (web shell draws no tab title).
 
 ## Decisions
 
