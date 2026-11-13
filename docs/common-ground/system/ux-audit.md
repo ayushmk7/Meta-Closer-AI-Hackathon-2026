@@ -2,7 +2,7 @@
 
 A design-quality review of the Common Ground feature inside the Facebook clone: does it read as one Facebook feature (uniformity), and is each screen easy to use (UX). Each is scored 1 to 10 per screen; the bar was 9 on both.
 
-**Result on main `d95ded7`: Uniformity 9.0, UX 9.0** on native iOS, up from 7.0 and 6.9. Read the limits under Method before relying on it: the last screenshot set was partly covered by a system prompt, and several states were never seen on native.
+**Result on main `d95ded7`: Uniformity 9.0, UX 9.0** on native iOS, up from 7.0 and 6.9. The final score was read from one clean native set of 14 screens in light and 14 in app dark. Several states were never seen on native; see the limits under Method.
 
 ## Method
 
@@ -16,10 +16,10 @@ A design-quality review of the Common Ground feature inside the Facebook clone: 
 
 Limits of the method:
 
-- The simulator could not be scrolled or tapped. Native shots are the first viewport only. Content below the fold, the approval sheet, the feedback form, the call card, the Muse reply and thinking states, the group-size sheet and the keyboard were judged on web or from code, never on native.
+- Until the final set the simulator could not be scrolled or tapped, and even there only one screen was scrolled. Native shots are otherwise the first viewport only. Content below the fold, the approval sheet, the feedback form, the call card, the Muse reply and thinking states, the group-size sheet and the keyboard were judged on web or from code, never on native.
 - Scores are one reviewer's judgment, not a measurement. The measurements below are separate and were taken by the Playwright script or read off @2x screenshots.
-- Light mode was scored on every pass. App dark mode was reviewed in full once (pass 4) and spot-checked on four screens of the final set (Meetups home, Settings, Verify, Passport), with the same prompt over them.
-- Every shot in the final set (`*-ios-v2.png`) has the iOS "Expo Go would like to send you notifications" prompt over the middle third of the screen, and the page is dimmed behind it. The top and bottom of each screen are visible; the covered part was last seen clean one or two passes earlier (5:22 to 5:38) and the merges since then did not touch it. The final 9.0 / 9.0 is a judgment across those two sets, not a read of one clean set.
+- Light mode was scored on every pass. App dark mode was reviewed in full twice: pass 4 and the final set.
+- The final set (`*-ios-v2.png` and `*-ios-v2-appdark.png`, 06:08 to 06:13, main `d95ded7`, Maya set up and joined to two meetups) is clean: real data, no system prompt, no setup gate. It includes one natively scrolled shot (Meetups home at "Your progress"). An earlier v2 run had the iOS notification prompt over every screen and was replaced.
 
 ## Scores
 
@@ -95,8 +95,9 @@ Screenshots for every pass are outside the repo, on the machine that ran the aud
 
 ## Open
 
-Nothing from the fix list is open. What remains is verification:
+| # | What | Why it matters | Smallest fix | Owner |
+| --- | --- | --- | --- | --- |
+| 1 | The shared page of a closed meetup still says "4 people are in · 4 spots left" above "This meetup has closed." | Contradicts itself | Hide the crowd line when the public plan is not open | ios (or backend: omit the counts) |
+| 2 | In light mode the off-switch track is a dark gray (5.67:1), heavier than a stock iOS switch | Visible, but could read as "on" at a glance | Lighten toward 3:1 if anyone misreads it in a dry run | ios |
 
-**TODO:** a clean native set on current main (dismiss the notification prompt first); native review of the states listed under Method (below the fold, approval sheet, feedback form, call card, Muse reply and thinking, group-size sheet, keyboard); app dark mode on every screen after the last fixes.
-
-One thing to watch: the off-switch track is now a dark gray (5.67:1). It is clearly visible, and heavier than a stock iOS switch; lighten it toward 3:1 if it reads as "on" to anyone in a dry run.
+**TODO:** native review of the states listed under Method (below the fold on Plan, Meetup and Chat, approval sheet, feedback form, call card, Muse reply and thinking, group-size sheet, keyboard).
