@@ -105,17 +105,22 @@ function toError(status: number, json: unknown): CgError {
   );
 }
 
+export interface RequestOptions {
+  anonymous?: boolean;
+}
 async function request<T>(
   operationId: string,
   method: string,
   path: string,
   body?: unknown,
   timeoutMs = 10_000,
+  // anonymous: no X-CG-User (logged-out views; only `security: []` operations allow it).
+  { anonymous = false }: RequestOptions = {},
 ): Promise<T> {
   let json: unknown;
   if (MOCK) {
     try {
-      json = await mockRequest(getUser(), method, path, body);
+      json = await mockRequest(anonymous ? '' : getUser(), method, path, body);
     } catch (e) {
       throw toError((e as { status?: number }).status ?? 500, e);
     }
@@ -126,7 +131,7 @@ async function request<T>(
       const res = await fetch(BASE + path, {
         method,
         headers: {
-          'X-CG-User': getUser(),
+          ...(anonymous ? {} : { 'X-CG-User': getUser() }),
           ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
         },
         body: body === undefined ? undefined : JSON.stringify(body),
@@ -152,6 +157,13 @@ async function request<T>(
   const decode = decoders[operationId] as ((json: unknown) => unknown) | undefined;
   return (decode && json !== undefined ? decode(json) : json) as T;
 }
+// Stable query string for a share filter (also the store's cache key).
+export const shareQuery = (filter: ShareFilter): string =>
+  new URLSearchParams(
+    Object.entries(filter)
+      .filter((kv): kv is [string, string] => !!kv[1])
+      .sort(([a], [b]) => a.localeCompare(b)),
+  ).toString();
 const items = <T>(p: Promise<{ items: T[] }>) => p.then((r) => r.items);
 const e = encodeURIComponent;
 const LONG = 30_000; // CONTRACTS §3 rule 9
@@ -260,11 +272,18 @@ export const api = {
   report: (body: ReportRequest) =>
     request<{ reportId: string }>('report', 'POST', '/v1/reports', body),
   block: (userId: string) => request<void>('block', 'POST', '/v1/blocks', { userId }),
-  listShares: (filter: ShareFilter = {}) => {
-    const q = new URLSearchParams(
-      Object.entries(filter).filter((kv): kv is [string, string] => !!kv[1]),
-    ).toString();
-    return items(request<{ items: Share[] }>('listShares', 'GET', `/v1/shares${q ? `?${q}` : ''}`));
+  listShares: (filter: ShareFilter = {}, opts: RequestOptions = {}) => {
+    const q = shareQuery(filter);
+    return items(
+      request<{ items: Share[] }>(
+        'listShares',
+        'GET',
+        `/v1/shares${q ? `?${q}` : ''}`,
+        undefined,
+        undefined,
+        opts,
+      ),
+    );
   },
   shareMeetup: (meetupId: string, caption: string) =>
     request<Share>('shareMeetup', 'POST', `/v1/meetups/${e(meetupId)}/share`, { caption }),

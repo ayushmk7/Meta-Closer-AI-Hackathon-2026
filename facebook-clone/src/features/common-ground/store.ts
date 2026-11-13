@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useSyncExternalStore } from 'react';
 import type { StorageAdapter } from '../../core/persistence';
 import type { ExternalRow } from '../../extensions/types';
-import { api, getUser, setUser } from './api';
+import { api, getUser, setUser, shareQuery, type RequestOptions } from './api';
 import { TZ } from './types';
 import { resetMock } from './mock';
 import { startCalendar, wipeCalendar } from './calendar';
@@ -58,7 +58,9 @@ export interface CgState {
   approvals: Approval[];
   nudges: Nudge[];
   connections: Connection[];
-  shares: Share[]; // anonymous gallery (Explore, Welcome, Ideas)
+  shares: Share[]; // the unfiltered anonymous gallery (Explore, Welcome, Ideas)
+  sharesBy: Record<string, Share[]>; // filtered loads, keyed by shareQuery(filter)
+  publicShares: Share[]; // logged-out gallery (anonymous listShares)
   people: Record<string, PublicProfile>;
   threads: Thread[];
   messages: Record<string, Message[]>;
@@ -103,6 +105,8 @@ const initial = (): CgState => ({
   nudges: [],
   connections: [],
   shares: [],
+  sharesBy: {},
+  publicShares: [],
   people: {},
   threads: [],
   messages: {},
@@ -206,7 +210,16 @@ export const load = {
     state.config?.features.nudges ? { nudges: await api.listNudges() } : { nudges: [] },
   ),
   connections: loader(async () => ({ connections: await api.listConnections() })),
-  shares: loader(async (filter: ShareFilter = {}) => ({ shares: await api.listShares(filter) })),
+  // Signed in: an empty filter fills `shares`, any other lands in `sharesBy[shareQuery]`.
+  // `anonymous` (no X-CG-User, logged-out Welcome) fills `publicShares` and `sharesBy['anon:…']`,
+  // so it never overwrites the signed-in likedByMe/mine.
+  shares: loader(async (filter: ShareFilter = {}, opts: RequestOptions = {}) => {
+    const key = (opts.anonymous ? 'anon:' : '') + shareQuery(filter);
+    const items = await api.listShares(filter, opts);
+    if (key === '') return { shares: items };
+    if (key === 'anon:') return { publicShares: items };
+    return { sharesBy: { ...state.sharesBy, [key]: items } };
+  }),
   person: loader(async (userId: string) => {
     const p = await api.getPerson(userId);
     return { people: { ...state.people, [userId]: p } };
@@ -396,17 +409,30 @@ export async function createPlan(
 }
 
 // ---- Shares and verification ----
+// Patch a share in the gallery and in every filtered list holding it.
+const swapIn = (list: Share[], x: Share) => list.map((s) => (s.shareId === x.shareId ? x : s));
 const putShare = (x: Share) =>
-  setState({ shares: state.shares.map((s) => (s.shareId === x.shareId ? x : s)) });
+  setState({
+    shares: swapIn(state.shares, x),
+    sharesBy: Object.fromEntries(
+      Object.entries(state.sharesBy).map(([k, list]) => [k, swapIn(list, x)]),
+    ),
+  });
+const findShare = (shareId: string) =>
+  [state.shares, ...Object.values(state.sharesBy)].flat().find((s) => s.shareId === shareId);
+// Only the latest like/unlike per share may write its result (taps can resolve out of order).
+const likeSeq: Record<string, number> = {};
 // Optimistic like; the server's Share wins (or the old one comes back on failure).
 export async function likeShare(shareId: string, liked: boolean): Promise<Share | undefined> {
-  const before = state.shares.find((s) => s.shareId === shareId);
+  const n = (likeSeq[shareId] = (likeSeq[shareId] ?? 0) + 1);
+  const before = findShare(shareId);
   if (before && before.likedByMe !== liked)
     putShare({ ...before, likedByMe: liked, likes: before.likes + (liked ? 1 : -1) });
   const x = await act(
     () => api.likeShare(shareId, liked),
     () => likeShare(shareId, liked),
   );
+  if (n !== likeSeq[shareId]) return x; // a newer tap owns the state
   if (x) putShare(x);
   else if (before) putShare(before);
   return x;
@@ -414,7 +440,7 @@ export async function likeShare(shareId: string, liked: boolean): Promise<Share 
 export async function shareMeetup(meetupId: string, caption: string): Promise<Share | undefined> {
   const x = await act(
     () => api.shareMeetup(meetupId, caption),
-    () => shareMeetup(meetupId, caption),
+    null, // no idempotency key: never auto-retry into a duplicate public share
   );
   if (x) setState({ shares: [x, ...state.shares.filter((s) => s.shareId !== x.shareId)] });
   return x;
@@ -434,7 +460,7 @@ export async function verifyAttendee(
 // "Plan something like this": like it, then a new plan if I may create plans, else ask Muse.
 export async function planLikeThis(share: Share): Promise<PlanDetail | MuseReply | undefined> {
   if (!share.likedByMe) void likeShare(share.shareId, true);
-  return state.me?.capabilities.canCreatePlans
+  return state.config?.features.userPlans && state.me?.capabilities.canCreatePlans
     ? createPlan(share.promptText)
     : askMuse(share.promptText);
 }
