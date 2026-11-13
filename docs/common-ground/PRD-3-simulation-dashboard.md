@@ -57,7 +57,7 @@ Records for providers a persona has not connected may still exist (they become v
 
 **Maya** (`u_maya`, `cloneProfileId: "maya"`). Built from the clone's seed. Her activity is her posts, comments, Groups and Events in `facebook-clone/src/data/seed.ts` (read-only), translated to the activity schema. Her avatar is the clone's `assets/images/maya.jpg` (copy it and cite `facebook-clone/assets/provenance.md`). Her ground truth reflects those posts (coastal hikes, gardening, pottery and so on). Her `connectedProviders` is empty (she connects live), but she has seeded records ready for:
 
-- `google_maps`: at least 4 visits to Lands End Trail in the past 30 days (drives the nudge), a saved ceramics studio, and weekly visits to a meditation center (`sensitive: true`), so the demo shows one place auto-hidden.
+- `google_maps`: at least 4 visits to Little Fern Kitchen (fictional Hayes Valley restaurant) in the past 30 days (drives the nudge), a saved ceramics studio, and weekly visits to a meditation center (`sensitive: true`), so the demo shows one place auto-hidden.
 - `google_calendar`: busy blocks for her work week, leaving Saturday morning and Wednesday evening free, as the fallback when the stage phone's real calendar is empty.
 - `eventbrite`: one ticket to a show this month.
 
@@ -66,7 +66,7 @@ Maya is in the city pool; the backend lets her opt into the event pool too.
 **Demo identities and plans** (`demo.json`, both pools):
 
 - `heroPlanId`: a **prepaid** plan (it shows the payment approval) matching Maya's top interests (the reference is a Saturday 10 AM wheel-throwing drop-in at a fictional Hayes Valley studio, $35, size 3 to 5), within her travel limit, free in her fallback calendar, formed by Maya plus counterparts.
-- `nudgePlanId`: a **free** plan at Lands End Trail (a coastal walk) on a morning Maya is free.
+- `nudgePlanId`: a plan with no prepay (no approval) at Little Fern Kitchen, Maya's frequent place: Saturday 7 PM dinner, a table for 4.
 - `featuredPlanIds`: 3 to 8 plans for her first feed, in order, including the hero and nudge plans, all passing her hard filters.
 - `liveUserId`: a public profile sharing at least two of Maya's top interests, not in the hero plan's `seedJoinIds` (the second phone joins live). Must be in `counterpartIds`.
 - `privateCounterpartId`: a private profile sharing at least one interest, in the hero plan's `seedJoinIds`, so the group reveal shows a first-name-only person.

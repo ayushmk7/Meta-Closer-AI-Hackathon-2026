@@ -64,9 +64,9 @@ The whole feature is one screen, its own tab in the Facebook bottom bar between 
 │  Climb this weekend · Coffee · Run   │  prompt chips
 │  Muse is setting up 1 plan for you   │  live status
 ├──────────────────────────────────────┤
-│ ┌ Lands End on Saturday? ──────────┐ │  nudge (only when one exists)
-│ │ You've walked Lands End 4 times  │ │
-│ │ this month. 5 people want a …    │ │
+│ ┌ Little Fern Kitchen on Saturday? ┐ │  nudge (only when one exists)
+│ │ You've been there 4 times this   │ │
+│ │ month. 3 people are in. …        │ │
 │ └──────────────────────────────────┘ │
 ├──────────────────────────────────────┤
 │ For you                              │
@@ -92,7 +92,7 @@ The whole feature is one screen, its own tab in the Facebook bottom bar between 
 
 **Plan card** (carousel). Photo, title, venue, day and time, duration, cost, the checks Muse already ran (calendar fit, travel time, spots left), how many people are in, and Muse's one-line reason. Tapping a card expands it as a pop-up.
 
-**Expanded plan** (pop-up). Everything on the card, plus: a description, a small static map of the venue (the only map left), "Because" lines that name the signal behind the suggestion ("You've walked Lands End 4 times this month, from Google Maps"), who's in at a coarse level ("3 people · 2 also do ceramics", never names), **Muse will handle** (book 4 wheels, add it to your calendar, open the group chat, remind you when to leave), safety lines (public venue, share your plan with a friend), other times for the same plan, and **I'm in**. After you join, the button becomes "You're in · Muse is gathering people (3 of 4)" with "Can't make it" to withdraw quietly.
+**Expanded plan** (pop-up). Everything on the card, plus: a description, a small static map of the venue (the only map left), "Because" lines that name the signal behind the suggestion ("You've been to Little Fern Kitchen 4 times this month, from Google Maps"), who's in at a coarse level ("3 people · 2 also do ceramics", never names), **Muse will handle** (book 4 wheels, add it to your calendar, open the group chat, remind you when to leave), safety lines (public venue, share your plan with a friend), other times for the same plan, and **I'm in**. After you join, the button becomes "You're in · Muse is gathering people (3 of 4)" with "Can't make it" to withdraw quietly.
 
 **Your plans.** Each plan you joined, with its state: gathering ("waiting for 1 more"), Muse setting it up (live steps), confirmed (time, venue, open chat), or "didn't fill" with similar plans. Pending approvals show a badge here.
 
@@ -152,7 +152,7 @@ Connectors are opt-in, one toggle each, and each says what Muse reads. Disconnec
 | Connector | Muse reads | Signals | Example plan or nudge | Demo |
 | --- | --- | --- | --- | --- |
 | Device calendar | Start and end of events only, never titles | Free and busy | Only shows plans that fit; picks the time; writes holds and events | Real (`expo-calendar`) |
-| Google Maps | Places you visit often, saved places | `frequent_place`, `saved_place` | "You've walked Lands End 4 times this month" | Simulated |
+| Google Maps | Places you visit often, saved places | `frequent_place`, `saved_place` | "You've been to Little Fern Kitchen 4 times this month" | Simulated |
 | Google Calendar | Free and busy | Free and busy | Same as device calendar | Simulated |
 | Strava | Routines: activity, area, day, time | `routine` | "Sat 8 AM Crissy Field run, your pace" | Simulated |
 | Spotify | Top artists and genres | `artist` | "3 people are going to that show alone" | Simulated |
@@ -294,7 +294,7 @@ Unlocks through confirmed meetups (create your own plans at 1; bigger groups and
 | Time | On screen | What it proves |
 | --- | --- | --- |
 | 0:00 | The problem and the stat | Clear young-adult need |
-| 0:20 | iPhone, Facebook Home: Muse card "You've walked Lands End 4 times this month (Google Maps). 5 people want a Saturday coastal walk crew." | Proactive, from an integration, non-intrusive |
+| 0:20 | iPhone, Facebook Home: Muse card "You've been to Little Fern Kitchen 4 times this month (Google Maps). Saturday small plates is open. 3 people are in." Tap I'm in: Muse reserves it ("Reserved a table for 4 at Little Fern Kitchen · 7 PM"), no payment to OK | Proactive, from an integration, non-intrusive |
 | 0:40 | Plans tab setup glimpse: connected apps; what Muse picked up; one sensitive place auto-hidden with a lock | Integrations with consent; Laya protects her |
 | 1:00 | Muse bar: "pottery this weekend". Muse answers; card shows ✓ Fits your Saturday · 22 min by transit · $35. Open it: who's in (coarse), Muse will handle. Tap I'm in | One decision |
 | 1:40 | Second phone (or synthetic) joins; the group forms. Meetup screen: Muse's steps tick live; approval sheet "OK $35"; booked; the event appears in the iPhone's Calendar app; group chat opens with intro and starters | Visible AI doing the work |

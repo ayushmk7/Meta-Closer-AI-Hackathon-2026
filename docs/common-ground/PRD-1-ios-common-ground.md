@@ -11,7 +11,7 @@ Build Common Ground as one feature module of the Facebook clone: a **Plans** tab
 
 The demo runs on an iPhone in Expo Go. The judged moments you own:
 
-1. **Proactive entry.** Facebook Home shows Muse's nudge card ("You've walked Lands End 4 times this month…"). Tapping it opens the plan.
+1. **Proactive entry.** Facebook Home shows Muse's nudge card ("You've been to Little Fern Kitchen 4 times this month…"). Tapping it opens the plan.
 2. **Setup.** Connected apps with what each reads; what Muse picked up, with one sensitive place hidden behind a lock.
 3. **Muse bar.** "pottery this weekend" → Muse's answer and cards with ✓ Fits your Saturday · 22 min by transit · $35. Open the pop-up: who's in (coarse), Muse will handle, I'm in.
 4. **Visible agent.** The group forms; the meetup screen shows Muse's steps ticking live; the approval sheet ("OK $35"); the event appears in the iPhone's Calendar app; the group chat opens with Muse's intro and starters.
@@ -144,7 +144,7 @@ A short paged flow; Back works on every page.
 
 1. **Intro** (not opted in): Muse's two lines on how it works and the privacy promise ("People only see what you have in common, and only after a group forms."), the mode picker from `config.modes` (unavailable modes show "Coming soon"), Continue → `optIn`.
 2. **Connect your apps** (`features.connectors`): `listConnectors` as rows with label, `reads`, and a toggle (`connectConnector`, `disconnectConnector`; the calendar row runs §5.1). `coming_soon` rows are disabled. "Skip for now" is always available.
-3. **What Muse picked up:** `getSetup` (refetch after each connect). `museText`, then interests grouped by category as chips (show, hide, remove), each with its evidence on long-press or an info button. Sensitive ones arrive hidden with a lock and "Only you can see this". Then signals ("4 visits to Lands End Trail in October · Google Maps"), each hideable; sensitive signals show only as locked rows with their label.
+3. **What Muse picked up:** `getSetup` (refetch after each connect). `museText`, then interests grouped by category as chips (show, hide, remove), each with its evidence on long-press or an info button. Sensitive ones arrive hidden with a lock and "Only you can see this". Then signals ("4 visits to Little Fern Kitchen in October · Google Maps"), each hideable; sensitive signals show only as locked rows with their label.
 4. **Preferences:** profile public or private, group size (min and max within `limits`), how far you'll travel (minutes and modes), and, only when no calendar is connected, a coarse availability grid. With `features.autonomySettings`, a "What Muse can do without asking" section (§8.6). Done → `completeSetup` → Plans home.
 
 ### 8.6 Settings (`/common-ground/settings`)
