@@ -6,8 +6,11 @@ so a prompt about user Y shown to X can only contain what the caller already fil
 
 from __future__ import annotations
 
+import asyncio
+import hashlib
 import json
 import logging
+import time
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
@@ -199,27 +202,80 @@ VOICE = (
 )
 
 
-class MuseCopy:
-    """Implements ports.Copy; any Muse failure or over-long answer falls back to the template."""
+LIVE_BUDGET_S = 15  # interactive copy (intro): the app shows Muse's typing/step state meanwhile
+FILL_TIMEOUT_S = 30  # background fills; Meta's endpoint takes ~10 s and sheds load with 503s
 
-    def __init__(self, muse, contracts_dir=None):
+
+class MuseCopy:
+    """Implements ports.Copy. Never waits on Muse for feed/plan reasons, titles, setup review or nudges: those return
+    the template at once and fill a cache in the background (bounded concurrency, retry with backoff); later requests
+    get Muse's text. Only `intro` waits for Muse, up to LIVE_BUDGET_S. Any failure or over-long answer = template."""
+
+    def __init__(self, muse, contracts_dir=None, *, concurrency: int = 3, retries: int = 3, backoff_s: float = 2.0):
         self.muse = muse
         tax = taxonomy(contracts_dir) if contracts_dir else {}
         self.sensitive = {v["label"] for v in tax.values() if v["sensitive"]}
+        self.concurrency, self.retries, self.backoff_s = concurrency, retries, backoff_s
+        # ponytail: unbounded in-process cache keyed by prompt; a few thousand short strings for the demo pools
+        self.cache: dict[str, dict] = {}
+        self._pending: dict[str, asyncio.Task] = {}
+        self._failed: dict[str, float] = {}  # key -> monotonic time of the last failed fill
+        self._sem: asyncio.Semaphore | None = None
 
-    async def _ask(self, purpose: str, task: str, facts: dict, schema: dict = _TEXT) -> dict | None:
+    @staticmethod
+    def _messages(task: str, facts: dict) -> list[dict]:
+        return [
+            {"role": "system", "content": VOICE},
+            {"role": "user", "content": f"{task}\nFacts: {json.dumps(facts, ensure_ascii=False, sort_keys=True)}"},
+        ]
+
+    async def _ask(self, purpose: str, task: str, facts: dict, schema: dict = _TEXT, *, live: bool = False):
+        msgs = self._messages(task, facts)
+        if live:
+            try:
+                r = await self.muse.respond(purpose, msgs, schema=schema, effort="minimal", timeout_s=LIVE_BUDGET_S)
+                return r["json"]
+            except Unavailable:
+                return None
+        key = hashlib.sha256(f"{purpose}|{msgs[1]['content']}".encode()).hexdigest()
+        if key in self.cache:
+            return self.cache[key]
+        self._fill(key, purpose, msgs, schema)
+        return None  # template now; Muse's text on a later request
+
+    def _fill(self, key: str, purpose: str, msgs: list[dict], schema: dict) -> None:
+        if key in self._pending or time.monotonic() - self._failed.get(key, -1e9) < 60:
+            return
         try:
-            r = await self.muse.respond(
-                purpose,
-                [
-                    {"role": "system", "content": VOICE},
-                    {"role": "user", "content": f"{task}\nFacts: {json.dumps(facts, ensure_ascii=False)}"},
-                ],
-                schema=schema,
-            )
-            return r["json"]
-        except Unavailable:
-            return None
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            return  # no loop (pure tests, sync callers): template only
+        self._pending[key] = loop.create_task(self._fill_task(key, purpose, msgs, schema))
+
+    async def drain(self) -> None:
+        """Wait for every background fill (tests, and seed-load warmup)."""
+        while self._pending:
+            await asyncio.gather(*self._pending.values(), return_exceptions=True)
+
+    async def _fill_task(self, key: str, purpose: str, msgs: list[dict], schema: dict) -> None:
+        self._sem = self._sem or asyncio.Semaphore(self.concurrency)
+        try:
+            for attempt in range(self.retries):
+                try:
+                    async with self._sem:
+                        r = await self.muse.respond(
+                            purpose, msgs, schema=schema, effort="minimal", timeout_s=FILL_TIMEOUT_S
+                        )
+                    if isinstance(r.get("json"), dict):
+                        self.cache[key] = r["json"]
+                    return
+                except Unavailable:  # 503 overloaded, timeout, MUSE_FAKE: back off, then give up for 60 s
+                    if getattr(self.muse, "fake", False):
+                        break
+                    await asyncio.sleep(self.backoff_s * 2**attempt)
+            self._failed[key] = time.monotonic()
+        finally:
+            self._pending.pop(key, None)
 
     async def _text(self, purpose, task, facts, fallback: str, limit: int) -> str:
         j = await self._ask(purpose, task, facts)
@@ -262,6 +318,7 @@ class MuseCopy:
             'booking and the calendar." Give 3 conversation starters under 90 characters.',
             facts,
             _INTRO,
+            live=True,
         )
         st = [s for s in (j or {}).get("starters", []) if 0 < len(s) < 90][:3]
         if j and j.get("text") and len(st) == 3:

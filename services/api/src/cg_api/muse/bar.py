@@ -15,7 +15,7 @@ from urllib.parse import unquote_plus
 
 from cg_api.laya import load_questions
 from cg_api.muse import Unavailable
-from cg_api.muse.copy import TZ, local, on_day
+from cg_api.muse.copy import LIVE_BUDGET_S, TZ, local, on_day
 from cg_api.muse.extract import taxonomy
 
 DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
@@ -226,6 +226,8 @@ async def understand(
                 {"role": "user", "content": text},
             ],
             schema=_SCHEMA,
+            effort="low",
+            timeout_s=LIVE_BUDGET_S,
         )
         j = r["json"]
         f = {
