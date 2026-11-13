@@ -72,6 +72,7 @@ export interface CgState {
   homeCardDismissed: boolean;
   lastMode: Mode | null;
   drafts: Record<string, string>;
+  storyPrompt: Record<string, 'posted' | 'dismissed'>; // meetupId -> my after-meetup story choice
   // Device bookkeeping (C1-allowed): calendar.ts and notifications.ts own these.
   calendar: CalendarPrefs;
   reminders: Record<string, { id: string; at: string }>;
@@ -86,6 +87,7 @@ const PREFS = [
   'homeCardDismissed',
   'lastMode',
   'drafts',
+  'storyPrompt',
   'calendar',
   'reminders',
 ] as const;
@@ -118,6 +120,7 @@ const initial = (): CgState => ({
   homeCardDismissed: false,
   lastMode: null,
   drafts: {},
+  storyPrompt: {},
   calendar: { id: null, events: {}, applied: [] },
   reminders: {},
 });
@@ -262,6 +265,8 @@ export function start(): Promise<void> {
         homeCardDismissed: saved.homeCardDismissed === true,
         lastMode: typeof saved.lastMode === 'string' ? saved.lastMode : null,
         drafts: saved.drafts && typeof saved.drafts === 'object' ? saved.drafts : {},
+        storyPrompt:
+          saved.storyPrompt && typeof saved.storyPrompt === 'object' ? saved.storyPrompt : {},
         calendar: saved.calendar?.events ? saved.calendar : state.calendar,
         reminders: saved.reminders && typeof saved.reminders === 'object' ? saved.reminders : {},
       };
@@ -576,13 +581,14 @@ export async function setIdentity(userId: string | null): Promise<void> {
   gen++;
   stopRealtime();
   starting = null;
-  const { homeCardDismissed, lastMode, drafts, calendar, reminders } = state;
+  const { homeCardDismissed, lastMode, drafts, storyPrompt, calendar, reminders } = state;
   setState({
     ...initial(),
     userOverride: userId,
     homeCardDismissed,
     lastMode,
     drafts,
+    storyPrompt,
     calendar,
     reminders,
   });
