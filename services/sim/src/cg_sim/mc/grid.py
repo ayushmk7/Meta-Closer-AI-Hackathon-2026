@@ -162,8 +162,8 @@ def main(argv=None) -> int:
     greedy, cg0 = by[(_key(base), "greedy", 1.0, 1.0)], by[(_key(base), "common_ground", 1.0, 1.0)]
     g_iso = ci95([greedy[s]["isolatedLowW8"] for s in greedy])
     c_iso = ci95([cg0[s]["isolatedLowW8"] for s in cg0])
-    tag = (" **Exploratory, fake Laya: not evidence.** Confirm with real Laya tables (or `--world truth`) "
-           "before a params PR." if fake else "")
+    tag = (" **Exploratory, fake Laya: not evidence.** Confirm with real Laya tables"
+           + ("" if a.world == "truth" else " (or `--world truth`)") + " before a params PR." if fake else "")
     L = [f"# CG params grid: {run_id}", "",
          f"Center cell, selection seeds 0-{a.seeds - 1}, world={a.world}, real cg_matching={engine.ma.HAVE_MATCHING}, "
          f"Laya {'fake (render_state hash)' if fake else 'data/sim/laya_gt'}. Current params: {cur}. "
