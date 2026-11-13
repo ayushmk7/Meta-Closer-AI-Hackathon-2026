@@ -46,10 +46,10 @@ matching:
   leidenResolution: 1.0
   signalBoost: 0.4            # plans at a venue or activity from a visible signal score x (1 + signalBoost)
   rngSeedDefault: 7
-  prefBoost: 0.3              # rank_plans: base x (1 + prefBoost x mean(prefs over the plan's matching keys))
+  prefBoost: 1.0              # rank_plans: base x (1 + prefBoost x mean(prefs over the plan's matching keys))
   reunionBoost: 0.0           # x (1 + N) on plans a met person already joined; off by default; tuned by sim run TBD
   crowdBoost: 0.0             # x (1 + N x min(1, joins / size.min)) on filling plans; off by default; tuned by sim run TBD
-  prefAlpha: 0.3              # update_prefs EMA rate: w = (1 - alpha) x w + alpha x r
+  prefAlpha: 0.9              # update_prefs EMA rate: w = (1 - alpha) x w + alpha x r
 
 travel:
   detourFactor: 1.3           # straight-line km x factor = route km
