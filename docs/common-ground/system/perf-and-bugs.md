@@ -22,7 +22,7 @@ Attacked through the public API on a private backend (`pool_sf_city`, fake Muse 
 | P10 data stays home | PASS | Outbound calls go only to Muse, Laya and Google free/busy. |
 | P11 money and actions | PASS | Decline leads to pay at venue, with no "Paid" step. Re-deciding returns 409. Another user's approval returns 404. |
 
-App client duties C1 to C8 were checked by code read: C2, C3, C4, C5 and C7 PASS, and C1 has low items (see Open).
+App client duties C1 to C8 were checked by code read; an on-device sweep (iOS 26.5, live backend, 60 s idle per screen) confirmed polling matches `config` cadence: C2, C3, C4, C5 and C7 PASS, and C1 has low items (see Open).
 
 ## Findings
 
@@ -44,7 +44,13 @@ App client duties C1 to C8 were checked by code read: C2, C3, C4, C5 and C7 PASS
 | APP-2 | ios | med | Muse bar double-send (Enter + tap in one frame). In invite mode this created two meetups. | 2 calls → 1 | [#155](https://github.com/ayushmk7/Meta-Closer-AI-Hackathon-2026/pull/155) merged |
 | APP-3 | ios | med | Chat unread badge stuck: `listThreads` raced `markThreadRead`. | unread 2 → 0 | [#157](https://github.com/ayushmk7/Meta-Closer-AI-Hackathon-2026/pull/157) merged |
 | APP-4 | ios | high | A demo identity switch leaked Maya's Muse `conversationId` and chat messages into the next user's state. | 'cv_maya' → null | [#159](https://github.com/ayushmk7/Meta-Closer-AI-Hackathon-2026/pull/159) merged |
-| APP-5 | ios | med | Identical polls re-rendered every reader (fresh arrays each time). | 5 Profiler commits for 5 identical polls → 0 | [#165](https://github.com/ayushmk7/Meta-Closer-AI-Hackathon-2026/pull/165) merged |
+| APP-5 | ios | med | Identical polls re-rendered every reader (fresh arrays each time). | 5 Profiler commits for 5 identical polls → 0; on device, chat open 60 s: 12 renders → 0 | [#165](https://github.com/ayushmk7/Meta-Closer-AI-Hackathon-2026/pull/165) merged |
+| BE-6 | backend | med | Nudge copy flipped between Muse's text and the template, because every `listNudges` asked Copy again. Fix: in DEMO_MODE a new nudge stays unseen until Muse's fill lands, then its copy is frozen. | Live, real Muse: text identical across 11 polls, each call 2-50 ms | [#175](https://github.com/ayushmk7/Meta-Closer-AI-Hackathon-2026/pull/175) merged |
+| BE-7 | backend | med | P4/P7: a nudge stayed listed (signal label in `because`) after the user hid or deleted that signal. | Listed → gone | [#175](https://github.com/ayushmk7/Meta-Closer-AI-Hackathon-2026/pull/175) merged |
+| BE-8 | backend | high | `advanceMeetup` to completed set start = now - duration, so "Sunday small plates" showed "FRI 3:12 AM". Fix: shift by whole days and rename the weekday in titles. | — | [#181](https://github.com/ayushmk7/Meta-Closer-AI-Hackathon-2026/pull/181) merged |
+| BE-9 | sim | high | Only 2 of 105 seed venues had photos. Every non-sensitive venue now gets a stand-in. | Feed 8/8, shares 30/30, public plans all have `photoUrl` | [#182](https://github.com/ayushmk7/Meta-Closer-AI-Hackathon-2026/pull/182) merged |
+| BE-10 | ios | med | The shared-plan hero was blank because `PublicPlan.tsx` read `venue.photoUrl`; the API sends a top-level `photoUrl`. | Blank → photo | [#184](https://github.com/ayushmk7/Meta-Closer-AI-Hackathon-2026/pull/184) merged |
+| BE-11 | ios | high | No WebSocket or polling after an opt-in made outside the app: `realtime.ts` needs `me.optedIn`, but `me` loaded only at start. Fix: the tick reloads `me` while not opted in. | Unit test fails before, passes after (not run on a Simulator) | [#185](https://github.com/ayushmk7/Meta-Closer-AI-Hackathon-2026/pull/185) merging |
 
 ## Open (low priority)
 
@@ -53,6 +59,9 @@ App client duties C1 to C8 were checked by code read: C2, C3, C4, C5 and C7 PASS
 - After a block, Muse's earlier intro message still names the blocked person. Their own messages are hidden.
 - `setMyStatus` is still a spec-example fallthrough: it returns 200 with example data for any meetup ID. No real data leaks.
 - App C1, demo only: the calendar `sig` stores directive title, location and notes in AsyncStorage (own data, never other people's names). Quest logs are keyed by userId, and drafts survive an identity switch.
-- App gen-check gap: `join`, `optIn`, the `dismissNudge` rollback and `likeShare` write after an identity switch. Needs about 4 per-action `if (g !== gen) return` checks (STATUS Known gaps).
+- App gen-check gap, skipped by orchestrator decision (demo only, short windows): `join`, `optIn`, the `dismissNudge` rollback and `likeShare` write after an identity switch. Needs about 4 per-action `if (g !== gen) return` checks.
+- With no socket, the Meetup screen (setting_up) and the Plan pop-up (gathering) poll the same object as `pollFast`: 2 requests per interval. Since #165 these cost requests only, not renders.
+- "211 min by transit" came from the event pool being primary: Maya's pinned featured plans skip the travel filter by design. With SF primary they are 13-32 min. Remaining ios item: hide unmet checks on the card.
+- e2e-fable #14 (typing event) needs a contracts change and is not needed for the demo.
 - `World.events` grows without bound (about 94 B per event). `World.centroid` scans all users per card (~0.1 ms). Neither matters at demo length.
 - The remaining `rank_plans` cost (~100 ms, spread over 54k user × plan pairs) runs on the event loop. Reducing it needs a restructure.
