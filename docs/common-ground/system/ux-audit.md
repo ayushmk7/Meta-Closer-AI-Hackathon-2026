@@ -18,7 +18,7 @@ Limits of the method:
 
 - The simulator could not be scrolled or tapped. Native shots are the first viewport only. Content below the fold, the approval sheet, the feedback form, the call card, the Muse reply and thinking states, the group-size sheet and the keyboard were judged on web or from code, never on native.
 - Scores are one reviewer's judgment, not a measurement. The measurements below are separate and were taken by the Playwright script or read off @2x screenshots.
-- Light mode was scored on every pass. App dark mode was reviewed in full once (pass 4) and on one screen at the end.
+- Light mode was scored on every pass. App dark mode was reviewed in full once (pass 4) and spot-checked on four screens of the final set (Meetups home, Settings, Verify, Passport), with the same prompt over them.
 - Every shot in the final set (`*-ios-v2.png`) has the iOS "Expo Go would like to send you notifications" prompt over the middle third of the screen, and the page is dimmed behind it. The top and bottom of each screen are visible; the covered part was last seen clean one or two passes earlier (5:22 to 5:38) and the merges since then did not touch it. The final 9.0 / 9.0 is a judgment across those two sets, not a read of one clean set.
 
 ## Scores
