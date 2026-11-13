@@ -203,14 +203,13 @@ VOICE = (
 )
 
 
-LIVE_BUDGET_S = 15  # interactive copy (intro): the app shows Muse's typing/step state meanwhile
 FILL_TIMEOUT_S = 30  # background fills; Meta's endpoint takes ~10 s and sheds load with 503s
 
 
 class MuseCopy:
     """Implements ports.Copy. Never waits on Muse for feed/plan reasons, titles, setup review or nudges: those return
     the template at once and fill a cache in the background (bounded concurrency, retry with backoff); later requests
-    get Muse's text. Only `intro` and `plan_title` (createPlan) wait for Muse, up to LIVE_BUDGET_S. Any failure or over-long answer = template."""
+    get Muse's text. Only `intro` and `plan_title` (createPlan) wait for Muse, up to params.muse.liveTimeoutS (the client's default timeout). Any failure or over-long answer = template."""
 
     def __init__(
         self,
@@ -247,7 +246,8 @@ class MuseCopy:
             return self.cache[key]
         if live:
             try:
-                r = await self.muse.respond(purpose, msgs, schema=schema, effort="minimal", timeout_s=LIVE_BUDGET_S)
+                # ponytail: "minimal", not PRD-2's "low": live muse-spark-1.3 takes ~10 s even at minimal (orchestrator)
+                r = await self.muse.respond(purpose, msgs, schema=schema, effort="minimal")
                 return r["json"]
             except Unavailable:
                 return None
@@ -284,7 +284,7 @@ class MuseCopy:
                 try:
                     async with self._sem:
                         r = await self.muse.respond(
-                            purpose, msgs, schema=schema, effort="minimal", timeout_s=FILL_TIMEOUT_S
+                            purpose, msgs, schema=schema, effort="low", timeout_s=FILL_TIMEOUT_S
                         )
                     if isinstance(r.get("json"), dict):
                         self.cache[key] = r["json"]

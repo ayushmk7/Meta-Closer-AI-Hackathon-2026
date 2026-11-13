@@ -44,7 +44,7 @@ def test_reason_returns_template_now_and_muse_text_later():
         assert await copy.plan_reason(PLAN, OK) == first  # still filling: no second Muse call queued
         await copy.drain()
         assert await copy.plan_reason(PLAN, OK) == "Clay people, Saturday morning."
-        assert muse.calls == [("copy.reason", "minimal")] * 3  # 2 x 503 retried with backoff, then success
+        assert muse.calls == [("copy.reason", "low")] * 3  # 2 x 503 retried with backoff, then success
 
     asyncio.run(go())
 
@@ -102,3 +102,21 @@ def test_feed_is_fast_with_a_stalled_muse(public, stalled_muse, monkeypatch):
     assert asked, "feed should have asked Muse for copy (in the background)"
     t0 = time.monotonic()
     assert public.get("/v1/me/setup").status_code == 200 and time.monotonic() - t0 < 0.5
+
+
+def test_interactive_muse_uses_the_params_live_timeout():
+    from cg_api.settings import get_settings
+
+    seen = []
+
+    class Rec:
+        async def respond(self, purpose, input, **kw):
+            seen.append((purpose, kw.get("timeout_s"), kw.get("effort")))
+            raise Unavailable("down")
+
+    from cg_api.muse import bar
+
+    asyncio.run(MuseCopy(Rec()).intro(["A", "B"], OK, PLAN))
+    asyncio.run(bar.understand(Rec(), "coffee", [], "2026-11-12T18:00:00Z", get_settings().contracts_dir))
+    # None = MuseClient's own timeout, which providers set from params.muse.liveTimeoutS (R5: no hardcoded copy)
+    assert seen == [("copy.intro", None, "minimal"), ("bar", None, "low")]
