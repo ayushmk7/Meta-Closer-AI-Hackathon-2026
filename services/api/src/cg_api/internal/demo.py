@@ -123,6 +123,8 @@ def advance_meetup(meetupId: str, body: Advance):
         m["title"] = _retitle(m["title"], new_start)
     if t := store.threads.get(m.get("threadId")):
         t["title"] = _retitle(t["title"], new_start)
+    if p := store.plans.get(m.get("planId")):  # the plan pop-up and join must show the meetup's day (plan is closed)
+        p["startsAt"], p["endsAt"], p["title"] = m["startsAt"], m["endsAt"], _retitle(p["title"], new_start)
     for uid in members:
         realtime.emit(uid, "meetup.updated", {"meetupId": meetupId})
         realtime.emit(uid, "calendar.changed")
