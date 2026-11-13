@@ -7,6 +7,7 @@
 | `facebook-clone/` | The Facebook clone (Expo: web and native iOS). See its own README. |
 | `contracts/` | Shared interfaces for Common Ground. Start at `contracts/CONTRACTS.md`. |
 | `docs/common-ground/` | Common Ground design, agent rules and the four PRDs. Start at `docs/common-ground/README.md`. |
+| `docs/common-ground/system/` | How the running system works: backend, ML, Muse, Laya, sim, app, runbook. Start at `docs/common-ground/system/README.md`. |
 | `services/api/` | Backend and AI (PRD-2) |
 | `packages/matching/` | `cg_matching`, shared by the backend and the simulation (PRD-2) |
 | `services/sim/`, `services/dashboard/` | Seed data, Laya simulation, backend-only dashboard (PRD-3) |
