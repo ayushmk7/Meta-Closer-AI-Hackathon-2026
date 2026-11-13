@@ -15,6 +15,7 @@ Milestone: slice A M2 (platform) done
 - 2026-11-12 Perf guard `tests/perf/test_budgets.py` writes the real city seed scaled to 400 people and 600 plans as a seed dir and loads it for real: load 1.7 s, reset 0.09 s; p95 over 20 samples (2xx checked): getMe 4 ms, export 113 ms, graph 7 ms, the rest ≤ 3 ms (stub extraction). Asserts load < 60 s, reset < 10 s, GET p95 < 300 ms.
 
 ## Decisions
+- 2026-11-12 `Me.unlocks` and `Me.capabilities` come from `store.views.earned_unlocks` (counted meetups vs `params.unlocks`). C's `domain/create_plan.can_create` applies the same `create_plans` rule on its own World. If you change the rule, change both (or switch C to call `earned_unlocks`).
 - 2026-11-12 `Me.rewards` comes from `cg_api.domain.rewards` and appears only in the user's own `Me`. It counts meetups where `meetups[mt]["members"][uid]["counted"] is True`, plus `params.unlocks`; reports against the user (`store.reports[*].userId`) block the `requiresNoReports` unlock.
 - 2026-11-12 `cg-api` refuses to start unless `CG_INTERNAL_HOST` is loopback (127.0.0.1/::1/localhost), P9.
 - 2026-11-12 FastAPI + uvicorn, two `uvicorn.Server`s under one asyncio loop (`cg-api`).
