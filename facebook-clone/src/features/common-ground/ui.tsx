@@ -59,7 +59,9 @@ export function Section({
   children?: ReactNode;
 }) {
   const header = (
-    <View style={{ flexDirection: 'row', alignItems: 'center', minHeight: 44 }}>
+    <View
+      style={{ flexDirection: 'row', alignItems: 'center', minHeight: aside || !children ? 44 : 0 }}
+    >
       <Label accessibilityRole="header" style={{ fontSize: 17, fontWeight: '700', flex: 1 }}>
         {title}
       </Label>
@@ -329,8 +331,8 @@ export function InterestChips({ interests }: { interests: InterestRef[] }) {
   return (
     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
       {interests.map((i) => (
-        <View key={i.id} style={[pill, { backgroundColor: c.input }]}>
-          <Label style={{ fontWeight: '600', fontSize: 14 }}>{i.label}</Label>
+        <View key={i.id} style={[pill, { paddingVertical: 4, backgroundColor: c.input }]}>
+          <Label style={{ fontWeight: '600', fontSize: 13 }}>{i.label}</Label>
         </View>
       ))}
     </View>
@@ -394,7 +396,7 @@ export function InterestEditor({
                     <Pressable
                       accessibilityRole="button"
                       accessibilityLabel={`Remove ${interest.label}`}
-                      hitSlop={12}
+                      hitSlop={14}
                       onPress={() => onRemove(interest.id)}
                     >
                       <Icon name="close" size={17} color={color} />

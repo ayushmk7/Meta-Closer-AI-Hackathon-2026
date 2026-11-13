@@ -129,7 +129,7 @@ export default function Quests() {
   const done = list.filter((q) => q.done).length;
   const streak = liveStreak(log);
   return (
-    <Card style={{ marginHorizontal: 16, padding: 16, gap: 4 }}>
+    <Card style={{ padding: 16, gap: 4 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
         <Label accessibilityRole="header" style={{ fontSize: 17, fontWeight: '700', flex: 1 }}>
           {"Today's quests"}

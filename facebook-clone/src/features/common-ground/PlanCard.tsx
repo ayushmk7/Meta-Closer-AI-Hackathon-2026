@@ -133,16 +133,16 @@ const MAX_FONT = 1.3;
 const PHOTO = 130;
 const PAD = 12;
 const GAP = 4;
-// Line heights at 1x: badge row (Badge = 21 line + 4 padding), title 2 lines, venue, meta,
-// 3 check rows, crowd line, reason 2 lines.
-const SLOTS = { badge: 25, title: 40, venue: 18, meta: 18, checks: 62, crowd: 18, reason: 36 };
+// Line heights at 1x: title 2 lines, venue, meta, 3 check rows, crowd line, reason 2 lines.
+// Badges sit over the photo, so unbadged cards get no blank band.
+const SLOTS = { title: 40, venue: 18, meta: 18, checks: 62, crowd: 18, reason: 36 };
 type Slot = keyof typeof SLOTS;
 export function cardSlots() {
   const s = Math.min(PixelRatio.getFontScale(), MAX_FONT);
   const h = Object.fromEntries(
     Object.entries(SLOTS).map(([k, v]) => [k, Math.ceil(v * s)]),
   ) as Record<Slot, number>;
-  const body = Object.values(h).reduce((a, b) => a + b, 0) + GAP * 6 + PAD * 2;
+  const body = Object.values(h).reduce((a, b) => a + b, 0) + GAP * 5 + PAD * 2;
   return { h, height: PHOTO + body + 2 }; // + 2: top/bottom border
 }
 
@@ -158,8 +158,8 @@ export default function PlanCard({
   width?: number;
 }) {
   const c = useColors();
-  // Spots are already in the crowd line below; don't repeat them as a check.
-  const checks = plan.checks.filter((k) => k.kind !== 'spots').slice(0, 3);
+  // Spots are already in the crowd line below; unmet checks stay on the Plan pop-up only.
+  const checks = plan.checks.filter((k) => k.ok && k.kind !== 'spots').slice(0, 3);
   const meta = [dayTime(plan.startsAt), duration(plan.durationMin), plan.cost.label].join(' · ');
   const joined = !!plan.myJoin && plan.myJoin.status !== 'withdrawn';
   const { h, height } = cardSlots();
@@ -172,7 +172,7 @@ export default function PlanCard({
         joined && "You're in",
         plan.venue.name,
         meta,
-        ...checks.map((k) => (k.ok ? k.label : `${k.label}, not met`)),
+        ...checks.map((k) => k.label),
         crowdLine(plan.crowd),
       ]
         .filter(Boolean)
@@ -189,11 +189,11 @@ export default function PlanCard({
       }}
     >
       <PlanPhoto plan={plan} height={PHOTO} />
+      <View style={{ position: 'absolute', top: 8, left: 8, flexDirection: 'row', gap: 6 }}>
+        {badge && <Badge text={badge} />}
+        {joined && <Badge text="In" />}
+      </View>
       <View style={{ padding: PAD, gap: GAP }}>
-        <View style={{ height: h.badge, flexDirection: 'row', gap: 6, overflow: 'hidden' }}>
-          {badge && <Badge text={badge} />}
-          {joined && <Badge text="In" />}
-        </View>
         <Label
           {...fit(2)}
           style={{ height: h.title, fontWeight: '700', fontSize: 16, lineHeight: 20 }}
@@ -229,7 +229,6 @@ const fit = (lines: number) => ({ numberOfLines: lines, maxFontSizeMultiplier: M
 
 // A placeholder exactly the real card's size: same photo and slot heights, one bar per slot.
 const BARS: [Slot, `${number}%`][] = [
-  ['badge', '20%'],
   ['title', '70%'],
   ['venue', '50%'],
   ['meta', '60%'],
