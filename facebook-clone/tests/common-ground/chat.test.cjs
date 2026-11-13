@@ -194,3 +194,28 @@ test('header falls back to getThread; others get avatar + first name on the firs
     tree.root.findAll((n) => n.props.accessibilityLabel === 'Daniel Okafor').length,
   ).toBeGreaterThan(0);
 });
+
+test('opening a chat clears its unread count even when the thread list answers last', async () => {
+  const t = {
+    threadId: 'th_0001',
+    kind: 'group',
+    title: 'Wheel-throwing drop-in',
+    participants: [],
+    unreadCount: 2,
+    updatedAt: '2026-11-12T18:14:16Z',
+    meetupId: 'mt_0001',
+  };
+  let read = false;
+  // The server snapshots unread when the list request arrives; its answer comes back last.
+  jest.spyOn(api, 'listThreads').mockImplementation(() => {
+    const snap = [{ ...t, unreadCount: read ? 0 : 2 }];
+    return new Promise((r) => setTimeout(() => r(snap), 0));
+  });
+  jest.spyOn(api, 'listMessages').mockResolvedValue(msgs());
+  jest.spyOn(api, 'markThreadRead').mockImplementation(async () => void (read = true));
+  jest.spyOn(api, 'getMeetup').mockResolvedValue(clone(F.getMeetup));
+  store.setState({ threads: [t], messages: { th_0001: msgs() }, drafts: {} });
+  await render(React.createElement(Chat.default));
+  await renderer.act(() => new Promise((r) => setTimeout(r, 5)));
+  expect(store.getState().threads[0].unreadCount).toBe(0);
+});
