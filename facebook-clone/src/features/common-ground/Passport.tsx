@@ -3,6 +3,7 @@ import { useEffect, useMemo, type ComponentProps } from 'react';
 import { Platform, View } from 'react-native';
 import { Card, Empty, Icon, Label, Muted, Page, Title, useColors } from '../../ui/native';
 import { stamps, type Stamp, type StampKind } from './stamps';
+import { PopOn } from './Rewards';
 import { getState, load, useCg } from './store';
 import { Banners } from './ui';
 
@@ -22,22 +23,24 @@ function StampTile({ stamp, icon }: { stamp: Stamp; icon: IconName }) {
       accessibilityLabel={`${stamp.label}, ${on ? 'collected' : 'locked'}`}
       style={{ width: 96, alignItems: 'center', gap: 6 }}
     >
-      <View
-        style={{
-          width: 60,
-          height: 60,
-          borderRadius: 30,
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: on ? c.blue : c.input,
-        }}
-      >
-        <Icon
-          name={on ? icon : 'lock-closed-outline'}
-          size={26}
-          color={on ? '#fff' : c.secondary}
-        />
-      </View>
+      <PopOn on={on}>
+        <View
+          style={{
+            width: 60,
+            height: 60,
+            borderRadius: 30,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: on ? c.blue : c.input,
+          }}
+        >
+          <Icon
+            name={on ? icon : 'lock-closed-outline'}
+            size={26}
+            color={on ? '#fff' : c.secondary}
+          />
+        </View>
+      </PopOn>
       <Label
         numberOfLines={2}
         style={{
