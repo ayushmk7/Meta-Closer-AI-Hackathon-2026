@@ -98,6 +98,10 @@ input,
 textarea {
   padding: 11px 12px;
 }
+/* RN-web Switch draws its track under a checkbox overlay; the input fill above would cover it. */
+input[type='checkbox']:not(.toggle) {
+  background: transparent;
+}
 textarea {
   resize: vertical;
 }
