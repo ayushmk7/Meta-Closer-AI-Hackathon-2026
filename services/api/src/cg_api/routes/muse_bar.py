@@ -5,6 +5,8 @@ A share's promptText ("Plan something like this") is just text: its venue name a
 
 from __future__ import annotations
 
+import random
+import re
 import secrets
 import time
 from collections import defaultdict, deque
@@ -17,6 +19,7 @@ from pydantic import BaseModel
 from cg_api.deps import User
 from cg_api.errors import ApiError
 from cg_api.muse import bar
+from cg_api.muse.copy import on_day
 from cg_api.ports import ports
 from cg_api.settings import get_settings
 
@@ -49,6 +52,20 @@ class AskBody(BaseModel):
     conversationId: str | None = None
 
 
+async def _create(user: str, text: str) -> dict | None:
+    """createPlan from the bar's text; None when locked (create_plans unlock), screened, or unplaceable."""
+    from cg_api.domain import create_plan, plans, world
+
+    w = world.current
+    if w is None or not create_plan.can_create(w, user):
+        return None
+    try:
+        d = await create_plan.create(w, user, text)
+    except world.Fail:
+        return None
+    return plans.card(w, user, w.plans[d["planId"]])
+
+
 def _now() -> str:
     try:  # the demo world's clock when one is loaded, so "this weekend" matches the plans' calendar
         from cg_api.domain import world
@@ -79,19 +96,33 @@ async def ask_muse(body: AskBody, user: User):
     # owner-scoped and unguessable: another user's id just starts a fresh conversation (P7, prompt privacy)
     cid = body.conversationId if (user, body.conversationId) in _conversations else f"mc_{secrets.token_hex(8)}"
     history = _conversations.setdefault((user, cid), [])
-    f, said = await bar.understand(ports.muse, text, history, _now(), s.contracts_dir)
+    surprise = bool(re.fullmatch(r"surprise me\W*", text, re.IGNORECASE))
     cards = await plan_source(user)
+    if surprise:  # no filter, no Muse round trip: one random upcoming meetup
+        f, said = bar.keyword_filter("", _now(), s.contracts_dir), None
+        cards = [random.choice(cards)] if cards else []
+    else:
+        f, said = await bar.understand(ports.muse, text, history, _now(), s.contracts_dir)
     venues = list({c["venue"]["venueId"]: c["venue"] for c in cards}.values())
     venue = bar.nearest_venue(f["link"], venues) if f["link"] else bar.venue_in_text(text, venues)
     found, relaxed = bar.best(cards, f, venue["venueId"] if venue else None)
     plans = found[: s.params["feed"]["size"]]
-    # ponytail: creating a plan when nothing fits (createdPlanId) lands with slice C's createPlan pipeline
-    answer = said if said and plans and not relaxed else bar.reply(plans, f, relaxed)
+    created = None
+    if not plans or relaxed:  # nothing fits exactly: make one, if this user has unlocked creating meetups
+        made = await _create(user, f"{random.choice(list(bar.TYPE_WORDS))} this weekend" if surprise else text)
+        if made:
+            created, plans, relaxed = made["planId"], [made], False
+    if created:
+        answer = f"Nothing fit, so I set one up: {plans[0]['title']}. You're in."
+    elif surprise and plans:
+        answer = f"Try this one: {plans[0]['title']}{on_day(plans[0]['title'], plans[0]['startsAt'])}."
+    else:
+        answer = said if said and plans and not relaxed else bar.reply(plans, f, relaxed)
     history += [{"role": "user", "content": text}, {"role": "assistant", "content": answer}]
     return {
         "conversationId": cid,
         "reply": {"messageId": f"mm_{secrets.token_hex(8)}", "text": answer, "createdAt": _now()},
         "plans": plans,
-        "createdPlanId": None,
+        "createdPlanId": created,
         "prompts": bar.follow_ups(text),
     }

@@ -28,6 +28,7 @@ TYPE_WORDS = {
     "ceramic": "ceramics_studio",
     "wheel": "ceramics_studio",
     "board game": "board_game_night",
+    "chess": "board_game_night",
     "game night": "board_game_night",
     "video game": "video_game_session",
     "movie": "film_screening",
@@ -58,6 +59,7 @@ TYPE_WORDS = {
     "stroll": "walk",
 }
 FOLLOW_UPS = [
+    "Surprise me",
     "Something Sunday afternoon",
     "Board games this week",
     "A coastal walk",
