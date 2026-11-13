@@ -10,7 +10,7 @@ from datetime import UTC, datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from cg_sim import matching_adapter
-from cg_sim.contracts import params, taxonomy
+from cg_sim.contracts import params
 from cg_sim.seed import maya
 from cg_sim.seed.geo import neighborhood, point_near
 from cg_sim.seed.venues import is_open
@@ -56,6 +56,41 @@ TITLES = {
 }
 
 
+VIBES = {
+    "coffee": "Grab a drink, find a corner table and see where the conversation goes.",
+    "walk": "A relaxed stroll at chatting pace. Come as you are.",
+    "hike": "A scenic trail at a friendly pace, with breaks for views and snacks.",
+    "climbing_session": "Try a few problems, cheer each other on, no experience needed.",
+    "run": "An easy-pace loop with a regroup at the end. Nobody gets left behind.",
+    "pickup_sport": "Casual games, mixed levels, rotating teams. Just show up.",
+    "board_game_night": "Learn a new game or bring a favorite. Teaching is part of the fun.",
+    "video_game_session": "Co-op rounds on shared screens. Controllers and snacks provided.",
+    "trivia_night": "Team up with strangers, argue over answers, split the bragging rights.",
+    "concert": "Live music, a good spot near the stage, and someone to compare favorites with.",
+    "museum_visit": "Wander the galleries together and trade takes over coffee after.",
+    "film_screening": "Settle in for a good movie, then swap opinions on the way out.",
+    "cooking_together": "Everyone chops, stirs and tastes, then you eat what you made.",
+    "food_crawl": "Small bites at a few stops. Come hungry and share everything.",
+    "brunch": "A slow, sunny table with good food and no rush to leave.",
+    "craft_session": "Hands-on making with all supplies set out. Leave with something you made.",
+    "ceramics_studio": "Get your hands in the clay at your own pace. Beginners welcome.",
+    "photo_walk": "Slow wander looking for good light and odd corners. Phone cameras count.",
+    "book_club": "Talk about what you're reading, no homework required.",
+    "language_exchange": "Chat in two languages and help each other along. All levels.",
+    "volunteering": "A friendly shift doing useful work next to new people.",
+    "farmers_market": "Browse the stalls, taste things, and pick up something fresh.",
+    "yoga_class": "A gentle class followed by tea. All levels.",
+    "beach_day": "Sand, sun and easy conversation. Bring a layer for the wind.",
+    "picnic": "Spread a blanket on the grass and share whatever people bring.",
+    "karaoke": "Pick a song or just cheer. Zero judgment, loud singalongs.",
+    "dance_class": "Learn the basics together and laugh at the missteps. No partner needed.",
+    "hackathon_or_cowork": "Heads-down time next to other builders, with a chat break in the middle.",
+    "bike_ride": "A mellow group ride with stops along the way. Easy on the hills.",
+    "comedy_show": "Catch a live set together and compare favorite bits afterward.",
+    "lunch": "An unhurried lunch with good company.",
+}
+
+
 def _local(y, m, d, hh, mm=0) -> datetime:
     return datetime(y, m, d, hh, mm, tzinfo=TZ).astimezone(UTC)
 
@@ -83,15 +118,8 @@ def _title(at: str, venue: dict) -> str:
     return full if len(full) <= TITLE_MAX else base[:TITLE_MAX]
 
 
-def _description(at: str, venue: dict, size: dict, targets: list[str], starts: datetime) -> str:
-    _, _, labels = taxonomy()
-    who = " and ".join(labels[t].lower() for t in targets[:2])
-    cost = venue["booking"]["cost"]
-    price = "Free." if cost["kind"] == "free" else (
-        f"${cost['perPersonCents'] / 100:.0f} each, {'paid ahead' if cost['kind'] == 'prepaid' else 'pay at the venue'}."
-    )
-    when = starts.astimezone(TZ).strftime("%A %-I:%M %p")
-    return f"{when} at {venue['name']} in {venue['neighborhood']}. {size['min'] if size['min'] == size['max'] else f"{size['min']} to {size['max']}"} people into {who}. {price}"[:400]
+def _description(at: str) -> str:
+    return VIBES.get(at, "A relaxed get-together with people who share your interests.")
 
 
 def maya_problems(plan: dict, venue: dict, home: dict, p: dict | None = None) -> list[str]:
@@ -128,7 +156,7 @@ def _plan(pid, pool_id, at, venue, starts, ends, size, targets, scene, origin, j
         "planId": pid,
         "poolId": pool_id,
         "title": title or _title(at, venue),
-        "description": _description(at, venue, size, targets, starts),
+        "description": _description(at),
         "activityType": at,
         "venueId": venue["venueId"],
         "startsAt": starts.strftime("%Y-%m-%dT%H:%M:%SZ"),
