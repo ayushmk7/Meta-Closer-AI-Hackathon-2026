@@ -52,12 +52,12 @@ beforeEach(() =>
   ),
 );
 
-test('Talk to a person ticks, saves and starts the streak; Surprise me ticks from outside', async () => {
+test('Verify in person ticks, saves and starts the streak; Surprise me ticks from outside', async () => {
   const { tree, labels } = await render(React.createElement(Quests));
   expect(labels()).toContain("Today's quests");
   expect(labels()).toContain('0 of 4 done');
   const talk = tree.root.find(
-    (n) => n.props.accessibilityLabel === 'Talk to a person' && n.props.onPress,
+    (n) => n.props.accessibilityLabel === 'Verify in person' && n.props.onPress,
   );
   expect(talk.props.accessibilityState).toEqual({ checked: false });
   await renderer.act(async () => talk.props.onPress());
@@ -81,7 +81,7 @@ test('Talk to a person ticks, saves and starts the streak; Surprise me ticks fro
 
 const KEY = 'common-ground-quests:v1';
 const talkBox = (tree) =>
-  tree.root.find((n) => n.props.accessibilityLabel === 'Talk to a person' && n.props.onPress);
+  tree.root.find((n) => n.props.accessibilityLabel === 'Verify in person' && n.props.onPress);
 
 test('card left open across LA midnight: ticks clear, streak not extended for an empty day', async () => {
   jest.useFakeTimers({
@@ -140,5 +140,27 @@ test('Passport shows collected and locked stamps', async () => {
   expect(labels()).toContain(`${m.venue.name}, collected`);
   expect(labels()).toContain('Board game night, locked');
   expect(labels()).toMatch(/3 of \d+ stamps/);
+  await renderer.act(async () => tree.unmount());
+});
+
+test('a meetup I am newly verified at ticks Verify in person once', async () => {
+  delete mockSaved[KEY];
+  const m = fixtures.getMeetup;
+  const verified = {
+    ...m,
+    attendees: m.attendees.map((a) => (a.isMe ? { ...a, verified: true } : a)),
+  };
+  await renderer.act(async () => store.setState({ meetups: { [m.meetupId]: verified } }));
+  const { tree } = await render(React.createElement(Quests));
+  await renderer.act(async () => {});
+  expect(talkBox(tree).props.accessibilityState).toEqual({ checked: true });
+  expect(JSON.parse(mockSaved[KEY])[fixtures.getMe.userId]).toMatchObject({
+    talked: true,
+    verified: [m.meetupId],
+  });
+  // Unticking sticks: the same verify doesn't tick it again.
+  await renderer.act(async () => talkBox(tree).props.onPress());
+  await renderer.act(async () => {});
+  expect(talkBox(tree).props.accessibilityState).toEqual({ checked: false });
   await renderer.act(async () => tree.unmount());
 });

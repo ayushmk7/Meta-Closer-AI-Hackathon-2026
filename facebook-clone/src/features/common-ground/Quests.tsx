@@ -7,6 +7,7 @@ import {
   emptyLog,
   laDay,
   liveStreak,
+  noteVerifies,
   quests,
   rollover,
   type Quest,
@@ -43,14 +44,15 @@ const writeLog = async (userId: string, log: QuestLog) => {
 };
 
 let push: ((log: QuestLog) => void) | null = null; // the mounted card, if any
-// SurpriseButton calls this when it opens a plan.
-export async function noteSurprise(): Promise<void> {
+async function note(patch: Partial<QuestLog>): Promise<void> {
   const userId = getState().me?.userId;
   if (!userId) return;
-  const log = { ...(await readLog(userId, laDay(Date.now()))), surprise: true };
+  const log = { ...(await readLog(userId, laDay(Date.now()))), ...patch };
   await writeLog(userId, log);
   push?.(log);
 }
+// SurpriseButton calls this when it opens a plan.
+export const noteSurprise = () => note({ surprise: true });
 
 function Row({ q, onPress }: { q: Quest; onPress?: () => void }) {
   const c = useColors();
@@ -79,6 +81,7 @@ export default function Quests() {
   const myId = useCg((st) => st.me?.userId);
   const joins = useCg((st) => st.joins);
   const messages = useCg((st) => st.messages);
+  const meetups = useCg((st) => st.meetups);
   const [stored, setLog] = useState<QuestLog | null>(null);
   // Re-render each minute so a card left open rolls over at LA midnight.
   const [, tick] = useState(0);
@@ -87,7 +90,11 @@ export default function Quests() {
     return () => clearInterval(t);
   }, []);
   const today = laDay(Date.now());
-  const log = stored && rollover(stored, today); // never derive today's list from yesterday's ticks
+  const verifiedAt = Object.values(meetups)
+    .filter((m) => m.attendees.some((a) => a.isMe && a.verified))
+    .map((m) => m.meetupId);
+  // Roll first: never derive today's list from yesterday's ticks. Then a new verify ticks today.
+  const log = stored && noteVerifies(rollover(stored, today), verifiedAt);
   const save = (next: QuestLog) => {
     setLog(next);
     if (myId) void writeLog(myId, next);

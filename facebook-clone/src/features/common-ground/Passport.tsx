@@ -1,6 +1,6 @@
 // Passport: a stamp per distinct activity, neighborhood and place I've met at. Private to the user.
 import { useEffect, useMemo, type ComponentProps } from 'react';
-import { View } from 'react-native';
+import { Platform, View } from 'react-native';
 import { Card, Empty, Icon, Label, Muted, Page, Title, useColors } from '../../ui/native';
 import { stamps, type Stamp, type StampKind } from './stamps';
 import { getState, load, useCg } from './store';
@@ -73,7 +73,8 @@ export default function PassportScreen() {
   return (
     <Page>
       <Banners />
-      <Title>Your passport</Title>
+      {/* Web: the back row (#84) already shows the title. */}
+      {Platform.OS !== 'web' && <Title>Your passport</Title>}
       <View style={{ paddingHorizontal: 16, gap: 2 }}>
         <Label style={{ fontWeight: '600' }}>{`${earned} of ${all.length} stamps`}</Label>
         <Muted>

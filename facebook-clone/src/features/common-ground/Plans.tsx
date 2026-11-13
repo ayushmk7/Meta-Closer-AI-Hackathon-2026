@@ -277,6 +277,7 @@ export default function PlansScreen() {
             <PlanCarousel plans={feed} onOpen={openPlan} />
           </>
         )}
+        {!invite && <Quests />}
         {(sorted.length > 0 || orphans.length > 0) && (
           <>
             <Section title="Your plans" />
@@ -296,7 +297,6 @@ export default function PlansScreen() {
             </Card>
           </>
         )}
-        {!invite && <Quests />}
         <IdeasRow />
         <Rewards style={{ marginHorizontal: 16 }} />
         <Button

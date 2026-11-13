@@ -7,6 +7,7 @@ import {
   emptyLog,
   laDay,
   liveStreak,
+  noteVerifies,
   quests,
   rollover,
 } from '../../src/features/common-ground/questLog';
@@ -58,7 +59,7 @@ test('streak: once per day, kept through yesterday, broken by a missed day', () 
   );
 });
 
-test('passport: stamps only from completed meetups I checked in to or verified', () => {
+test('passport: stamps from meetups I checked in to or was verified at, before completion', () => {
   const base = fixtures.getMeetup as unknown as Meetup;
   const withMe = (patch: object, status = 'completed') => ({
     ...base,
@@ -73,7 +74,16 @@ test('passport: stamps only from completed meetups I checked in to or verified',
   assert.deepEqual(earned([withMe({ checkedIn: true })]), ['activity', 'neighborhood', 'venue']);
   assert.deepEqual(earned([withMe({ verified: true })]).length, 3);
   assert.deepEqual(earned([withMe({})]), [], 'no check-in, no stamp');
-  assert.deepEqual(earned([withMe({ checkedIn: true }, 'confirmed')]), [], 'not completed yet');
+  assert.equal(
+    earned([withMe({ checkedIn: true }, 'confirmed')]).length,
+    3,
+    'check-in earns at once',
+  );
+  assert.equal(
+    earned([withMe({ verified: true }, 'confirmed')]).length,
+    3,
+    'verified earns at once',
+  );
   const all = stamps([withMe({ checkedIn: true })], seen);
   assert.equal(new Set(all.map((s) => `${s.kind}:${s.key}`)).size, all.length, 'distinct');
   assert.ok(
@@ -81,4 +91,13 @@ test('passport: stamps only from completed meetups I checked in to or verified',
     'feed shows locked',
   );
   assert.equal(all[0].earned, true, 'earned first');
+});
+
+test('noteVerifies ticks once per newly verified meetup and survives rollover', () => {
+  const a = noteVerifies(emptyLog('2026-11-12'), ['mt_1']);
+  assert.equal(a.talked, true);
+  assert.equal(noteVerifies(a, ['mt_1']), a, 'same meetup: unchanged');
+  const b = rollover({ ...a, talked: false }, '2026-11-13');
+  assert.equal(noteVerifies(b, ['mt_1']).talked, false, 'old verify does not tick a new day');
+  assert.equal(noteVerifies(b, ['mt_1', 'mt_2']).talked, true);
 });
