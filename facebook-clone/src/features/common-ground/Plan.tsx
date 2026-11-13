@@ -8,7 +8,7 @@ import { CheckRow, PlanPhoto, dayTime, duration, whosIn } from './PlanCard';
 import { getState, join, load, useCg, withdraw } from './store';
 import { pickSurprise } from './SurpriseButton';
 import type { GroupSize, PlanDetail } from './types';
-import { Banners, GroupSizePicker, NotFound, PersonAvatar, Section, usePoll } from './ui';
+import { Banners, GroupSizePicker, NotFound, PersonAvatar, Pop, Section, usePoll } from './ui';
 import VenueMap from './VenueMap';
 
 // "google_maps" -> "Google Maps" when no connector label is known.
@@ -76,6 +76,7 @@ export function BottomBar({ plan, surprise = false }: { plan: PlanDetail; surpri
   const [size, setSize] = useState<GroupSize | null>(null);
   const [sizing, setSizing] = useState(false);
   const [plusOne, setPlusOne] = useState(false);
+  const [tapped, setTapped] = useState(false); // pop on a fresh join only, not on reopening
 
   if (myJoin?.status === 'matched') {
     const meetupId = joinRow?.meetupId;
@@ -109,15 +110,18 @@ export function BottomBar({ plan, surprise = false }: { plan: PlanDetail; surpri
   if (myJoin?.status === 'interested') {
     const p = joinRow?.progress;
     const more = p ? p.needed - p.joined : 0;
+    const line = (
+      <Label accessibilityLiveRegion="polite" style={{ textAlign: 'center' }}>
+        {!p
+          ? "You're in."
+          : more > 0
+            ? `You're in. Muse needs ${more} more.`
+            : "You're in. Muse is forming your group."}
+      </Label>
+    );
     return (
       <View style={{ gap: 8 }}>
-        <Label accessibilityLiveRegion="polite" style={{ textAlign: 'center' }}>
-          {!p
-            ? "You're in."
-            : more > 0
-              ? `You're in. Muse needs ${more} more.`
-              : "You're in. Muse is forming your group."}
-        </Label>
+        {tapped ? <Pop key={myJoin.status}>{line}</Pop> : line}
         <Button
           title="Can't make it"
           secondary
@@ -149,6 +153,7 @@ export function BottomBar({ plan, surprise = false }: { plan: PlanDetail; surpri
           style={{ flex: 1 }}
           onPress={() => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+            setTapped(true);
             // ponytail: Join.calendar hold is applied by A2's calendar reconciler, not here.
             void join(plan.planId, {
               ...(size ? { size } : {}),

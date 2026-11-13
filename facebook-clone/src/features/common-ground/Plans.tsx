@@ -8,6 +8,7 @@ import {
   StyleSheet,
   View,
 } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { router, useLocalSearchParams } from 'expo-router';
 import {
   Button,
@@ -21,7 +22,7 @@ import {
   useColors,
 } from '../../ui/native';
 import MuseBar from './MuseBar';
-import PlanCard, { Badge, PlanCarousel, dayTime } from './PlanCard';
+import PlanCard, { Badge, PlanCarousel, dayTime, enterIn } from './PlanCard';
 import Rewards from './Rewards';
 import SetupScreen from './Setup';
 import Quests from './Quests';
@@ -283,15 +284,15 @@ export default function PlansScreen() {
             <Section title="Your plans" />
             <Card style={{ marginHorizontal: 16 }}>
               <View style={{ marginTop: -StyleSheet.hairlineWidth }}>
-                {sorted.map((j) => (
-                  <YourPlanRow
-                    key={j.joinId}
-                    join={j}
-                    meetup={j.meetupId ? meetups[j.meetupId] : undefined}
-                  />
+                {sorted.map((j, i) => (
+                  <Animated.View key={j.joinId} entering={enterIn(i)}>
+                    <YourPlanRow join={j} meetup={j.meetupId ? meetups[j.meetupId] : undefined} />
+                  </Animated.View>
                 ))}
-                {orphans.map((m) => (
-                  <YourPlanRow key={m.meetupId} meetup={m} />
+                {orphans.map((m, i) => (
+                  <Animated.View key={m.meetupId} entering={enterIn(sorted.length + i)}>
+                    <YourPlanRow meetup={m} />
+                  </Animated.View>
                 ))}
               </View>
             </Card>

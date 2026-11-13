@@ -1,11 +1,23 @@
 // Muse bar (PRD-1 §8.1 item 1). Errors keep the typed text: it is only ever cleared by the user.
 import { useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { Card, Icon, IconButton, Input, Label, Muted, go, useColors } from '../../ui/native';
-import { PlanCarousel } from './PlanCard';
+import { PlanCardSkeleton, PlanCarousel, enterIn } from './PlanCard';
 import { askMuse, clearMuse, createPlan, useCg } from './store';
 import SurpriseButton from './SurpriseButton';
-import { Pill } from './ui';
+import { MuseThinking, Pill } from './ui';
+
+const ASKING = [
+  'Muse is reading what you asked…',
+  "Muse is checking who's free…",
+  'Muse is picking plans…',
+];
+const CREATING = [
+  'Muse is finding a place…',
+  'Muse is checking times…',
+  'Muse is making your plan…',
+];
 
 const NONE: string[] = []; // stable fallback outside useCg (useSyncExternalStore)
 
@@ -145,13 +157,27 @@ export default function MuseBar({
         </View>
       )}
       {busy && (
-        <Muted accessibilityLiveRegion="polite" style={{ paddingHorizontal: 16 }}>
-          Muse is looking…
-        </Muted>
+        <View style={{ gap: 10 }}>
+          <View style={{ paddingHorizontal: 16 }}>
+            {/* The reply unmounts this as it lands, so the last line never ticks early. */}
+            <MuseThinking
+              key={creating ? 'create' : 'ask'}
+              lines={creating ? CREATING : ASKING}
+              done={!busy}
+            />
+          </View>
+          <View
+            style={{ flexDirection: 'row', gap: 12, paddingHorizontal: 16, overflow: 'hidden' }}
+          >
+            <PlanCardSkeleton />
+            <PlanCardSkeleton />
+          </View>
+        </View>
       )}
       {reply && !busy && (
         <View style={{ gap: 10 }}>
-          <View
+          <Animated.View
+            entering={enterIn()}
             accessibilityLabel={`Muse says: ${reply.reply.text}`}
             style={{
               marginHorizontal: 16,
@@ -161,7 +187,7 @@ export default function MuseBar({
             }}
           >
             <Label>{reply.reply.text}</Label>
-          </View>
+          </Animated.View>
           <PlanCarousel
             plans={reply.plans}
             badgeFor={(p) =>

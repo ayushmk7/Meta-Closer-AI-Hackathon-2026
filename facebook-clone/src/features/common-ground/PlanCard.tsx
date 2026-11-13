@@ -1,14 +1,20 @@
 // Plan card (PRD-1 §8.1 item 3). Used by the For you carousel, Muse's reply row and alternatives.
 import type { ComponentProps } from 'react';
-import { Pressable, ScrollView, View } from 'react-native';
+import { Platform, ScrollView, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { Image } from 'expo-image';
 import type Ionicons from '@expo/vector-icons/Ionicons';
 import { imageSource } from '../../data/media';
 import { Icon, Label, Muted, useColors } from '../../ui/native';
 import { clock } from './time';
 import { TZ } from './types';
-import { selectedBg } from './ui';
+import { PressScale, Skeleton, enter, selectedBg } from './ui';
 import type { Crowd, PlanCard as Plan, PlanCheck } from './types';
+
+// ponytail: Reanimated 4.5 web pins custom-keyframe entering views (enter() uses
+// withInitialValues) to position:absolute once they finish, so siblings overlap. Native only
+// until ui.tsx's enter() is fixed on web.
+export const enterIn = (i = 0) => (Platform.OS === 'web' ? undefined : enter(i));
 
 // "Sat 10 AM" / "Sat 9:30 AM", always in TZ (Pacific), never the device zone.
 export const dayTime = (iso: string): string => {
@@ -117,7 +123,7 @@ export default function PlanCard({
   const meta = [dayTime(plan.startsAt), duration(plan.durationMin), plan.cost.label].join(' · ');
   const joined = !!plan.myJoin && plan.myJoin.status !== 'withdrawn';
   return (
-    <Pressable
+    <PressScale
       accessibilityRole="button"
       accessibilityLabel={[
         plan.title,
@@ -131,15 +137,14 @@ export default function PlanCard({
         .filter(Boolean)
         .join(', ')}
       onPress={onPress}
-      style={({ pressed }) => ({
+      style={{
         width,
         borderRadius: 8,
         overflow: 'hidden',
         backgroundColor: c.card,
         borderWidth: 1,
         borderColor: c.divider,
-        opacity: pressed ? 0.8 : 1,
-      })}
+      }}
     >
       <PlanPhoto plan={plan} height={130} />
       <View style={{ padding: 12, gap: 4 }}>
@@ -160,7 +165,31 @@ export default function PlanCard({
         <Label style={{ fontSize: 14, fontWeight: '600' }}>{crowdLine(plan.crowd)}</Label>
         <Muted numberOfLines={2}>{plan.reason}</Muted>
       </View>
-    </Pressable>
+    </PressScale>
+  );
+}
+
+// A PlanCard-sized placeholder while Muse works.
+export function PlanCardSkeleton({ width = 280 }: { width?: number }) {
+  const c = useColors();
+  return (
+    <View
+      style={{
+        width,
+        borderRadius: 8,
+        overflow: 'hidden',
+        backgroundColor: c.card,
+        borderWidth: 1,
+        borderColor: c.divider,
+      }}
+    >
+      <Skeleton width="100%" height={130} radius={0} />
+      <View style={{ padding: 12, gap: 8 }}>
+        <Skeleton width="70%" height={18} />
+        <Skeleton width="50%" height={14} />
+        <Skeleton width="85%" height={14} />
+      </View>
+    </View>
   );
 }
 
@@ -182,8 +211,10 @@ export function PlanCarousel({
       decelerationRate="fast"
       contentContainerStyle={{ paddingHorizontal: 16, gap: 12 }}
     >
-      {plans.map((p) => (
-        <PlanCard key={p.planId} plan={p} badge={badgeFor?.(p)} onPress={() => onOpen(p)} />
+      {plans.map((p, i) => (
+        <Animated.View key={p.planId} entering={enterIn(i)}>
+          <PlanCard plan={p} badge={badgeFor?.(p)} onPress={() => onOpen(p)} />
+        </Animated.View>
       ))}
     </ScrollView>
   );

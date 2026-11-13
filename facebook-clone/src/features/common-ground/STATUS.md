@@ -8,6 +8,7 @@ Milestone: v2 M2 device layer (A2, `cg/ios/v2-m2-device`)
 - 2026-11-12 A1 review fixes: Retry reruns the store action (none for decideApproval, C8); a successful load clears the error; failed start stays not-ready; a generation counter drops stale responses after reset/setIdentity. Array selectors are cached (useCg-safe).
 - 2026-11-12 A2: staged mock, `realtime.ts`, `calendar.ts`, `notifications.ts`.
 - 2026-11-12 batch4 motion (`cg/ios/batch4-motion`): `ui.tsx` exports `enter(i)`, `PressScale`, `Skeleton`, `Pop`, `MuseThinking` (all reduce-motion aware; only Skeleton loops); Pill uses PressScale. Jest tests mock reanimated via `tests/common-ground/reanimated.cjs`.
+- 2026-11-12 batch4 plans (`cg/ios/batch4-plans`): Muse bar shows `MuseThinking` + two PlanCard skeletons while asking/creating; reply and plan cards stagger in (native only: Reanimated web pins `enter()`'s custom keyframes to `position:absolute`); PlanCard presses with PressScale; "You're in." pops after I'm in; Connectors drop demo labels.
 
 ## Decisions
 
