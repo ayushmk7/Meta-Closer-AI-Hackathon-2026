@@ -192,7 +192,8 @@ export default function MuseBar({
             accessibilityLabel={`Muse says: ${reply.reply.text}`}
             style={{
               marginHorizontal: 16,
-              padding: 12,
+              paddingHorizontal: 14,
+              paddingVertical: 10,
               borderRadius: 18,
               backgroundColor: c.input,
             }}

@@ -53,8 +53,8 @@ function Intro({ onNext }: { onNext(): void }) {
             flex: 1,
             backgroundColor: c.input,
             borderRadius: 18,
-            paddingHorizontal: 12,
-            paddingVertical: 8,
+            paddingHorizontal: 14,
+            paddingVertical: 10,
           }}
         >
           <Label>
@@ -132,9 +132,19 @@ function PickedUp({ edits, onEdit }: { edits: Edits; onEdit(id: string, e: Edits
   return (
     <>
       <Section title="What Muse picked up">
-        <View style={{ flexDirection: 'row', gap: 10 }}>
+        <View style={{ flexDirection: 'row', gap: 10, alignItems: 'flex-start' }}>
           <MuseAvatar />
-          <Label style={{ flex: 1 }}>{setup.museText}</Label>
+          <View
+            style={{
+              flex: 1,
+              backgroundColor: c.input,
+              borderRadius: 18,
+              paddingHorizontal: 14,
+              paddingVertical: 10,
+            }}
+          >
+            <Label>{setup.museText}</Label>
+          </View>
         </View>
       </Section>
       <Section title="Your interests">
