@@ -4,7 +4,8 @@ import { Pressable, View } from 'react-native';
 import { Image } from 'expo-image';
 import { Divider, Icon, Label, Muted, go, useColors } from '../../ui/native';
 import { activityIcon as planIcon, photoSource } from './PlanCard';
-import { likeShare, planLikeThis } from './store';
+import { shareOut, welcomeLink } from './share';
+import { likeShare, planLikeThis, useCg } from './store';
 import type { Share } from './types';
 import { PopOn, selectedBg } from './ui';
 
@@ -86,6 +87,16 @@ function Action({
   );
 }
 
+// "<caption>\n<Activity> at <venue>, <neighborhood>\n<welcome link>": no person fields (C5).
+export const shareMessage = (s: Share): string =>
+  [
+    s.caption,
+    `${activityLabel(s.activityType)} at ${s.venue.name}, ${s.venue.neighborhood}`,
+    welcomeLink(s.shareId),
+  ]
+    .filter(Boolean)
+    .join('\n');
+
 export function SharePhoto({ share, height }: { share: Share; height: number }) {
   const c = useColors();
   return (
@@ -118,6 +129,7 @@ export default function ShareCard({
   readOnly?: boolean;
 }) {
   const c = useColors();
+  const sharing = useCg((s) => !!s.config?.features.sharing);
   const meta = [
     shareDate(share.happenedOn),
     share.venue.neighborhood,
@@ -173,25 +185,38 @@ export default function ShareCard({
           <Muted>{activityLabel(share.activityType)}</Muted>
         </View>
       )}
-      {!readOnly && (
+      {/* Read-only (logged-out) cards get a Share-only row, and only when sharing is on. */}
+      {(!readOnly || sharing) && (
         <>
           <View style={{ marginHorizontal: 12 }}>
             <Divider />
           </View>
           <View style={{ flexDirection: 'row', paddingHorizontal: 8, minHeight: 46 }}>
-            <Action
-              icon={share.likedByMe ? 'thumbs-up' : 'thumbs-up-outline'}
-              label="Like"
-              active={share.likedByMe}
-              a11y={share.likedByMe ? `Unlike ${share.venue.name}` : `Like ${share.venue.name}`}
-              onPress={() => void likeShare(share.shareId, !share.likedByMe)}
-            />
-            <Action
-              icon="sparkles-outline"
-              label="Plan something like this"
-              a11y={`Plan something like this: ${share.promptText}`}
-              onPress={() => void planFromShare(share)}
-            />
+            {!readOnly && (
+              <Action
+                icon={share.likedByMe ? 'thumbs-up' : 'thumbs-up-outline'}
+                label="Like"
+                active={share.likedByMe}
+                a11y={share.likedByMe ? `Unlike ${share.venue.name}` : `Like ${share.venue.name}`}
+                onPress={() => void likeShare(share.shareId, !share.likedByMe)}
+              />
+            )}
+            {!readOnly && (
+              <Action
+                icon="sparkles-outline"
+                label="Plan something like this"
+                a11y={`Plan something like this: ${share.promptText}`}
+                onPress={() => void planFromShare(share)}
+              />
+            )}
+            {sharing && (
+              <Action
+                icon="arrow-redo-outline"
+                label="Share"
+                a11y={`Share ${share.venue.name}`}
+                onPress={() => void shareOut(shareMessage(share))}
+              />
+            )}
           </View>
         </>
       )}

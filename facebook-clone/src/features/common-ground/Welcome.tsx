@@ -4,12 +4,14 @@
 // Desktop (>= 900pt): wordmark + pitch left, login card right, gallery below.
 import { useEffect } from 'react';
 import { Modal, ScrollView, View, useWindowDimensions } from 'react-native';
-import { router } from 'expo-router';
+import Animated from 'react-native-reanimated';
+import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button, Card, Divider, Label, Muted, useColors } from '../../ui/native';
 import { MuseAvatar } from './MuseBar';
 import ShareCard from './ShareCard';
 import { load, useCg } from './store';
+import { enter as rise } from './ui';
 
 const GREEN = '#42B72A'; // Facebook's "Create new account" green
 const enter = () => router.replace('/common-ground');
@@ -35,15 +37,21 @@ function Wordmark({ size }: { size: number }) {
   );
 }
 
-function Gallery() {
-  const shares = useCg((s) => s.publicShares); // anonymous slot, never the signed-in gallery
+// `?share=<id>` (a gallery share link) moves that card to the top when it is in the gallery.
+export function Gallery({ max = 6 }: { max?: number }) {
+  const { share } = useLocalSearchParams<{ share?: string }>();
+  const all = useCg((s) => s.publicShares); // anonymous slot, never the signed-in gallery
+  const pinned = all.filter((s) => s.shareId === share);
+  const shares = [...pinned, ...all.filter((s) => s.shareId !== share)];
   return (
     <>
       <Label style={{ fontSize: 17, fontWeight: '700', paddingHorizontal: 16, paddingTop: 8 }}>
         What people did this week
       </Label>
-      {shares.slice(0, 6).map((s) => (
-        <ShareCard key={s.shareId} share={s} readOnly />
+      {shares.slice(0, max).map((s, i) => (
+        <Animated.View key={s.shareId} entering={rise(i)}>
+          <ShareCard share={s} readOnly />
+        </Animated.View>
       ))}
     </>
   );
@@ -98,26 +106,34 @@ function Desktop() {
   );
 }
 
+// Wordmark bar with Log in: the logged-out header (Welcome, public plan page).
+export function TopBar() {
+  const c = useColors();
+  return (
+    <View
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 16,
+        minHeight: 56,
+        backgroundColor: c.card,
+        borderBottomWidth: 1,
+        borderBottomColor: c.divider,
+      }}
+    >
+      <View style={{ flex: 1 }}>
+        <Wordmark size={30} />
+      </View>
+      <Button title="Log in" secondary onPress={enter} />
+    </View>
+  );
+}
+
 function Phone() {
   const c = useColors();
   return (
     <>
-      <View
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          paddingHorizontal: 16,
-          minHeight: 56,
-          backgroundColor: c.card,
-          borderBottomWidth: 1,
-          borderBottomColor: c.divider,
-        }}
-      >
-        <View style={{ flex: 1 }}>
-          <Wordmark size={30} />
-        </View>
-        <Button title="Log in" secondary onPress={enter} />
-      </View>
+      <TopBar />
       <ScrollView contentContainerStyle={{ gap: 8, paddingVertical: 8, paddingBottom: 170 }}>
         <Card style={{ padding: 16, gap: 10 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>

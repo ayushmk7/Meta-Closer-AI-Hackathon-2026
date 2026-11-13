@@ -3,9 +3,21 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Linking, Platform, Pressable, Switch, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Button, Card, Icon, Label, Muted, Page, Sheet, go, useColors } from '../../ui/native';
+import {
+  Button,
+  Card,
+  Icon,
+  IconButton,
+  Label,
+  Muted,
+  Page,
+  Sheet,
+  go,
+  useColors,
+} from '../../ui/native';
 import { CheckRow, PlanPhoto, dayTime, duration, whosIn } from './PlanCard';
 import { getState, join, load, useCg, withdraw } from './store';
+import { planMessage, shareOut } from './share';
 import { pickSurprise } from './SurpriseButton';
 import type { GroupSize, PlanDetail } from './types';
 import { Banners, GroupSizePicker, NotFound, PersonAvatar, Pop, Section, usePoll } from './ui';
@@ -48,6 +60,31 @@ function Block({ title, children }: { title: string; children: React.ReactNode }
     <View>
       <Section title={title} />
       <View style={{ paddingHorizontal: 16, gap: 6 }}>{children}</View>
+    </View>
+  );
+}
+
+// "Share plan" on the header photo (plan pop-up, meetup). Hidden unless features.sharing; the
+// caller hides it for invite plans (the public page 404s them). The message never names people.
+export function SharePlanButton({ plan }: { plan: Parameters<typeof planMessage>[0] }) {
+  const sharing = useCg((s) => !!s.config?.features.sharing);
+  if (!sharing) return null;
+  return (
+    <View
+      style={{
+        position: 'absolute',
+        top: 8,
+        right: 8,
+        borderRadius: 22,
+        backgroundColor: 'rgba(0,0,0,0.45)',
+      }}
+    >
+      <IconButton
+        name="share-outline"
+        label="Share plan"
+        color="#fff"
+        onPress={() => void shareOut(planMessage(plan))}
+      />
     </View>
   );
 }
@@ -248,7 +285,10 @@ export default function PlanScreen() {
     <View style={{ flex: 1, backgroundColor: c.card }}>
       <Banners />
       <Page>
-        <PlanPhoto plan={plan} height={200} />
+        <View>
+          <PlanPhoto plan={plan} height={200} />
+          {plan.origin !== 'invite' && <SharePlanButton plan={plan} />}
+        </View>
         <View style={{ paddingVertical: 16, gap: 16 }}>
           <View style={{ gap: 4, paddingHorizontal: 16 }}>
             {surprise && (

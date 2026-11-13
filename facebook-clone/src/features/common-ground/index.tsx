@@ -10,3 +10,4 @@ export { default as WelcomeScreen } from './Welcome';
 export { default as ExploreScreen } from './Explore';
 export { default as PassportScreen } from './Passport';
 export { default as ScanScreen } from './Scan';
+export { default as PublicPlanScreen } from './PublicPlan';
