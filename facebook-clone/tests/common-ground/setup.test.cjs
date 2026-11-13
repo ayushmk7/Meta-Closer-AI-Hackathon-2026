@@ -90,7 +90,8 @@ test('intro -> optIn -> connect apps -> picked up (locked sensitive) -> done', a
   await press('Continue');
   expect(store.getState().me.optedIn).toBe(true);
   expect(text()).toContain('Connect your apps');
-  expect(text()).toContain("Demo: sample data for apps you haven't connected.");
+  expect(text()).toContain('Demo: connected apps use sample data.');
+  expect(text()).toContain('· Demo data');
   await press('Skip for now');
   expect(text()).toContain('What Muse picked up');
   expect(text()).toContain('Only you can see this.');
