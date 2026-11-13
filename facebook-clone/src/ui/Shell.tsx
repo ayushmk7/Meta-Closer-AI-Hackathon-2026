@@ -76,10 +76,10 @@ function TabShell({ children }: { children: ReactNode }) {
     events: 'Events',
     privacy: 'Privacy Checkup',
   };
-  const title =
-    contributedTabs.find((tab) => path.startsWith(`${tab.href}/`))?.label ??
-    titles[path.split('/')[1]] ??
-    'Facebook';
+  const pushed = contributedTabs.find((tab) => path.startsWith(`${tab.href}/`));
+  const title = pushed
+    ? (pushed.titles?.[path.slice(pushed.href.length + 1).split('/')[0]] ?? pushed.label)
+    : (titles[path.split('/')[1]] ?? 'Facebook');
   return (
     <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: c.card }}>
       <StatusBar style={demo.state.settings.theme === 'dark' ? 'light' : 'dark'} />

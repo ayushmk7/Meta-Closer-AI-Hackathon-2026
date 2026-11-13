@@ -54,6 +54,7 @@ export interface TabItem {
   after: '/' | '/friends' | '/marketplace' | '/notifications'; // position in the bar
   useBadge?: () => number; // hook; 0 hides the badge
   headerAction?: { icon: string; label: string; href: string }; // top-bar button shown beside search while this tab is open
+  titles?: Record<string, string>; // pushed-route bar titles by first segment after href, e.g. { settings: 'Settings' }; default label
 }
 export interface ExternalRow {
   id: string;
