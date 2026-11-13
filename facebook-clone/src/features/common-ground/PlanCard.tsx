@@ -1,6 +1,6 @@
 // Plan card (PRD-1 §8.1 item 3). Used by the For you carousel, Muse's reply row and alternatives.
 import type { ComponentProps } from 'react';
-import { Platform, ScrollView, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { Image } from 'expo-image';
 import type Ionicons from '@expo/vector-icons/Ionicons';
@@ -10,11 +10,6 @@ import { clock } from './time';
 import { TZ } from './types';
 import { PressScale, Skeleton, enter, selectedBg } from './ui';
 import type { Crowd, PlanCard as Plan, PlanCheck } from './types';
-
-// ponytail: Reanimated 4.5 web pins custom-keyframe entering views (enter() uses
-// withInitialValues) to position:absolute once they finish, so siblings overlap. Native only
-// until ui.tsx's enter() is fixed on web.
-export const enterIn = (i = 0) => (Platform.OS === 'web' ? undefined : enter(i));
 
 // "Sat 10 AM" / "Sat 9:30 AM", always in TZ (Pacific), never the device zone.
 export const dayTime = (iso: string): string => {
@@ -212,7 +207,7 @@ export function PlanCarousel({
       contentContainerStyle={{ paddingHorizontal: 16, gap: 12 }}
     >
       {plans.map((p, i) => (
-        <Animated.View key={p.planId} entering={enterIn(i)}>
+        <Animated.View key={p.planId} entering={enter(i)}>
           <PlanCard plan={p} badge={badgeFor?.(p)} onPress={() => onOpen(p)} />
         </Animated.View>
       ))}

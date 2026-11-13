@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   ActivityIndicator,
+  Platform,
   Pressable,
   View,
   type PressableProps,
@@ -126,11 +127,15 @@ export function Pill({
 
 // Motion. Layout animations (enter) honour system reduce motion by themselves; the
 // hand-driven ones below check useReducedMotion. Only Skeleton loops.
+// ponytail: none on web: Reanimated 4.5 web pins custom-keyframe entering views to
+// position:absolute, so they overlap what follows. Demo runs on iPhone.
 export const enter = (i = 0) =>
-  FadeInDown.duration(220)
-    .easing(Easing.out(Easing.quad))
-    .withInitialValues({ opacity: 0, transform: [{ translateY: 12 }] })
-    .delay(Math.min(i, 4) * 60);
+  Platform.OS === 'web'
+    ? undefined
+    : FadeInDown.duration(220)
+        .easing(Easing.out(Easing.quad))
+        .withInitialValues({ opacity: 0, transform: [{ translateY: 12 }] })
+        .delay(Math.min(i, 4) * 60);
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 

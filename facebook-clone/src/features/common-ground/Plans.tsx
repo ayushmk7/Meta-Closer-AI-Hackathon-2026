@@ -22,14 +22,14 @@ import {
   useColors,
 } from '../../ui/native';
 import MuseBar from './MuseBar';
-import PlanCard, { Badge, PlanCarousel, dayTime, enterIn } from './PlanCard';
+import PlanCard, { Badge, PlanCarousel, dayTime } from './PlanCard';
 import Rewards from './Rewards';
 import SetupScreen from './Setup';
 import Quests from './Quests';
 import IdeasRow from './IdeasRow';
 import { dismissNudge, nudgesFor, pendingApprovals, refreshAll, useCg } from './store';
 import type { Connection, Join, Meetup, Nudge, PlanCard as Plan } from './types';
-import { Banners, InterestChips, PersonAvatar, Section } from './ui';
+import { Banners, InterestChips, PersonAvatar, Section, enter } from './ui';
 
 // Selectors must return stable references (useSyncExternalStore): never `?? []` inside useCg.
 const NONE: Plan[] = [];
@@ -285,12 +285,12 @@ export default function PlansScreen() {
             <Card style={{ marginHorizontal: 16 }}>
               <View style={{ marginTop: -StyleSheet.hairlineWidth }}>
                 {sorted.map((j, i) => (
-                  <Animated.View key={j.joinId} entering={enterIn(i)}>
+                  <Animated.View key={j.joinId} entering={enter(i)}>
                     <YourPlanRow join={j} meetup={j.meetupId ? meetups[j.meetupId] : undefined} />
                   </Animated.View>
                 ))}
                 {orphans.map((m, i) => (
-                  <Animated.View key={m.meetupId} entering={enterIn(sorted.length + i)}>
+                  <Animated.View key={m.meetupId} entering={enter(sorted.length + i)}>
                     <YourPlanRow meetup={m} />
                   </Animated.View>
                 ))}

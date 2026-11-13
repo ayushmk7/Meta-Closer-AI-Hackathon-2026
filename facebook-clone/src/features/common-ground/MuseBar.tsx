@@ -3,10 +3,10 @@ import { useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { Card, Icon, IconButton, Input, Label, Muted, go, useColors } from '../../ui/native';
-import { PlanCardSkeleton, PlanCarousel, enterIn } from './PlanCard';
+import { PlanCardSkeleton, PlanCarousel } from './PlanCard';
 import { askMuse, clearMuse, createPlan, useCg } from './store';
 import SurpriseButton from './SurpriseButton';
-import { MuseThinking, Pill } from './ui';
+import { MuseThinking, Pill, enter } from './ui';
 
 const ASKING = [
   'Muse is reading what you asked…',
@@ -177,7 +177,7 @@ export default function MuseBar({
       {reply && !busy && (
         <View style={{ gap: 10 }}>
           <Animated.View
-            entering={enterIn()}
+            entering={enter()}
             accessibilityLabel={`Muse says: ${reply.reply.text}`}
             style={{
               marginHorizontal: 16,
