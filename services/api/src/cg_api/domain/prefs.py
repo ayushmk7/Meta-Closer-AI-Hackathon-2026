@@ -45,15 +45,17 @@ def reward(w: World, user_id: str, ks: list[str], r: float) -> None:
 def liked_label(w: World, user_id: str, plan: dict) -> str | None:
     """'Because you liked <X>' from the strongest positive key this plan matches. Owner-only (P7)."""
     mine = w.prefs.get(user_id, {})
-    rank = {"int": 2, "act": 1, "vn": 0}  # ties read best as an interest, then the activity, then the venue
-    best = max(((mine[k], rank[k.split(":")[0]], k) for k in plan_keys(w, plan) if mine.get(k, 0) > 0), default=None)
+    rank = {"int": 2, "vn": 1}  # an interest reads best, then the venue; an activity ID alone isn't copy
+    best = max(
+        ((mine[k], rank[k.split(":")[0]], k) for k in plan_keys(w, plan) if mine.get(k, 0) > 0 and k[:3] != "act"),
+        default=None,
+    )
     if not best:
         return None
     kind, _, ref = best[2].partition(":")
     if kind == "int":
-        name = w.taxonomy.get(ref, {}).get("label", ref)
-    elif kind == "vn":
-        name = w.venues[ref]["name"]
-    else:
-        name = ref.replace("_", " ")
-    return f"Because you liked {name}"
+        label = w.taxonomy.get(ref, {}).get("label", ref)
+        from cg_api.muse.copy import lc  # D's mid-sentence casing ("Ceramics" -> "ceramics", "AI and ML" kept)
+
+        return f"Because you liked {lc(label)}"
+    return f"Because you liked {w.venues[ref]['name']}"

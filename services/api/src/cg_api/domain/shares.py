@@ -12,17 +12,27 @@ from datetime import timedelta
 from cg_api.domain import meetups, plans, prefs
 from cg_api.domain.world import Fail, World, not_found, parse
 
-CAPTIONS = [  # ponytail: seed captions; real ones come from shareMeetup
-    "Strangers at 10, friends by noon.",
+CAPTIONS = [  # ponytail: seed captions that fit any card; real ones come from shareMeetup
+    "Strangers at the start, friends by the end.",
     "Nobody knew anyone. Everyone stayed for food after.",
-    "Three of us, one table, zero awkward silences.",
-    "Came for the {activity}, stayed for the people.",
+    "{n} of us, zero awkward silences.",
+    "Came for the plan, stayed for the people.",
     "Already planning the next one.",
 ]
 
 
-def _activity(t: str) -> str:
-    return t.replace("_", " ")
+NUMBERS = {2: "Two", 3: "Three", 4: "Four", 5: "Five", 6: "Six", 7: "Seven", 8: "Eight"}
+
+
+def _when(w: World) -> str:
+    """'this weekend' on weekdays; on Sat/Sun this weekend is already happening."""
+    return "this weekend" if w.now().astimezone(plans.TZ).weekday() < 5 else "next weekend"
+
+
+def _pool(w: World, viewer: str | None) -> str | None:
+    """The viewer's pool; anonymous (Welcome) and not-yet-opted-in see the demo's city pool."""
+    u = w.users.get(viewer or "")
+    return (u or {}).get("poolId") or w.demo.get("poolId")
 
 
 def _make(w: World, owner: str | None, plan: dict, caption: str, group: int, day: str) -> dict:
@@ -32,6 +42,8 @@ def _make(w: World, owner: str | None, plan: dict, caption: str, group: int, day
         "likers": set(),
         "seedLikes": 0,
         "activityType": plan["activityType"],
+        "title": plan["title"],
+        "poolId": plan.get("poolId"),
         "venueId": plan["venueId"],
         "targetInterestIds": list(plan["targetInterestIds"]),
         "caption": caption[:140],
@@ -50,11 +62,16 @@ def _seed(w: World) -> None:
     picked = [
         p for p in sorted(w.plans.values(), key=lambda p: p["planId"]) if not w.venues[p["venueId"]].get("sensitive")
     ]
-    for k, p in enumerate(picked[: w.params["shares"]["galleryMax"]]):
+    per_pool: dict = {}
+    for p in picked:  # galleryMax per pool, so every pool's gallery is full
+        per_pool.setdefault(p.get("poolId"), []).append(p)
+    picked = [p for ps in per_pool.values() for p in ps[: w.params["shares"]["galleryMax"]]]
+    for k, p in enumerate(picked):
         h = int(hashlib.sha256(p["planId"].encode()).hexdigest()[:8], 16)
-        cap = CAPTIONS[h % len(CAPTIONS)].format(activity=_activity(p["activityType"]))
+        group = p["size"]["min"] + h % 3
+        cap = CAPTIONS[h % len(CAPTIONS)].format(n=NUMBERS.get(group, str(group)))
         day = (today - timedelta(days=1 + k % 14)).isoformat()
-        s = _make(w, None, p, cap, p["size"]["min"] + h % 3, day)
+        s = _make(w, None, p, cap, group, day)
         s["seedLikes"] = h % 20
 
 
@@ -72,17 +89,19 @@ def view(w: World, viewer: str | None, s: dict) -> dict:
         "likes": s["seedLikes"] + len(s["likers"]),
         "likedByMe": viewer in s["likers"],
         "mine": viewer is not None and s["owner"] == viewer,
-        "promptText": f"{_activity(s['activityType']).capitalize()} at {v['name']} this weekend",
+        "promptText": f"{plans.with_venue(s['title'], v['name'])} {_when(w)}",
     }
 
 
 def list_shares(w: World, viewer: str | None, activity_type=None, neighborhood=None, venue_id=None) -> list[dict]:
     """Public (security: []). Newest first, at most shares.galleryMax. Sensitive venues never appear (P4)."""
     _seed(w)
+    pool = _pool(w, viewer)
     out = [
         s
         for s in w.shares.values()
         if not w.venues[s["venueId"]].get("sensitive")
+        and (pool is None or s["poolId"] in (None, pool))
         and (not activity_type or s["activityType"] == activity_type)
         and (not venue_id or s["venueId"] == venue_id)
         and (not neighborhood or w.venues[s["venueId"]].get("neighborhood") == neighborhood)
@@ -93,7 +112,9 @@ def list_shares(w: World, viewer: str | None, activity_type=None, neighborhood=N
 
 def share_meetup(w: World, viewer: str, meetup_id: str, caption) -> dict:
     m = meetups.get(w, viewer, meetup_id)
-    if not isinstance(caption, str) or not caption.strip() or len(caption) > 140:
+    if not isinstance(caption, str) or not caption.strip():
+        raise Fail(400, "validation_failed", "Add a caption to share it.")
+    if len(caption) > 140:
         raise Fail(400, "validation_failed", "Keep the caption under 140 characters.")
     me = m["members"][viewer]
     over = m["status"] == "completed" or parse(m["endsAt"]) <= w.now()

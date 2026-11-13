@@ -152,7 +152,7 @@ def test_feedback_reorders_feed_deterministically(world):
     assert after.index("pl_hero2") < after.index("pl_walk")
     assert after == _order(world, "u_dan")  # deterministic
     card = plans.card(world, "u_dan", world.plans["pl_hero2"])
-    assert {"source": "muse", "label": "Because you liked Ceramics", "signalId": None} in card["because"]
+    assert {"source": "muse", "label": "Because you liked ceramics", "signalId": None} in card["because"]
     assert not any(b["source"] == "muse" for b in plans.card(world, "u_maya", world.plans["pl_hero2"])["because"])  # P7
     verify.feedback(world, "u_dan", mt, {"answers": [], "rating": 1})  # resend doesn't learn twice
     assert _order(world, "u_dan") == after
@@ -182,3 +182,40 @@ def test_feedback_reorders_through_real_rank_plans():
     after = [pid for pid in matching.rank(w, "u_dan") if pid in ("pl_walk", "pl_hero2")]
     assert before == ["pl_walk", "pl_hero2"] and after == ["pl_hero2", "pl_walk"]
     assert after == [pid for pid in matching.rank(w, "u_dan") if pid in ("pl_walk", "pl_hero2")]
+
+
+def test_gallery_is_scoped_to_the_viewers_pool(world):
+    world.demo["poolId"] = "pool_sf_city"
+    world.add_plan({**world.plans["pl_walk"], "planId": "pl_far", "poolId": "pool_evt", "title": "Dish loop"})
+    pools = {world.shares[s["shareId"]]["poolId"] for s in shares.list_shares(world, None)}
+    assert pools == {"pool_sf_city"}  # anonymous Welcome: the demo's city pool
+    world.users["u_kai"]["poolId"] = "pool_evt"
+    assert {world.shares[s["shareId"]]["poolId"] for s in shares.list_shares(world, "u_kai")} == {"pool_evt"}
+
+
+def test_seed_copy_fits_the_card(world):
+    for s in shares.list_shares(world, None):
+        assert "at 10" not in s["caption"]
+        if "of us" in s["caption"]:
+            n = {"Two": 2, "Three": 3, "Four": 4, "Five": 5, "Six": 6, "Seven": 7, "Eight": 8}[s["caption"].split()[0]]
+            assert n == s["groupSize"]
+        assert "_" not in s["promptText"] and s["promptText"].endswith("this weekend")  # NOW is a Thursday
+    walk = next(s for s in shares.list_shares(world, None) if s["venue"]["venueId"] == "vn_trail")
+    assert walk["promptText"] == "Sunday coastal walk at Lands End Trail this weekend"
+
+
+def test_blank_caption_says_add_one(world):
+    mt = confirmed(world)
+    for cap, msg in (("   ", "Add a caption"), ("x" * 141, "under 140")):
+        with pytest.raises(Fail) as e:
+            shares.share_meetup(world, "u_maya", mt, cap)
+        assert e.value.status == 400 and msg in e.value.message
+
+
+def test_activity_only_pref_gives_no_because_line(world):
+    from cg_api.domain import prefs
+
+    prefs.reward(world, "u_dan", ["act:ceramics_studio"], 1.0)
+    assert prefs.liked_label(world, "u_dan", world.plans["pl_hero2"]) is None
+    prefs.reward(world, "u_dan", ["vn:vn_clay"], 1.0)
+    assert prefs.liked_label(world, "u_dan", world.plans["pl_hero2"]) == "Because you liked Clay Hour Studio"
