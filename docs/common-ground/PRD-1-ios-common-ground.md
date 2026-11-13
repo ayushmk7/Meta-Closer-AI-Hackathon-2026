@@ -14,7 +14,7 @@ The demo runs on an iPhone in Expo Go. The judged moments you own:
 1. **Proactive entry.** Facebook Home shows Muse's nudge card ("You've walked Lands End 4 times this month…"). Tapping it opens the plan.
 2. **Setup.** Connected apps with what each reads; what Muse picked up, with one sensitive place hidden behind a lock.
 3. **Muse bar.** "pottery this weekend" → Muse's answer and cards with ✓ Fits your Saturday · 22 min by transit · $35. Open the pop-up: who's in (coarse), Muse will handle, I'm in.
-4. **Visible agent.** The group forms; the meetup screen shows Muse's steps ticking live; the approval sheet ("OK $35 · demo payment"); the event appears in the iPhone's Calendar app; the group chat opens with Muse's intro and starters.
+4. **Visible agent.** The group forms; the meetup screen shows Muse's steps ticking live; the approval sheet ("OK $35"); the event appears in the iPhone's Calendar app; the group chat opens with Muse's intro and starters.
 5. **Changes and day of.** "Muse, can we do 11 instead?" in the chat → new steps tick; the leave-by notification opens Directions; check-in; the three questions; People you've met.
 
 ## 2. Constraints (fixed)
@@ -127,9 +127,9 @@ On I'm in: haptic, optimistic state, then the returned Join. Apply `Join.calenda
 Facebook Event style header: title, day and time, venue (static map), `eventLabel` when set, attendee avatars.
 
 1. **Muse is setting this up** (always visible; collapsible once `confirmed`): the `museSteps` timeline in order. Each row: an icon for its kind, the `label`, optional `detail`, and a status mark: queued (hollow circle), running (spinner), done (filled check), needs you (accent dot plus "Needs you"), failed (warning mark, followed by Muse's next step), skipped (muted dash). New steps animate in; reduced motion turns the animation off. A `needs_you` step with an `approvalId` that is mine shows the approval inline.
-2. **Approval sheet** (inline card that opens a `Sheet`): `title`, `detail`, amount and payee, "Demo payment · no real money moves" when `simulated`, `fallback` in secondary text, **Approve** and **Not now** (`decideApproval`). The Approve button is enabled only after the sheet has rendered the amount (C8). Haptic on approve.
+2. **Approval sheet** (inline card that opens a `Sheet`): `title`, `detail`, amount and payee, `fallback` in secondary text, **Approve** and **Not now** (`decideApproval`). The Approve button is enabled only after the sheet has rendered the amount (C8). Haptic on approve.
 3. **Who's coming:** each attendee with name (first name only for private), avatar or initials, shared interests at full depth, and On my way or Arrived when set. Tap a public person → person route.
-4. **Details:** booking (`booking.label`, confirmation code, "Simulated booking"), cost and my payment state, calendar ("Added to your calendar" when the directive is applied, with an "Open Calendar" link via `Linking.openURL('calshow:…')`), travel label, leave-by time, and **Directions** (Apple Maps, or Google Maps from an action sheet). Share plan with a friend (system share sheet with title, time and venue only).
+4. **Details:** booking (`booking.label`, confirmation code), cost and my payment state, calendar ("Added to your calendar" when the directive is applied, with an "Open Calendar" link via `Linking.openURL('calshow:…')`), travel label, leave-by time, and **Directions** (Apple Maps, or Google Maps from an action sheet). Share plan with a friend (system share sheet with title, time and venue only).
 5. **Day of:** On my way and Arrived (`setMeetupStatus`) from `limits.meetupStatusBeforeMin` before start until the end; **Check in** while `checkinWindow` is open (one `expo-location` reading, or `demo.fakeLocation`; show the server's reason if not accepted).
 6. **After:** when `feedbackDue`, the three questions per attendee (Did they show up? Would you meet again? Anything we should know?), the last opening Report. Send with `sendFeedback`.
 7. **Actions:** Open group chat; Ask Muse to change something (opens the chat with the composer prefilled "Muse, "); Can't make it (`leaveMeetup`, confirm first).
@@ -143,7 +143,7 @@ Messenger look with clone tokens. My bubbles blue, others gray. Muse messages ar
 A short paged flow; Back works on every page.
 
 1. **Intro** (not opted in): Muse's two lines on how it works and the privacy promise ("People only see what you have in common, and only after a group forms."), the mode picker from `config.modes` (unavailable modes show "Coming soon"), Continue → `optIn`.
-2. **Connect your apps** (`features.connectors`): `listConnectors` as rows with label, `reads`, a "Demo data" tag when `simulated`, and a toggle (`connectConnector`, `disconnectConnector`; the calendar row runs §5.1). `coming_soon` rows are disabled. "Skip for now" is always available.
+2. **Connect your apps** (`features.connectors`): `listConnectors` as rows with label, `reads`, and a toggle (`connectConnector`, `disconnectConnector`; the calendar row runs §5.1). `coming_soon` rows are disabled. "Skip for now" is always available.
 3. **What Muse picked up:** `getSetup` (refetch after each connect). `museText`, then interests grouped by category as chips (show, hide, remove), each with its evidence on long-press or an info button. Sensitive ones arrive hidden with a lock and "Only you can see this". Then signals ("4 visits to Lands End Trail in October · Google Maps"), each hideable; sensitive signals show only as locked rows with their label.
 4. **Preferences:** profile public or private, group size (min and max within `limits`), how far you'll travel (minutes and modes), and, only when no calendar is connected, a coarse availability grid. With `features.autonomySettings`, a "What Muse can do without asking" section (§8.6). Done → `completeSetup` → Plans home.
 

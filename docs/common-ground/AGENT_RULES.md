@@ -79,7 +79,7 @@ The backend enforces P1 to P11 (CONTRACTS §8) and tests each one. The app adds 
 - **C5** Never show another person's withdrawal, decline or "seen" state, or a reason a join was not filled, even if a field appears to allow it. Never show who is in a plan before the group forms.
 - **C6** Show interests, signals and step labels exactly as the server sends them. Never combine responses to show more (for example, pairing a coarse crowd label with a later full-depth label in one place).
 - **C7** Calendar: read only the start and end of events in the next `limits.calendarHorizonDays`, from the calendars the user allowed, excluding the app's own Common Ground calendar. Never read or send titles, notes, locations or attendees. Sync at most once per `limits.calendarSyncMinIntervalS` while foreground (plus right after applying directives). Write only to the "Common Ground" calendar the app created, and only what directives say.
-- **C8** Approvals: never approve on the user's behalf, never pre-check an approval, and always show the amount, payee and the simulated-payment label (`Approval.simulated`) on the approval sheet before the approve button is enabled.
+- **C8** Approvals: never approve on the user's behalf, never pre-check an approval, and always show the amount and payee on the approval sheet before the approve button is enabled.
 
 Everyone: no real people's names or photos in seed data or UI fixtures, and no secrets in commits.
 
@@ -90,7 +90,7 @@ Everyone: no real people's names or photos in seed data or UI fixtures, and no s
 - **D3** The counterpart toggle (live second phone or synthetic) can flip at any moment without breaking an open thread, a forming plan or a meetup being set up.
 - **D4** Every Muse or Laya call has a fallback that keeps the demo moving: the scripted planner and templated copy for Muse (the Muse bar falls back to keyword filtering), the fake probability for Laya, with a log line saying so. A failed booking always produces a visible fallback step, never a stuck timeline.
 - **D5** The existing clone keeps passing its own checks (`npm test`, `npm run test:native`, `typecheck`, `lint`, `test:e2e`, both builds). On web, Common Ground runs on the in-app mock only and makes no network requests; calendar and notifications are no-ops.
-- **D6** No real money, bookings or third-party accounts. Payments, bookings and every connector except the device calendar are simulated and labeled as such on screen.
+- **D6** No real money, bookings or third-party accounts. Payments, bookings and every connector except the device calendar are simulated.
 - **D7** The visible agent reads on stage: Muse steps advance with `params.demo.stepDelayS` between them, and every step transition reaches the phone within 2 seconds (realtime, or polling at `limits.pollIntervalS`).
 
 ## R9. When you need something from another agent
