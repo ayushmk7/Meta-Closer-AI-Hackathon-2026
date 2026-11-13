@@ -111,7 +111,7 @@ The whole feature is one screen, its own tab in the Facebook bottom bar between 
 5. **Gathering.** Muse waits for enough compatible people. In DEMO_MODE, a plan forms as soon as it reaches its minimum. Otherwise it forms at its fill deadline (a starting value of 24 hours before start), or immediately when it fills.
 6. **Group forms.** `cg_matching.form_groups` splits everyone who joined into one or more groups (12 people in for Saturday bouldering become three groups of 4). Your group is revealed: names (first name only for private profiles), photos for public profiles, and shared interests at full depth. The group chat opens with Muse's intro and starters.
 7. **Muse sets it up (the visible part).** Steps tick live on the meetup screen and in a progress card in the chat: everyone is free at that time → the venue has space → payment approval if needed → booked → added to everyone's calendar → Facebook Event created → leave-by reminder scheduled. Each step has a status (queued, running, done, needs you, failed, skipped) and plain copy.
-8. **Approve (only if money is involved).** "OK $35 for your wheel?" One tap approves a simulated demo payment. Declining, or letting it expire, triggers Muse's in-bounds fallback: pay at the venue, a free option, or releasing your seat with a note to the group. Muse never pays without your approval unless you set an auto-spend limit (default $0).
+8. **Approve (only if money is involved).** "OK $35 for your wheel?" One tap approves the payment (simulated in the demo, not labeled in the app). Declining, or letting it expire, triggers Muse's in-bounds fallback: pay at the venue, a free option, or releasing your seat with a note to the group. Muse never pays without your approval unless you set an auto-spend limit (default $0).
 9. **Day of.** A leave-by local notification ("Leave by 9:28 for Hayes Clay Studio") opens directions. On my way and Arrived are visible to the group. Check-in at the venue.
 10. **Changes.** Someone drops out: Muse backfills from people still waiting, or continues if the group is still above its minimum, or cancels with alternatives. Someone asks for a new time: Muse checks calendars and the venue and changes it if everyone stays free and the cost doesn't rise. Otherwise it asks.
 11. **After.** The three questions (Did they show up? Would you meet again? Anything we should know?). The people join People you've met. "Same time next week?" A group that meets twice is offered its own Facebook Group.
@@ -264,7 +264,7 @@ No user sees anything about another user beyond what they share. Only Muse holds
 - **Calendar:** only free/busy is read; app-written events carry no other person's name.
 - **Location:** no location sharing. Travel times come from your neighborhood centroid. One reading at check-in.
 - **No search or browsing of people.** People reach you only through a group you're in or someone you've met.
-- **Payments and bookings** are simulated in the demo and labeled as such.
+- **Payments and bookings** are simulated in the demo; flagged in data, not labeled in the app.
 - **Data stays home:** user data goes only to Muse (Meta's model API) and Laya (our servers). Opening directions sends only the venue's public coordinates, and only when the user taps.
 - The internal map stays server-side; leaving the pool removes you from it; disconnecting a connector deletes its signals.
 
@@ -297,7 +297,7 @@ Unlocks through confirmed meetups (create your own plans at 1; bigger groups and
 | 0:20 | iPhone, Facebook Home: Muse card "You've walked Lands End 4 times this month (Google Maps). 5 people want a Saturday coastal walk crew." | Proactive, from an integration, non-intrusive |
 | 0:40 | Plans tab setup glimpse: connected apps; what Muse picked up; one sensitive place auto-hidden with a lock | Integrations with consent; Laya protects her |
 | 1:00 | Muse bar: "pottery this weekend". Muse answers; card shows ✓ Fits your Saturday · 22 min by transit · $35. Open it: who's in (coarse), Muse will handle. Tap I'm in | One decision |
-| 1:40 | Second phone (or synthetic) joins; the group forms. Meetup screen: Muse's steps tick live; approval sheet "OK $35 (demo payment)"; booked; the event appears in the iPhone's Calendar app; group chat opens with intro and starters | Visible AI doing the work |
+| 1:40 | Second phone (or synthetic) joins; the group forms. Meetup screen: Muse's steps tick live; approval sheet "OK $35"; booked; the event appears in the iPhone's Calendar app; group chat opens with intro and starters | Visible AI doing the work |
 | 2:40 | In chat: "Muse, can we do 11 instead?" Muse checks calendars and the studio, rebooks, steps tick again (dashboard can force a booking failure to show the fallback) | Muse coordinates; failures stay visible |
 | 3:10 | Leave-by notification opens Apple Maps directions; check-in; the three questions; People you've met | Trust and the return loop |
 | 3:35 | Laptop: dashboard replays greedy vs Common Ground over 8 weeks; isolated-share chart; live graph of formed groups | Real math, measured, never in the app |

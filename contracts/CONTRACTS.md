@@ -60,7 +60,7 @@ Precedence when documents disagree: **contracts/** > [AGENT_RULES](../docs/commo
   | `modes[]` | `modes.yaml` pools; specced modes appear with `available: false` |
   | `demo.*` | internal demo state, defaults from `params.demo` and `demo.json` |
 - **Text the user sees** from the server (`reason`, `label`, `museText`, Muse messages, step labels, approval titles and fallbacks, nudge copy) is final copy. Clients display it as is.
-- **Simulated things are labeled.** Connectors with `simulated: true`, bookings (`provider: "Simulated booking"`) and payments (`Approval.simulated`, `config.demo.simulatedPayments`) are seeded demo stand-ins. No real account, booking or money is ever touched.
+- **Simulated things are flagged in data, not in UI.** Connectors with `simulated: true`, bookings (`Booking.provider`) and payments (`Approval.simulated`, `config.demo.simulatedPayments`) are seeded demo stand-ins; the fields stay, but clients do not render demo labels. No real account, booking or money is ever touched.
 
 ## 3. Tolerant reader rules (every consumer)
 
@@ -342,6 +342,7 @@ Standard commands (each owner provides its own; the root `Makefile` only calls t
 
 ### Changelog
 
+- v2.1.1 (2026-11-12, batch 4): demo labels are flagged in data, not rendered (§2, Decisions). No API change.
 - v2.1.0 (2026-11-12, batch 2): shares (`Share`, `listShares`, `shareMeetup`, `likeShare`, prefix `sh_`), `verifyAttendee` with optional `Meetup.verifyCode` and `Attendee.verified`, optional `Feedback.rating` and `Feedback.tags`, connectors `luma` and `beli`, params `matching.prefBoost`, `matching.prefAlpha`, `shares.galleryMax`, §10 `MatchState.prefs` and `update_prefs`, allowlist `expo-camera` and `qrcode-generator`.
 - v2.0.0 (2026-11-12): plans-first redesign after judge feedback. Plans, joins, group formation from joins, the Muse bar, the visible Muse agent (steps, approvals, simulated booking and payments, autonomy settings), connectors and signals, nudges, device calendar sync and directives, travel estimates and directions. Removed the people drop, openers, group requests, voting, the map and location sharing, density and the scene leaderboard. `questionsVersion` 2. New `connectors.yaml` and seed files `connectors.jsonl`, `venues.jsonl`, `plans.jsonl`; `onboarding.jsonl` retired. App allowlist adds `expo-calendar` and `expo-notifications`.
 - v1.0.0 (2026-11-12): initial contracts.
@@ -368,3 +369,4 @@ Resolved open questions from the v2 build. Additive only; nothing renamed or tig
 - **Reunion and crowd boosts (§10).** `matching.reunionBoost` (plans a met person already joined; `form_groups` also seats met pairs together) and `matching.crowdBoost` (plans already filling, scaled by joins / `size.min`) are multipliers in `rank_plans`. Both default to 0.0, which leaves output byte-identical to before; values change only through a contracts PR with sim evidence. `isolationBoost` multiplies every candidate score for an isolated user, so it only changes who wins contested exposure slots and seats, not the order of that user's own feed.
 - **Fill to max (§10).** `matching.fillToMax` (default `false`) lets `cg_matching` keep filling a plan toward `size.max` instead of `size.min`. With `false`, or the key absent, output is byte-identical to before. It changes only through a contracts PR with sim evidence.
 - **Isolation params adopted (2026-11-12).** `matching.fillToMax: true`, `reunionBoost: 1.0`, `crowdBoost: 0.5` from sim run 20261113T011854Z_pool_sf_city_grid (#62): selected on seeds 0-9, confirmed on held-out seeds 10-59 in all 25 sweep cells, Common Ground's low-outgoing isolation improves 1.6-5.6 pts vs the previous params with fill -1.9 to -2.3 pts. Still worse than greedy (24/25 cells, 1 unclear). Fake-Laya tables: suggestive, not evidence; the effect is largely mechanical (fuller groups, more repeat pairs). Revisit with real Laya tables.
+- **Demo labels removed (batch 4, human decision).** The app no longer shows "Demo data", "Simulated booking" or "Demo payment" labels; `simulated` flags stay in the data. Disclosure lives in the pitch and README. Venue phone booking by Muse is shown only as a "Coming soon" teaser (UI only, no data, no telephony).
