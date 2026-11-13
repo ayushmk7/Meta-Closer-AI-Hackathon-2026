@@ -7,6 +7,7 @@ import {
   emptyLog,
   laDay,
   liveStreak,
+  noteVerifies,
   quests,
   rollover,
 } from '../../src/features/common-ground/questLog';
@@ -90,4 +91,13 @@ test('passport: stamps from meetups I checked in to or was verified at, before c
     'feed shows locked',
   );
   assert.equal(all[0].earned, true, 'earned first');
+});
+
+test('noteVerifies ticks once per newly verified meetup and survives rollover', () => {
+  const a = noteVerifies(emptyLog('2026-11-12'), ['mt_1']);
+  assert.equal(a.talked, true);
+  assert.equal(noteVerifies(a, ['mt_1']), a, 'same meetup: unchanged');
+  const b = rollover({ ...a, talked: false }, '2026-11-13');
+  assert.equal(noteVerifies(b, ['mt_1']).talked, false, 'old verify does not tick a new day');
+  assert.equal(noteVerifies(b, ['mt_1', 'mt_2']).talked, true);
 });

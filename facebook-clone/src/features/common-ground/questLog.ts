@@ -22,6 +22,7 @@ export interface QuestLog {
   surprise: boolean;
   streak: number;
   lastDone: string | null; // last LA day with at least one quest done
+  verified?: string[]; // meetupIds whose in-person verify already ticked a day
 }
 export const emptyLog = (day: string): QuestLog => ({
   day,
@@ -30,6 +31,13 @@ export const emptyLog = (day: string): QuestLog => ({
   streak: 0,
   lastDone: null,
 });
+
+// A meetup I'm newly verified at ticks "Verify in person" today, once per meetup.
+export function noteVerifies(log: QuestLog, meetupIds: string[]): QuestLog {
+  const seen = log.verified ?? [];
+  const fresh = meetupIds.filter((id) => !seen.includes(id));
+  return fresh.length ? { ...log, talked: true, verified: [...seen, ...fresh] } : log;
+}
 
 // New LA day: clear today's ticks, keep the streak.
 export const rollover = (log: QuestLog, today: string): QuestLog =>

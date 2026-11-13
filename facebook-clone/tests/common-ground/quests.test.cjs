@@ -143,19 +143,24 @@ test('Passport shows collected and locked stamps', async () => {
   await renderer.act(async () => tree.unmount());
 });
 
-test('a successful verify (Scan useVerify) ticks Verify in person', async () => {
+test('a meetup I am newly verified at ticks Verify in person once', async () => {
   delete mockSaved[KEY];
-  const { api } = require('../../src/features/common-ground/api');
-  jest.spyOn(api, 'verifyAttendee').mockResolvedValue({ accepted: true });
-  const { useVerify } = require('../../src/features/common-ground/Scan.web');
-  let submit;
-  const Probe = () => {
-    submit = useVerify(fixtures.getMeetup.meetupId).submit;
-    return null;
+  const m = fixtures.getMeetup;
+  const verified = {
+    ...m,
+    attendees: m.attendees.map((a) => (a.isMe ? { ...a, verified: true } : a)),
   };
-  const { tree } = await render(React.createElement(Probe));
-  await renderer.act(async () => submit('abc123'));
+  await renderer.act(async () => store.setState({ meetups: { [m.meetupId]: verified } }));
+  const { tree } = await render(React.createElement(Quests));
   await renderer.act(async () => {});
-  expect(JSON.parse(mockSaved[KEY])[fixtures.getMe.userId]).toMatchObject({ talked: true });
+  expect(talkBox(tree).props.accessibilityState).toEqual({ checked: true });
+  expect(JSON.parse(mockSaved[KEY])[fixtures.getMe.userId]).toMatchObject({
+    talked: true,
+    verified: [m.meetupId],
+  });
+  // Unticking sticks: the same verify doesn't tick it again.
+  await renderer.act(async () => talkBox(tree).props.onPress());
+  await renderer.act(async () => {});
+  expect(talkBox(tree).props.accessibilityState).toEqual({ checked: false });
   await renderer.act(async () => tree.unmount());
 });

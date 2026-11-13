@@ -4,7 +4,6 @@ import { useRef, useState, type ReactNode } from 'react';
 import { View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Button, Card, Icon, Input, Label, Muted, Page, Title, useColors } from '../../ui/native';
-import { noteVerified } from './Quests';
 import { load, useCg, verifyAttendee } from './store';
 import type { VerifyResult } from './types';
 import { Banners, NotFound, personName, usePoll } from './ui';
@@ -33,7 +32,6 @@ export function useVerify(meetupId: string) {
     const r = await verifyAttendee(meetupId, code);
     busy.current = false;
     if (r) setResult(r);
-    if (r?.accepted) void noteVerified(); // Quests: "Verify in person"
     return !!r?.accepted;
   };
   return { result, submit };
