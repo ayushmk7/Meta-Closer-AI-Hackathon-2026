@@ -1,6 +1,6 @@
 // Connected apps (PRD-1 §8.5 page 2, §8.6). Shared by Setup and Settings.
 import { useEffect } from 'react';
-import { Switch, View } from 'react-native';
+import { Platform, Switch, View } from 'react-native';
 import { Icon, Label, Muted, useColors } from '../../ui/native';
 import { connectDeviceCalendar } from './calendar';
 import { connect, disconnect, load, useCg } from './store';
@@ -26,6 +26,9 @@ export default function Connectors() {
   return (
     <View style={{ gap: 4 }}>
       {connectors.map((x) => {
+        // Web has no "this iPhone"; keep the fixture text for native.
+        const label =
+          Platform.OS === 'web' && x.provider === 'device_calendar' ? 'Calendar' : x.label;
         const soon = x.status === 'coming_soon';
         const on = x.status === 'connected';
         return (
@@ -42,13 +45,13 @@ export default function Connectors() {
           >
             <Icon name={ICONS[x.provider] ?? 'apps-outline'} size={25} />
             <View style={{ flex: 1, gap: 2 }}>
-              <Label style={{ fontWeight: '600' }}>{x.label}</Label>
+              <Label style={{ fontWeight: '600' }}>{label}</Label>
               <Muted>
                 {soon ? 'Coming soon' : x.simulated ? `${x.reads} · Demo data` : x.reads}
               </Muted>
             </View>
             <Switch
-              accessibilityLabel={`${x.label}, ${on ? 'connected' : 'not connected'}`}
+              accessibilityLabel={`${label}, ${on ? 'connected' : 'not connected'}`}
               value={on}
               disabled={soon}
               onValueChange={(v) => void (v ? turnOn(x.provider) : disconnect(x.provider))}
