@@ -136,6 +136,9 @@ test('typed code: trimmed, upper-cased, sent once; accepted shows who', async ()
   expect(verify).toHaveBeenCalledWith('mt_0001', 'DAN042');
   expect(text()).toContain('You and Daniel are verified.');
   expect(text()).toContain('Back to the plan');
+  // Done: no field, no Confirm, so a second submit can't verify the next attendee.
+  expect(tree.root.findAll((n) => n.props.accessibilityLabel === 'Their code')).toHaveLength(0);
+  expect(tree.root.findAll((n) => n.props.accessibilityLabel === 'Confirm')).toHaveLength(0);
 });
 
 test('rejected codes show the reason, unknown reasons a fallback', async () => {

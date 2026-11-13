@@ -35,7 +35,7 @@ export default function VerifyButton({ m }: { m: Meetup }) {
       <Button
         title={me.verified ? 'Verify someone else' : 'Show my code · scan theirs'}
         icon="qr-code-outline"
-        secondary={!!me.verified}
+        secondary // one blue primary per region (Check in); this is FB-gray
         onPress={() => go(`/common-ground/scan/${m.meetupId}`)}
       />
     </Card>

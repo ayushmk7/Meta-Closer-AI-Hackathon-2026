@@ -32,6 +32,7 @@ export function useVerify(meetupId: string) {
     const r = await verifyAttendee(meetupId, code);
     busy.current = false;
     if (r) setResult(r);
+    return !!r?.accepted;
   };
   return { result, submit };
 }
@@ -49,6 +50,8 @@ export function ScanPage({
   const ready = useCg((s) => s.ready);
   const [typed, setTyped] = useState('');
   const { result, submit } = useVerify(meetupId);
+  // A second submit after success would verify the next attendee: clear the field, hide Confirm.
+  const confirm = async () => void ((await submit(typed)) && setTyped(''));
   usePoll(() => void load.meetup(meetupId), 0);
 
   if (!m?.verifyCode)
@@ -87,17 +90,21 @@ export function ScanPage({
         <Label accessibilityRole="header" style={{ fontSize: 17, fontWeight: '700' }}>
           Enter their code
         </Label>
-        <Input
-          accessibilityLabel="Their code"
-          placeholder="6 letters or numbers"
-          autoCapitalize="characters"
-          autoCorrect={false}
-          maxLength={64}
-          value={typed}
-          onChangeText={setTyped}
-          onSubmitEditing={() => void submit(typed)}
-        />
-        <Button title="Confirm" disabled={!typed.trim()} onPress={() => void submit(typed)} />
+        {!done && (
+          <>
+            <Input
+              accessibilityLabel="Their code"
+              placeholder="6 letters or numbers"
+              autoCapitalize="characters"
+              autoCorrect={false}
+              maxLength={64}
+              value={typed}
+              onChangeText={setTyped}
+              onSubmitEditing={() => void confirm()}
+            />
+            <Button title="Confirm" disabled={!typed.trim()} onPress={() => void confirm()} />
+          </>
+        )}
         {result && (
           <View
             accessibilityLiveRegion="polite"
@@ -111,7 +118,7 @@ export function ScanPage({
             <Label style={{ flex: 1 }}>{resultText(result)}</Label>
           </View>
         )}
-        {done && <Button title="Back to the plan" secondary onPress={() => router.back()} />}
+        {done && <Button title="Back to the plan" onPress={() => router.back()} />}
       </Card>
     </Page>
   );
