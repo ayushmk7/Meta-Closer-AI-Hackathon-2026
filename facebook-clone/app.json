@@ -29,6 +29,14 @@
         {
           "calendarPermission": "Common Ground reads when you're busy (never what your events are) and adds plans you join to a Common Ground calendar."
         }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Scan a friend's code to confirm you met.",
+          "microphonePermission": false,
+          "recordAudioAndroid": false
+        }
       ]
     ],
     "experiments": {
