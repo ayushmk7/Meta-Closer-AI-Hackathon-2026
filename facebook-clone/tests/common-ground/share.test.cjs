@@ -23,7 +23,10 @@ jest.mock('expo-router', () => ({
 }));
 jest.mock('@expo/vector-icons/Ionicons', () => 'Icon');
 jest.mock('react-native-reanimated', () => require('./reanimated.cjs'));
-jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: require('react-native').View }));
+jest.mock('react-native-safe-area-context', () => ({
+  SafeAreaView: require('react-native').View,
+  SafeAreaProvider: require('react-native').View,
+}));
 jest.mock('expo-image', () => ({ Image: 'Image' }));
 jest.mock('expo-blur', () => ({ BlurView: 'BlurView' }));
 jest.mock('react-native-maps', () => ({ __esModule: true, default: 'MapView', Marker: 'Marker' }));

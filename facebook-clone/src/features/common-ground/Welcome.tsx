@@ -6,7 +6,7 @@ import { useEffect } from 'react';
 import { Modal, ScrollView, View, useWindowDimensions } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { router, useLocalSearchParams } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { Button, Card, Divider, Label, Muted, useColors } from '../../ui/native';
 import { MuseAvatar } from './MuseBar';
 import ShareCard from './ShareCard';
@@ -182,13 +182,16 @@ export default function WelcomeScreen() {
   useEffect(() => void load.shares({}, { anonymous: true }), []);
   return (
     <Modal visible animationType="none" presentationStyle="fullScreen" onRequestClose={enter}>
-      {/* Web: the Modal's focus trap focuses its first focusable descendant on open. A
+      {/* A Modal is its own native root: without a provider here the insets are 0 on iOS. */}
+      <SafeAreaProvider>
+        {/* Web: the Modal's focus trap focuses its first focusable descendant on open. A
           non-tabbable root takes it, so no button shows a focus ring on load. */}
-      <View tabIndex={-1} style={{ flex: 1 }}>
-        <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: c.canvas }}>
-          {width >= 900 ? <Desktop /> : <Phone />}
-        </SafeAreaView>
-      </View>
+        <View tabIndex={-1} style={{ flex: 1 }}>
+          <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: c.canvas }}>
+            {width >= 900 ? <Desktop /> : <Phone />}
+          </SafeAreaView>
+        </View>
+      </SafeAreaProvider>
     </Modal>
   );
 }
