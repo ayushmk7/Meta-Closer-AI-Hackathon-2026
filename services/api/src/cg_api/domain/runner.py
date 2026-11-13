@@ -108,7 +108,7 @@ def cancel(w: World, meetup_id: str, reason: str) -> None:
         ids = [a["planId"] for a in plans.detail(w, uid, w.plans[m["planId"]])["alternatives"]]
         alts = ids if alts is None else [i for i in alts if i in ids]
     alts = alts or []
-    text = reason + (" Here are some similar plans." if alts else "")
+    text = reason + (" Here are some similar meetups." if alts else "")
     chat.post(w, m["threadId"], "muse", None, text, [{"kind": "plan", "planId": pid} for pid in alts])
     for uid in people:
         w.emit(uid, "thread.updated", chat.thread_view(w, uid, w.threads[m["threadId"]]))
@@ -273,7 +273,7 @@ async def _to_muse(w: World, msg: dict) -> None:
         plan = (
             run.plan if run is not None else {**w.plans[m["planId"]], "startsAt": m["startsAt"], "endsAt": m["endsAt"]}
         )
-        reply = "Here's the plan: " + agent.answer_question(plan, w.venues[m["venueId"]])
+        reply = "Here are the details: " + agent.answer_question(plan, w.venues[m["venueId"]])
     else:
         log.warning("runner: no toMuse handler in cg_api.agent yet; %s unanswered", msg["messageId"])
         return

@@ -244,7 +244,7 @@ def detail(w: World, viewer: str, plan: dict) -> dict:
         "safety": [
             f"Public {venue.get('kind', 'place').replace('_', ' ')}",
             f"Groups of {smin} or more",
-            "Share your plan with a friend in one tap",
+            "Share your meetup with a friend in one tap",
         ],
         "formsAt": forms_at(w, plan),
         "alternatives": alts,
@@ -255,7 +255,7 @@ def detail(w: World, viewer: str, plan: dict) -> dict:
 def require_opted_in(w: World, viewer: str) -> dict:
     u = w.user(viewer)
     if not u["optedIn"]:
-        raise Fail(403, "not_opted_in", "Turn on Common Ground to see plans.")
+        raise Fail(403, "not_opted_in", "Turn on Common Ground to see meetups.")
     return u
 
 
@@ -269,7 +269,7 @@ def muse_status(w: World, viewer: str) -> str | None:
     if asks:
         return f"Muse needs your OK on {asks} thing{'s' if asks != 1 else ''}"
     if setting:
-        return f"Muse is setting up {setting} plan{'s' if setting != 1 else ''} for you"
+        return f"Muse is setting up {setting} meetup{'s' if setting != 1 else ''} for you"
     return None
 
 

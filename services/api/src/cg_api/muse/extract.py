@@ -204,7 +204,7 @@ class Extractor:
         }
         task = (
             f"From this person's activity and connected records, list at most {MAX_INTERESTS} interests using "
-            "only taxonomy leaf IDs, each with a short second-person evidence line, and signals worth a plan. "
+            "only taxonomy leaf IDs, each with a short second-person evidence line, and signals worth a meetup. "
             "Use only record IDs and kinds given."
         )
         try:

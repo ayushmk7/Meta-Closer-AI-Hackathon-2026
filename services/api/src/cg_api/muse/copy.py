@@ -187,9 +187,9 @@ def plan_reason(plan: dict, shared_labels: list[str]) -> str:
 def setup_review(interest_labels: list[str]) -> str:
     """Callers pass safe_labels(); sensitive or hidden labels are never spoken."""
     if not interest_labels:
-        return "I didn't find much yet. Add a few things you like and I'll find plans for you."
+        return "I didn't find much yet. Add a few things you like and I'll find meetups for you."
     top = names([lc(x) for x in interest_labels[:3]])
-    return f"I noticed you're into {top}. I'll look for small plans around those."
+    return f"I noticed you're into {top}. I'll look for small meetups around those."
 
 
 def nudge(signal_label: str, plan: dict) -> tuple[str, str]:
@@ -198,7 +198,7 @@ def nudge(signal_label: str, plan: dict) -> tuple[str, str]:
     title = f"{p['venue'] or p['title']} on {day(p['startsAt'])}?" if p["startsAt"] else f"{p['title']}?"
     n = (plan.get("crowd") or {}).get("interestedCount", 0)
     crowd = f" {n} people are in." if n >= 2 else ""
-    text = f"{signal_label}. {p['title'] or 'A plan'}{on_day(p['title'], p['startsAt'])} is open.{crowd} Want in?"
+    text = f"{signal_label}. {p['title'] or 'A meetup'}{on_day(p['title'], p['startsAt'])} is open.{crowd} Want in?"
     return title[:80], text[:160]
 
 
@@ -222,7 +222,7 @@ _NUDGE = {
     "additionalProperties": False,
 }
 VOICE = (
-    "You are Muse, the planning assistant in Common Ground. Warm, short, plain. First person, never pretend "
+    'You are Muse, the planning assistant in Common Ground. Call the things people join "meetups", never "plans". Warm, short, plain. First person, never pretend '
     "to be a person. No emoji, no percentages or scores. Talk about the activity, never about loneliness. "
     "Use only the facts given."
 )
@@ -330,7 +330,7 @@ class MuseCopy:
     async def plan_title(self, plan: dict) -> str:
         return await self._text(
             "copy.title",
-            "Write a plan title, at most 60 characters.",
+            "Write a meetup title, at most 60 characters.",
             public_plan(plan),
             plan_title(plan),
             60,
@@ -342,7 +342,7 @@ class MuseCopy:
         facts = {"plan": public_plan(plan), "sharedInterests": shared_labels}
         return await self._text(
             "copy.reason",
-            "One sentence, at most 160 characters: why this plan fits me.",
+            "One sentence, at most 160 characters: why this meetup fits me.",
             facts,
             plan_reason(plan, shared_labels),
             160,

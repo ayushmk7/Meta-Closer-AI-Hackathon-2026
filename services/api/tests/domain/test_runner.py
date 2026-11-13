@@ -273,7 +273,7 @@ def test_to_muse_change_requests_and_questions(world, monkeypatch):
         chat.send(world, "u_dan", th, text, f"c{k}")
         said[text] = chat.list_messages(world, "u_maya", th)[-1]["text"]
     assert said["Muse, can we do Sunday instead?"].startswith("Moving it to Sunday needs everyone's OK")
-    assert said["Muse, is it Saturday?"].startswith("Here's the plan:")
-    assert said["Muse, can I bring 2 friends?"].startswith("Here's the plan:")  # not a time (D's cue rule)
+    assert said["Muse, is it Saturday?"].startswith("Here are the details:")
+    assert said["Muse, can I bring 2 friends?"].startswith("Here are the details:")  # not a time (D's cue rule)
     assert said["Muse, cancel it"].startswith("Cancelling needs everyone's OK")
     assert world.meetups[mt]["status"] == "confirmed" and world.meetups[mt]["startsAt"] == "2026-11-14T18:00:00Z"

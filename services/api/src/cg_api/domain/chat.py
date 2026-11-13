@@ -120,7 +120,7 @@ def send(
 ) -> dict:
     t = get(w, viewer, thread_id)
     if viewer in t.get("cutoff", {}):
-        raise Fail(403, "not_allowed", "You left this plan, so this chat is read-only.")
+        raise Fail(403, "not_allowed", "You left this meetup, so this chat is read-only.")
     if (
         not isinstance(text, str)
         or not isinstance(client_id, str)

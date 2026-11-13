@@ -99,7 +99,7 @@ async def refresh(w: World, uid: str) -> None:
             title, text = await ports.ports.copy.nudge(sig["label"], card)
         except Exception:
             log.exception("nudge copy failed for %s; using template", sig["signalId"])
-            title, text = card["title"][:60], f"{sig['label']}. There's a plan for that: {card['title']}."
+            title, text = card["title"][:60], f"{sig['label']}. There's a meetup for that: {card['title']}."
         surfaces = ["plans"] + (["home"] if not mine else []) + (["events"] if sig.get("kind") == "ticket" else [])
         n = {
             "nudgeId": w.next_id("nd_"),

@@ -89,7 +89,14 @@ def is_decisive(p: float, threshold: float) -> bool:
 
 
 # Laya answer field mapping, mirrored from the sim's adapter so backend and tables agree. Verified against laya-serve 0.2.1 (2026-11-13).
-ANSWER_SCALAR_FIELDS = ("noul", "p", "probability", "yes", "value", "expected")  # first numeric one wins; real laya-serve 0.2.1 sends {"noul": p}
+ANSWER_SCALAR_FIELDS = (
+    "noul",
+    "p",
+    "probability",
+    "yes",
+    "value",
+    "expected",
+)  # first numeric one wins; real laya-serve 0.2.1 sends {"noul": p}
 ANSWER_DIST_FIELDS = ("probabilities", "distribution")  # list over criteria, or {label: p}
 
 
@@ -104,7 +111,9 @@ def _parse_answer(ans, qtype: str = "noul", criteria: list | None = None) -> flo
             return float(ans[k])
     probs = next((ans[k] for k in ANSWER_DIST_FIELDS if ans.get(k)), None)
     if qtype == "score" and isinstance(probs, (list, dict)) and criteria:
-        vals = probs if isinstance(probs, list) else [probs.get(c, probs.get(str(i), 0.0)) for i, c in enumerate(criteria)]  # real Laya keys by index
+        vals = (
+            probs if isinstance(probs, list) else [probs.get(c, probs.get(str(i), 0.0)) for i, c in enumerate(criteria)]
+        )  # real Laya keys by index
         if len(vals) > 1 and all(isinstance(v, (int, float)) for v in vals):
             return sum(p * i / (len(vals) - 1) for i, p in enumerate(vals))
     if qtype == "noul" and isinstance(probs, dict):

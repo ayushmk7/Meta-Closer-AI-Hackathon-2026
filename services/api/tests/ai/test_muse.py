@@ -179,7 +179,7 @@ def test_stalled_muse_costs_one_timeout_not_retries():
 def test_copy_never_speaks_sensitive_labels_and_keeps_casing():
     copy = MuseCopy(FAKE, CONTRACTS)
     said = asyncio.run(copy.setup_review("u_x", [ok("Ceramics"), ok("Faith & spirituality"), ok("AI and ML")]))
-    assert said == "I noticed you're into ceramics and AI and ML. I'll look for small plans around those."
+    assert said == "I noticed you're into ceramics and AI and ML. I'll look for small meetups around those."
     hidden = [{"interest": {"label": "Sourdough"}, "visibility": "hidden", "sensitive": False}]
     assert "Sourdough" not in asyncio.run(copy.setup_review("u_x", hidden))
     spy = Spy()
@@ -258,7 +258,7 @@ def test_labels_fail_closed_without_flags():
     flagged = {"label": "Running", "visibility": "shown", "sensitive": True}  # Laya said yes; taxonomy doesn't
     unknown = {"label": "Hiking", "visibility": "shown"}  # no sensitive flag: don't speak
     said = asyncio.run(copy.setup_review("u_x", [ok("Ceramics"), "Running", flagged, unknown]))
-    assert said == "I noticed you're into ceramics. I'll look for small plans around those."
+    assert said == "I noticed you're into ceramics. I'll look for small meetups around those."
 
 
 def test_bar_price_size_next_weekend_and_relaxing():
@@ -273,7 +273,7 @@ def test_bar_price_size_next_weekend_and_relaxing():
     assert bar.best([card], bar.keyword_filter("pottery free", thu, CONTRACTS), None) == ([card], True)
     assert bar.best([card], bar.keyword_filter("pottery under $40", thu, CONTRACTS), None) == ([card], False)
     assert bar.best([card], bar.keyword_filter("karaoke", thu, CONTRACTS), None) == ([], False)  # activity stays
-    assert bar.reply([card], {}, relaxed=True) == "I couldn't find exactly that, so here is the closest plan."
+    assert bar.reply([card], {}, relaxed=True) == "I couldn't find exactly that, so here is the closest one."
     v = bar.venue_in_text(
         "Wheel-throwing drop-in at Clay Hour Studio this weekend", [PLAN["venue"], VENUES["vn_lands_end"]]
     )

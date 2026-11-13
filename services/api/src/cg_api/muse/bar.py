@@ -241,10 +241,10 @@ def venue_in_text(text: str, venues: list[dict]) -> dict | None:
 
 def reply(plans: list[dict], f: dict, relaxed: bool = False) -> str:
     if not plans:
-        return "I couldn't find a plan for that yet. Try another day, or ask me for something close to it."
+        return "I couldn't find a meetup for that yet. Try another day, or ask me for something close to it."
     if relaxed:
         n = len(plans)
-        return f"I couldn't find exactly that, so here {'is the closest plan' if n == 1 else f'are the {n} closest'}."
+        return f"I couldn't find exactly that, so here {'is the closest one' if n == 1 else f'are the {n} closest'}."
     if not any(
         f.get(k) is not None and f.get(k) != []
         for k in ("activityTypes", "interestIds", "days", "part", "maxMinutes", "maxCents", "groupSize", "link")
@@ -255,7 +255,7 @@ def reply(plans: list[dict], f: dict, relaxed: bool = False) -> str:
         return f"I found one that fits: {first['title']}{on_day(first['title'], first['startsAt'])}."
     count = (first.get("crowd") or {}).get("interestedCount", 0)
     tail = f" {first['title']} already has {count} people in." if count >= 2 else ""
-    return f"I found {len(plans)} plans that fit.{tail}"
+    return f"I found {len(plans)} meetups that fit.{tail}"
 
 
 def follow_ups(text: str) -> list[str]:
@@ -276,8 +276,8 @@ async def understand(
             [
                 {
                     "role": "system",
-                    "content": "You are Muse in the Common Ground Plans tab. Turn the request into a "
-                    "filter over plans. Reply in 1 or 2 short first-person sentences, no emoji. Local time now: "
+                    "content": "You are Muse in the Meetups tab. Turn the request into a "
+                    "filter over meetups. Call them meetups, never plans. Reply in 1 or 2 short first-person sentences, no emoji. Local time now: "
                     f"{now.strftime('%A %Y-%m-%d %H:%M')} ({TZ.key}). Activity types: {sorted(types)}.",
                 },
                 *history[-6:],

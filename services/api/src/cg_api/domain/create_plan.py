@@ -88,11 +88,11 @@ def _start(w: World, text: str, f: dict) -> datetime:
 async def create(w: World, viewer: str, text, invite_ids=None) -> dict:
     u = plans.require_opted_in(w, viewer)
     if not w.params["features"]["userPlans"]:
-        raise Fail(403, "not_allowed", "Creating plans isn't available yet.")
+        raise Fail(403, "not_allowed", "Creating meetups isn't available yet.")
     if not isinstance(text, str) or not text.strip() or len(text) > w.params["muse"]["askMaxChars"]:
         raise Fail(400, "validation_failed", "Tell Muse what you'd like to do, in a sentence or two.")
     if not can_create(w, viewer):
-        raise Fail(403, "not_allowed", "You can create plans after your first meetup.")
+        raise Fail(403, "not_allowed", "You can create meetups after your first one.")
     invite_ids = list(dict.fromkeys(invite_ids or []))
     if not all(
         isinstance(i, str)
@@ -105,10 +105,10 @@ async def create(w: World, viewer: str, text, invite_ids=None) -> dict:
     week_ago = w.now() - timedelta(days=7)
     mine = [p for p in w.plans.values() if p.get("creatorId") == viewer and parse(p["createdAt"]) > week_ago]
     if len(mine) >= w.params["plans"]["userPlansPerWeek"]:
-        raise Fail(429, "rate_limited", "That's a lot of plans this week. Join one, or try again in a few days.")
+        raise Fail(429, "rate_limited", "That's a lot of meetups this week. Join one, or try again in a few days.")
     open_n = sum(1 for j in w.joins.values() if j["userId"] == viewer and j["status"] == "interested")
     if open_n >= w.params["plans"]["openJoinsMax"]:
-        raise Fail(429, "rate_limited", "You're in a lot of plans already. Wait for one to fill first.")
+        raise Fail(429, "rate_limited", "You're in a lot of meetups already. Wait for one to fill first.")
     text = text.strip()
     if screen.blocked(text):
         raise Fail(422, "screened", "Muse can't set that one up. Try a different idea for a group.")
@@ -126,7 +126,9 @@ async def create(w: World, viewer: str, text, invite_ids=None) -> dict:
     pool = u.get("poolId") or w.demo.get("poolId")
     venue = _venue(w, viewer, text, pool, f["activityTypes"], f.get("link"))
     if venue is None:
-        raise Fail(400, "validation_failed", "Muse couldn't turn that into a plan. Try naming an activity or a place.")
+        raise Fail(
+            400, "validation_failed", "Muse couldn't turn that into a meetup. Try naming an activity or a place."
+        )
     activity = next((a for a in f["activityTypes"] if a in venue["activityTypes"]), venue["activityTypes"][0])
     start = _start(w, text, f)
     try:

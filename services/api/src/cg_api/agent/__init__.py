@@ -273,7 +273,9 @@ class ScriptedRun:
         reason = f"I couldn't find a time that works at {self.venue['name']}, so I cancelled this one."
         # the step is Muse's timeline (no "I"); `reason` is posted by Muse in the chat, first person (UX guide 1.1)
         yield self._step(
-            "cancel", "done", f"Couldn't find a time that works at {self.venue['name']}. Similar plans are in the chat."
+            "cancel",
+            "done",
+            f"Couldn't find a time that works at {self.venue['name']}. Similar meetups are in the chat.",
         )
         yield {"type": "cancelled", "reason": reason}
 
