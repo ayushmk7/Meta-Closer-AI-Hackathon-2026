@@ -1,6 +1,6 @@
 // Plan pop-up (PRD-1 §8.2). Who's in is counts only (C5).
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Linking, Pressable, Switch, View } from 'react-native';
+import { ActivityIndicator, Alert, Linking, Platform, Pressable, Switch, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Button, Card, Icon, Label, Muted, Page, Sheet, go, useColors } from '../../ui/native';
@@ -99,7 +99,7 @@ export function BottomBar({ plan, surprise = false }: { plan: PlanDetail; surpri
           </View>
         </View>
         <Button
-          title="Open plan"
+          title="See plan"
           disabled={!meetupId}
           onPress={() => meetupId && go(`/common-ground/meetup/${meetupId}`)}
         />
@@ -265,10 +265,13 @@ export default function PlanScreen() {
             <Label>{meta}</Label>
             {!!plan.description && <Muted>{plan.description}</Muted>}
           </View>
-          <VenueMap
-            venue={plan.venue}
-            style={{ height: 140, borderRadius: 8, marginHorizontal: 16 }}
-          />
+          {/* Web has no live map: the tile only repeated the venue and pushed the reasons down. */}
+          {Platform.OS !== 'web' && (
+            <VenueMap
+              venue={plan.venue}
+              style={{ height: 140, borderRadius: 8, marginHorizontal: 16 }}
+            />
+          )}
           <View style={{ gap: 2, paddingHorizontal: 16 }}>
             {plan.travel && !plan.checks.some((k) => k.label === plan.travel?.label) && (
               <Label>{plan.travel.label}</Label>
