@@ -24,7 +24,7 @@ The demo runs on an iPhone in Expo Go. The judged moments you own:
 - Use the clone's tokens and primitives: `useColors()`, `Label`, `Muted`, `Button`, `IconButton`, `Card`, `Sheet`, `Input`, `go`. Light and dark both work. The v1 frontend plan's design-language section ([FRONTEND_PLAN §0](FRONTEND_PLAN.md)) still applies.
 - Client duties C1 to C8 (AGENT_RULES R7). Avatars and venue photos load through `expo-image` with `cachePolicy="memory"`.
 - Every number from `GET /v1/config`. Every surface behind its `features` flag.
-- Web runs the same screens on the in-app mock only, with no network requests (D5). Calendar, notifications and directions are no-ops on web.
+- Web runs the same screens on the in-app mock only, with no network requests (D5). Calendar and notifications are no-ops on web; directions open as a link in a new tab (human decision 2026-11-12).
 
 ## 3. Migrating from the v1 build
 
