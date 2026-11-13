@@ -13,6 +13,7 @@ How the running system fits together. Every fact cites code or config on `main`;
 | [e2e.md](e2e.md) | The demo flow end to end, `scripts/e2e_flow.py`, known gaps |
 | [runbook.md](runbook.md) | Run the whole demo locally; common failures |
 | [decisions.md](decisions.md) | Dated decisions |
+| [perf-and-bugs.md](perf-and-bugs.md) | Adversarial track: P1 to P11 results, perf and bug findings with numbers and PRs |
 
 ## Overview
 
