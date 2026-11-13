@@ -97,7 +97,7 @@ test('C8: Approve stays disabled until the amount renders; nothing approves with
   expect(text()).toContain('$35');
   expect(text()).toContain('To Hayes Clay Studio');
   expect(text()).toContain('Demo payment · no real money moves');
-  expect(text()).toContain("Muse asks the studio to hold your wheel");
+  expect(text()).toContain("Muse asks Hayes Clay Studio to hold your wheel");
   expect(approveDisabled(byLabel)).toBe(true);
   await layout(tree);
   expect(approveDisabled(byLabel)).toBe(false);
