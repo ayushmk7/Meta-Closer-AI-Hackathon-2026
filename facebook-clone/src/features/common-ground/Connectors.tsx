@@ -59,7 +59,7 @@ export default function Connectors() {
               disabled={soon}
               onValueChange={flip}
               trackColor={{ false: c.secondary, true: c.blue }}
-              ios_backgroundColor={c.divider} // iOS ignores trackColor.false
+              ios_backgroundColor={c.secondary} // iOS ignores trackColor.false
               thumbColor="#fff"
               {...{ activeThumbColor: '#fff' }} // RN-web ignores thumbColor when on (default teal)
             />
