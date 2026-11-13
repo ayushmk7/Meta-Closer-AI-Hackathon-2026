@@ -133,6 +133,7 @@ features:                     # served as config.features
   plusOne: false
   checkin: true
   realtime: true
+  sharing: true               # Share buttons + public plan page; false hides them
 
 sim:
   personasCity: 300

@@ -111,7 +111,8 @@
                     "autonomySettings": false,
                     "plusOne": false,
                     "checkin": true,
-                    "realtime": true
+                    "realtime": true,
+                    "sharing": true
                   },
                   "limits": {
                     "feedMax": 8,
@@ -1467,6 +1468,64 @@
                     "apple": "https://maps.apple.com/?daddr=37.7765,-122.4241&dirflg=r",
                     "google": "https://www.google.com/maps/dir/?api=1&destination=37.7765,-122.4241&travelmode=transit"
                   }
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/v1/public/plans/{planId}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/PlanId"
+        }
+      ],
+      "get": {
+        "tags": [
+          "plans"
+        ],
+        "operationId": "getPublicPlan",
+        "security": [],
+        "summary": "What anyone with a share link sees of a plan. No person fields, nothing viewer-specific.",
+        "description": "Works without `X-CG-User`; the header is ignored if sent. 404 `not_found` for an unknown plan, an `invite` plan, a cancelled plan, or a plan at a sensitive venue.\n",
+        "responses": {
+          "200": {
+            "description": "Public plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicPlan"
+                },
+                "example": {
+                  "planId": "pl_0001",
+                  "title": "Wheel-throwing drop-in",
+                  "description": "A two-hour open wheel session for beginners and regulars. Clay, tools and firing included.",
+                  "activityType": "ceramics_studio",
+                  "venue": {
+                    "venueId": "vn_hayes_clay",
+                    "name": "Hayes Clay Studio",
+                    "neighborhood": "Hayes Valley"
+                  },
+                  "photoUrl": "http://localhost:8000/static/venues/vn_hayes_clay.jpg",
+                  "startsAt": "2026-11-14T18:00:00Z",
+                  "endsAt": "2026-11-14T20:00:00Z",
+                  "cost": {
+                    "kind": "prepaid",
+                    "perPersonCents": 3500,
+                    "currency": "USD",
+                    "label": "$35 per person"
+                  },
+                  "size": {
+                    "min": 3,
+                    "max": 5
+                  },
+                  "status": "open",
+                  "interestedCount": 3,
+                  "spotsLeft": 2
                 }
               }
             }
@@ -3297,6 +3356,10 @@
               },
               "realtime": {
                 "type": "boolean"
+              },
+              "sharing": {
+                "type": "boolean",
+                "description": "Share buttons and the public plan page (getPublicPlan)."
               }
             }
           },
@@ -5429,6 +5492,91 @@
           "promptText": {
             "type": "string",
             "description": "Muse bar prompt for 'Plan something like this'."
+          }
+        }
+      },
+      "PublicPlan": {
+        "type": "object",
+        "description": "A plan as a logged-out reader sees it. No person fields, no viewer-specific fields.",
+        "required": [
+          "planId",
+          "title",
+          "description",
+          "activityType",
+          "venue",
+          "photoUrl",
+          "startsAt",
+          "endsAt",
+          "cost",
+          "size",
+          "status",
+          "interestedCount",
+          "spotsLeft"
+        ],
+        "properties": {
+          "planId": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "description": {
+            "type": "string"
+          },
+          "activityType": {
+            "type": "string"
+          },
+          "venue": {
+            "type": "object",
+            "description": "Same shape as Share.venue. No address, no coordinates.",
+            "required": [
+              "venueId",
+              "name",
+              "neighborhood"
+            ],
+            "properties": {
+              "venueId": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "neighborhood": {
+                "type": "string"
+              }
+            }
+          },
+          "photoUrl": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Venue photo only."
+          },
+          "startsAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endsAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "cost": {
+            "$ref": "#/components/schemas/Cost"
+          },
+          "size": {
+            "$ref": "#/components/schemas/GroupSize"
+          },
+          "status": {
+            "$ref": "#/components/schemas/PlanStatus"
+          },
+          "interestedCount": {
+            "type": "integer",
+            "description": "0 until at least privacy.crowdMinCount people are in."
+          },
+          "spotsLeft": {
+            "type": "integer"
           }
         }
       },
