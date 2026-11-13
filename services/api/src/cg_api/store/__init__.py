@@ -12,7 +12,7 @@ users[uid] = {
                            "strength", "visibility", "sensitive", "recordIds"}},
     "connectors": {provider: {"connectedAt", "lastSyncAt"}},
     "busy": [{"start", "end", "source"}],       # source = provider the block came from
-    "muted": set[signalId], "removedInterests": set, "deletedSignals": set, "unlocks": [Unlock],
+    "muted": set[signalId], "removedInterests": set, "deletedSignals": set,
 }
 records[uid] = seeded connector records (all providers; active only while that provider is connected)
 activity[uid] = seeded Facebook activity
