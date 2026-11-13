@@ -136,3 +136,20 @@ def test_social_routes_validate(live, public, monkeypatch):
     assert sh["mine"] and not ok(anon.get("/v1/shares"), "listShares")["items"][0]["mine"]
     r = public.post(f"/v1/meetups/{mt}/share", headers=DAN, json={"caption": "x" * 141})
     assert r.status_code == 400
+
+
+def test_create_plan_route(live, public, monkeypatch):
+    from cg_api import ports
+
+    monkeypatch.setattr(ports.ports, "muse", ports.StubMuse())
+    r = public.post("/v1/plans", headers=MAYA, json={"text": "pottery saturday"})
+    assert r.status_code == 403 and r.json()["error"]["code"] == "not_allowed"  # no counted meetup yet
+    if joins.join(live, "u_maya", "pl_hero")["status"] == "interested":
+        joins.form(live, "pl_hero")
+    next(iter(live.meetups.values()))["members"]["u_maya"]["counted"] = True
+    d = ok(
+        public.post("/v1/plans", headers=MAYA, json={"text": "Sunday coastal walk at Lands End Trail this weekend"}),
+        "createPlan",
+    )
+    assert d["venue"]["venueId"] == "vn_trail" and d["myJoin"]
+    assert ok(public.get(f"/v1/plans/{d['planId']}", headers=MAYA), "getPlan")["planId"] == d["planId"]
