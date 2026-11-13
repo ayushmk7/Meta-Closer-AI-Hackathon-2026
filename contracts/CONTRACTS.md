@@ -260,6 +260,7 @@ export interface TabItem {
   activeIcon: string;          // Ionicons name, active
   after: '/' | '/friends' | '/marketplace' | '/notifications';  // position in the bar
   useBadge?: () => number;     // hook; 0 hides the badge
+  headerAction?: { icon: string; label: string; href: string };  // top-bar button shown beside search while this tab is open
 }
 export interface ExternalRow {
   id: string;
@@ -342,6 +343,7 @@ Standard commands (each owner provides its own; the root `Makefile` only calls t
 
 ### Changelog
 
+- v2.1.2 (2026-11-12, batch 4): optional `TabItem.headerAction` (§11), a top-bar button shown beside search while the tab is open; the shell also titles the top bar with the tab label. Additive.
 - v2.1.1 (2026-11-12, batch 4): demo labels are flagged in data, not rendered (§2, Decisions). No API change.
 - v2.1.0 (2026-11-12, batch 2): shares (`Share`, `listShares`, `shareMeetup`, `likeShare`, prefix `sh_`), `verifyAttendee` with optional `Meetup.verifyCode` and `Attendee.verified`, optional `Feedback.rating` and `Feedback.tags`, connectors `luma` and `beli`, params `matching.prefBoost`, `matching.prefAlpha`, `shares.galleryMax`, §10 `MatchState.prefs` and `update_prefs`, allowlist `expo-camera` and `qrcode-generator`.
 - v2.0.0 (2026-11-12): plans-first redesign after judge feedback. Plans, joins, group formation from joins, the Muse bar, the visible Muse agent (steps, approvals, simulated booking and payments, autonomy settings), connectors and signals, nudges, device calendar sync and directives, travel estimates and directions. Removed the people drop, openers, group requests, voting, the map and location sharing, density and the scene leaderboard. `questionsVersion` 2. New `connectors.yaml` and seed files `connectors.jsonl`, `venues.jsonl`, `plans.jsonl`; `onboarding.jsonl` retired. App allowlist adds `expo-calendar` and `expo-notifications`.
