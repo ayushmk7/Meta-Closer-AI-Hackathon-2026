@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { useDemo } from '../../core/store';
-import { menuItems } from '../../extensions/registry';
+import { menuItems, tabs } from '../../extensions/registry';
 import {
   Avatar,
   Button,
@@ -17,6 +17,13 @@ import {
   useColors,
 } from '../../ui/native';
 const order = ['memories', 'saved', 'groups', 'video', 'marketplace', 'friends', 'feeds', 'events'];
+// A feature's own tab destination (Plans) leads the Menu, then the core order.
+const rank = (item: { id: string; href: string }) =>
+  tabs.some((t) => t.href === item.href)
+    ? -1
+    : order.includes(item.id)
+      ? order.indexOf(item.id)
+      : 99;
 export default function MenuScreen() {
   const demo = useDemo();
   const c = useColors();
@@ -24,11 +31,7 @@ export default function MenuScreen() {
   const [settings, setSettings] = useState(true);
   const items = menuItems
     .filter((item) => !['profile', 'settings'].includes(item.id))
-    .sort(
-      (a, b) =>
-        (order.includes(a.id) ? order.indexOf(a.id) : 99) -
-        (order.includes(b.id) ? order.indexOf(b.id) : 99),
-    );
+    .sort((a, b) => rank(a) - rank(b));
   return (
     <Page style={{ gap: 14, paddingHorizontal: 12 }}>
       <Title
