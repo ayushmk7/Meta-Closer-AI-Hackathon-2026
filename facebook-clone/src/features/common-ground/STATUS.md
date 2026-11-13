@@ -13,6 +13,7 @@ Milestone: v2 M2 device layer (A2, `cg/ios/v2-m2-device`)
 - 2026-11-12 batch4 header (`cg/ios/b4-tab-header`): Plans tab registers `headerAction` (gear -> settings); native drops the in-screen "Plans" + gear row since the shell top bar now shows both, so the Muse bar sits under the top bar. Web keeps the row (web shell draws no tab title).
 - 2026-11-13 Batch 5 Story prompt: after a completed meetup I went to, `StoryPrompt` (above Share to Explore) offers "Add to your story" with the venue photo and plan title only; one tap posts via shell `usePostStory` (`@/extensions/story`, CONTRACTS v2.1.3). Not now / posted is remembered per meetup in own prefs (`storyPrompt`). Test: `tests/common-ground/story.test.cjs`.
 
+- 2026-11-13 Motion for the processes (`cg/ios/e2e-anim`, e2e-fable fixes 1-5, 9-11, 13, e2e-run F11/F12): gathering `Progress` bar (PlanCard.tsx, 300 ms fill) in Your meetups and the plan pop-up; group set enters with one success haptic when watched live; meetup keeps steps open through confirm (one success haptic), shows MuseThinking until the first step, scrolls Muse's venue call into view, and shows the booking row running until the call ends; only attendees who arrive after first render enter; running mark on the home setting-up row; Muse typing bubble and Feedback sent card enter. Verified on iOS 26.5 Simulator (videos in ~/cg-orch/artifacts/e2e-anim).
 ## Decisions
 - 2026-11-13 Meetup writes carry a per-meetup request stamp; a fetch that left before a newer write (step event, later fetch, approval decision, leave) is dropped. Why: out-of-order responses dropped Muse steps (rule 10) and flipped decided approvals back to pending.
 - 2026-11-13 MuseBar.send has a ref guard on top of `busy`. Why: `busy` lags a render, so Enter plus a send tap in one frame asked Muse twice, or in invite mode created two meetups.
@@ -33,6 +34,7 @@ Milestone: v2 M2 device layer (A2, `cg/ios/v2-m2-device`)
 - 2026-11-13 Story prompt shows only when `venue.photoUrl` is set: the client can't see venue sensitivity and producers keep sensitive venues photo-less (CONTRACTS Decisions "Stories after the event"). Share to story is secondary while the Feedback card is due (one primary). Persisted prefs now also include `storyPrompt` (meetupId -> posted|dismissed, C1).
 - 2026-11-13 Opening a chat marks it read, then reloads threads (no longer in parallel). Why: a list answering after the read put the old unread count back, so the badge stuck while the socket was open.
 
+- 2026-11-13 The plan pop-up takes its join status from `joins` (polled fast while gathering), falling back to `plan.myJoin`. Why: `plan.myJoin` refreshes only at feedRefreshS, so the pop-up sat on "forming your group" after the group formed. Meetup renders its own ScrollView (same styles as the shell Page) so it can scroll to the call.
 ## Needs
 
 - needs: sim venue photos (`venues.jsonl` `photo`) for the after-meetup Story prompt on the live backend; today no seeded venue has one, so live meetups send `photoUrl: null` and the prompt stays hidden (the mock shows it).

@@ -23,8 +23,9 @@ import {
   useColors,
 } from '../../ui/native';
 import MuseBar from './MuseBar';
-import PlanCard, { Badge, PlanCarousel, dayTime } from './PlanCard';
+import PlanCard, { Badge, PlanCarousel, Progress, dayTime } from './PlanCard';
 import Rewards from './Rewards';
+import { StatusMark } from './StepTimeline';
 import SetupScreen from './Setup';
 import Quests from './Quests';
 import IdeasRow from './IdeasRow';
@@ -74,12 +75,14 @@ function Row({
   title,
   lines,
   badge,
+  busy,
   onPress,
   children,
 }: {
   title: string;
   lines: string[];
   badge?: string;
+  busy?: boolean; // Muse is working on it: a small spinner where the badge goes
   onPress?: () => void;
   children?: React.ReactNode;
 }) {
@@ -104,27 +107,13 @@ function Row({
         <Label style={{ fontWeight: '700', flex: 1 }} numberOfLines={1}>
           {title}
         </Label>
-        {badge && <Badge text={badge} />}
+        {badge ? <Badge text={badge} /> : busy && <StatusMark status="running" />}
       </View>
       {lines.map((l) => (
         <Muted key={l}>{l}</Muted>
       ))}
       {children}
     </Pressable>
-  );
-}
-
-function Progress({ joined, needed }: { joined: number; needed: number }) {
-  const c = useColors();
-  const pct = needed ? Math.min(1, joined / needed) : 0;
-  return (
-    <View
-      accessibilityRole="progressbar"
-      accessibilityValue={{ min: 0, max: needed, now: joined }}
-      style={{ height: 6, borderRadius: 3, backgroundColor: c.divider, overflow: 'hidden' }}
-    >
-      <View style={{ width: `${pct * 100}%`, height: 6, backgroundColor: c.blue }} />
-    </View>
   );
 }
 
@@ -178,6 +167,7 @@ function YourPlanRow({ join, meetup }: { join?: Join; meetup?: Meetup }) {
         title={title}
         lines={['Muse is setting it up', ...(step ? [step.label] : [])]}
         badge={needsYou ? 'Needs you' : undefined}
+        busy
         onPress={openMeetup}
       />
     );

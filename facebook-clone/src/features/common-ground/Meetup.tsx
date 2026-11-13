@@ -1,6 +1,8 @@
 // Meetup (PRD-1 §8.3): header, Muse's steps, approvals, who's coming, details, day of, feedback.
 import { useEffect, useRef, useState } from 'react';
-import { Alert, Linking, Platform, Pressable, View } from 'react-native';
+import { Alert, Linking, Platform, Pressable, ScrollView, View } from 'react-native';
+import Animated, { useReducedMotion } from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
 import { useLocalSearchParams } from 'expo-router';
 import { Button, Card, Icon, Input, Label, Muted, Page, go, useColors } from '../../ui/native';
 import ApprovalSheet, { money } from './ApprovalSheet';
@@ -18,6 +20,8 @@ import { TZ, type Attendee, type Feedback, type Meetup, type PlanCard } from './
 import {
   Banners,
   clock,
+  enter,
+  MuseThinking,
   InterestChips,
   NotFound,
   PersonAvatar,
@@ -60,6 +64,7 @@ const REASON: Record<string, string> = {
   outside_window: "Check-in isn't open yet.",
   not_attendee: "You're not in this meetup.",
 };
+const STARTING = ['Your group is set', 'Muse is setting it up'];
 const put = (m: Meetup) => setState({ meetups: { ...getState().meetups, [m.meetupId]: m } });
 // iOS calshow takes seconds since 2001-01-01.
 const calshow = (iso: string) => `calshow:${Math.round(Date.parse(iso) / 1000 - 978307200)}`;
@@ -219,6 +224,15 @@ export default function MeetupScreen() {
     if (planId && !getState().plans[planId]) void load.plan(planId);
   }, [planId]);
   const [stepsOpen, setStepsOpen] = useState(false);
+  // Muse's call to the venue plays once, so bring it on screen when it starts.
+  const reduce = useReducedMotion();
+  const scroll = useRef<ScrollView>(null);
+  const stepsAt = useRef({ section: 0, timeline: 0 });
+  const showCall = (y: number) =>
+    scroll.current?.scrollTo({
+      y: Math.max(0, stepsAt.current.section + stepsAt.current.timeline + y - 120),
+      animated: !reduce,
+    });
   const [feedbackSent, setFeedbackSent] = useState(false);
   const [checkin, setCheckin] = useState<string | null>(null);
   // Steps that arrive after confirmation (a reschedule) re-open the collapsed timeline.
@@ -230,6 +244,24 @@ export default function MeetupScreen() {
     if (seenSteps.current != null && stepCount > seenSteps.current) setStepsOpen(true);
     seenSteps.current = stepCount;
   }, [status, stepCount]);
+  // Watched it confirm: the steps were opened while still setting up, so the confirm render never
+  // unmounts them mid-call; plus one success haptic. Later visits open collapsed.
+  const prevStatus = useRef(status);
+  useEffect(() => {
+    if (status === 'setting_up') setStepsOpen(true);
+    if (prevStatus.current === 'setting_up' && status === 'confirmed') {
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+    }
+    prevStatus.current = status;
+  }, [status]);
+  // People already here on first render stay still; later arrivals (group forming, backfill) enter.
+  const ids = m?.attendees.map((a) => a.person.userId);
+  const [firstIds, setFirstIds] = useState<string[]>();
+  useEffect(() => {
+    if (!firstIds && ids) setFirstIds(ids);
+  }, [firstIds, ids]);
+  const arrive = (id: string, i: number) =>
+    firstIds && !firstIds.includes(id) ? enter(i) : undefined;
   // Poll only while Muse is still setting up; one load on focus otherwise.
   usePoll(() => void load.meetup(meetupId), m && m.status !== 'setting_up' ? 0 : undefined);
 
@@ -297,7 +329,11 @@ export default function MeetupScreen() {
     ]);
 
   return (
-    <Page>
+    <ScrollView
+      ref={scroll}
+      keyboardShouldPersistTaps="handled"
+      contentContainerStyle={{ paddingBottom: 24, gap: 8 }}
+    >
       <Banners />
       <Card>
         {/* Web has no map: the venue is one row under the venue line instead of a hero tile. */}
@@ -347,8 +383,10 @@ export default function MeetupScreen() {
             accessibilityLabel={`${going.length} going`}
             style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 }}
           >
-            {going.map((a) => (
-              <PersonAvatar key={a.person.userId} person={a.person} size={32} />
+            {going.map((a, i) => (
+              <Animated.View key={a.person.userId} entering={arrive(a.person.userId, i)}>
+                <PersonAvatar person={a.person} size={32} />
+              </Animated.View>
             ))}
             {/* eventLabel already carries the count ("Private event · 3 going") */}
             {!m.eventLabel && <Muted style={{ marginLeft: 6 }}>{going.length} going</Muted>}
@@ -363,53 +401,64 @@ export default function MeetupScreen() {
         </View>
       </Card>
 
-      <Section title={settled ? 'Muse set this up' : 'Muse is setting this up'}>
-        {!showSteps && (
-          <View
-            accessible
-            accessibilityLabel={`${summary(m)}, done`}
-            style={{ flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 44 }}
-          >
-            <Icon name="checkmark-circle" size={22} color={c.online} />
-            <Label style={{ flex: 1 }}>{summary(m)}</Label>
-          </View>
-        )}
-        {settled && (
-          <Link
-            title={stepsOpen ? 'Hide steps' : `See all ${m.museSteps.length} steps`}
-            onPress={() => setStepsOpen((x) => !x)}
-          />
-        )}
-        {showSteps && <StepTimeline meetupId={m.meetupId} steps={m.museSteps} />}
-        {loose.map((a) => (
-          <ApprovalSheet key={a.approvalId} approval={a} />
-        ))}
-      </Section>
+      <View onLayout={(e) => (stepsAt.current.section = e.nativeEvent.layout.y)}>
+        <Section title={settled ? 'Muse set this up' : 'Muse is setting this up'}>
+          {!showSteps && (
+            <View
+              accessible
+              accessibilityLabel={`${summary(m)}, done`}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 44 }}
+            >
+              <Icon name="checkmark-circle" size={22} color={c.online} />
+              <Label style={{ flex: 1 }}>{summary(m)}</Label>
+            </View>
+          )}
+          {settled && (
+            <Link
+              title={stepsOpen ? 'Hide steps' : `See all ${m.museSteps.length} steps`}
+              onPress={() => setStepsOpen((x) => !x)}
+            />
+          )}
+          {/* The group just formed and no step has landed yet: show Muse working, not an empty card. */}
+          {m.status === 'setting_up' && !m.museSteps.length && (
+            <MuseThinking lines={STARTING} done={false} />
+          )}
+          {showSteps && (
+            <View onLayout={(e) => (stepsAt.current.timeline = e.nativeEvent.layout.y)}>
+              <StepTimeline meetupId={m.meetupId} steps={m.museSteps} onCall={showCall} />
+            </View>
+          )}
+          {loose.map((a) => (
+            <ApprovalSheet key={a.approvalId} approval={a} />
+          ))}
+        </Section>
+      </View>
 
       <Section title="Who's coming">
-        {going.map((a) => {
+        {going.map((a, i) => {
           const canOpen = !a.isMe && a.person.profileVisibility === 'public';
           const status =
             a.status === 'arrived' ? 'Arrived' : a.status === 'on_my_way' ? 'On my way' : null;
           const name = a.isMe ? 'You' : listName(a);
           return (
-            <Pressable
-              key={a.person.userId}
-              disabled={!canOpen}
-              accessibilityRole={canOpen ? 'button' : undefined}
-              accessibilityLabel={[name, status].filter(Boolean).join(', ')}
-              onPress={() => go(`/common-ground/person/${a.person.userId}`)}
-              style={{ flexDirection: 'row', gap: 12, minHeight: 44 }}
-            >
-              <PersonAvatar person={a.person} />
-              <View style={{ flex: 1, gap: 6 }}>
-                <Label style={{ fontWeight: '600' }}>
-                  {name}
-                  {status ? <Muted> · {status}</Muted> : null}
-                </Label>
-                {a.sharedInterests.length > 0 && <InterestChips interests={a.sharedInterests} />}
-              </View>
-            </Pressable>
+            <Animated.View key={a.person.userId} entering={arrive(a.person.userId, i)}>
+              <Pressable
+                disabled={!canOpen}
+                accessibilityRole={canOpen ? 'button' : undefined}
+                accessibilityLabel={[name, status].filter(Boolean).join(', ')}
+                onPress={() => go(`/common-ground/person/${a.person.userId}`)}
+                style={{ flexDirection: 'row', gap: 12, minHeight: 44 }}
+              >
+                <PersonAvatar person={a.person} />
+                <View style={{ flex: 1, gap: 6 }}>
+                  <Label style={{ fontWeight: '600' }}>
+                    {name}
+                    {status ? <Muted> · {status}</Muted> : null}
+                  </Label>
+                  {a.sharedInterests.length > 0 && <InterestChips interests={a.sharedInterests} />}
+                </View>
+              </Pressable>
+            </Animated.View>
           );
         })}
       </Section>
@@ -482,10 +531,12 @@ export default function MeetupScreen() {
 
       <VerifyButton m={m} />
       {feedbackSent ? (
-        <Card style={{ padding: 16, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <Icon name="checkmark-circle" size={22} color={c.online} />
-          <Label>Thanks. Feedback sent.</Label>
-        </Card>
+        <Animated.View entering={enter()}>
+          <Card style={{ padding: 16, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Icon name="checkmark-circle" size={22} color={c.online} />
+            <Label>Thanks. Feedback sent.</Label>
+          </Card>
+        </Animated.View>
       ) : (
         m.feedbackDue && <Feedback m={m} onSent={() => setFeedbackSent(true)} />
       )}
@@ -505,6 +556,6 @@ export default function MeetupScreen() {
           <Link title="Can't make it" onPress={cantMakeIt} />
         </Card>
       )}
-    </Page>
+    </ScrollView>
   );
 }
