@@ -101,7 +101,7 @@ export function SameTimeNextWeek({ m }: { m: Meetup }) {
   };
   return (
     <Button
-      title="Same time next week?"
+      title="Plan it again next week"
       icon="repeat-outline"
       disabled={busy}
       onPress={() => void onPress()}

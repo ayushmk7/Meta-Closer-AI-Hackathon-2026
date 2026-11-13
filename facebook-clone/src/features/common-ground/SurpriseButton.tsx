@@ -1,10 +1,11 @@
 // "Surprise me" (I'm Feeling Lucky): open a random plan from the viewer's own feed. Client-only (CONTRACTS Decisions).
 import { useRef, useState } from 'react';
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import { Icon, Label, Muted, go, useColors } from '../../ui/native';
+import { Muted, go } from '../../ui/native';
 import { noteSurprise } from './Quests';
 import { getState, load } from './store';
+import { Pill } from './ui';
 import type { Join, PlanCard } from './types';
 
 const EMPTY = 'Nothing new right now. Try the Muse bar.';
@@ -27,7 +28,6 @@ export function pickSurprise(
 }
 
 export default function SurpriseButton() {
-  const c = useColors();
   const [note, setNote] = useState(false);
   const busy = useRef(false); // one pick, one push per tap burst
   const onPress = async () => {
@@ -47,26 +47,7 @@ export default function SurpriseButton() {
   };
   return (
     <View style={{ paddingHorizontal: 16, gap: 6, alignItems: 'flex-start' }}>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Surprise me"
-        accessibilityHint="Opens a random plan picked for you"
-        onPress={() => void onPress()}
-        style={{
-          minHeight: 44,
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: 6,
-          paddingHorizontal: 15,
-          borderRadius: 22,
-          borderWidth: 1,
-          borderColor: c.divider,
-          backgroundColor: c.input,
-        }}
-      >
-        <Icon name="dice-outline" size={18} color={c.blue} />
-        <Label style={{ fontWeight: '600', fontSize: 14 }}>Surprise me</Label>
-      </Pressable>
+      <Pill label="Surprise me" icon="dice-outline" onCanvas onPress={() => void onPress()} />
       {note && <Muted accessibilityLiveRegion="polite">{EMPTY}</Muted>}
     </View>
   );
