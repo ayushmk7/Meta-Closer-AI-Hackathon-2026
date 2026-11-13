@@ -25,8 +25,9 @@ from cg_sim.mc.world import build, ci95
 INF = 99  # ponytail: "no cap" = larger than any feed (feed.size 8)
 # ponytail: caps / fill floor / isolationBoost were swept in the b2 grid (none passed); b3 sweeps the reunion levers.
 GRID = {
-    "matching.reunionBoost": [0, 0.5, 1, 2, 4],
-    "matching.crowdBoost": [0, 0.5, 1, 2],
+    "matching.fillToMax": [False, True],
+    "matching.reunionBoost": [0, 1, 4],
+    "matching.crowdBoost": [0, 0.5],
 }
 _W = None
 
@@ -92,7 +93,7 @@ def main(argv=None) -> int:
     g_iso = ci95([greedy[s]["isolatedLowW8"] for s in greedy])
     c_iso = ci95([cg0[s]["isolatedLowW8"] for s in cg0])
     pct = lambda t: f"{t[0]:+.1%} [{t[1]:+.1%}, {t[2]:+.1%}]"  # noqa: E731
-    lab = lambda v: "current" if v is None else ("inf" if v == INF else f"{v:g}")  # noqa: E731
+    lab = lambda v: "current" if v is None else str(v).lower() if isinstance(v, bool) else ("inf" if v == INF else f"{v:g}")  # noqa: E731
     L = [f"# CG params grid: {run_id}", "",
          f"Center cell, {a.seeds} seeds, real cg_matching={engine.ma.HAVE_MATCHING}, "
          f"Laya {'fake (render_state hash)' if a.fake_laya else 'data/sim/laya_gt'}. Current params: {cur}. Exploratory; params.yaml unchanged.",
