@@ -29,7 +29,7 @@ jest.mock('../../src/platform/scopedStorage', () => ({
 const fixtures = require('../../src/features/common-ground/fixtures.json');
 const store = require('../../src/features/common-ground/store');
 const { default: Quests } = require('../../src/features/common-ground/Quests');
-const { default: Passport, StampEarned } = require('../../src/features/common-ground/Passport');
+const Passport = require('../../src/features/common-ground/Passport').default;
 
 async function render(el) {
   let tree;
@@ -143,18 +143,19 @@ test('Passport shows collected and locked stamps', async () => {
   await renderer.act(async () => tree.unmount());
 });
 
-test('StampEarned after a verify: names the stamp, links to Passport, ticks Verify in person', async () => {
+test('a successful verify (Scan useVerify) ticks Verify in person', async () => {
   delete mockSaved[KEY];
-  const m = fixtures.getMeetup;
-  await renderer.act(async () => store.setState({ meetups: { [m.meetupId]: m } }));
-  const { tree, labels } = await render(React.createElement(StampEarned, { meetupId: m.meetupId }));
+  const { api } = require('../../src/features/common-ground/api');
+  jest.spyOn(api, 'verifyAttendee').mockResolvedValue({ accepted: true });
+  const { useVerify } = require('../../src/features/common-ground/Scan.web');
+  let submit;
+  const Probe = () => {
+    submit = useVerify(fixtures.getMeetup.meetupId).submit;
+    return null;
+  };
+  const { tree } = await render(React.createElement(Probe));
+  await renderer.act(async () => submit('abc123'));
   await renderer.act(async () => {});
-  expect(labels()).toContain('Stamp earned: Ceramics studio');
-  const link = tree.root.find(
-    (n) => n.props.accessibilityLabel === 'See passport' && n.props.onPress,
-  );
-  await renderer.act(async () => link.props.onPress());
-  expect(require('expo-router').router.push).toHaveBeenCalledWith('/common-ground/passport');
   expect(JSON.parse(mockSaved[KEY])[fixtures.getMe.userId]).toMatchObject({ talked: true });
   await renderer.act(async () => tree.unmount());
 });

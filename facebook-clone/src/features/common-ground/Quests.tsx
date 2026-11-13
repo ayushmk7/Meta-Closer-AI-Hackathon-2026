@@ -50,7 +50,7 @@ async function note(patch: Partial<QuestLog>): Promise<void> {
   await writeLog(userId, log);
   push?.(log);
 }
-// SurpriseButton calls this when it opens a plan; StampEarned when a verify succeeds.
+// SurpriseButton calls this when it opens a plan; Scan's useVerify when a verify succeeds.
 export const noteSurprise = () => note({ surprise: true });
 export const noteVerified = () => note({ talked: true });
 
