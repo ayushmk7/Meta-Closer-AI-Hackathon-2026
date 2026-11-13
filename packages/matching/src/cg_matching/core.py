@@ -472,9 +472,14 @@ def rank_plans(
     pp, m, f = params["plans"], params["matching"], params["feed"]
     cap, boost = pp["exposureCapPerDay"], m["isolationBoost"]
     pref_boost = m.get("prefBoost", 0.0)  # absent = no learned-preference effect
+    reunion, crowd = m.get("reunionBoost", 0.0), m.get("crowdBoost", 0.0)  # absent = off (byte-identical)
     buffer_min = params["calendar"]["minFreeBufferMin"]
     met = _met(pool, state)
     iso = {uid for uid in pool.users if not any(uid in pair for pair in met)}
+    met_of: dict[str, set[str]] = {}
+    for a, b in (tuple(pair) for pair in met if len(pair) == 2):
+        met_of.setdefault(a, set()).add(b)
+        met_of.setdefault(b, set()).add(a)
     joined = {p.plan_id: _joined(p, pool, state) for p in plans}
     targets = {p.plan_id: _target_vector(p, params) for p in plans}
 
@@ -518,6 +523,11 @@ def rank_plans(
             ]
             base = pj * ps * fit * travel_pen * ((1 + m["signalBoost"]) if sig else 1.0)
             base *= (1 + boost) if uid in iso else 1.0
+            # Someone this user met is already going: per (user, plan), so it reorders the feed.
+            reunite = bool(reunion and met_of.get(uid, set()).intersection(joined[p.plan_id]))
+            base *= (1 + reunion) if reunite else 1.0
+            if crowd:  # greedy-style concentration on already-filling plans
+                base *= 1 + crowd * min(1.0, len(joined[p.plan_id]) / max(p.size_min, 1))
             liked: list[str] = []
             if (up := state.prefs.get(uid)) and (ws := [(up[k], k) for k in plan_pref_keys(p, v) if k in up]):
                 base *= 1 + pref_boost * sum(w for w, _ in ws) / len(ws)
@@ -534,6 +544,7 @@ def rank_plans(
                     "p_show": ps,
                     "minutes": minutes,
                     "pref_keys": liked,
+                    "reunion": reunite,
                     "signal_ids": sig,
                     "shared": shared[: params["privacy"]["sharedCoarseMax"]],
                 }
@@ -584,6 +595,8 @@ def rank_plans(
         # weight is > 0 (owner-only, P7).
         if r["pref_keys"]:
             debug["pref_keys"] = r["pref_keys"]
+        if r["reunion"]:
+            debug["reunion"] = True
         out[uid].append(PlanScore(uid, p.plan_id, round(score, 6), r["shared"], r["minutes"], debug))
     return out
 
@@ -640,9 +653,25 @@ def form_groups(
     def worst(group: list[str]) -> float:
         return min((pair(a, b) for i, a in enumerate(group) for b in group[i + 1 :]), default=0.0)
 
+    reunion = params["matching"].get("reunionBoost", 0.0)
+
+    def met_in(c: str, group: list[str]) -> int:
+        """Met people already in the group; ranks first when reunionBoost > 0 so met pairs land together."""
+        return sum(frozenset((c, x)) in met for x in group) if reunion > 0 else 0
+
     if fixed := [u for u in state.fixed_ids.get(plan.plan_id, []) if u in pool.users]:
         return _backfill(
-            plan, fixed, [u for u in queue if u not in fixed], hi, lo, pair, umax, shares_ok, worst, order
+            plan,
+            fixed,
+            [u for u in queue if u not in fixed],
+            hi,
+            lo,
+            pair,
+            umax,
+            shares_ok,
+            worst,
+            order,
+            met_in,
         )
 
     # Split size: plan cap, lowered to the median member's own max so the split fits most people.
@@ -669,7 +698,7 @@ def form_groups(
             window = set(rest[: seats - placed - len(group)])
             near = [c for c in fits if c in window]
             best = (
-                max(near, key=lambda c: (min(pair(c, x) for x in group), -queue.index(c)))
+                max(near, key=lambda c: (met_in(c, group), min(pair(c, x) for x in group), -queue.index(c)))
                 if near
                 else fits[0]
             )
@@ -706,7 +735,7 @@ def form_groups(
     return FormResult(out, sorted(dict.fromkeys(unseated), key=order.get))
 
 
-def _backfill(plan, fixed, waiting, hi, lo, pair, umax, shares_ok, worst, order) -> FormResult:
+def _backfill(plan, fixed, waiting, hi, lo, pair, umax, shares_ok, worst, order, met_in) -> FormResult:
     group = list(fixed)
     target = min(hi, max(lo(group), len(group) + 1))
     while len(group) < target:
@@ -721,7 +750,7 @@ def _backfill(plan, fixed, waiting, hi, lo, pair, umax, shares_ok, worst, order)
         ]
         if not fits:
             break
-        best = max(fits, key=lambda c: (min(pair(c, x) for x in group), -waiting.index(c)))
+        best = max(fits, key=lambda c: (met_in(c, group), min(pair(c, x) for x in group), -waiting.index(c)))
         group.append(best)
         waiting.remove(best)
     rank = {u: k for k, u in enumerate(group)} | order
