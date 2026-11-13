@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Pressable, View } from 'react-native';
 import { Button, Card, Label, Muted, go, useColors } from '../../ui/native';
+import { MuseAvatar } from './MuseBar';
 import { dismissNudge, nudgesFor, setState, start, useCg } from './store';
 
 // Visual reference: the request card in src/features/friends/Screen.tsx.
@@ -41,6 +42,14 @@ export default function HomeCard() {
   const because = nudge.because[0];
   return (
     <Card style={{ padding: 16, gap: 8 }}>
+      {/* Facebook feed-unit header: who it's from, then why you see it. */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+        <MuseAvatar size={40} />
+        <View>
+          <Label style={{ fontWeight: '600' }}>Plans</Label>
+          <Muted>Suggested for you</Muted>
+        </View>
+      </View>
       <Label accessibilityRole="header" style={{ fontSize: 17, fontWeight: '700' }}>
         {nudge.title}
       </Label>
