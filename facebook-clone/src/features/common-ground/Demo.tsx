@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Busy, Button, Card, Label, Page, Title } from '../../ui/native';
+import { Busy, Button, Card, Label, Page } from '../../ui/native';
 import { setIdentity, useCg } from './store';
 import { Banners, NotFound } from './ui';
 
@@ -29,8 +29,7 @@ export default function Demo() {
     <Page>
       <Banners />
       <Card style={{ borderRadius: 0 }}>
-        <Title>Demo</Title>
-        <View style={{ padding: 16, paddingTop: 0, gap: 14 }}>
+        <View style={{ padding: 16, gap: 14 }}>
           <Label>Signed in as {name ?? 'someone'}</Label>
           <Button title="Back to Maya" secondary onPress={() => void setIdentity(null)} />
         </View>

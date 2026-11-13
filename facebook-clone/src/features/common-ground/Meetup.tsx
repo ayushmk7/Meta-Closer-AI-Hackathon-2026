@@ -2,18 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Alert, Linking, Platform, Pressable, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
-import {
-  Button,
-  Card,
-  Divider,
-  Icon,
-  Input,
-  Label,
-  Muted,
-  Page,
-  go,
-  useColors,
-} from '../../ui/native';
+import { Button, Card, Icon, Input, Label, Muted, Page, go, useColors } from '../../ui/native';
 import ApprovalSheet, { money } from './ApprovalSheet';
 import { SameTimeNextWeek } from './Rewards';
 import FeedbackExtras, { type Extras } from './FeedbackExtras';
@@ -95,6 +84,7 @@ function Link({ title, onPress }: { title: string; onPress(): void }) {
   return (
     <Pressable
       accessibilityRole="link"
+      accessibilityLabel={title}
       onPress={onPress}
       style={{ minHeight: 44, justifyContent: 'center' }}
     >
@@ -512,8 +502,7 @@ export default function MeetupScreen() {
             secondary
             onPress={askMuse}
           />
-          <Divider />
-          <Button title="Can't make it" secondary onPress={cantMakeIt} />
+          <Link title="Can't make it" onPress={cantMakeIt} />
         </Card>
       )}
     </Page>

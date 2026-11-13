@@ -176,7 +176,8 @@ export default function ShareCard({
           {share.caption}
         </Label>
       )}
-      <SharePhoto share={share} height={220} />
+      {/* No photo: a text post, like Facebook, not a big empty placeholder. */}
+      {share.photoUrl && <SharePhoto share={share} height={220} />}
       {/* Facebook hides the reactions row until there is one. */}
       {share.likes > 0 && (
         <View style={{ flexDirection: 'row', alignItems: 'center', padding: 12, gap: 4 }}>
@@ -204,7 +205,7 @@ export default function ShareCard({
             {!readOnly && (
               <Action
                 icon="sparkles-outline"
-                label="Plan something like this"
+                label="Plan this"
                 a11y={`Plan something like this: ${share.promptText}`}
                 onPress={() => void planFromShare(share)}
               />

@@ -1,6 +1,13 @@
 // Group chat (PRD-1 §8.4): Messenger look, Muse cards, attachments, Ask Muse toggle.
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, View } from 'react-native';
+import {
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
+} from 'react-native';
 import Animated, {
   cancelAnimation,
   useAnimatedStyle,
@@ -12,7 +19,6 @@ import Animated, {
 } from 'react-native-reanimated';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import {
-  Icon,
   IconButton,
   Input,
   Label,
@@ -22,6 +28,7 @@ import {
   useKeyboardOffset,
 } from '../../ui/native';
 import ApprovalSheet from './ApprovalSheet';
+import { MuseAvatar } from './MuseBar';
 import PlanCard from './PlanCard';
 import { StatusMark, stepLabel } from './StepTimeline';
 import { api, getUser } from './api';
@@ -40,24 +47,6 @@ import {
 } from './ui';
 
 const NONE: Message[] = []; // stable selector default (fresh [] loops useSyncExternalStore)
-
-function MuseAvatar({ size = 32 }: { size?: number }) {
-  const c = useColors();
-  return (
-    <View
-      style={{
-        width: size,
-        height: size,
-        borderRadius: size / 2,
-        backgroundColor: c.blue,
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
-    >
-      <Icon name="sparkles" size={size * 0.55} color="#fff" />
-    </View>
-  );
-}
 
 // One typing dot; pulses after `i * 160` ms (solid under reduce motion).
 function TypingDot({ i }: { i: number }) {
@@ -87,7 +76,7 @@ function MuseTyping() {
       accessibilityLabel="Muse is on it…"
       style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 8 }}
     >
-      <MuseAvatar />
+      <MuseAvatar size={32} />
       <View
         style={{
           flexDirection: 'row',
@@ -185,7 +174,7 @@ function Starters({ items, onPick }: { items: string[]; onPick(text: string): vo
   return (
     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
       {items.map((t) => (
-        <Pill key={t} label={t} onPress={() => onPick(t)} />
+        <Pill key={t} label={t} outlined onPress={() => onPick(t)} />
       ))}
     </View>
   );
@@ -232,7 +221,7 @@ function Bubble({
       <View style={{ gap: 4 }}>
         <Muted style={{ marginLeft: 48 }}>Muse</Muted>
         <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 8, maxWidth: '85%' }}>
-          <MuseAvatar />
+          <MuseAvatar size={32} />
           <View
             style={{
               flexShrink: 1,
@@ -275,7 +264,14 @@ function Bubble({
           }}
         >
           {m.toMuse && (
-            <Label style={{ color: own ? '#fff' : c.blue, fontSize: 12, lineHeight: 16, fontWeight: '700' }}>
+            <Label
+              style={{
+                color: own ? '#fff' : c.blue,
+                fontSize: 12,
+                lineHeight: 16,
+                fontWeight: '700',
+              }}
+            >
               To Muse
             </Label>
           )}
@@ -349,7 +345,7 @@ export default function ChatScreen() {
         alignItems: 'center',
         paddingHorizontal: Platform.OS === 'web' ? 4 : 12,
         paddingVertical: 8,
-        borderBottomWidth: 1,
+        borderBottomWidth: StyleSheet.hairlineWidth,
         borderBottomColor: c.divider,
       }}
     >
@@ -425,7 +421,14 @@ export default function ChatScreen() {
         ))}
         {museBusy(messages) && <MuseTyping />}
       </ScrollView>
-      <View style={{ borderTopWidth: 1, borderTopColor: c.divider, padding: 10, gap: 8 }}>
+      <View
+        style={{
+          borderTopWidth: StyleSheet.hairlineWidth,
+          borderTopColor: c.divider,
+          padding: 10,
+          gap: 8,
+        }}
+      >
         <View style={{ alignSelf: 'flex-start' }}>
           <Pill
             label="Ask Muse"
