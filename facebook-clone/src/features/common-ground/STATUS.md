@@ -15,6 +15,7 @@ Milestone: v2 M2 device layer (A2, `cg/ios/v2-m2-device`)
 
 ## Decisions
 - 2026-11-13 Meetup writes carry a per-meetup request stamp; a fetch that left before a newer write (step event, later fetch, approval decision, leave) is dropped. Why: out-of-order responses dropped Muse steps (rule 10) and flipped decided approvals back to pending.
+- 2026-11-13 MuseBar.send has a ref guard on top of `busy`. Why: `busy` lags a render, so Enter plus a send tap in one frame asked Muse twice, or in invite mode created two meetups.
 
 - 2026-11-13 Batch 2 core (B1): shares and verify in types/api/mock/store; stub props frozen: `ShareCard({share})`, `ShareMeetup({m})`, `VerifyButton({m})`, `FeedbackExtras({value, onChange})` (rating/tags go into `sendFeedback`); `planLikeThis(share)` likes, then `createPlan` if `canCreatePlans` else `askMuse`. Mock verify accepts any code but my own (`MAYA42`), since each phone runs its own mock. Mock meetup completes after its end time. Reset demo clears `common-ground-quests:v1`.
 
