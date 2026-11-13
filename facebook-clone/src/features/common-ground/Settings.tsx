@@ -1,8 +1,8 @@
 // Settings (PRD-1 §8.6) plus the preference pieces the setup flow reuses.
 import { useEffect } from 'react';
-import { Alert, Pressable, Switch, View } from 'react-native';
+import { Alert, Switch, View } from 'react-native';
 import { router } from 'expo-router';
-import { Button, Card, Chips, Icon, Label, Muted, Page, Title, useColors } from '../../ui/native';
+import { Button, Chips, Icon, Label, Muted, Page, Title, useColors } from '../../ui/native';
 import { api } from './api';
 import Connectors from './Connectors';
 import Rewards from './Rewards';
@@ -17,7 +17,7 @@ import type {
   TravelPrefs,
   Visibility,
 } from './types';
-import { Banners, GroupSizePicker, InterestEditor } from './ui';
+import { Banners, GroupSizePicker, InterestEditor, Pill, Section } from './ui';
 
 // NEEDS(ioscore): store actions for updateMe, interest/signal visibility, delete and optOut.
 // Until then these call the api through the store's act() (same error banner) and reload.
@@ -40,17 +40,6 @@ export async function setSignal(signalId: string, visibility: Visibility | 'dele
     () => setSignal(signalId, visibility),
   );
   if (ok) await Promise.all([load.signals(), load.setup()]);
-}
-
-export function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <Card style={{ padding: 16, gap: 10 }}>
-      <Label accessibilityRole="header" style={{ fontSize: 17, fontWeight: '700' }}>
-        {title}
-      </Label>
-      {children}
-    </Card>
-  );
 }
 
 export function Toggle({
@@ -102,7 +91,6 @@ export function TravelPicker({
   value: TravelPrefs;
   onChange(v: TravelPrefs): void;
 }) {
-  const c = useColors();
   return (
     <View style={{ gap: 8 }}>
       <Muted>Up to {value.maxMinutes} minutes</Muted>
@@ -117,29 +105,18 @@ export function TravelPicker({
         {MODES.map((m) => {
           const on = value.modes.includes(m);
           return (
-            <Pressable
+            <Pill
               key={m}
-              accessibilityRole="button"
+              label={m[0]!.toUpperCase() + m.slice(1)}
               accessibilityLabel={`Travel by ${m}`}
-              accessibilityState={{ selected: on }}
+              selected={on}
               onPress={() =>
                 onChange({
                   ...value,
                   modes: on ? value.modes.filter((x) => x !== m) : [...value.modes, m],
                 })
               }
-              style={{
-                minHeight: 44,
-                justifyContent: 'center',
-                paddingHorizontal: 15,
-                borderRadius: 22,
-                backgroundColor: on ? (c.canvas === '#18191A' ? '#263951' : '#e7f3ff') : c.input,
-              }}
-            >
-              <Label style={{ color: on ? c.blue : c.text, fontWeight: '600', fontSize: 14 }}>
-                {m[0]!.toUpperCase() + m.slice(1)}
-              </Label>
-            </Pressable>
+            />
           );
         })}
       </View>

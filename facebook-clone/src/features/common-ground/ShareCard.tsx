@@ -6,6 +6,7 @@ import { Divider, Icon, Label, Muted, go, useColors } from '../../ui/native';
 import { activityIcon as planIcon, photoSource } from './PlanCard';
 import { likeShare, planLikeThis } from './store';
 import type { Share } from './types';
+import { selectedBg } from './ui';
 
 // Gallery activity types PlanCard's map doesn't cover; anything else falls back to it.
 const ICONS: Record<string, React.ComponentProps<typeof Icon>['name']> = {
@@ -88,7 +89,7 @@ export function SharePhoto({ share, height }: { share: Share; height: number }) 
     <View
       style={{
         height,
-        backgroundColor: c.canvas === '#18191A' ? '#263951' : '#e7f3ff',
+        backgroundColor: selectedBg(c),
         alignItems: 'center',
         justifyContent: 'center',
       }}

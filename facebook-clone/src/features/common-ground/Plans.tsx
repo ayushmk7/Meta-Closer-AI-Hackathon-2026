@@ -29,7 +29,7 @@ import Quests from './Quests';
 import IdeasRow from './IdeasRow';
 import { dismissNudge, nudgesFor, pendingApprovals, refreshAll, useCg } from './store';
 import type { Connection, Join, Meetup, Nudge, PlanCard as Plan } from './types';
-import { Banners, InterestChips, PersonAvatar } from './ui';
+import { Banners, InterestChips, PersonAvatar, Section } from './ui';
 
 // Selectors must return stable references (useSyncExternalStore): never `?? []` inside useCg.
 const NONE: Plan[] = [];
@@ -197,19 +197,6 @@ function YourPlanRow({ join, meetup }: { join?: Join; meetup?: Meetup }) {
       </Row>
     );
   return null;
-}
-
-function Section({ title, aside }: { title: string; aside?: React.ReactNode }) {
-  return (
-    <View
-      style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, minHeight: 44 }}
-    >
-      <Label accessibilityRole="header" style={{ fontSize: 18, fontWeight: '700', flex: 1 }}>
-        {title}
-      </Label>
-      {aside}
-    </View>
-  );
 }
 
 export default function PlansScreen() {

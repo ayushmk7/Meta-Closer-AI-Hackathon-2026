@@ -6,7 +6,7 @@ import { Button, Chips, Icon, Label, Muted, Page, useColors } from '../../ui/nat
 import { api } from './api';
 import Connectors from './Connectors';
 import { MuseAvatar } from './MuseBar';
-import { GroupSizeSetting, MusePermissions, Section, SignalRow, TravelPicker } from './Settings';
+import { GroupSizeSetting, MusePermissions, SignalRow, TravelPicker } from './Settings';
 import { act, load, optIn, refreshAll, setState, useCg } from './store';
 import type {
   AvailabilitySlot,
@@ -17,7 +17,7 @@ import type {
   TravelPrefs,
   Visibility,
 } from './types';
-import { AvailabilityGrid, Banners, InterestEditor } from './ui';
+import { AvailabilityGrid, Banners, InterestEditor, Section } from './ui';
 
 const NO_MODES: ModeInfo[] = []; // stable fallback outside useCg (useSyncExternalStore)
 

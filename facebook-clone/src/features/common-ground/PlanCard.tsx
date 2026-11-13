@@ -5,15 +5,16 @@ import { Image } from 'expo-image';
 import type Ionicons from '@expo/vector-icons/Ionicons';
 import { imageSource } from '../../data/media';
 import { Icon, Label, Muted, useColors } from '../../ui/native';
+import { clock } from './time';
 import { TZ } from './types';
+import { selectedBg } from './ui';
 import type { Crowd, PlanCard as Plan, PlanCheck } from './types';
 
 // "Sat 10 AM" / "Sat 9:30 AM", always in TZ (Pacific), never the device zone.
 export const dayTime = (iso: string): string => {
   const d = new Date(iso);
   const day = d.toLocaleDateString('en-US', { weekday: 'short', timeZone: TZ });
-  const time = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: TZ });
-  return `${day} ${time.replace(':00', '')}`;
+  return `${day} ${clock(iso)}`;
 };
 // "45 min", "2 hr", "2 hr 30 min"
 export const duration = (min: number): string =>
@@ -51,7 +52,7 @@ export function PlanPhoto({ plan, height }: { plan: Plan; height: number }) {
     <View
       style={{
         height,
-        backgroundColor: c.canvas === '#18191A' ? '#263951' : '#e7f3ff',
+        backgroundColor: selectedBg(c),
         alignItems: 'center',
         justifyContent: 'center',
       }}
