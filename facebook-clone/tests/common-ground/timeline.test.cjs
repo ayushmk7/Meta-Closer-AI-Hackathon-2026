@@ -128,3 +128,16 @@ test('an approval that is no longer pending is not shown inline', async () => {
   );
   expect(byLabel('Review: OK $35 for your wheel?')).toBeUndefined();
 });
+
+test('a step already done on open stays still; a live flip to done pops', async () => {
+  const popped = () => text().includes('"scale"');
+  const { tree, text } = await render(
+    React.createElement(StepTimeline, { meetupId: 'mt_none', steps: [step('a', 'done')] }),
+  );
+  expect(popped()).toBe(false);
+  const el = (status) =>
+    React.createElement(StepTimeline, { meetupId: 'mt_none', steps: [step('b', status)] });
+  await renderer.act(async () => tree.update(el('running')));
+  await renderer.act(async () => tree.update(el('done')));
+  expect(popped()).toBe(true);
+});

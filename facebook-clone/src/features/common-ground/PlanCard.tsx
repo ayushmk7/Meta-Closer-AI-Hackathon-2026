@@ -167,7 +167,17 @@ export default function PlanCard({
   );
 }
 
-// A PlanCard-sized placeholder while Muse works.
+// A PlanCard-sized placeholder while Muse works (bars match the real card's text height).
+const BARS = [
+  ['70%', 18],
+  ['50%', 14],
+  ['60%', 14],
+  ['45%', 14],
+  ['45%', 14],
+  ['45%', 14],
+  ['35%', 14],
+  ['90%', 14],
+] as const;
 export function PlanCardSkeleton({ width = 280 }: { width?: number }) {
   const c = useColors();
   return (
@@ -182,10 +192,10 @@ export function PlanCardSkeleton({ width = 280 }: { width?: number }) {
       }}
     >
       <Skeleton width="100%" height={130} radius={0} />
-      <View style={{ padding: 12, gap: 8 }}>
-        <Skeleton width="70%" height={18} />
-        <Skeleton width="50%" height={14} />
-        <Skeleton width="85%" height={14} />
+      <View style={{ padding: 12, gap: 8, height: 236 }}>
+        {BARS.map(([w, h], i) => (
+          <Skeleton key={i} width={w} height={h} />
+        ))}
       </View>
     </View>
   );

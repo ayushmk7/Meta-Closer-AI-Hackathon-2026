@@ -6,7 +6,7 @@ import { Divider, Icon, Label, Muted, go, useColors } from '../../ui/native';
 import { activityIcon as planIcon, photoSource } from './PlanCard';
 import { likeShare, planLikeThis } from './store';
 import type { Share } from './types';
-import { Pop, selectedBg } from './ui';
+import { PopOn, selectedBg } from './ui';
 
 // Gallery activity types PlanCard's map doesn't cover; anything else falls back to it.
 const ICONS: Record<string, React.ComponentProps<typeof Icon>['name']> = {
@@ -77,14 +77,10 @@ function Action({
         backgroundColor: pressed ? c.input : 'transparent',
       })}
     >
-      {/* Pops when turned on (Like). */}
-      {active ? (
-        <Pop>
-          <Icon name={icon} size={19} color={color} />
-        </Pop>
-      ) : (
+      {/* Pops when turned on (Like), not for posts already liked on load. */}
+      <PopOn on={!!active} quiet>
         <Icon name={icon} size={19} color={color} />
-      )}
+      </PopOn>
       <Label style={{ color, fontWeight: '600', fontSize: 13 }}>{label}</Label>
     </Pressable>
   );

@@ -117,8 +117,11 @@ test('muse bar: reply bubble and highlighted new plan; clearing returns to For y
   jest.spyOn(api, 'askMuse').mockResolvedValue(reply);
   const { text, find } = await render(React.createElement(MuseBar));
   const input = () => find((p) => p.accessibilityLabel === 'What do you want to do?');
+  jest.useFakeTimers(); // MuseBar holds the checklist for at least 900 ms
   await renderer.act(async () => input().props.onChangeText('pottery this weekend'));
-  await renderer.act(async () => input().props.onSubmitEditing());
+  await renderer.act(async () => void input().props.onSubmitEditing());
+  await renderer.act(async () => void jest.advanceTimersByTime(900));
+  jest.useRealTimers();
   expect(api.askMuse).toHaveBeenCalledWith('pottery this weekend', null);
   expect(text()).toContain(reply.reply.text);
   expect(text()).toContain('New · Muse made this plan');
@@ -151,8 +154,11 @@ test('muse bar: a failed call keeps the typed text', async () => {
     .mockRejectedValue(new CgError(503, 'muse_unavailable', 'Muse is busy. Try again.', true));
   const { find } = await render(React.createElement(MuseBar));
   const input = () => find((p) => p.accessibilityLabel === 'What do you want to do?');
+  jest.useFakeTimers();
   await renderer.act(async () => input().props.onChangeText('board games'));
-  await renderer.act(async () => input().props.onSubmitEditing());
+  await renderer.act(async () => void input().props.onSubmitEditing());
+  await renderer.act(async () => void jest.advanceTimersByTime(900));
+  jest.useRealTimers();
   expect(input().props.value).toBe('board games');
   expect(input().props.editable).toBe(true);
   expect(store.getState().error?.message).toBe('Muse is busy. Try again.');
