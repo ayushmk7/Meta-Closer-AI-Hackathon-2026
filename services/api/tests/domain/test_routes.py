@@ -3,6 +3,7 @@
 import pytest
 
 from cg_api import contracts
+from cg_api.domain import joins
 from cg_api.domain import world as world_mod
 
 MAYA, DAN = {"X-CG-User": "u_maya"}, {"X-CG-User": "u_dan"}
@@ -27,6 +28,10 @@ def test_core_loop_over_http(live, public):
     assert feed["plans"][0]["planId"] == "pl_walk"
     ok(public.get("/v1/plans/pl_hero", headers=MAYA), "getPlan")
     j = ok(public.post("/v1/plans/pl_hero/join", headers=MAYA), "joinPlan")
+    if j["status"] == "interested":  # DEMO_MODE beat: "Muse is gathering people"; fire the timer here
+        assert j["progress"] == {"joined": 3, "needed": 3} and j["meetupId"] is None
+        joins.form(live, "pl_hero")
+        j = ok(public.get("/v1/joins", headers=MAYA), "listJoins")["items"][0]
     assert j["status"] == "matched"
     ok(public.get("/v1/joins", headers=MAYA), "listJoins")
     m = ok(public.get(f"/v1/meetups/{j['meetupId']}", headers=MAYA), "getMeetup")
@@ -60,3 +65,33 @@ def test_errors_use_envelope(live, public):
     assert r.status_code == 401 and r.json()["error"]["code"] == "unauthenticated"
     r = public.post("/v1/approvals/ap_x/decision", headers=MAYA, json={"decision": "maybe"})
     assert r.status_code == 400
+
+
+def test_nudges_and_avatars_never_follow_a_spoofed_host(live, public):
+    live.demo["nudgePlanId"] = "pl_walk"
+    items = ok(public.get("/v1/nudges", headers=MAYA), "listNudges")["items"]
+    assert items and items[0]["planId"] == "pl_walk"
+    ok(public.get(f"/v1/plans/{items[0]['planId']}", headers=MAYA), "getPlan")  # the nudge opens a real plan
+    ok(public.post(f"/v1/nudges/{items[0]['nudgeId']}/dismiss", headers=MAYA, json={"mute": "signal"}), "dismissNudge")
+    if joins.join(live, "u_maya", "pl_hero")["status"] == "interested":
+        joins.form(live, "pl_hero")
+    evil = {**DAN, "Host": "evil.example"}
+    m = ok(public.get("/v1/meetups", headers=evil), "listMeetups")["items"][0]
+    ok(
+        public.post(f"/v1/threads/{m['threadId']}/messages", headers=evil, json={"text": "hi", "clientId": "e1"}),
+        "sendMessage",
+    )
+    seen = [str(d) for u, _, d in live.events] + [str(ok(public.get("/v1/threads", headers=MAYA), "listThreads"))]
+    seen.append(str(m))
+    assert not any("evil.example" in x for x in seen)  # P10: no client can point other phones' image loads elsewhere
+    urls = [a["person"]["avatarUrl"] for a in m["attendees"] if a["person"]["avatarUrl"]]
+    assert urls and all(u.startswith(live.base_url + "/static/avatars/") for u in urls)
+    assert "localhost" not in live.base_url or live.base_url.startswith("http://127.0.0.1")
+
+
+def test_own_lan_address_is_used_for_static_urls(live, public):
+    if joins.join(live, "u_maya", "pl_hero")["status"] == "interested":
+        joins.form(live, "pl_hero")
+    m = ok(public.get("/v1/meetups", headers={**MAYA, "Host": "127.0.0.1:48000"}), "listMeetups")["items"][0]
+    urls = [a["person"]["avatarUrl"] for a in m["attendees"] if a["person"]["avatarUrl"]]
+    assert urls and all(u.startswith("http://127.0.0.1:48000/static/avatars/") for u in urls)

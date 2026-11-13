@@ -4,9 +4,9 @@ from fastapi import APIRouter, Body, Response
 
 from cg_api.deps import User
 from cg_api.domain import joins
-from cg_api.domain.http import call, items, warm
+from cg_api.domain.http import REQUEST_BASE, call, items, warm
 
-router = APIRouter()
+router = APIRouter(dependencies=REQUEST_BASE)
 
 
 @router.post("/v1/plans/{planId}/join", operation_id="joinPlan")

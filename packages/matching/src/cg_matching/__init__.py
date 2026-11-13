@@ -6,11 +6,13 @@ from cg_matching.core import (
     candidates,
     form_groups,
     plan_overlap,
+    plan_pref_keys,
     propose_plans,
     rank_plans,
     scenes,
     shared_interests,
     travel_minutes,
+    update_prefs,
 )
 from cg_matching.types import (
     FormResult,
@@ -41,9 +43,11 @@ __all__ = [
     "candidates",
     "form_groups",
     "plan_overlap",
+    "plan_pref_keys",
     "propose_plans",
     "rank_plans",
     "scenes",
     "shared_interests",
     "travel_minutes",
+    "update_prefs",
 ]

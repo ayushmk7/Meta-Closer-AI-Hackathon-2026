@@ -27,7 +27,7 @@ def _cgm():
         return None
 
 
-def export(w: "World") -> dict:
+def export(w: World) -> dict:
     """schemas/pool_export.schema.json from the live world (also what exportPool can serve)."""
     met = {k for k, c in w.connections.items() if c["status"] == "met"}
     conn = set(w.connections)
@@ -96,26 +96,26 @@ def export(w: "World") -> dict:
     }
 
 
-def _plan(cgm, w: "World", p: dict):
+def _plan(cgm, w: World, p: dict):
     rec = {k: v for k, v in p.items() if k != "seedJoinIds"}  # live joins come from the export instead
     if p.get("origin") == "invite":
         rec["inviteeIds"] = [*p["inviteUserIds"], *([p["creatorId"]] if p.get("creatorId") else [])]
     return cgm.Plan.from_record(rec)
 
 
-def _state(cgm, w: "World"):
+def _state(cgm, w: World):
     return cgm.MatchState(
         blocked_pairs=[sorted(k) for k in w.blocks],
         venue_capacity={vid: v["booking"]["capacityPerSlot"] for vid, v in w.venues.items()},
     )
 
 
-def _ctx(cgm, w: "World"):
+def _ctx(cgm, w: World):
     pool = cgm.PoolSnapshot.from_export(export(w))
     return pool, cgm.Params(w.params), random.Random(w.params["matching"]["rngSeedDefault"])
 
 
-def shared_interests(w: "World", a: str, b: str, level: int, limit: int) -> list[str]:
+def shared_interests(w: World, a: str, b: str, level: int, limit: int) -> list[str]:
     cgm = _cgm()
     if not cgm or a not in w.users or b not in w.users:
         return stubs.shared_interests(w, a, b, level, limit)
@@ -125,7 +125,7 @@ def shared_interests(w: "World", a: str, b: str, level: int, limit: int) -> list
     return cgm.shared_interests(pool, a, b, level, limit)
 
 
-def plan_overlap(w: "World", uid: str, plan: dict, joined_ids: list[str], level: int, limit: int):
+def plan_overlap(w: World, uid: str, plan: dict, joined_ids: list[str], level: int, limit: int):
     cgm = _cgm()
     if not cgm:
         return stubs.plan_overlap(w, uid, plan, joined_ids, level, limit)
@@ -145,7 +145,7 @@ def travel_minutes(origin, dest, mode: str, params: dict) -> int:
     )
 
 
-def rank(w: "World", uid: str) -> list[str]:
+def rank(w: World, uid: str) -> list[str]:
     cgm = _cgm()
     if not cgm:
         return stubs.rank(w, uid)
@@ -162,7 +162,7 @@ def rank(w: "World", uid: str) -> list[str]:
     return _rank_cache[key].get(uid, [])
 
 
-def form_groups(w: "World", plan: dict, interested_ids: list[str]) -> tuple[list[list[str]], list[str]]:
+def form_groups(w: World, plan: dict, interested_ids: list[str]) -> tuple[list[list[str]], list[str]]:
     cgm = _cgm()
     if not cgm:
         return stubs.form_groups(w, plan, interested_ids)

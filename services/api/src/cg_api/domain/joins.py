@@ -2,8 +2,14 @@
 
 from __future__ import annotations
 
+import asyncio
+import logging
+import random
+
 from cg_api.domain import meetups, plans
 from cg_api.domain.world import Fail, World, iso, not_found
+
+log = logging.getLogger("cg_api.domain.joins")
 
 
 def hold(w: World, j: dict) -> dict | None:
@@ -18,7 +24,7 @@ def hold(w: World, j: dict) -> dict | None:
     return {
         "key": j["joinId"],
         "desired": desired,
-        "title": f"Hold: {p['title']} at {v['name']}"[:120],
+        "title": f"Hold: {plans.with_venue(p['title'], v['name'])}"[:120],
         "startsAt": p["startsAt"],
         "endsAt": p["endsAt"],
         "location": f"{v['name']}, {v.get('address', '')}".rstrip(", "),
@@ -86,9 +92,37 @@ def join(w: World, viewer: str, plan_id: str, size: dict | None = None) -> dict:
     for other in w.active_joins(plan_id):
         if other["userId"] != viewer:
             w.emit(other["userId"], "feed.updated")
-    if p["status"] == "full" or (w.demo_mode and w.params["plans"]["demoFormAtMin"] and n >= p["size"]["min"]):
+    if p["status"] == "full":
         form(w, plan_id)
+    elif w.demo_mode and w.params["plans"]["demoFormAtMin"] and n >= p["size"]["min"]:
+        form_soon(w, plan_id)
     return view(w, j)
+
+
+def form_soon(w: World, plan_id: str) -> None:
+    """DEMO_MODE forms at size.min after a short beat so "Muse is gathering people" shows on stage.
+    ponytail: reuses params.demo.syntheticDelayS (counterparts reacting); a dedicated key needs a contracts PR."""
+    p = w.plans[plan_id]
+    if p.get("formingSoon"):
+        return
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:  # pure tests: form now
+        form(w, plan_id)
+        return
+    p["formingSoon"] = True
+
+    def go() -> None:
+        p.pop("formingSoon", None)
+        n = len([j for j in w.active_joins(plan_id) if j["status"] == "interested"])
+        if p["status"] == "open" and n >= p["size"]["min"]:  # someone may have withdrawn meanwhile
+            try:
+                form(w, plan_id)
+            except Exception:
+                log.exception("formation failed for %s", plan_id)
+
+    lo, hi = w.params["demo"]["syntheticDelayS"]
+    loop.call_later(random.uniform(lo, hi), go)
 
 
 def withdraw(w: World, viewer: str, plan_id: str) -> None:

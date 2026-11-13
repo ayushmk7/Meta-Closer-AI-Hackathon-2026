@@ -6,3 +6,7 @@ export { default as ChatScreen } from './Chat';
 export { default as PersonScreen } from './Person';
 export { default as SettingsScreen } from './Settings';
 export { default as DemoScreen } from './Demo';
+export { default as WelcomeScreen } from './Welcome';
+export { default as ExploreScreen } from './Explore';
+export { default as PassportScreen } from './Passport';
+export { default as ScanScreen } from './Scan';

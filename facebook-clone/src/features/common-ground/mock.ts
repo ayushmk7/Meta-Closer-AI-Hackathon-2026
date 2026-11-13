@@ -22,6 +22,7 @@ import type {
   PlanCard,
   PlanDetail,
   Setup,
+  Share,
   Signal,
   Thread,
 } from './types';
@@ -43,7 +44,94 @@ const F = fixtures as unknown as {
   decideApproval: Approval;
   listConnections: { items: Connection[] };
   listMessages: { items: Message[] };
+  listShares: { items: Share[] };
 };
+// 8 anonymous shares for the gallery: the 2 contract examples plus 6 in the same shape.
+const extraShares: [string, string, string, string, string, number, string, string][] = [
+  [
+    'walk',
+    'Fog rolled in right on cue. Best sandwich stop after.',
+    'vn_lands_end',
+    'Lands End Trail',
+    'Outer Richmond',
+    5,
+    '2026-11-07',
+    'A coastal walk at Lands End this weekend',
+  ],
+  [
+    'board_game_night',
+    'Two hours of Catan and one very sore loser.',
+    'vn_long_table',
+    'Long Table Games',
+    'Mission',
+    4,
+    '2026-11-05',
+    'Board game night at Long Table Games',
+  ],
+  [
+    'ceramics_studio',
+    'First time on a wheel for two of us. Mugs next time.',
+    'vn_hayes_clay',
+    'Hayes Clay Studio',
+    'Hayes Valley',
+    4,
+    '2026-10-31',
+    'Pottery drop-in at Hayes Clay Studio',
+  ],
+  [
+    'climbing_session',
+    'Beta sharing turned into a whole friendship.',
+    'vn_basalt_bouldering',
+    'Basalt Bouldering',
+    'SoMa',
+    3,
+    '2026-10-29',
+    'Bouldering at Basalt Bouldering',
+  ],
+  [
+    'walk',
+    'Sunrise loop, then coffee. Doing it again Sunday.',
+    'vn_lands_end',
+    'Lands End Trail',
+    'Outer Richmond',
+    3,
+    '2026-10-25',
+    'Early coastal walk at Lands End',
+  ],
+  [
+    'board_game_night',
+    'Learned a new game in ten minutes. Played it four times.',
+    'vn_long_table',
+    'Long Table Games',
+    'Mission',
+    6,
+    '2026-10-22',
+    'Strategy games at Long Table Games',
+  ],
+];
+function seedShares(): Share[] {
+  return [
+    ...clone(F.listShares.items),
+    ...extraShares.map(
+      (
+        [activityType, caption, venueId, name, neighborhood, groupSize, happenedOn, promptText],
+        i,
+      ) => ({
+        shareId: `sh_mock${i + 1}`,
+        activityType,
+        caption,
+        venue: { venueId, name, neighborhood },
+        groupSize,
+        happenedOn,
+        photoUrl: null,
+        likes: 3 + i,
+        likedByMe: false,
+        mine: false,
+        promptText,
+      }),
+    ),
+  ];
+}
 const now = () => new Date().toISOString();
 const iso = (ms: number) => new Date(ms).toISOString();
 
@@ -126,10 +214,9 @@ function world() {
     joins,
     nudges: clone(F.listNudges.items),
     // No steps until the group forms (tick builds the timeline from then on).
-    meetups: { [F.getMeetup.meetupId]: { ...clone(F.getMeetup), museSteps: [] } } as Record<
-      string,
-      Meetup
-    >,
+    meetups: {
+      [F.getMeetup.meetupId]: { ...clone(F.getMeetup), museSteps: [], verifyCode: 'MAYA42' },
+    } as Record<string, Meetup>,
     // Meetups appear in lists only once my join is matched (getMeetup by ID always works).
     visibleMeetups: new Set<string>(),
     // Muse's intro only; the reschedule reply (fixture ms_0003) arrives after a toMuse message.
@@ -140,6 +227,7 @@ function world() {
     unread: { [F.getMeetup.threadId]: 1 } as Record<string, number>,
     connections: clone(F.listConnections.items),
     conversationId: null as string | null,
+    shares: seedShares(),
     stage: {
       born: Date.now(),
       formAt: null as number | null,
@@ -148,6 +236,7 @@ function world() {
       approved: null as boolean | null,
       rescheduleAt: null as number | null,
       replied: false,
+      completed: false,
     },
   };
 }
@@ -465,6 +554,61 @@ on('POST', '/v1/threads/{id}/read', ([id]) => {
 });
 on('POST', '/v1/reports', () => ({ reportId: nextId('rp_') }));
 on('POST', '/v1/blocks', () => undefined);
+on('GET', '/v1/shares', (_, __, q) =>
+  items(
+    w.shares.filter(
+      (x) =>
+        (!q.get('activityType') || x.activityType === q.get('activityType')) &&
+        (!q.get('neighborhood') || x.venue.neighborhood === q.get('neighborhood')) &&
+        (!q.get('venueId') || x.venue.venueId === q.get('venueId')),
+    ),
+  ),
+);
+on('PUT', '/v1/shares/{id}/like', ([id], b) => {
+  const x = w.shares.find((s) => s.shareId === id);
+  if (!x) throw notFound();
+  const liked = b?.liked === true;
+  if (liked !== x.likedByMe)
+    Object.assign(x, { likedByMe: liked, likes: x.likes + (liked ? 1 : -1) });
+  return x;
+});
+on('POST', '/v1/meetups/{id}/share', ([id], b) => {
+  const m = meetup(id);
+  if (m.status !== 'completed' || mine(m).rsvp !== 'going')
+    throw new MockError(422, 'screened', 'You can share a plan after you have been to it.');
+  const x: Share = {
+    shareId: nextId('sh_'),
+    activityType: m.activityType,
+    caption: String(b?.caption ?? '').slice(0, 140),
+    venue: {
+      venueId: m.venue.venueId,
+      name: m.venue.name,
+      neighborhood: m.venue.neighborhood ?? '',
+    },
+    groupSize: m.attendees.filter((a) => a.rsvp === 'going').length,
+    happenedOn: m.startsAt.slice(0, 10),
+    photoUrl: m.venue.photoUrl ?? null,
+    likes: 0,
+    likedByMe: false,
+    mine: true,
+    promptText: `${m.title} at ${m.venue.name}`,
+  };
+  w.shares.unshift(x);
+  return x;
+});
+// ponytail: each phone runs its own mock, so any code but my own confirms the next attendee.
+on('POST', '/v1/meetups/{id}/verify', ([id], b) => {
+  const m = meetup(id);
+  const code = String(b?.code ?? '')
+    .trim()
+    .toUpperCase();
+  if (code === m.verifyCode) return { accepted: false, reason: 'self' };
+  const other = m.attendees.find((a) => !a.isMe && a.rsvp === 'going' && !a.verified);
+  if (!code || !other) return { accepted: false, reason: code ? 'not_attendee' : 'invalid_code' };
+  other.verified = true;
+  mine(m).verified = true;
+  return { accepted: true, person: other.person };
+});
 
 // Fallback when /v1/config has no demo.stepDelayS.
 export const STEP_DELAY_S = 2;
@@ -539,6 +683,12 @@ export function tick(t = Date.now()): void {
   m.status = done && (r == null || t >= r + 2 * D) ? 'confirmed' : 'setting_up';
   m.startsAt = iso(Date.parse(base.startsAt) + shift);
   m.endsAt = iso(Date.parse(base.endsAt) + shift);
+  if (t >= Date.parse(m.endsAt)) {
+    // Over: completed, and feedback is due once (the feedback route clears it).
+    if (!s.completed) m.feedbackDue = true;
+    s.completed = true;
+    m.status = 'completed';
+  }
   if (m.travel) m.travel.leaveBy = iso(Date.parse(base.travel!.leaveBy) + shift);
   if (m.calendar?.desired !== 'none')
     m.calendar = { ...base.calendar!, startsAt: m.startsAt, endsAt: m.endsAt };

@@ -197,7 +197,7 @@ def directive(w: World, viewer: str, m: dict) -> dict:
     return {
         "key": m["meetupId"],
         "desired": desired,
-        "title": (f"Hold: {m['title']} at {v['name']}" if desired == "hold" else f"{m['title']} at {v['name']}")[:120],
+        "title": (("Hold: " if desired == "hold" else "") + plans.with_venue(m["title"], v["name"]))[:120],
         "startsAt": m["startsAt"],
         "endsAt": m["endsAt"],
         "location": f"{v['name']}, {v.get('address', '')}".rstrip(", "),

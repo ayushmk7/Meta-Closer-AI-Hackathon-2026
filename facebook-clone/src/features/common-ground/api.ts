@@ -27,6 +27,9 @@ import {
   type PublicProfile,
   type ReportRequest,
   type Setup,
+  type Share,
+  type ShareFilter,
+  type VerifyResult,
   type SetupComplete,
   type Signal,
   type Thread,
@@ -257,4 +260,16 @@ export const api = {
   report: (body: ReportRequest) =>
     request<{ reportId: string }>('report', 'POST', '/v1/reports', body),
   block: (userId: string) => request<void>('block', 'POST', '/v1/blocks', { userId }),
+  listShares: (filter: ShareFilter = {}) => {
+    const q = new URLSearchParams(
+      Object.entries(filter).filter((kv): kv is [string, string] => !!kv[1]),
+    ).toString();
+    return items(request<{ items: Share[] }>('listShares', 'GET', `/v1/shares${q ? `?${q}` : ''}`));
+  },
+  shareMeetup: (meetupId: string, caption: string) =>
+    request<Share>('shareMeetup', 'POST', `/v1/meetups/${e(meetupId)}/share`, { caption }),
+  likeShare: (shareId: string, liked: boolean) =>
+    request<Share>('likeShare', 'PUT', `/v1/shares/${e(shareId)}/like`, { liked }),
+  verifyAttendee: (meetupId: string, code: string) =>
+    request<VerifyResult>('verifyAttendee', 'POST', `/v1/meetups/${e(meetupId)}/verify`, { code }),
 };

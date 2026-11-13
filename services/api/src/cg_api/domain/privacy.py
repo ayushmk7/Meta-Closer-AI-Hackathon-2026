@@ -20,7 +20,7 @@ def person_card(w: World, user_id: str) -> dict:
         "userId": user_id,
         "displayName": first if private else u["displayName"],
         "initials": first[:1].upper() if private else u.get("initials") or first[:1].upper(),
-        "avatarUrl": None if private or not avatar else f"{w.base_url}/static/avatars/{avatar.rsplit('/', 1)[-1]}",
+        "avatarUrl": None if private or not avatar else f"{w.base()}/static/avatars/{avatar.rsplit('/', 1)[-1]}",
         "profileVisibility": "private" if private else "public",
     }
 
