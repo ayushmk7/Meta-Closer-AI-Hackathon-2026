@@ -92,7 +92,7 @@ See [CHECKPOINT_B.md](CHECKPOINT_B.md).
 
 - **Demo labels:** keep the muted "· Demo data" / "Simulated booking" labels (CONTRACTS §2: simulated things are labeled).
 - **Web directions:** the meetup address is a Directions link on web too (PRD-1 §2 updated).
-- **Pitch framing for isolation:** in the sim (fake Laya), Common Ground with the adopted params (`fillToMax`, `reunionBoost 1`, `crowdBoost 0.5`) is 1.6-5.6 pts less isolated than before in all 25 cells, beats random by a wide margin and has the best show-up rate, but still trails greedy. Pitch "better than before, beats random, best show-up"; don't claim "beats greedy".
+- **Pitch framing (real Laya, 2026-11-13):** sim run `real_laya_center` (#138, real laya-serve tables, 20 seeds, center cell). Common Ground **seats 92.7% of low-outgoing people at least once vs greedy 84.7%**, and leaves 37.2% still isolated at week 8 vs greedy 33.3% and random 88.2%. Pitch "includes the people others miss, far better than random"; don't claim "beats greedy" or "best show-up" (greedy 58.3% vs CG 56.6%). Learning loop: no measurable gain. Laya eval: sensitive places recall 1.0; sensitive interests rely on the taxonomy flags (Laya recall 0.0); routines not detected.
 - **Learning loop:** live in the product ("Because you liked ceramics"); the sim found no robust gain on held-out seeds, so present it as learning, not proven. Params stay at prefAlpha 0.3 / prefBoost 0.3.
 - **NFC/RFID tap:** QR + typed code (Expo Go can't read NFC); real NFC needs a dev build.
 
