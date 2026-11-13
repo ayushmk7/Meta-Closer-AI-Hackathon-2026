@@ -137,3 +137,75 @@ def test_interleaved_decisions_book_once_and_refunds_update_payment():
     out = [e for a in aps for e in r.decide(a, "approved")]
     assert [e["myPayment"] for e in out if e["type"] == "payment"].count("not_needed") == 3
     assert out[-1]["type"] == "cancelled"
+
+
+def test_parse_time_change():
+    from cg_api.agent import parse_time_change
+
+    start = "2026-11-14T18:00:00Z"  # Saturday 10 AM local
+    cases = {
+        "Muse, can we do 11 instead?": "2026-11-14T19:00:00Z",
+        "muse 11:30am?": "2026-11-14T19:30:00Z",
+        "Muse can we start at noon": "2026-11-14T20:00:00Z",
+        "Muse, an hour later?": "2026-11-14T19:00:00Z",
+        "Muse make it 9": "2026-11-14T17:00:00Z",
+        "Muse can 3 of us bring friends?": None,
+        "Muse what should I bring?": None,
+        "Muse can I bring 2 friends?": None,
+        "Muse is it 2 hours long?": None,
+        "Muse is it 10 minutes from BART?": None,
+        "Muse is it $35 each?": None,
+        "Muse, is 4 ok?": None,
+        "Muse move it to 1pm": "2026-11-14T21:00:00Z",
+        "Muse 11 o'clock?": "2026-11-14T19:00:00Z",
+    }
+    for text, want in cases.items():
+        assert parse_time_change(text, start) == want, text
+
+
+def test_reschedule_in_bounds_rebooks_and_replies():
+    r = _confirmed()
+    events, reply, ids = r.reschedule_to("2026-11-14T19:00:00Z", {})
+    kinds = [(e["type"], e.get("step", {}).get("kind")) for e in events]
+    assert kinds == [
+        ("step", "reschedule"),
+        ("reschedule", None),
+        ("step", "book"),
+        ("booking", None),
+        ("step", "calendar"),
+        ("calendar", None),
+    ]
+    assert reply == (
+        "Done. Everyone's free at 11 and Clay Hour Studio has room then, so I moved it. Your calendars are updated."
+    )
+    assert (
+        ids == [e["step"]["stepId"] for e in events if e["type"] == "step"]
+        and r.plan["endsAt"] == "2026-11-14T21:00:00Z"
+    )
+
+
+def _confirmed():
+    r = run()
+    for a in [e["approval"] for e in list(r.start()) if e["type"] == "approval"]:
+        list(r.decide(a["approvalId"], "approved"))
+    return r
+
+
+def test_reschedule_refused_while_payments_pending():
+    r = run()
+    list(r.start())
+    assert r.reschedule_to("2026-11-14T19:00:00Z", {}) == ([], "I can move it once everyone's OK'd the payment.", [])
+    assert r.plan["startsAt"] == HERO["startsAt"]
+
+
+def test_reschedule_out_of_bounds_changes_nothing_and_offers_a_slot():
+    r = _confirmed()
+    busy = {"u_0125": [{"start": "2026-11-14T19:00:00Z", "end": "2026-11-14T20:00:00Z"}]}
+    n = len(r.steps)
+    events, reply, ids = r.reschedule_to("2026-11-14T19:00:00Z", busy)
+    assert (events, ids, len(r.steps)) == ([], [], n)
+    assert reply == "11 doesn't work for everyone. 12 works for everyone; want that?"
+    assert "u_0125" not in reply and "Rosa" not in reply  # never who is busy (P6)
+    events, reply, _ = r.reschedule_to("2026-11-14T23:00:00Z", {})
+    assert events == [] and reply == "3 is too far for me to move it on my own. 12 works for everyone; want that?"
+    assert r.plan["startsAt"] == HERO["startsAt"]

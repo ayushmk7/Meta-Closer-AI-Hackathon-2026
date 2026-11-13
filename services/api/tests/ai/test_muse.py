@@ -194,6 +194,8 @@ def test_copy_never_speaks_sensitive_labels_and_keeps_casing():
     assert text == (
         "You've been to Lands End Trail 4 times this month. Sunday coastal walk at Lands End is open. Want in?"
     )
+    _, text = asyncio.run(copy.nudge("x", {**walk, "crowd": {"interestedCount": 5}}))
+    assert text.endswith("is open. 5 people are in. Want in?")
 
 
 def test_bar_reply_and_sunday_weekend():

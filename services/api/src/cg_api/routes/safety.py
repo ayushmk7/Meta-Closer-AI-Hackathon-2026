@@ -4,9 +4,9 @@ from fastapi import APIRouter, Body, Response
 
 from cg_api.deps import User
 from cg_api.domain import people
-from cg_api.domain.http import call
+from cg_api.domain.http import REQUEST_BASE, call
 
-router = APIRouter()
+router = APIRouter(dependencies=REQUEST_BASE)
 
 
 @router.post("/v1/reports", operation_id="report")

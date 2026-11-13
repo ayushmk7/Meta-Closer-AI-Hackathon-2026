@@ -7,7 +7,7 @@ import re
 from cg_api.domain import privacy
 from cg_api.domain.world import Fail, World, iso, not_found
 
-TO_MUSE = re.compile(r"^\s*muse\b", re.I)
+TO_MUSE = re.compile(r"^\s*muse\b", re.IGNORECASE)
 
 
 def _visible(w: World, viewer: str, msg: dict, t: dict, idx: int) -> bool:
