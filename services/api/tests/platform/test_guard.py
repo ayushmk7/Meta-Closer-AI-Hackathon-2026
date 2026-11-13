@@ -42,3 +42,14 @@ def test_loopback_hosts():
     from cg_api.cli import is_loopback
 
     assert all(is_loopback(h) for h in ("127.0.0.1", "127.0.0.2", "::1", "[::1]", "localhost"))
+
+
+def test_internal_rejects_rebinding_and_csrf(internal):
+    ok = internal.get("/internal/v1/health")
+    assert ok.status_code == 200
+    rebound = internal.get("/internal/v1/pools/pool_sf_city/export", headers={"Host": "attacker.example:9001"})
+    assert rebound.status_code == 403 and rebound.json()["error"]["code"] == "not_allowed"
+    csrf = internal.post("/internal/v1/demo/reset", headers={"Origin": "http://attacker.example"})
+    assert csrf.status_code == 403
+    assert internal.get("/internal/v1/health", headers={"Host": "localhost:9001"}).status_code == 200
+    assert internal.get("/internal/v1/health", headers={"Origin": "http://127.0.0.1:9100"}).status_code == 200

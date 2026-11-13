@@ -10,11 +10,13 @@ from __future__ import annotations
 import importlib
 import logging
 import pkgutil
+from urllib.parse import urlsplit
 
 from fastapi import APIRouter, FastAPI, Request, Response
 from fastapi.responses import JSONResponse
 
 from cg_api import contracts, errors, ports
+from cg_api.cli import is_loopback
 from cg_api.deps import current_user
 from cg_api.settings import get_settings
 
@@ -65,4 +67,13 @@ def create_apps() -> tuple[FastAPI, FastAPI]:
     ports.install_providers()
     public = _build(contracts.PUBLIC, "cg_api.routes", "Common Ground public API")
     internal = _build(contracts.INTERNAL, "cg_api.internal", "Common Ground internal API")
+
+    @internal.middleware("http")
+    async def _loopback_only(request: Request, call_next):
+        """P9: a web page in the laptop's browser can't drive this listener by DNS rebinding (Host) or CSRF (Origin)."""
+        origin = request.headers.get("origin")
+        if not is_loopback(request.url.hostname or "") or (origin and not is_loopback(urlsplit(origin).hostname or "")):
+            return errors.envelope(403, "not_allowed", "The internal API answers loopback hosts only.")
+        return await call_next(request)
+
     return public, internal
