@@ -478,6 +478,32 @@ on('GET', '/v1/plans/{id}', ([id]) => {
   gate();
   return withJoin(plan(id));
 });
+// The PublicPlan keys only (no crowd, because, reason, myJoin, address). Invite and cancelled
+// plans 404 like an unknown id.
+on('GET', '/v1/public/plans/{id}', ([id]) => {
+  const p = plan(id);
+  if (p.origin === 'invite' || p.status === 'cancelled') throw notFound();
+  return {
+    planId: p.planId,
+    title: p.title,
+    description: p.description,
+    activityType: p.activityType,
+    venue: {
+      venueId: p.venue.venueId,
+      name: p.venue.name,
+      neighborhood: p.venue.neighborhood ?? '',
+    },
+    photoUrl: p.venue.photoUrl ?? null,
+    startsAt: p.startsAt,
+    endsAt: p.endsAt,
+    cost: clone(p.cost),
+    size: clone(p.size),
+    status: p.status,
+    // ponytail: params.yaml privacy.crowdMinCount (2) inlined; the mock has no params copy.
+    interestedCount: p.crowd.interestedCount >= 2 ? p.crowd.interestedCount : 0,
+    spotsLeft: p.crowd.spotsLeft,
+  };
+});
 on('POST', '/v1/plans/{id}/join', ([id], b) => {
   gate();
   const p = plan(id);

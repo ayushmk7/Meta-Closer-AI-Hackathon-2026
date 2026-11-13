@@ -197,3 +197,21 @@ test('the mock answers every operation with a body that carries every required k
   );
   resetMock();
 });
+
+test('the mock public plan is exactly the PublicPlan keys, logged out; invite plans 404', async () => {
+  resetMock();
+  const keys = Object.keys(spec.components.schemas.PublicPlan.properties).sort();
+  const p = (await mockRequest('', 'GET', '/v1/public/plans/pl_0001')) as Json;
+  assert.deepEqual(Object.keys(p).sort(), keys);
+  assert.deepEqual(Object.keys(p.venue).sort(), ['name', 'neighborhood', 'venueId']);
+  await mockRequest('u_maya', 'POST', '/v1/optin', { mode: 'city' });
+  const mine = (await mockRequest('u_maya', 'POST', '/v1/plans', {
+    text: 'Coffee',
+    inviteUserIds: ['u_jordan'],
+  })) as Json;
+  await assert.rejects(
+    mockRequest('', 'GET', `/v1/public/plans/${mine.planId}`),
+    (e: Json) => e.status === 404,
+  );
+  resetMock();
+});

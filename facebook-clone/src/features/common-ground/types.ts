@@ -54,7 +54,8 @@ export type FeatureFlag =
   | 'autonomySettings'
   | 'plusOne'
   | 'checkin'
-  | 'realtime';
+  | 'realtime'
+  | 'sharing';
 export interface Config {
   apiVersion: string;
   features: Partial<Record<Open<FeatureFlag>, boolean>>;
@@ -438,6 +439,22 @@ export interface Share {
   mine: boolean;
   promptText: string;
 }
+// A plan as a logged-out reader sees it (getPublicPlan): no people, nothing viewer-specific.
+export interface PublicPlan {
+  planId: string;
+  title: string;
+  description: string;
+  activityType: string;
+  venue: { venueId: string; name: string; neighborhood: string };
+  photoUrl: string | null;
+  startsAt: string;
+  endsAt: string;
+  cost: Cost;
+  size: GroupSize;
+  status: PlanStatus;
+  interestedCount: number;
+  spotsLeft: number;
+}
 export interface ShareFilter {
   activityType?: string;
   neighborhood?: string;
@@ -578,6 +595,7 @@ export const decoders: Record<string, D> = {
   askMuse: arrays({ plans: planCard, prompts: null }),
   getFeed: arrays({ prompts: null, plans: planCard }),
   getPlan: planDetail,
+  getPublicPlan: id,
   createPlan: planDetail,
   joinPlan: join,
   listJoins: list(join),

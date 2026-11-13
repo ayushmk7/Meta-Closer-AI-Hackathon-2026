@@ -1,1047 +1,1022 @@
 {
-  "getHealth": {
-    "status": "ok",
-    "muse": "ok",
-    "laya": "ok",
-    "demoMode": true,
-    "apiVersion": "2"
+ "getHealth": {
+  "status": "ok",
+  "muse": "ok",
+  "laya": "ok",
+  "demoMode": true,
+  "apiVersion": "2"
+ },
+ "getConfig": {
+  "apiVersion": "2",
+  "features": {
+   "eventMode": true,
+   "connectors": true,
+   "nudges": true,
+   "userPlans": true,
+   "payments": true,
+   "autonomySettings": false,
+   "plusOne": false,
+   "checkin": true,
+   "realtime": true,
+   "sharing": true
   },
-  "getConfig": {
-    "apiVersion": "2",
-    "features": {
-      "eventMode": true,
-      "connectors": true,
-      "nudges": true,
-      "userPlans": true,
-      "payments": true,
-      "autonomySettings": false,
-      "plusOne": false,
-      "checkin": true,
-      "realtime": true
-    },
-    "limits": {
-      "feedMax": 8,
-      "sharedCoarseMax": 3,
-      "sharedFullMax": 8,
-      "messageMaxChars": 2000,
-      "museAskMaxChars": 500,
-      "groupSizeMin": 3,
-      "groupSizeMax": 8,
-      "openJoinsMax": 5,
-      "pollIntervalS": 5,
-      "feedRefreshS": 60,
-      "calendarSyncMinIntervalS": 300,
-      "calendarHorizonDays": 14,
-      "meetupStatusBeforeMin": 60
-    },
-    "modes": [
-      {
-        "mode": "city",
-        "label": "San Francisco",
-        "poolId": "pool_sf_city",
-        "available": true,
-        "description": "Plans near you in San Francisco",
-        "center": {
-          "lat": 37.7749,
-          "lng": -122.4194
-        },
-        "radiusKm": 10
-      },
-      {
-        "mode": "event",
-        "label": "Closer Together AI Hackathon",
-        "poolId": "pool_evt_closer_together",
-        "available": true,
-        "description": "Plans with people at this event, Nov 11 to 13",
-        "center": {
-          "lat": 37.4848,
-          "lng": -122.1484
-        },
-        "radiusKm": 2
-      },
-      {
-        "mode": "campus",
-        "label": "Campus",
-        "poolId": "pool_campus_placeholder",
-        "available": false,
-        "description": "Coming soon"
-      }
-    ],
-    "demo": {
-      "enabled": true,
-      "counterpart": "synthetic",
-      "fakeLocation": {
-        "lat": 37.7639,
-        "lng": -122.4689
-      },
-      "relaxCheckin": true,
-      "simulatedPayments": true,
-      "stepDelayS": [1, 2]
-    }
+  "limits": {
+   "feedMax": 8,
+   "sharedCoarseMax": 3,
+   "sharedFullMax": 8,
+   "messageMaxChars": 2000,
+   "museAskMaxChars": 500,
+   "groupSizeMin": 3,
+   "groupSizeMax": 8,
+   "openJoinsMax": 5,
+   "pollIntervalS": 5,
+   "feedRefreshS": 60,
+   "calendarSyncMinIntervalS": 300,
+   "calendarHorizonDays": 14,
+   "meetupStatusBeforeMin": 60
   },
-  "getMe": {
-    "userId": "u_maya",
-    "displayName": "Maya Chen",
-    "avatarUrl": "http://localhost:8000/static/avatars/u_maya.jpg",
-    "profileVisibility": "public",
-    "optedIn": true,
-    "setupComplete": true,
+  "modes": [
+   {
     "mode": "city",
+    "label": "San Francisco",
     "poolId": "pool_sf_city",
-    "neighborhood": "Inner Sunset",
-    "groupSize": {
-      "min": 3,
-      "max": 5
+    "available": true,
+    "description": "Plans near you in San Francisco",
+    "center": {
+     "lat": 37.7749,
+     "lng": -122.4194
     },
-    "availability": [
-      {
-        "day": "sat",
-        "part": "morning"
-      },
-      {
-        "day": "sun",
-        "part": "afternoon"
-      },
-      {
-        "day": "wed",
-        "part": "evening"
-      }
-    ],
-    "travel": {
-      "maxMinutes": 35,
-      "modes": ["transit", "walk"]
+    "radiusKm": 10
+   },
+   {
+    "mode": "event",
+    "label": "Closer Together AI Hackathon",
+    "poolId": "pool_evt_closer_together",
+    "available": true,
+    "description": "Plans with people at this event, Nov 11 to 13",
+    "center": {
+     "lat": 37.4848,
+     "lng": -122.1484
     },
+    "radiusKm": 2
+   },
+   {
+    "mode": "campus",
+    "label": "Campus",
+    "poolId": "pool_campus_placeholder",
+    "available": false,
+    "description": "Coming soon"
+   }
+  ],
+  "demo": {
+   "enabled": true,
+   "counterpart": "synthetic",
+   "fakeLocation": {
+    "lat": 37.7639,
+    "lng": -122.4689
+   },
+   "relaxCheckin": true,
+   "simulatedPayments": true,
+   "stepDelayS": [
+    1,
+    2
+   ]
+  }
+ },
+ "getMe": {
+  "userId": "u_maya",
+  "displayName": "Maya Chen",
+  "avatarUrl": "http://localhost:8000/static/avatars/u_maya.jpg",
+  "profileVisibility": "public",
+  "optedIn": true,
+  "setupComplete": true,
+  "mode": "city",
+  "poolId": "pool_sf_city",
+  "neighborhood": "Inner Sunset",
+  "groupSize": {
+   "min": 3,
+   "max": 5
+  },
+  "availability": [
+   {
+    "day": "sat",
+    "part": "morning"
+   },
+   {
+    "day": "sun",
+    "part": "afternoon"
+   },
+   {
+    "day": "wed",
+    "part": "evening"
+   }
+  ],
+  "travel": {
+   "maxMinutes": 35,
+   "modes": [
+    "transit",
+    "walk"
+   ]
+  },
+  "interests": [
+   {
+    "interest": {
+     "id": "outdoors.hiking.coastal_hikes",
+     "label": "Coastal hikes",
+     "path": [
+      "Outdoors",
+      "Hiking",
+      "Coastal hikes"
+     ],
+     "level": 3
+    },
+    "weight": 0.82,
+    "visibility": "shown",
+    "sensitive": false,
+    "source": "connector",
+    "evidence": "4 visits to Lands End Trail in October (Google Maps)"
+   },
+   {
+    "interest": {
+     "id": "arts_crafts.ceramics.wheel_throwing",
+     "label": "Wheel throwing",
+     "path": [
+      "Arts & crafts",
+      "Ceramics",
+      "Wheel throwing"
+     ],
+     "level": 3
+    },
+    "weight": 0.7,
+    "visibility": "shown",
+    "sensitive": false,
+    "source": "activity",
+    "evidence": "Member of SF Clay Collective"
+   },
+   {
+    "interest": {
+     "id": "games.board_games.strategy_games",
+     "label": "Strategy board games",
+     "path": [
+      "Games",
+      "Board games",
+      "Strategy board games"
+     ],
+     "level": 3
+    },
+    "weight": 0.55,
+    "visibility": "shown",
+    "sensitive": false,
+    "source": "activity"
+   }
+  ],
+  "museSettings": {
+   "spendWithoutAskingCents": 0,
+   "autoReschedule": true,
+   "autoBackfill": true,
+   "calendarHolds": true,
+   "leaveByReminders": true
+  },
+  "capabilities": {
+   "canCreatePlans": false,
+   "maxGroupSize": 6,
+   "groupOnly": true,
+   "openJoinsMax": 5
+  },
+  "unlocks": []
+ },
+ "getSetup": {
+  "museText": "Hi Maya, I'm Muse. From your posts and Google Maps, here's what I think you're into. Hide anything you'd rather keep to yourself.",
+  "proposedInterests": [
+   {
+    "interest": {
+     "id": "outdoors.hiking.coastal_hikes",
+     "label": "Coastal hikes",
+     "path": [
+      "Outdoors",
+      "Hiking",
+      "Coastal hikes"
+     ],
+     "level": 3
+    },
+    "weight": 0.82,
+    "visibility": "shown",
+    "sensitive": false,
+    "source": "connector",
+    "evidence": "4 visits to Lands End Trail in October (Google Maps)"
+   },
+   {
+    "interest": {
+     "id": "arts_crafts.ceramics.wheel_throwing",
+     "label": "Wheel throwing",
+     "path": [
+      "Arts & crafts",
+      "Ceramics",
+      "Wheel throwing"
+     ],
+     "level": 3
+    },
+    "weight": 0.7,
+    "visibility": "shown",
+    "sensitive": false,
+    "source": "activity",
+    "evidence": "Member of SF Clay Collective"
+   },
+   {
+    "interest": {
+     "id": "identity_values.faith.buddhism",
+     "label": "Buddhism",
+     "path": [
+      "Identity & values",
+      "Faith",
+      "Buddhism"
+     ],
+     "level": 3
+    },
+    "weight": 0.6,
+    "visibility": "hidden",
+    "sensitive": true,
+    "source": "connector",
+    "evidence": "Weekly visits to a meditation center (Google Maps)"
+   }
+  ],
+  "signals": [
+   {
+    "signalId": "si_0001",
+    "provider": "google_maps",
+    "kind": "frequent_place",
+    "label": "4 visits to Lands End Trail in October",
     "interests": [
-      {
-        "interest": {
-          "id": "outdoors.hiking.coastal_hikes",
-          "label": "Coastal hikes",
-          "path": ["Outdoors", "Hiking", "Coastal hikes"],
-          "level": 3
-        },
-        "weight": 0.82,
-        "visibility": "shown",
-        "sensitive": false,
-        "source": "connector",
-        "evidence": "4 visits to Lands End Trail in October (Google Maps)"
-      },
-      {
-        "interest": {
-          "id": "arts_crafts.ceramics.wheel_throwing",
-          "label": "Wheel throwing",
-          "path": ["Arts & crafts", "Ceramics", "Wheel throwing"],
-          "level": 3
-        },
-        "weight": 0.7,
-        "visibility": "shown",
-        "sensitive": false,
-        "source": "activity",
-        "evidence": "Member of SF Clay Collective"
-      },
-      {
-        "interest": {
-          "id": "games.board_games.strategy_games",
-          "label": "Strategy board games",
-          "path": ["Games", "Board games", "Strategy board games"],
-          "level": 3
-        },
-        "weight": 0.55,
-        "visibility": "shown",
-        "sensitive": false,
-        "source": "activity"
-      }
+     {
+      "id": "outdoors.hiking",
+      "label": "Hiking",
+      "path": [
+       "Outdoors",
+       "Hiking"
+      ],
+      "level": 2
+     }
     ],
-    "museSettings": {
-      "spendWithoutAskingCents": 0,
-      "autoReschedule": true,
-      "autoBackfill": true,
-      "calendarHolds": true,
-      "leaveByReminders": true
+    "venue": {
+     "venueId": "vn_lands_end",
+     "name": "Lands End Trail",
+     "neighborhood": "Outer Richmond",
+     "location": {
+      "lat": 37.7798,
+      "lng": -122.5118
+     },
+     "kind": "park"
     },
-    "capabilities": {
-      "canCreatePlans": false,
-      "maxGroupSize": 6,
-      "groupOnly": true,
-      "openJoinsMax": 5
-    },
-    "unlocks": []
+    "observedAt": "2026-10-31T19:00:00Z",
+    "visibility": "shown",
+    "sensitive": false
+   },
+   {
+    "signalId": "si_0002",
+    "provider": "google_maps",
+    "kind": "frequent_place",
+    "label": "Weekly visits to a meditation center",
+    "interests": [],
+    "venue": null,
+    "observedAt": "2026-11-08T17:00:00Z",
+    "visibility": "hidden",
+    "sensitive": true
+   }
+  ],
+  "proposedGroupSize": {
+   "min": 3,
+   "max": 5
   },
-  "getSetup": {
-    "museText": "Hi Maya, I'm Muse. From your posts and Google Maps, here's what I think you're into. Hide anything you'd rather keep to yourself.",
-    "proposedInterests": [
-      {
-        "interest": {
-          "id": "outdoors.hiking.coastal_hikes",
-          "label": "Coastal hikes",
-          "path": ["Outdoors", "Hiking", "Coastal hikes"],
-          "level": 3
-        },
-        "weight": 0.82,
-        "visibility": "shown",
-        "sensitive": false,
-        "source": "connector",
-        "evidence": "4 visits to Lands End Trail in October (Google Maps)"
-      },
-      {
-        "interest": {
-          "id": "arts_crafts.ceramics.wheel_throwing",
-          "label": "Wheel throwing",
-          "path": ["Arts & crafts", "Ceramics", "Wheel throwing"],
-          "level": 3
-        },
-        "weight": 0.7,
-        "visibility": "shown",
-        "sensitive": false,
-        "source": "activity",
-        "evidence": "Member of SF Clay Collective"
-      },
-      {
-        "interest": {
-          "id": "identity_values.faith.buddhism",
-          "label": "Buddhism",
-          "path": ["Identity & values", "Faith", "Buddhism"],
-          "level": 3
-        },
-        "weight": 0.6,
-        "visibility": "hidden",
-        "sensitive": true,
-        "source": "connector",
-        "evidence": "Weekly visits to a meditation center (Google Maps)"
-      }
-    ],
-    "signals": [
-      {
-        "signalId": "si_0001",
-        "provider": "google_maps",
-        "kind": "frequent_place",
-        "label": "4 visits to Lands End Trail in October",
-        "interests": [
-          {
-            "id": "outdoors.hiking",
-            "label": "Hiking",
-            "path": ["Outdoors", "Hiking"],
-            "level": 2
-          }
-        ],
-        "venue": {
-          "venueId": "vn_lands_end",
-          "name": "Lands End Trail",
-          "neighborhood": "Outer Richmond",
-          "location": {
-            "lat": 37.7798,
-            "lng": -122.5118
-          },
-          "kind": "park"
-        },
-        "observedAt": "2026-10-31T19:00:00Z",
-        "visibility": "shown",
-        "sensitive": false
-      },
-      {
-        "signalId": "si_0002",
-        "provider": "google_maps",
-        "kind": "frequent_place",
-        "label": "Weekly visits to a meditation center",
-        "interests": [],
-        "venue": null,
-        "observedAt": "2026-11-08T17:00:00Z",
-        "visibility": "hidden",
-        "sensitive": true
-      }
-    ],
-    "proposedGroupSize": {
-      "min": 3,
-      "max": 5
-    },
-    "proposedTravel": {
-      "maxMinutes": 35,
-      "modes": ["transit", "walk"]
-    },
-    "suggestedProviders": ["device_calendar", "google_maps", "eventbrite"]
+  "proposedTravel": {
+   "maxMinutes": 35,
+   "modes": [
+    "transit",
+    "walk"
+   ]
   },
-  "listConnectors": {
-    "items": [
-      {
-        "provider": "device_calendar",
-        "label": "Calendar on this iPhone",
-        "reads": "When you're busy. Never what your events are.",
-        "status": "connected",
-        "simulated": false,
-        "connectedAt": "2026-11-12T18:00:00Z",
-        "lastSyncAt": "2026-11-12T18:00:05Z",
-        "signalCount": 0
-      },
-      {
-        "provider": "google_maps",
-        "label": "Google Maps",
-        "reads": "Places you visit often and places you saved.",
-        "status": "connected",
-        "simulated": true,
-        "connectedAt": "2026-11-12T18:00:10Z",
-        "lastSyncAt": "2026-11-12T18:00:11Z",
-        "signalCount": 2
-      },
-      {
-        "provider": "google_calendar",
-        "label": "Google Calendar",
-        "reads": "When you're busy. Never what your events are.",
-        "status": "not_connected",
-        "simulated": true,
-        "connectedAt": null,
-        "lastSyncAt": null,
-        "signalCount": 0
-      },
-      {
-        "provider": "strava",
-        "label": "Strava",
-        "reads": "Your regular runs and rides: activity, area, day and time.",
-        "status": "not_connected",
-        "simulated": true,
-        "connectedAt": null,
-        "lastSyncAt": null,
-        "signalCount": 0
-      },
-      {
-        "provider": "eventbrite",
-        "label": "Eventbrite",
-        "reads": "Tickets you hold.",
-        "status": "not_connected",
-        "simulated": true,
-        "connectedAt": null,
-        "lastSyncAt": null,
-        "signalCount": 0
-      },
-      {
-        "provider": "luma",
-        "label": "Luma",
-        "reads": "Events you RSVP'd to.",
-        "status": "not_connected",
-        "simulated": true,
-        "connectedAt": null,
-        "lastSyncAt": null,
-        "signalCount": 0
-      },
-      {
-        "provider": "beli",
-        "label": "Beli",
-        "reads": "Restaurants you rated and want to try.",
-        "status": "not_connected",
-        "simulated": true,
-        "connectedAt": null,
-        "lastSyncAt": null,
-        "signalCount": 0
-      }
-    ]
+  "suggestedProviders": [
+   "device_calendar",
+   "google_maps",
+   "eventbrite"
+  ]
+ },
+ "listConnectors": {
+  "items": [
+   {
+    "provider": "device_calendar",
+    "label": "Calendar on this iPhone",
+    "reads": "When you're busy. Never what your events are.",
+    "status": "connected",
+    "simulated": false,
+    "connectedAt": "2026-11-12T18:00:00Z",
+    "lastSyncAt": "2026-11-12T18:00:05Z",
+    "signalCount": 0
+   },
+   {
+    "provider": "google_maps",
+    "label": "Google Maps",
+    "reads": "Places you visit often and places you saved.",
+    "status": "connected",
+    "simulated": true,
+    "connectedAt": "2026-11-12T18:00:10Z",
+    "lastSyncAt": "2026-11-12T18:00:11Z",
+    "signalCount": 2
+   },
+   {
+    "provider": "google_calendar",
+    "label": "Google Calendar",
+    "reads": "When you're busy. Never what your events are.",
+    "status": "not_connected",
+    "simulated": true,
+    "connectedAt": null,
+    "lastSyncAt": null,
+    "signalCount": 0
+   },
+   {
+    "provider": "strava",
+    "label": "Strava",
+    "reads": "Your regular runs and rides: activity, area, day and time.",
+    "status": "not_connected",
+    "simulated": true,
+    "connectedAt": null,
+    "lastSyncAt": null,
+    "signalCount": 0
+   },
+   {
+    "provider": "eventbrite",
+    "label": "Eventbrite",
+    "reads": "Tickets you hold.",
+    "status": "not_connected",
+    "simulated": true,
+    "connectedAt": null,
+    "lastSyncAt": null,
+    "signalCount": 0
+   },
+   {
+    "provider": "luma",
+    "label": "Luma",
+    "reads": "Events you RSVP'd to.",
+    "status": "not_connected",
+    "simulated": true,
+    "connectedAt": null,
+    "lastSyncAt": null,
+    "signalCount": 0
+   },
+   {
+    "provider": "beli",
+    "label": "Beli",
+    "reads": "Restaurants you rated and want to try.",
+    "status": "not_connected",
+    "simulated": true,
+    "connectedAt": null,
+    "lastSyncAt": null,
+    "signalCount": 0
+   }
+  ]
+ },
+ "syncCalendar": {
+  "acceptedBusy": 6,
+  "directives": [
+   {
+    "key": "mt_0001",
+    "desired": "event",
+    "title": "Wheel-throwing drop-in at Hayes Clay Studio",
+    "startsAt": "2026-11-14T18:00:00Z",
+    "endsAt": "2026-11-14T20:00:00Z",
+    "location": "Hayes Clay Studio, Hayes St, San Francisco",
+    "notes": "Planned with Muse in Common Ground. Directions: https://maps.apple.com/?daddr=37.7765,-122.4241&dirflg=r"
+   },
+   {
+    "key": "jn_0002",
+    "desired": "hold",
+    "title": "Hold: Strategy game night at Long Table Games",
+    "startsAt": "2026-11-19T03:00:00Z",
+    "endsAt": "2026-11-19T05:30:00Z",
+    "location": "Long Table Games, Mission, San Francisco",
+    "notes": "Muse is gathering people. This hold disappears if the plan doesn't fill."
+   }
+  ]
+ },
+ "askMuse": {
+  "conversationId": "mc_0001",
+  "reply": {
+   "messageId": "mm_0002",
+   "text": "I found two ceramics plans that fit your weekend. Saturday's wheel-throwing drop-in already has 3 people in.",
+   "createdAt": "2026-11-12T18:10:03Z"
   },
-  "syncCalendar": {
-    "acceptedBusy": 6,
-    "directives": [
-      {
-        "key": "mt_0001",
-        "desired": "event",
-        "title": "Wheel-throwing drop-in at Hayes Clay Studio",
-        "startsAt": "2026-11-14T18:00:00Z",
-        "endsAt": "2026-11-14T20:00:00Z",
-        "location": "Hayes Clay Studio, Hayes St, San Francisco",
-        "notes": "Planned with Muse in Common Ground. Directions: https://maps.apple.com/?daddr=37.7765,-122.4241&dirflg=r"
-      },
-      {
-        "key": "jn_0002",
-        "desired": "hold",
-        "title": "Hold: Strategy game night at Long Table Games",
-        "startsAt": "2026-11-19T03:00:00Z",
-        "endsAt": "2026-11-19T05:30:00Z",
-        "location": "Long Table Games, Mission, San Francisco",
-        "notes": "Muse is gathering people. This hold disappears if the plan doesn't fill."
-      }
-    ]
-  },
-  "askMuse": {
-    "conversationId": "mc_0001",
-    "reply": {
-      "messageId": "mm_0002",
-      "text": "I found two ceramics plans that fit your weekend. Saturday's wheel-throwing drop-in already has 3 people in.",
-      "createdAt": "2026-11-12T18:10:03Z"
-    },
-    "plans": [
-      {
-        "planId": "pl_0001",
-        "title": "Wheel-throwing drop-in",
-        "activityType": "ceramics_studio",
-        "venue": {
-          "venueId": "vn_hayes_clay",
-          "name": "Hayes Clay Studio",
-          "neighborhood": "Hayes Valley",
-          "address": "Hayes St, San Francisco",
-          "location": {
-            "lat": 37.7765,
-            "lng": -122.4241
-          },
-          "kind": "studio",
-          "photoUrl": "http://localhost:8000/static/venues/vn_hayes_clay.jpg"
-        },
-        "startsAt": "2026-11-14T18:00:00Z",
-        "endsAt": "2026-11-14T20:00:00Z",
-        "durationMin": 120,
-        "cost": {
-          "kind": "prepaid",
-          "perPersonCents": 3500,
-          "currency": "USD",
-          "label": "$35 per person"
-        },
-        "size": {
-          "min": 3,
-          "max": 5
-        },
-        "crowd": {
-          "interestedCount": 3,
-          "spotsLeft": 2,
-          "sharedWithYou": [
-            {
-              "interest": {
-                "id": "arts_crafts.ceramics",
-                "label": "Ceramics",
-                "path": ["Arts & crafts", "Ceramics"],
-                "level": 2
-              },
-              "count": 2
-            }
-          ]
-        },
-        "travel": {
-          "mode": "transit",
-          "minutes": 22,
-          "label": "22 min by transit"
-        },
-        "checks": [
-          {
-            "kind": "calendar",
-            "ok": true,
-            "label": "Fits your Saturday"
-          },
-          {
-            "kind": "travel",
-            "ok": true,
-            "label": "22 min by transit"
-          },
-          {
-            "kind": "spots",
-            "ok": true,
-            "label": "2 spots left"
-          },
-          {
-            "kind": "cost",
-            "ok": true,
-            "label": "$35 · Muse can book it"
-          }
-        ],
-        "reason": "Three people who love ceramics, on your free Saturday morning.",
-        "because": [
-          {
-            "source": "facebook",
-            "label": "You're in SF Clay Collective",
-            "signalId": null
-          }
-        ],
-        "origin": "muse",
-        "status": "open",
-        "myJoin": null
-      }
-    ],
-    "createdPlanId": null,
-    "prompts": ["Something Sunday afternoon", "Board games this week", "A coastal walk"]
-  },
-  "getFeed": {
-    "generatedAt": "2026-11-12T18:02:00Z",
-    "nextRefreshAt": "2026-11-13T18:02:00Z",
-    "museStatus": "Muse is setting up 1 plan for you",
-    "prompts": ["Climb this weekend", "Pottery", "A coastal walk", "Board games"],
-    "plans": [
-      {
-        "planId": "pl_0003",
-        "title": "Saturday morning coastal walk",
-        "activityType": "walk",
-        "venue": {
-          "venueId": "vn_lands_end",
-          "name": "Lands End Trail",
-          "neighborhood": "Outer Richmond",
-          "address": "680 Point Lobos Ave, San Francisco",
-          "location": {
-            "lat": 37.7798,
-            "lng": -122.5118
-          },
-          "kind": "park",
-          "photoUrl": "http://localhost:8000/static/venues/vn_lands_end.jpg"
-        },
-        "startsAt": "2026-11-14T16:30:00Z",
-        "endsAt": "2026-11-14T18:30:00Z",
-        "durationMin": 120,
-        "cost": {
-          "kind": "free",
-          "perPersonCents": 0,
-          "currency": "USD",
-          "label": "Free"
-        },
-        "size": {
-          "min": 3,
-          "max": 6
-        },
-        "crowd": {
-          "interestedCount": 5,
-          "spotsLeft": 1,
-          "sharedWithYou": [
-            {
-              "interest": {
-                "id": "outdoors.hiking",
-                "label": "Hiking",
-                "path": ["Outdoors", "Hiking"],
-                "level": 2
-              },
-              "count": 4
-            }
-          ]
-        },
-        "travel": {
-          "mode": "transit",
-          "minutes": 24,
-          "label": "24 min by transit"
-        },
-        "checks": [
-          {
-            "kind": "calendar",
-            "ok": true,
-            "label": "Fits your Saturday"
-          },
-          {
-            "kind": "travel",
-            "ok": true,
-            "label": "24 min by transit"
-          },
-          {
-            "kind": "spots",
-            "ok": true,
-            "label": "1 spot left"
-          }
-        ],
-        "reason": "Your favorite trail, with four people who also hike the coast.",
-        "because": [
-          {
-            "source": "google_maps",
-            "label": "You've walked Lands End 4 times this month",
-            "signalId": "si_0001"
-          }
-        ],
-        "origin": "nudge",
-        "status": "open",
-        "myJoin": null
-      },
-      {
-        "planId": "pl_0002",
-        "title": "Strategy game night",
-        "activityType": "board_game_night",
-        "venue": {
-          "venueId": "vn_long_table",
-          "name": "Long Table Games",
-          "neighborhood": "Mission",
-          "address": "Valencia St, San Francisco",
-          "location": {
-            "lat": 37.7599,
-            "lng": -122.4211
-          },
-          "kind": "game_cafe",
-          "photoUrl": null
-        },
-        "startsAt": "2026-11-19T03:00:00Z",
-        "endsAt": "2026-11-19T05:30:00Z",
-        "durationMin": 150,
-        "cost": {
-          "kind": "pay_at_venue",
-          "perPersonCents": 800,
-          "currency": "USD",
-          "label": "$8 table fee, pay there"
-        },
-        "size": {
-          "min": 4,
-          "max": 6
-        },
-        "crowd": {
-          "interestedCount": 3,
-          "spotsLeft": 3,
-          "sharedWithYou": [
-            {
-              "interest": {
-                "id": "games.board_games",
-                "label": "Board games",
-                "path": ["Games", "Board games"],
-                "level": 2
-              },
-              "count": 3
-            }
-          ]
-        },
-        "travel": {
-          "mode": "transit",
-          "minutes": 31,
-          "label": "31 min by transit"
-        },
-        "checks": [
-          {
-            "kind": "calendar",
-            "ok": true,
-            "label": "Fits your Wednesday"
-          },
-          {
-            "kind": "travel",
-            "ok": true,
-            "label": "31 min by transit"
-          }
-        ],
-        "reason": "Long strategy games with three people who play every week.",
-        "because": [],
-        "origin": "muse",
-        "status": "open",
-        "myJoin": {
-          "joinId": "jn_0002",
-          "status": "interested"
-        }
-      }
-    ]
-  },
-  "getPlan": {
+  "plans": [
+   {
     "planId": "pl_0001",
     "title": "Wheel-throwing drop-in",
     "activityType": "ceramics_studio",
     "venue": {
-      "venueId": "vn_hayes_clay",
-      "name": "Hayes Clay Studio",
-      "neighborhood": "Hayes Valley",
-      "address": "Hayes St, San Francisco",
-      "location": {
-        "lat": 37.7765,
-        "lng": -122.4241
-      },
-      "kind": "studio",
-      "photoUrl": "http://localhost:8000/static/venues/vn_hayes_clay.jpg"
+     "venueId": "vn_hayes_clay",
+     "name": "Hayes Clay Studio",
+     "neighborhood": "Hayes Valley",
+     "address": "Hayes St, San Francisco",
+     "location": {
+      "lat": 37.7765,
+      "lng": -122.4241
+     },
+     "kind": "studio",
+     "photoUrl": "http://localhost:8000/static/venues/vn_hayes_clay.jpg"
     },
     "startsAt": "2026-11-14T18:00:00Z",
     "endsAt": "2026-11-14T20:00:00Z",
     "durationMin": 120,
     "cost": {
-      "kind": "prepaid",
-      "perPersonCents": 3500,
-      "currency": "USD",
-      "label": "$35 per person"
+     "kind": "prepaid",
+     "perPersonCents": 3500,
+     "currency": "USD",
+     "label": "$35 per person"
     },
     "size": {
-      "min": 3,
-      "max": 5
+     "min": 3,
+     "max": 5
     },
     "crowd": {
-      "interestedCount": 3,
-      "spotsLeft": 2,
-      "sharedWithYou": [
-        {
-          "interest": {
-            "id": "arts_crafts.ceramics",
-            "label": "Ceramics",
-            "path": ["Arts & crafts", "Ceramics"],
-            "level": 2
-          },
-          "count": 2
-        }
-      ]
+     "interestedCount": 3,
+     "spotsLeft": 2,
+     "sharedWithYou": [
+      {
+       "interest": {
+        "id": "arts_crafts.ceramics",
+        "label": "Ceramics",
+        "path": [
+         "Arts & crafts",
+         "Ceramics"
+        ],
+        "level": 2
+       },
+       "count": 2
+      }
+     ]
     },
     "travel": {
-      "mode": "transit",
-      "minutes": 22,
-      "label": "22 min by transit"
+     "mode": "transit",
+     "minutes": 22,
+     "label": "22 min by transit"
     },
     "checks": [
-      {
-        "kind": "calendar",
-        "ok": true,
-        "label": "Fits your Saturday"
-      },
-      {
-        "kind": "travel",
-        "ok": true,
-        "label": "22 min by transit"
-      },
-      {
-        "kind": "spots",
-        "ok": true,
-        "label": "2 spots left"
-      },
-      {
-        "kind": "cost",
-        "ok": true,
-        "label": "$35 · Muse can book it"
-      }
+     {
+      "kind": "calendar",
+      "ok": true,
+      "label": "Fits your Saturday"
+     },
+     {
+      "kind": "travel",
+      "ok": true,
+      "label": "22 min by transit"
+     },
+     {
+      "kind": "spots",
+      "ok": true,
+      "label": "2 spots left"
+     },
+     {
+      "kind": "cost",
+      "ok": true,
+      "label": "$35 · Muse can book it"
+     }
     ],
     "reason": "Three people who love ceramics, on your free Saturday morning.",
     "because": [
-      {
-        "source": "facebook",
-        "label": "You're in SF Clay Collective",
-        "signalId": null
-      }
+     {
+      "source": "facebook",
+      "label": "You're in SF Clay Collective",
+      "signalId": null
+     }
     ],
     "origin": "muse",
     "status": "open",
-    "myJoin": null,
-    "description": "A two-hour open wheel session for beginners and regulars. Clay, tools and firing included.",
-    "museWillHandle": [
-      "Book wheels for the group",
-      "Ask you before paying $35",
-      "Add it to your calendar",
-      "Open a group chat with an intro",
-      "Remind you when to leave"
-    ],
-    "safety": ["Public studio", "Groups of 3 or more", "Share your plan with a friend in one tap"],
-    "formsAt": "2026-11-13T18:00:00Z",
-    "alternatives": [
-      {
-        "planId": "pl_0004",
-        "title": "Wheel-throwing drop-in",
-        "startsAt": "2026-11-15T22:00:00Z"
-      }
-    ],
-    "directions": {
-      "apple": "https://maps.apple.com/?daddr=37.7765,-122.4241&dirflg=r",
-      "google": "https://www.google.com/maps/dir/?api=1&destination=37.7765,-122.4241&travelmode=transit"
-    }
-  },
-  "joinPlan": {
-    "joinId": "jn_0001",
-    "planId": "pl_0001",
-    "status": "interested",
-    "progress": {
-      "joined": 3,
-      "needed": 3
-    },
-    "meetupId": null,
-    "formsAt": "2026-11-13T18:00:00Z",
-    "createdAt": "2026-11-12T18:11:00Z",
-    "alternatives": [],
-    "calendar": {
-      "key": "jn_0001",
-      "desired": "hold",
-      "title": "Hold: Wheel-throwing drop-in at Hayes Clay Studio",
-      "startsAt": "2026-11-14T18:00:00Z",
-      "endsAt": "2026-11-14T20:00:00Z",
-      "location": "Hayes Clay Studio, Hayes St, San Francisco",
-      "notes": "Muse is gathering people. This hold disappears if the plan doesn't fill."
-    }
-  },
-  "listNudges": {
-    "items": [
-      {
-        "nudgeId": "nd_0001",
-        "title": "Lands End on Saturday?",
-        "text": "You've walked Lands End 4 times this month. 5 people want a Saturday morning coastal walk crew. Want in?",
-        "because": [
-          {
-            "source": "google_maps",
-            "label": "You've walked Lands End 4 times this month",
-            "signalId": "si_0001"
-          }
-        ],
-        "planId": "pl_0003",
-        "surfaces": ["plans", "home"],
-        "createdAt": "2026-11-12T17:00:00Z",
-        "expiresAt": "2026-11-14T08:00:00Z"
-      }
-    ]
-  },
-  "getMeetup": {
-    "meetupId": "mt_0001",
-    "planId": "pl_0001",
-    "threadId": "th_0001",
-    "title": "Wheel-throwing drop-in",
-    "activityType": "ceramics_studio",
-    "status": "setting_up",
+    "myJoin": null
+   }
+  ],
+  "createdPlanId": null,
+  "prompts": [
+   "Something Sunday afternoon",
+   "Board games this week",
+   "A coastal walk"
+  ]
+ },
+ "getFeed": {
+  "generatedAt": "2026-11-12T18:02:00Z",
+  "nextRefreshAt": "2026-11-13T18:02:00Z",
+  "museStatus": "Muse is setting up 1 plan for you",
+  "prompts": [
+   "Climb this weekend",
+   "Pottery",
+   "A coastal walk",
+   "Board games"
+  ],
+  "plans": [
+   {
+    "planId": "pl_0003",
+    "title": "Saturday morning coastal walk",
+    "activityType": "walk",
     "venue": {
-      "venueId": "vn_hayes_clay",
-      "name": "Hayes Clay Studio",
-      "neighborhood": "Hayes Valley",
-      "address": "Hayes St, San Francisco",
-      "location": {
-        "lat": 37.7765,
-        "lng": -122.4241
-      },
-      "kind": "studio",
-      "photoUrl": "http://localhost:8000/static/venues/vn_hayes_clay.jpg"
+     "venueId": "vn_lands_end",
+     "name": "Lands End Trail",
+     "neighborhood": "Outer Richmond",
+     "address": "680 Point Lobos Ave, San Francisco",
+     "location": {
+      "lat": 37.7798,
+      "lng": -122.5118
+     },
+     "kind": "park",
+     "photoUrl": "http://localhost:8000/static/venues/vn_lands_end.jpg"
     },
-    "startsAt": "2026-11-14T18:00:00Z",
-    "endsAt": "2026-11-14T20:00:00Z",
-    "attendees": [
-      {
-        "person": {
-          "userId": "u_maya",
-          "displayName": "Maya Chen",
-          "initials": "MC",
-          "avatarUrl": "http://localhost:8000/static/avatars/u_maya.jpg",
-          "profileVisibility": "public"
-        },
-        "isMe": true,
-        "rsvp": "going",
-        "checkedIn": false,
-        "status": null,
-        "sharedInterests": []
-      },
-      {
-        "person": {
-          "userId": "u_0042",
-          "displayName": "Daniel Okafor",
-          "initials": "DO",
-          "avatarUrl": "http://localhost:8000/static/avatars/u_0042.png",
-          "profileVisibility": "public"
-        },
-        "isMe": false,
-        "rsvp": "going",
-        "checkedIn": false,
-        "status": null,
-        "sharedInterests": [
-          {
-            "id": "arts_crafts.ceramics.wheel_throwing",
-            "label": "Wheel throwing",
-            "path": ["Arts & crafts", "Ceramics", "Wheel throwing"],
-            "level": 3
-          },
-          {
-            "id": "outdoors.hiking.coastal_hikes",
-            "label": "Coastal hikes",
-            "path": ["Outdoors", "Hiking", "Coastal hikes"],
-            "level": 3
-          }
-        ]
-      },
-      {
-        "person": {
-          "userId": "u_0117",
-          "displayName": "Rosa",
-          "initials": "R",
-          "avatarUrl": null,
-          "profileVisibility": "private"
-        },
-        "isMe": false,
-        "rsvp": "going",
-        "checkedIn": false,
-        "status": null,
-        "sharedInterests": [
-          {
-            "id": "arts_crafts.ceramics.wheel_throwing",
-            "label": "Wheel throwing",
-            "path": ["Arts & crafts", "Ceramics", "Wheel throwing"],
-            "level": 3
-          }
-        ]
-      }
-    ],
-    "museSteps": [
-      {
-        "stepId": "st_0001",
-        "kind": "group_chat",
-        "status": "done",
-        "label": "Opened your group chat",
-        "detail": null,
-        "approvalId": null,
-        "at": "2026-11-12T18:12:00Z"
-      },
-      {
-        "stepId": "st_0002",
-        "kind": "find_time",
-        "status": "done",
-        "label": "Everyone's free Saturday 10 to 12",
-        "detail": "Checked 3 calendars",
-        "approvalId": null,
-        "at": "2026-11-12T18:12:02Z"
-      },
-      {
-        "stepId": "st_0003",
-        "kind": "check_availability",
-        "status": "done",
-        "label": "Hayes Clay Studio has 3 wheels open at 10",
-        "detail": null,
-        "approvalId": null,
-        "at": "2026-11-12T18:12:04Z"
-      },
-      {
-        "stepId": "st_0004",
-        "kind": "payment",
-        "status": "needs_you",
-        "label": "Waiting for you to OK $35",
-        "detail": "Daniel and Rosa already said yes",
-        "approvalId": "ap_0001",
-        "at": "2026-11-12T18:12:05Z"
-      },
-      {
-        "stepId": "st_0005",
-        "kind": "book",
-        "status": "queued",
-        "label": "Book 3 wheels",
-        "detail": null,
-        "approvalId": null,
-        "at": "2026-11-12T18:12:05Z"
-      },
-      {
-        "stepId": "st_0006",
-        "kind": "calendar",
-        "status": "queued",
-        "label": "Add it to everyone's calendar",
-        "detail": null,
-        "approvalId": null,
-        "at": "2026-11-12T18:12:05Z"
-      },
-      {
-        "stepId": "st_0007",
-        "kind": "reminder",
-        "status": "queued",
-        "label": "Remind everyone when to leave",
-        "detail": null,
-        "approvalId": null,
-        "at": "2026-11-12T18:12:05Z"
-      }
-    ],
-    "approvals": [
-      {
-        "approvalId": "ap_0001",
-        "meetupId": "mt_0001",
-        "kind": "payment",
-        "status": "pending",
-        "title": "OK $35 for your wheel?",
-        "detail": "Muse pays $35 to Hayes Clay Studio for your wheel on Sat, Nov 14 · 10 AM–12 PM.",
-        "amountCents": 3500,
-        "currency": "USD",
-        "payee": "Hayes Clay Studio",
-        "simulated": true,
-        "fallback": "If you'd rather not, Muse asks Hayes Clay Studio to hold your wheel and you pay there.",
-        "expiresAt": "2026-11-13T18:00:00Z"
-      }
-    ],
-    "booking": {
-      "status": "not_booked",
-      "label": "Not booked yet",
-      "provider": "Simulated booking",
-      "confirmationCode": null
-    },
+    "startsAt": "2026-11-14T16:30:00Z",
+    "endsAt": "2026-11-14T18:30:00Z",
+    "durationMin": 120,
     "cost": {
-      "kind": "prepaid",
-      "perPersonCents": 3500,
-      "currency": "USD",
-      "label": "$35 per person",
-      "myPayment": "pending_approval"
+     "kind": "free",
+     "perPersonCents": 0,
+     "currency": "USD",
+     "label": "Free"
     },
-    "calendar": {
-      "key": "mt_0001",
-      "desired": "hold",
-      "title": "Hold: Wheel-throwing drop-in at Hayes Clay Studio",
-      "startsAt": "2026-11-14T18:00:00Z",
-      "endsAt": "2026-11-14T20:00:00Z",
-      "location": "Hayes Clay Studio, Hayes St, San Francisco",
-      "notes": "Muse is setting this up."
+    "size": {
+     "min": 3,
+     "max": 6
+    },
+    "crowd": {
+     "interestedCount": 5,
+     "spotsLeft": 1,
+     "sharedWithYou": [
+      {
+       "interest": {
+        "id": "outdoors.hiking",
+        "label": "Hiking",
+        "path": [
+         "Outdoors",
+         "Hiking"
+        ],
+        "level": 2
+       },
+       "count": 4
+      }
+     ]
     },
     "travel": {
-      "mode": "transit",
-      "minutes": 22,
-      "label": "22 min by transit",
-      "leaveBy": "2026-11-14T17:28:00Z",
-      "directions": {
-        "apple": "https://maps.apple.com/?daddr=37.7765,-122.4241&dirflg=r",
-        "google": "https://www.google.com/maps/dir/?api=1&destination=37.7765,-122.4241&travelmode=transit"
-      }
+     "mode": "transit",
+     "minutes": 24,
+     "label": "24 min by transit"
     },
-    "checkinWindow": null,
-    "feedbackDue": false,
-    "eventLabel": null
-  },
-  "verifyAttendee": {
-    "accepted": true,
-    "person": {
-      "userId": "u_0042",
-      "displayName": "Daniel Okafor",
-      "initials": "DO",
-      "avatarUrl": "http://localhost:8000/static/avatars/u_0042.png",
-      "profileVisibility": "public"
+    "checks": [
+     {
+      "kind": "calendar",
+      "ok": true,
+      "label": "Fits your Saturday"
+     },
+     {
+      "kind": "travel",
+      "ok": true,
+      "label": "24 min by transit"
+     },
+     {
+      "kind": "spots",
+      "ok": true,
+      "label": "1 spot left"
+     }
+    ],
+    "reason": "Your favorite trail, with four people who also hike the coast.",
+    "because": [
+     {
+      "source": "google_maps",
+      "label": "You've walked Lands End 4 times this month",
+      "signalId": "si_0001"
+     }
+    ],
+    "origin": "nudge",
+    "status": "open",
+    "myJoin": null
+   },
+   {
+    "planId": "pl_0002",
+    "title": "Strategy game night",
+    "activityType": "board_game_night",
+    "venue": {
+     "venueId": "vn_long_table",
+     "name": "Long Table Games",
+     "neighborhood": "Mission",
+     "address": "Valencia St, San Francisco",
+     "location": {
+      "lat": 37.7599,
+      "lng": -122.4211
+     },
+     "kind": "game_cafe",
+     "photoUrl": null
+    },
+    "startsAt": "2026-11-19T03:00:00Z",
+    "endsAt": "2026-11-19T05:30:00Z",
+    "durationMin": 150,
+    "cost": {
+     "kind": "pay_at_venue",
+     "perPersonCents": 800,
+     "currency": "USD",
+     "label": "$8 table fee, pay there"
+    },
+    "size": {
+     "min": 4,
+     "max": 6
+    },
+    "crowd": {
+     "interestedCount": 3,
+     "spotsLeft": 3,
+     "sharedWithYou": [
+      {
+       "interest": {
+        "id": "games.board_games",
+        "label": "Board games",
+        "path": [
+         "Games",
+         "Board games"
+        ],
+        "level": 2
+       },
+       "count": 3
+      }
+     ]
+    },
+    "travel": {
+     "mode": "transit",
+     "minutes": 31,
+     "label": "31 min by transit"
+    },
+    "checks": [
+     {
+      "kind": "calendar",
+      "ok": true,
+      "label": "Fits your Wednesday"
+     },
+     {
+      "kind": "travel",
+      "ok": true,
+      "label": "31 min by transit"
+     }
+    ],
+    "reason": "Long strategy games with three people who play every week.",
+    "because": [],
+    "origin": "muse",
+    "status": "open",
+    "myJoin": {
+     "joinId": "jn_0002",
+     "status": "interested"
     }
+   }
+  ]
+ },
+ "getPlan": {
+  "planId": "pl_0001",
+  "title": "Wheel-throwing drop-in",
+  "activityType": "ceramics_studio",
+  "venue": {
+   "venueId": "vn_hayes_clay",
+   "name": "Hayes Clay Studio",
+   "neighborhood": "Hayes Valley",
+   "address": "Hayes St, San Francisco",
+   "location": {
+    "lat": 37.7765,
+    "lng": -122.4241
+   },
+   "kind": "studio",
+   "photoUrl": "http://localhost:8000/static/venues/vn_hayes_clay.jpg"
   },
-  "shareMeetup": {
-    "shareId": "sh_0001",
-    "activityType": "ceramics_studio",
-    "caption": "Three strangers, three lopsided bowls. Coming back next week.",
-    "venue": {
-      "venueId": "vn_hayes_clay",
-      "name": "Hayes Clay Studio",
-      "neighborhood": "Hayes Valley"
+  "startsAt": "2026-11-14T18:00:00Z",
+  "endsAt": "2026-11-14T20:00:00Z",
+  "durationMin": 120,
+  "cost": {
+   "kind": "prepaid",
+   "perPersonCents": 3500,
+   "currency": "USD",
+   "label": "$35 per person"
+  },
+  "size": {
+   "min": 3,
+   "max": 5
+  },
+  "crowd": {
+   "interestedCount": 3,
+   "spotsLeft": 2,
+   "sharedWithYou": [
+    {
+     "interest": {
+      "id": "arts_crafts.ceramics",
+      "label": "Ceramics",
+      "path": [
+       "Arts & crafts",
+       "Ceramics"
+      ],
+      "level": 2
+     },
+     "count": 2
+    }
+   ]
+  },
+  "travel": {
+   "mode": "transit",
+   "minutes": 22,
+   "label": "22 min by transit"
+  },
+  "checks": [
+   {
+    "kind": "calendar",
+    "ok": true,
+    "label": "Fits your Saturday"
+   },
+   {
+    "kind": "travel",
+    "ok": true,
+    "label": "22 min by transit"
+   },
+   {
+    "kind": "spots",
+    "ok": true,
+    "label": "2 spots left"
+   },
+   {
+    "kind": "cost",
+    "ok": true,
+    "label": "$35 · Muse can book it"
+   }
+  ],
+  "reason": "Three people who love ceramics, on your free Saturday morning.",
+  "because": [
+   {
+    "source": "facebook",
+    "label": "You're in SF Clay Collective",
+    "signalId": null
+   }
+  ],
+  "origin": "muse",
+  "status": "open",
+  "myJoin": null,
+  "description": "A two-hour open wheel session for beginners and regulars. Clay, tools and firing included.",
+  "museWillHandle": [
+   "Book wheels for the group",
+   "Ask you before paying $35",
+   "Add it to your calendar",
+   "Open a group chat with an intro",
+   "Remind you when to leave"
+  ],
+  "safety": [
+   "Public studio",
+   "Groups of 3 or more",
+   "Share your plan with a friend in one tap"
+  ],
+  "formsAt": "2026-11-13T18:00:00Z",
+  "alternatives": [
+   {
+    "planId": "pl_0004",
+    "title": "Wheel-throwing drop-in",
+    "startsAt": "2026-11-15T22:00:00Z"
+   }
+  ],
+  "directions": {
+   "apple": "https://maps.apple.com/?daddr=37.7765,-122.4241&dirflg=r",
+   "google": "https://www.google.com/maps/dir/?api=1&destination=37.7765,-122.4241&travelmode=transit"
+  }
+ },
+ "getPublicPlan": {
+  "planId": "pl_0001",
+  "title": "Wheel-throwing drop-in",
+  "description": "A two-hour open wheel session for beginners and regulars. Clay, tools and firing included.",
+  "activityType": "ceramics_studio",
+  "venue": {
+   "venueId": "vn_hayes_clay",
+   "name": "Hayes Clay Studio",
+   "neighborhood": "Hayes Valley"
+  },
+  "photoUrl": "http://localhost:8000/static/venues/vn_hayes_clay.jpg",
+  "startsAt": "2026-11-14T18:00:00Z",
+  "endsAt": "2026-11-14T20:00:00Z",
+  "cost": {
+   "kind": "prepaid",
+   "perPersonCents": 3500,
+   "currency": "USD",
+   "label": "$35 per person"
+  },
+  "size": {
+   "min": 3,
+   "max": 5
+  },
+  "status": "open",
+  "interestedCount": 3,
+  "spotsLeft": 2
+ },
+ "joinPlan": {
+  "joinId": "jn_0001",
+  "planId": "pl_0001",
+  "status": "interested",
+  "progress": {
+   "joined": 3,
+   "needed": 3
+  },
+  "meetupId": null,
+  "formsAt": "2026-11-13T18:00:00Z",
+  "createdAt": "2026-11-12T18:11:00Z",
+  "alternatives": [],
+  "calendar": {
+   "key": "jn_0001",
+   "desired": "hold",
+   "title": "Hold: Wheel-throwing drop-in at Hayes Clay Studio",
+   "startsAt": "2026-11-14T18:00:00Z",
+   "endsAt": "2026-11-14T20:00:00Z",
+   "location": "Hayes Clay Studio, Hayes St, San Francisco",
+   "notes": "Muse is gathering people. This hold disappears if the plan doesn't fill."
+  }
+ },
+ "listNudges": {
+  "items": [
+   {
+    "nudgeId": "nd_0001",
+    "title": "Lands End on Saturday?",
+    "text": "You've walked Lands End 4 times this month. 5 people want a Saturday morning coastal walk crew. Want in?",
+    "because": [
+     {
+      "source": "google_maps",
+      "label": "You've walked Lands End 4 times this month",
+      "signalId": "si_0001"
+     }
+    ],
+    "planId": "pl_0003",
+    "surfaces": [
+     "plans",
+     "home"
+    ],
+    "createdAt": "2026-11-12T17:00:00Z",
+    "expiresAt": "2026-11-14T08:00:00Z"
+   }
+  ]
+ },
+ "getMeetup": {
+  "meetupId": "mt_0001",
+  "planId": "pl_0001",
+  "threadId": "th_0001",
+  "title": "Wheel-throwing drop-in",
+  "activityType": "ceramics_studio",
+  "status": "setting_up",
+  "venue": {
+   "venueId": "vn_hayes_clay",
+   "name": "Hayes Clay Studio",
+   "neighborhood": "Hayes Valley",
+   "address": "Hayes St, San Francisco",
+   "location": {
+    "lat": 37.7765,
+    "lng": -122.4241
+   },
+   "kind": "studio",
+   "photoUrl": "http://localhost:8000/static/venues/vn_hayes_clay.jpg"
+  },
+  "startsAt": "2026-11-14T18:00:00Z",
+  "endsAt": "2026-11-14T20:00:00Z",
+  "attendees": [
+   {
+    "person": {
+     "userId": "u_maya",
+     "displayName": "Maya Chen",
+     "initials": "MC",
+     "avatarUrl": "http://localhost:8000/static/avatars/u_maya.jpg",
+     "profileVisibility": "public"
     },
-    "groupSize": 3,
-    "happenedOn": "2026-11-14",
-    "photoUrl": "http://localhost:8000/static/venues/vn_hayes_clay.jpg",
-    "likes": 0,
-    "likedByMe": false,
-    "mine": true,
-    "promptText": "Wheel-throwing drop-in at Hayes Clay Studio this weekend"
-  },
-  "listShares": {
-    "items": [
-      {
-        "shareId": "sh_0001",
-        "activityType": "ceramics_studio",
-        "caption": "Three strangers, three lopsided bowls. Coming back next week.",
-        "venue": {
-          "venueId": "vn_hayes_clay",
-          "name": "Hayes Clay Studio",
-          "neighborhood": "Hayes Valley"
-        },
-        "groupSize": 3,
-        "happenedOn": "2026-11-14",
-        "photoUrl": "http://localhost:8000/static/venues/vn_hayes_clay.jpg",
-        "likes": 12,
-        "likedByMe": false,
-        "mine": false,
-        "promptText": "Wheel-throwing drop-in at Hayes Clay Studio this weekend"
-      },
-      {
-        "shareId": "sh_0002",
-        "activityType": "climbing_session",
-        "caption": "Nobody finished the purple V3. Tacos after.",
-        "venue": {
-          "venueId": "vn_basalt_bouldering",
-          "name": "Basalt Bouldering",
-          "neighborhood": "SoMa"
-        },
-        "groupSize": 4,
-        "happenedOn": "2026-11-08",
-        "photoUrl": "http://localhost:8000/static/venues/vn_basalt_bouldering.jpg",
-        "likes": 7,
-        "likedByMe": false,
-        "mine": false,
-        "promptText": "Bouldering at Basalt Bouldering this week"
-      }
+    "isMe": true,
+    "rsvp": "going",
+    "checkedIn": false,
+    "status": null,
+    "sharedInterests": []
+   },
+   {
+    "person": {
+     "userId": "u_0042",
+     "displayName": "Daniel Okafor",
+     "initials": "DO",
+     "avatarUrl": "http://localhost:8000/static/avatars/u_0042.png",
+     "profileVisibility": "public"
+    },
+    "isMe": false,
+    "rsvp": "going",
+    "checkedIn": false,
+    "status": null,
+    "sharedInterests": [
+     {
+      "id": "arts_crafts.ceramics.wheel_throwing",
+      "label": "Wheel throwing",
+      "path": [
+       "Arts & crafts",
+       "Ceramics",
+       "Wheel throwing"
+      ],
+      "level": 3
+     },
+     {
+      "id": "outdoors.hiking.coastal_hikes",
+      "label": "Coastal hikes",
+      "path": [
+       "Outdoors",
+       "Hiking",
+       "Coastal hikes"
+      ],
+      "level": 3
+     }
     ]
-  },
-  "likeShare": {
-    "shareId": "sh_0001",
-    "activityType": "ceramics_studio",
-    "caption": "Three strangers, three lopsided bowls. Coming back next week.",
-    "venue": {
-      "venueId": "vn_hayes_clay",
-      "name": "Hayes Clay Studio",
-      "neighborhood": "Hayes Valley"
+   },
+   {
+    "person": {
+     "userId": "u_0117",
+     "displayName": "Rosa",
+     "initials": "R",
+     "avatarUrl": null,
+     "profileVisibility": "private"
     },
-    "groupSize": 3,
-    "happenedOn": "2026-11-14",
-    "photoUrl": "http://localhost:8000/static/venues/vn_hayes_clay.jpg",
-    "likes": 13,
-    "likedByMe": true,
-    "mine": false,
-    "promptText": "Wheel-throwing drop-in at Hayes Clay Studio this weekend"
-  },
-  "decideApproval": {
+    "isMe": false,
+    "rsvp": "going",
+    "checkedIn": false,
+    "status": null,
+    "sharedInterests": [
+     {
+      "id": "arts_crafts.ceramics.wheel_throwing",
+      "label": "Wheel throwing",
+      "path": [
+       "Arts & crafts",
+       "Ceramics",
+       "Wheel throwing"
+      ],
+      "level": 3
+     }
+    ]
+   }
+  ],
+  "museSteps": [
+   {
+    "stepId": "st_0001",
+    "kind": "group_chat",
+    "status": "done",
+    "label": "Opened your group chat",
+    "detail": null,
+    "approvalId": null,
+    "at": "2026-11-12T18:12:00Z"
+   },
+   {
+    "stepId": "st_0002",
+    "kind": "find_time",
+    "status": "done",
+    "label": "Everyone's free Saturday 10 to 12",
+    "detail": "Checked 3 calendars",
+    "approvalId": null,
+    "at": "2026-11-12T18:12:02Z"
+   },
+   {
+    "stepId": "st_0003",
+    "kind": "check_availability",
+    "status": "done",
+    "label": "Hayes Clay Studio has 3 wheels open at 10",
+    "detail": null,
+    "approvalId": null,
+    "at": "2026-11-12T18:12:04Z"
+   },
+   {
+    "stepId": "st_0004",
+    "kind": "payment",
+    "status": "needs_you",
+    "label": "Waiting for you to OK $35",
+    "detail": "Daniel and Rosa already said yes",
+    "approvalId": "ap_0001",
+    "at": "2026-11-12T18:12:05Z"
+   },
+   {
+    "stepId": "st_0005",
+    "kind": "book",
+    "status": "queued",
+    "label": "Book 3 wheels",
+    "detail": null,
+    "approvalId": null,
+    "at": "2026-11-12T18:12:05Z"
+   },
+   {
+    "stepId": "st_0006",
+    "kind": "calendar",
+    "status": "queued",
+    "label": "Add it to everyone's calendar",
+    "detail": null,
+    "approvalId": null,
+    "at": "2026-11-12T18:12:05Z"
+   },
+   {
+    "stepId": "st_0007",
+    "kind": "reminder",
+    "status": "queued",
+    "label": "Remind everyone when to leave",
+    "detail": null,
+    "approvalId": null,
+    "at": "2026-11-12T18:12:05Z"
+   }
+  ],
+  "approvals": [
+   {
     "approvalId": "ap_0001",
     "meetupId": "mt_0001",
     "kind": "payment",
-    "status": "approved",
+    "status": "pending",
     "title": "OK $35 for your wheel?",
     "detail": "Muse pays $35 to Hayes Clay Studio for your wheel on Sat, Nov 14 · 10 AM–12 PM.",
     "amountCents": 3500,
@@ -1050,101 +1025,245 @@
     "simulated": true,
     "fallback": "If you'd rather not, Muse asks Hayes Clay Studio to hold your wheel and you pay there.",
     "expiresAt": "2026-11-13T18:00:00Z"
+   }
+  ],
+  "booking": {
+   "status": "not_booked",
+   "label": "Not booked yet",
+   "provider": "Simulated booking",
+   "confirmationCode": null
   },
-  "listConnections": {
-    "items": [
-      {
-        "connectionId": "cn_0001",
-        "person": {
-          "userId": "u_0042",
-          "displayName": "Daniel Okafor",
-          "initials": "DO",
-          "avatarUrl": "http://localhost:8000/static/avatars/u_0042.png",
-          "profileVisibility": "public"
-        },
-        "sharedInterests": [
-          {
-            "id": "arts_crafts.ceramics.wheel_throwing",
-            "label": "Wheel throwing",
-            "path": ["Arts & crafts", "Ceramics", "Wheel throwing"],
-            "level": 3
-          },
-          {
-            "id": "outdoors.hiking.coastal_hikes",
-            "label": "Coastal hikes",
-            "path": ["Outdoors", "Hiking", "Coastal hikes"],
-            "level": 3
-          }
-        ],
-        "status": "new",
-        "meetupsTogether": 0,
-        "connectedAt": "2026-11-12T18:12:00Z",
-        "firstMetAt": null,
-        "canViewProfile": true,
-        "canPlanAgain": false
-      }
-    ]
+  "cost": {
+   "kind": "prepaid",
+   "perPersonCents": 3500,
+   "currency": "USD",
+   "label": "$35 per person",
+   "myPayment": "pending_approval"
   },
-  "listMessages": {
-    "items": [
-      {
-        "messageId": "ms_0001",
-        "threadId": "th_0001",
-        "sender": {
-          "kind": "muse",
-          "userId": null
-        },
-        "text": "Maya, Daniel and Rosa, meet each other! You're all into wheel throwing, and Saturday's drop-in at Hayes Clay Studio is yours. I'm handling the booking and the calendar.",
-        "createdAt": "2026-11-12T18:12:01Z",
-        "clientId": null,
-        "toMuse": false,
-        "attachments": [
-          {
-            "kind": "starters",
-            "starters": [
-              "What was the first thing you ever made on a wheel?",
-              "Mugs or bowls?",
-              "Any favorite coastal trail for after?"
-            ]
-          },
-          {
-            "kind": "meetup",
-            "meetupId": "mt_0001"
-          }
-        ]
-      },
-      {
-        "messageId": "ms_0002",
-        "threadId": "th_0001",
-        "sender": {
-          "kind": "user",
-          "userId": "u_0042"
-        },
-        "text": "Hi both! Bowls, always. Muse, can we do 11 instead?",
-        "createdAt": "2026-11-12T18:14:10Z",
-        "clientId": null,
-        "toMuse": true,
-        "attachments": []
-      },
-      {
-        "messageId": "ms_0003",
-        "threadId": "th_0001",
-        "sender": {
-          "kind": "muse",
-          "userId": null
-        },
-        "text": "Done. Everyone's free at 11 and the studio has 3 wheels then, so I moved it. Your calendars are updated.",
-        "createdAt": "2026-11-12T18:14:16Z",
-        "clientId": null,
-        "toMuse": false,
-        "attachments": [
-          {
-            "kind": "muse_steps",
-            "meetupId": "mt_0001",
-            "stepIds": ["st_0008", "st_0009"]
-          }
-        ]
-      }
-    ]
+  "calendar": {
+   "key": "mt_0001",
+   "desired": "hold",
+   "title": "Hold: Wheel-throwing drop-in at Hayes Clay Studio",
+   "startsAt": "2026-11-14T18:00:00Z",
+   "endsAt": "2026-11-14T20:00:00Z",
+   "location": "Hayes Clay Studio, Hayes St, San Francisco",
+   "notes": "Muse is setting this up."
+  },
+  "travel": {
+   "mode": "transit",
+   "minutes": 22,
+   "label": "22 min by transit",
+   "leaveBy": "2026-11-14T17:28:00Z",
+   "directions": {
+    "apple": "https://maps.apple.com/?daddr=37.7765,-122.4241&dirflg=r",
+    "google": "https://www.google.com/maps/dir/?api=1&destination=37.7765,-122.4241&travelmode=transit"
+   }
+  },
+  "checkinWindow": null,
+  "feedbackDue": false,
+  "eventLabel": null
+ },
+ "verifyAttendee": {
+  "accepted": true,
+  "person": {
+   "userId": "u_0042",
+   "displayName": "Daniel Okafor",
+   "initials": "DO",
+   "avatarUrl": "http://localhost:8000/static/avatars/u_0042.png",
+   "profileVisibility": "public"
   }
+ },
+ "shareMeetup": {
+  "shareId": "sh_0001",
+  "activityType": "ceramics_studio",
+  "caption": "Three strangers, three lopsided bowls. Coming back next week.",
+  "venue": {
+   "venueId": "vn_hayes_clay",
+   "name": "Hayes Clay Studio",
+   "neighborhood": "Hayes Valley"
+  },
+  "groupSize": 3,
+  "happenedOn": "2026-11-14",
+  "photoUrl": "http://localhost:8000/static/venues/vn_hayes_clay.jpg",
+  "likes": 0,
+  "likedByMe": false,
+  "mine": true,
+  "promptText": "Wheel-throwing drop-in at Hayes Clay Studio this weekend"
+ },
+ "listShares": {
+  "items": [
+   {
+    "shareId": "sh_0001",
+    "activityType": "ceramics_studio",
+    "caption": "Three strangers, three lopsided bowls. Coming back next week.",
+    "venue": {
+     "venueId": "vn_hayes_clay",
+     "name": "Hayes Clay Studio",
+     "neighborhood": "Hayes Valley"
+    },
+    "groupSize": 3,
+    "happenedOn": "2026-11-14",
+    "photoUrl": "http://localhost:8000/static/venues/vn_hayes_clay.jpg",
+    "likes": 12,
+    "likedByMe": false,
+    "mine": false,
+    "promptText": "Wheel-throwing drop-in at Hayes Clay Studio this weekend"
+   },
+   {
+    "shareId": "sh_0002",
+    "activityType": "climbing_session",
+    "caption": "Nobody finished the purple V3. Tacos after.",
+    "venue": {
+     "venueId": "vn_basalt_bouldering",
+     "name": "Basalt Bouldering",
+     "neighborhood": "SoMa"
+    },
+    "groupSize": 4,
+    "happenedOn": "2026-11-08",
+    "photoUrl": "http://localhost:8000/static/venues/vn_basalt_bouldering.jpg",
+    "likes": 7,
+    "likedByMe": false,
+    "mine": false,
+    "promptText": "Bouldering at Basalt Bouldering this week"
+   }
+  ]
+ },
+ "likeShare": {
+  "shareId": "sh_0001",
+  "activityType": "ceramics_studio",
+  "caption": "Three strangers, three lopsided bowls. Coming back next week.",
+  "venue": {
+   "venueId": "vn_hayes_clay",
+   "name": "Hayes Clay Studio",
+   "neighborhood": "Hayes Valley"
+  },
+  "groupSize": 3,
+  "happenedOn": "2026-11-14",
+  "photoUrl": "http://localhost:8000/static/venues/vn_hayes_clay.jpg",
+  "likes": 13,
+  "likedByMe": true,
+  "mine": false,
+  "promptText": "Wheel-throwing drop-in at Hayes Clay Studio this weekend"
+ },
+ "decideApproval": {
+  "approvalId": "ap_0001",
+  "meetupId": "mt_0001",
+  "kind": "payment",
+  "status": "approved",
+  "title": "OK $35 for your wheel?",
+  "detail": "Muse pays $35 to Hayes Clay Studio for your wheel on Sat, Nov 14 · 10 AM–12 PM.",
+  "amountCents": 3500,
+  "currency": "USD",
+  "payee": "Hayes Clay Studio",
+  "simulated": true,
+  "fallback": "If you'd rather not, Muse asks Hayes Clay Studio to hold your wheel and you pay there.",
+  "expiresAt": "2026-11-13T18:00:00Z"
+ },
+ "listConnections": {
+  "items": [
+   {
+    "connectionId": "cn_0001",
+    "person": {
+     "userId": "u_0042",
+     "displayName": "Daniel Okafor",
+     "initials": "DO",
+     "avatarUrl": "http://localhost:8000/static/avatars/u_0042.png",
+     "profileVisibility": "public"
+    },
+    "sharedInterests": [
+     {
+      "id": "arts_crafts.ceramics.wheel_throwing",
+      "label": "Wheel throwing",
+      "path": [
+       "Arts & crafts",
+       "Ceramics",
+       "Wheel throwing"
+      ],
+      "level": 3
+     },
+     {
+      "id": "outdoors.hiking.coastal_hikes",
+      "label": "Coastal hikes",
+      "path": [
+       "Outdoors",
+       "Hiking",
+       "Coastal hikes"
+      ],
+      "level": 3
+     }
+    ],
+    "status": "new",
+    "meetupsTogether": 0,
+    "connectedAt": "2026-11-12T18:12:00Z",
+    "firstMetAt": null,
+    "canViewProfile": true,
+    "canPlanAgain": false
+   }
+  ]
+ },
+ "listMessages": {
+  "items": [
+   {
+    "messageId": "ms_0001",
+    "threadId": "th_0001",
+    "sender": {
+     "kind": "muse",
+     "userId": null
+    },
+    "text": "Maya, Daniel and Rosa, meet each other! You're all into wheel throwing, and Saturday's drop-in at Hayes Clay Studio is yours. I'm handling the booking and the calendar.",
+    "createdAt": "2026-11-12T18:12:01Z",
+    "clientId": null,
+    "toMuse": false,
+    "attachments": [
+     {
+      "kind": "starters",
+      "starters": [
+       "What was the first thing you ever made on a wheel?",
+       "Mugs or bowls?",
+       "Any favorite coastal trail for after?"
+      ]
+     },
+     {
+      "kind": "meetup",
+      "meetupId": "mt_0001"
+     }
+    ]
+   },
+   {
+    "messageId": "ms_0002",
+    "threadId": "th_0001",
+    "sender": {
+     "kind": "user",
+     "userId": "u_0042"
+    },
+    "text": "Hi both! Bowls, always. Muse, can we do 11 instead?",
+    "createdAt": "2026-11-12T18:14:10Z",
+    "clientId": null,
+    "toMuse": true,
+    "attachments": []
+   },
+   {
+    "messageId": "ms_0003",
+    "threadId": "th_0001",
+    "sender": {
+     "kind": "muse",
+     "userId": null
+    },
+    "text": "Done. Everyone's free at 11 and the studio has 3 wheels then, so I moved it. Your calendars are updated.",
+    "createdAt": "2026-11-12T18:14:16Z",
+    "clientId": null,
+    "toMuse": false,
+    "attachments": [
+     {
+      "kind": "muse_steps",
+      "meetupId": "mt_0001",
+      "stepIds": [
+       "st_0008",
+       "st_0009"
+      ]
+     }
+    ]
+   }
+  ]
+ }
 }

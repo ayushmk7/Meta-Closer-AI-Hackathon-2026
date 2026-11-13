@@ -24,6 +24,7 @@ import {
   type Nudge,
   type NudgeSurface,
   type PlanDetail,
+  type PublicPlan,
   type PublicProfile,
   type ReportRequest,
   type Setup,
@@ -209,6 +210,16 @@ export const api = {
     request<MuseReply>('askMuse', 'POST', '/v1/muse/ask', { text, conversationId }, LONG),
   getFeed: () => request<Feed>('getFeed', 'GET', '/v1/feed'),
   getPlan: (planId: string) => request<PlanDetail>('getPlan', 'GET', `/v1/plans/${e(planId)}`),
+  // Logged out: no X-CG-User (security: []).
+  getPublicPlan: (planId: string) =>
+    request<PublicPlan>(
+      'getPublicPlan',
+      'GET',
+      `/v1/public/plans/${e(planId)}`,
+      undefined,
+      undefined,
+      { anonymous: true },
+    ),
   createPlan: (text: string, inviteUserIds?: string[]) =>
     request<PlanDetail>('createPlan', 'POST', '/v1/plans', { text, inviteUserIds }, LONG),
   joinPlan: (planId: string, body: { size?: GroupSize; plusOne?: boolean } = {}) =>
