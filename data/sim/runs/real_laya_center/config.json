@@ -1,0 +1,28 @@
+{
+  "runId": "real_laya_center",
+  "poolId": "pool_sf_city",
+  "fakeLaya": false,
+  "world": "tables",
+  "seeds": 20,
+  "cells": [
+    {
+      "flake": 1.0,
+      "join": 1.0
+    }
+  ],
+  "centerCell": 12,
+  "policies": [
+    "random",
+    "greedy",
+    "common_ground",
+    "common_ground_learned"
+  ],
+  "people": 301,
+  "plans": 960,
+  "weeks": 8,
+  "joinDaily": 0.5,
+  "ablations": {},
+  "mainSeconds": 72.7,
+  "totalSeconds": 81.1,
+  "matching": "cg_matching"
+}

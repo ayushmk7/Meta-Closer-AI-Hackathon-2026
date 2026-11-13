@@ -1,0 +1,49 @@
+{
+  "runId": "eval-latest",
+  "source": "backend_export",
+  "pools": {
+    "pool_sf_city": {
+      "users": 301,
+      "interests_leaf": {
+        "tp": 1741,
+        "predicted": 2701,
+        "actual": 1774,
+        "precision": 0.6446,
+        "recall": 0.9814
+      },
+      "interests_level2": {
+        "tp": 1155,
+        "predicted": 1980,
+        "actual": 1186,
+        "precision": 0.5833,
+        "recall": 0.9739
+      },
+      "sensitive_interests": {
+        "tp": 0,
+        "predicted": 238,
+        "actual": 26,
+        "precision": 0.0,
+        "recall": 0.0
+      },
+      "sensitive_places": {
+        "tp": 30,
+        "predicted": 30,
+        "actual": 30,
+        "precision": 1.0,
+        "recall": 1.0
+      },
+      "frequent_places": {
+        "tp": 93,
+        "predicted": 116,
+        "actual": 123,
+        "precision": 0.8017,
+        "recall": 0.7561
+      },
+      "routines": {
+        "tp": 0,
+        "actual": 79,
+        "recall": 0.0
+      }
+    }
+  }
+}
