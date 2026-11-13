@@ -123,7 +123,7 @@ function TabShell({ children }: { children: ReactNode }) {
           <Label
             accessibilityRole="header"
             numberOfLines={1}
-            style={{ fontSize: 24, fontWeight: '800', flex: 1, marginLeft: 4 }}
+            style={{ fontSize: 24, lineHeight: 30, fontWeight: '800', flex: 1, marginLeft: 4 }}
           >
             {ownTab.label}
           </Label>
