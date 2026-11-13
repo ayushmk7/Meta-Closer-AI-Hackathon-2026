@@ -613,3 +613,26 @@ test('demo mock: seeded progress and a join from today; finishing a meetup unloc
   );
   resetMock();
 });
+
+test('mock Muse bar filters plans by the words asked', async () => {
+  resetMock();
+  type Json = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any -- raw mock JSON
+  const ask = (text: string) =>
+    mockRequest('u_maya', 'POST', '/v1/muse/ask', { text }) as Promise<Json>;
+  await mockRequest('u_maya', 'POST', '/v1/optin', { mode: 'city' });
+  const games = await ask('board games wednesday');
+  assert.deepEqual(
+    games.plans.map((p: Json) => p.planId),
+    ['pl_0002'],
+  );
+  assert.equal(games.reply.text, 'Got it, I filtered for board games wednesday.');
+  const pottery = await ask('pottery this weekend');
+  assert.deepEqual(
+    pottery.plans.map((p: Json) => p.planId),
+    ['pl_0001'],
+  );
+  const none = await ask('zzz');
+  assert.deepEqual(none.plans, []);
+  assert.equal(none.reply.text, 'Nothing matches that yet. Try another day or activity.');
+  resetMock();
+});
