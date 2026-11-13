@@ -26,6 +26,7 @@ import type {
   Signal,
   Thread,
 } from './types';
+import { TZ } from './types';
 
 const clone = <T>(x: T): T => JSON.parse(JSON.stringify(x)) as T;
 const F = fixtures as unknown as {
@@ -554,14 +555,17 @@ on('POST', '/v1/threads/{id}/read', ([id]) => {
 });
 on('POST', '/v1/reports', () => ({ reportId: nextId('rp_') }));
 on('POST', '/v1/blocks', () => undefined);
-on('GET', '/v1/shares', (_, __, q) =>
+// Logged-out readers (no X-CG-User) never see likedByMe/mine as true.
+on('GET', '/v1/shares', (_, __, q, user) =>
   items(
-    w.shares.filter(
-      (x) =>
-        (!q.get('activityType') || x.activityType === q.get('activityType')) &&
-        (!q.get('neighborhood') || x.venue.neighborhood === q.get('neighborhood')) &&
-        (!q.get('venueId') || x.venue.venueId === q.get('venueId')),
-    ),
+    w.shares
+      .map((x) => (user ? x : { ...x, likedByMe: false, mine: false }))
+      .filter(
+        (x) =>
+          (!q.get('activityType') || x.activityType === q.get('activityType')) &&
+          (!q.get('neighborhood') || x.venue.neighborhood === q.get('neighborhood')) &&
+          (!q.get('venueId') || x.venue.venueId === q.get('venueId')),
+      ),
   ),
 );
 on('PUT', '/v1/shares/{id}/like', ([id], b) => {
@@ -586,7 +590,7 @@ on('POST', '/v1/meetups/{id}/share', ([id], b) => {
       neighborhood: m.venue.neighborhood ?? '',
     },
     groupSize: m.attendees.filter((a) => a.rsvp === 'going').length,
-    happenedOn: m.startsAt.slice(0, 10),
+    happenedOn: new Date(m.startsAt).toLocaleDateString('en-CA', { timeZone: TZ }), // LA date
     photoUrl: m.venue.photoUrl ?? null,
     likes: 0,
     likedByMe: false,
@@ -596,15 +600,19 @@ on('POST', '/v1/meetups/{id}/share', ([id], b) => {
   w.shares.unshift(x);
   return x;
 });
-// ponytail: each phone runs its own mock, so any code but my own confirms the next attendee.
+// ponytail: each phone runs its own mock, so any well-formed code but my own confirms the next
+// attendee (the other phone's code is unknown here).
 on('POST', '/v1/meetups/{id}/verify', ([id], b) => {
   const m = meetup(id);
   const code = String(b?.code ?? '')
     .trim()
     .toUpperCase();
+  if (!/^[A-Z0-9]{6}$/.test(code)) return { accepted: false, reason: 'invalid_code' };
   if (code === m.verifyCode) return { accepted: false, reason: 'self' };
+  if (m.status !== 'confirmed' && m.status !== 'completed')
+    return { accepted: false, reason: 'outside_window' };
   const other = m.attendees.find((a) => !a.isMe && a.rsvp === 'going' && !a.verified);
-  if (!code || !other) return { accepted: false, reason: code ? 'not_attendee' : 'invalid_code' };
+  if (!other) return { accepted: false, reason: 'not_attendee' };
   other.verified = true;
   mine(m).verified = true;
   return { accepted: true, person: other.person };
