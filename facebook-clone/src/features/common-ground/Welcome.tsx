@@ -8,6 +8,7 @@ import Animated from 'react-native-reanimated';
 import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { Button, Card, Divider, Label, Muted, useColors } from '../../ui/native';
+import { themes } from '../../ui/tokens';
 import { MuseAvatar } from './MuseBar';
 import ShareCard from './ShareCard';
 import { load, useCg } from './store';
@@ -45,7 +46,10 @@ export function Gallery({ max = 6 }: { max?: number }) {
   const shares = [...pinned, ...all.filter((s) => s.shareId !== share)];
   return (
     <>
-      <Label style={{ fontSize: 17, fontWeight: '700', paddingHorizontal: 16, paddingTop: 8 }}>
+      <Label
+        accessibilityRole="header"
+        style={{ fontSize: 17, fontWeight: '700', paddingHorizontal: 16, paddingTop: 8 }}
+      >
         What people did this week
       </Label>
       {shares.slice(0, max).map((s, i) => (
@@ -58,6 +62,7 @@ export function Gallery({ max = 6 }: { max?: number }) {
 }
 
 function Desktop() {
+  const c = useColors();
   return (
     <ScrollView contentContainerStyle={{ alignItems: 'center', paddingVertical: 72, gap: 8 }}>
       <View
@@ -83,12 +88,16 @@ function Desktop() {
             width: 396,
             padding: 16,
             gap: 12,
-            boxShadow: '0 2px 4px rgba(0,0,0,.1), 0 8px 16px rgba(0,0,0,.1)',
+            // Dark: no shadow (invisible on the dark canvas); the card fill already separates it.
+            boxShadow:
+              c === themes.dark ? undefined : '0 2px 4px rgba(0,0,0,.1), 0 8px 16px rgba(0,0,0,.1)',
           }}
         >
           <View style={{ alignItems: 'center', gap: 8, paddingVertical: 8 }}>
             <MuseAvatar size={48} />
-            <Label style={{ fontSize: 17, fontWeight: '700' }}>Meetups</Label>
+            <Label accessibilityRole="header" style={{ fontSize: 17, fontWeight: '700' }}>
+              Meetups
+            </Label>
           </View>
           <Button title="Log in" onPress={enter} style={{ minHeight: 48 }} />
           <Divider />
