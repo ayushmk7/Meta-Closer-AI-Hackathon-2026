@@ -39,10 +39,10 @@ import {
 // Day in the plan's timezone (CONTRACTS Decisions), not the phone's.
 const day = (d: Date | string, opts: Intl.DateTimeFormatOptions = {}) =>
   new Date(d).toLocaleDateString('en-US', { ...opts, timeZone: TZ });
-const firstName = (a: Attendee) =>
-  a.person.profileVisibility === 'private'
-    ? personName(a.person).split(' ')[0]!
-    : personName(a.person);
+// First names everywhere ("You and Daniel are verified."); full names only in Who's coming.
+const firstName = (a: Attendee) => personName(a.person).split(' ')[0]!;
+const listName = (a: Attendee) =>
+  a.person.profileVisibility === 'private' ? firstName(a) : personName(a.person);
 const PAYMENT: Record<string, string> = {
   not_needed: 'Nothing to pay',
   pending_approval: 'Waiting for your OK',
@@ -299,7 +299,8 @@ export default function MeetupScreen() {
             {going.map((a) => (
               <PersonAvatar key={a.person.userId} person={a.person} size={32} />
             ))}
-            <Muted style={{ marginLeft: 6 }}>{going.length} going</Muted>
+            {/* eventLabel already carries the count ("Private event · 3 going") */}
+            {!m.eventLabel && <Muted style={{ marginLeft: 6 }}>{going.length} going</Muted>}
           </View>
         </View>
       </Card>
@@ -322,7 +323,7 @@ export default function MeetupScreen() {
           const canOpen = !a.isMe && a.person.profileVisibility === 'public';
           const status =
             a.status === 'arrived' ? 'Arrived' : a.status === 'on_my_way' ? 'On my way' : null;
-          const name = a.isMe ? 'You' : firstName(a);
+          const name = a.isMe ? 'You' : listName(a);
           return (
             <Pressable
               key={a.person.userId}

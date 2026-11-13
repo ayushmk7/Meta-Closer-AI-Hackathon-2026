@@ -164,9 +164,13 @@ export default function WelcomeScreen() {
   useEffect(() => void load.shares({}, { anonymous: true }), []);
   return (
     <Modal visible animationType="none" presentationStyle="fullScreen" onRequestClose={enter}>
-      <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: c.canvas }}>
-        {width >= 900 ? <Desktop /> : <Phone />}
-      </SafeAreaView>
+      {/* Web: the Modal's focus trap focuses its first focusable descendant on open. A
+          non-tabbable root takes it, so no button shows a focus ring on load. */}
+      <View tabIndex={-1} style={{ flex: 1 }}>
+        <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: c.canvas }}>
+          {width >= 900 ? <Desktop /> : <Phone />}
+        </SafeAreaView>
+      </View>
     </Modal>
   );
 }

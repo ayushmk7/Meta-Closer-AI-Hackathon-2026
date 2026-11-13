@@ -152,11 +152,14 @@ export default function ShareCard({
         </Label>
       )}
       <SharePhoto share={share} height={220} />
-      <View style={{ flexDirection: 'row', alignItems: 'center', padding: 12, gap: 4 }}>
-        <Icon name="thumbs-up" size={15} color={c.blue} />
-        <Muted style={{ flex: 1 }}>{share.likes}</Muted>
-        <Muted>{activityLabel(share.activityType)}</Muted>
-      </View>
+      {/* Facebook hides the reactions row until there is one. */}
+      {share.likes > 0 && (
+        <View style={{ flexDirection: 'row', alignItems: 'center', padding: 12, gap: 4 }}>
+          <Icon name="thumbs-up" size={15} color={c.blue} />
+          <Muted style={{ flex: 1 }}>{share.likes}</Muted>
+          <Muted>{activityLabel(share.activityType)}</Muted>
+        </View>
+      )}
       {!readOnly && (
         <>
           <View style={{ marginHorizontal: 12 }}>
