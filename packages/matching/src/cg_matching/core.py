@@ -94,9 +94,13 @@ def build_vectors(pool: PoolSnapshot, params: Params) -> Vectors:
     return out
 
 
-def _cos(a: dict[str, float], b: dict[str, float]) -> float:
+def _norm(v: dict[str, float]) -> float:
+    return math.sqrt(sum(w * w for w in v.values()))
+
+
+def _cos(a: dict[str, float], b: dict[str, float], na: float | None = None, nb: float | None = None) -> float:
     dot = sum(w * b[k] for k, w in a.items() if k in b)
-    na, nb = math.sqrt(sum(w * w for w in a.values())), math.sqrt(sum(w * w for w in b.values()))
+    na, nb = _norm(a) if na is None else na, _norm(b) if nb is None else nb
     return dot / (na * nb) if na and nb else 0.0
 
 
@@ -117,9 +121,11 @@ def candidates(pool: PoolSnapshot, vectors: Vectors, params: Params) -> dict[str
         # Bands outside matching.ageBands (30_34) only pair within their own band.
         return ua["ageBand"] == ub["ageBand"] or (ua["ageBand"] in bands and ub["ageBand"] in bands)
 
+    norm = {u: _norm(vectors[u]) for u in ids}  # once per user, not once per pair
     out: dict[str, list[tuple[str, float]]] = {u: [] for u in sorted(users)}
     for a in ids:
-        scored = [(b, round(_cos(vectors[a], vectors[b]), 6)) for b in ids if b != a and ok(a, b)]
+        va, na = vectors[a], norm[a]
+        scored = [(b, round(_cos(va, vectors[b], na, norm[b]), 6)) for b in ids if b != a and ok(a, b)]
         scored = sorted((s for s in scored if s[1] >= m["minCosine"]), key=lambda s: (-s[1], s[0]))
         out[a] = scored[: m["knnK"]]
     return out
