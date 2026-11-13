@@ -64,6 +64,10 @@ export function pickPhoto(): Promise<string | null> {
     input.click();
   });
 }
+// ponytail: web runs on the mock, which only has media keys.
+export async function importPhoto(_url: string): Promise<string | null> {
+  return null;
+}
 export async function clearOwnedPhotos(): Promise<void> {
   /* Photos live inside the namespaced web state. */
 }

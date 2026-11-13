@@ -32,6 +32,17 @@ export async function pickPhoto(): Promise<string | null> {
     );
   }
 }
+// Copies a remote photo into owned storage so validMedia accepts it; null if the download fails.
+export async function importPhoto(url: string): Promise<string | null> {
+  try {
+    const directory = photosDirectory();
+    directory.create({ intermediates: true, idempotent: true });
+    const destination = new File(directory, `photo-${Date.now()}-${++photoSequence}.jpg`);
+    return (await File.downloadFileAsync(url, destination)).uri;
+  } catch {
+    return null;
+  }
+}
 export async function clearOwnedPhotos(): Promise<void> {
   const directory = photosDirectory();
   if (directory.exists) directory.delete();
