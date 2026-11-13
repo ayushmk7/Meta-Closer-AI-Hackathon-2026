@@ -18,7 +18,7 @@ def test_empty():
     assert r == {
         "confirmedMeetups": 0,
         "streakWeeks": 0,
-        "nextUnlock": {"unlockId": "create_plans", "label": "Create your own plans", "remaining": 1},
+        "nextUnlock": {"unlockId": "create_plans", "label": "Create your own meetups", "remaining": 1},
     }
 
 

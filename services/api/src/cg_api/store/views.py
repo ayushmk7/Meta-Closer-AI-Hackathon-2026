@@ -80,7 +80,7 @@ def capabilities(uid: str) -> dict:
         "canCreatePlans": "create_plans" in earned,
         "maxGroupSize": p["groups"]["sizeMax"] if bigger else p["plans"]["defaultSize"]["max"],
         "groupOnly": True,
-        "openJoinsMax": p["plans"]["openJoinsMax"] + (2 if bigger else 0),  # params.unlocks label: "2 more open plans"
+        "openJoinsMax": p["plans"]["openJoinsMax"] + (2 if bigger else 0),  # params.unlocks label: "2 more open meetups"
     }
 
 
