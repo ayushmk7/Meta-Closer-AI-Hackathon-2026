@@ -73,6 +73,7 @@ export interface CgState {
   lastMode: Mode | null;
   drafts: Record<string, string>;
   storyPrompt: Record<string, 'posted' | 'dismissed'>; // meetupId -> my after-meetup story choice
+  passportSeen: string[]; // earned stamp ids (kind:key) already shown on Passport
   // Device bookkeeping (C1-allowed): calendar.ts and notifications.ts own these.
   calendar: CalendarPrefs;
   reminders: Record<string, { id: string; at: string }>;
@@ -88,6 +89,7 @@ const PREFS = [
   'lastMode',
   'drafts',
   'storyPrompt',
+  'passportSeen',
   'calendar',
   'reminders',
 ] as const;
@@ -121,6 +123,7 @@ const initial = (): CgState => ({
   lastMode: null,
   drafts: {},
   storyPrompt: {},
+  passportSeen: [],
   calendar: { id: null, events: {}, applied: [] },
   reminders: {},
 });
@@ -267,6 +270,7 @@ export function start(): Promise<void> {
         drafts: saved.drafts && typeof saved.drafts === 'object' ? saved.drafts : {},
         storyPrompt:
           saved.storyPrompt && typeof saved.storyPrompt === 'object' ? saved.storyPrompt : {},
+        passportSeen: Array.isArray(saved.passportSeen) ? saved.passportSeen : [],
         calendar: saved.calendar?.events ? saved.calendar : state.calendar,
         reminders: saved.reminders && typeof saved.reminders === 'object' ? saved.reminders : {},
       };
@@ -581,7 +585,8 @@ export async function setIdentity(userId: string | null): Promise<void> {
   gen++;
   stopRealtime();
   starting = null;
-  const { homeCardDismissed, lastMode, drafts, storyPrompt, calendar, reminders } = state;
+  const { homeCardDismissed, lastMode, drafts, storyPrompt, passportSeen, calendar, reminders } =
+    state;
   setState({
     ...initial(),
     userOverride: userId,
@@ -589,6 +594,7 @@ export async function setIdentity(userId: string | null): Promise<void> {
     lastMode,
     drafts,
     storyPrompt,
+    passportSeen,
     calendar,
     reminders,
   });

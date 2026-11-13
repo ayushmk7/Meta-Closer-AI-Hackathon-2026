@@ -174,6 +174,30 @@ test('Passport shows collected and locked stamps', async () => {
   await renderer.act(async () => tree.unmount());
 });
 
+test('Passport: fresh stamps pop once with one haptic, then stay still', async () => {
+  const Haptics = require('expo-haptics');
+  const { Pop } = require('../../src/features/common-ground/ui');
+  const m = fixtures.getMeetup;
+  const done = {
+    ...m,
+    status: 'completed',
+    attendees: m.attendees.map((x) => (x.isMe ? { ...x, checkedIn: true } : x)),
+  };
+  await renderer.act(async () =>
+    store.setState({ meetups: { [m.meetupId]: done }, feed: fixtures.getFeed, passportSeen: [] }),
+  );
+  Haptics.notificationAsync.mockClear();
+  const first = await render(React.createElement(Passport));
+  expect(first.tree.root.findAllByType(Pop)).toHaveLength(3);
+  expect(Haptics.notificationAsync).toHaveBeenCalledTimes(1);
+  expect(store.getState().passportSeen).toHaveLength(3);
+  await renderer.act(async () => first.tree.unmount());
+  const again = await render(React.createElement(Passport));
+  expect(again.tree.root.findAllByType(Pop)).toHaveLength(0);
+  expect(Haptics.notificationAsync).toHaveBeenCalledTimes(1);
+  await renderer.act(async () => again.tree.unmount());
+});
+
 test('a meetup I am newly verified at ticks Verify in person once', async () => {
   delete mockSaved[KEY];
   const m = fixtures.getMeetup;

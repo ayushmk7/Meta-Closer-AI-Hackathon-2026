@@ -1,7 +1,8 @@
 // Passport: a stamp per distinct activity, neighborhood and place I've met at. Private to the user.
-import { useEffect, useMemo, type ComponentProps } from 'react';
+import { useEffect, useMemo, useState, type ComponentProps } from 'react';
 import { Platform, Share, View } from 'react-native';
 import Animated from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
 import * as Linking from 'expo-linking';
 import { router } from 'expo-router';
 import {
@@ -18,9 +19,8 @@ import {
 } from '../../ui/native';
 import { activityIcon } from './PlanCard';
 import { shareText, stamps, type Stamp, type StampKind } from './stamps';
-import { PopOn } from './Rewards';
-import { getState, load, useCg } from './store';
-import { Banners, enter, selectedBg } from './ui';
+import { getState, load, setState, useCg } from './store';
+import { Banners, Pop, enter, selectedBg } from './ui';
 
 type IconName = ComponentProps<typeof Icon>['name'];
 const SECTIONS: { kind: StampKind; title: string }[] = [
@@ -61,11 +61,60 @@ const tilt = (key: string) => {
   return (Math.abs(h) % 17) - 8;
 };
 
-function StampTile({ stamp, i }: { stamp: Stamp; i: number }) {
+const stampId = (x: Stamp) => `${x.kind}:${x.key}`;
+
+function StampTile({ stamp, i, fresh }: { stamp: Stamp; i: number; fresh: boolean }) {
   const c = useColors();
   const on = stamp.earned;
   const ring = on ? c.blue : c.divider;
   const ink = on ? c.blue : c.secondary;
+  const stampArt = (
+    <View
+      style={{
+        width: 72,
+        height: 72,
+        borderRadius: 36,
+        borderWidth: 2,
+        borderColor: ring,
+        borderStyle: on ? 'solid' : 'dashed',
+        backgroundColor: on ? selectedBg(c) : 'transparent',
+        alignItems: 'center',
+        justifyContent: 'center',
+        transform: [{ rotate: `${tilt(stamp.key)}deg` }],
+      }}
+    >
+      <View
+        style={{
+          width: 60,
+          height: 60,
+          borderRadius: 30,
+          borderWidth: 1,
+          borderColor: ring,
+          borderStyle: 'dashed',
+          alignItems: 'center',
+          justifyContent: 'center',
+          opacity: on ? 1 : 0.45,
+        }}
+      >
+        {stamp.kind === 'neighborhood' ? (
+          <>
+            <Label style={{ fontSize: 20, lineHeight: 24, fontWeight: '800', color: ink }}>
+              {monogram(stamp.label)}
+            </Label>
+            <View style={{ position: 'absolute', bottom: 3 }}>
+              <Icon name={on ? 'location' : 'location-outline'} size={12} color={ink} />
+            </View>
+          </>
+        ) : (
+          <Icon
+            name={(on ? art(stamp) : `${art(stamp)}-outline`) as IconName}
+            size={28}
+            color={ink}
+          />
+        )}
+      </View>
+    </View>
+  );
   return (
     <Animated.View
       entering={enter(Math.min(i, 8))}
@@ -73,54 +122,7 @@ function StampTile({ stamp, i }: { stamp: Stamp; i: number }) {
       accessibilityLabel={`${stamp.label}, ${on ? `collected ${stamp.earnedOn ?? ''}`.trim() : 'not collected yet'}`}
       style={{ width: 96, alignItems: 'center', gap: 6 }}
     >
-      {/* ponytail: pops on the earned transition while open; "new since last visit" needs seen-key storage. */}
-      <PopOn on={on}>
-        <View
-          style={{
-            width: 72,
-            height: 72,
-            borderRadius: 36,
-            borderWidth: 2,
-            borderColor: ring,
-            borderStyle: on ? 'solid' : 'dashed',
-            backgroundColor: on ? selectedBg(c) : 'transparent',
-            alignItems: 'center',
-            justifyContent: 'center',
-            transform: [{ rotate: `${tilt(stamp.key)}deg` }],
-          }}
-        >
-          <View
-            style={{
-              width: 60,
-              height: 60,
-              borderRadius: 30,
-              borderWidth: 1,
-              borderColor: ring,
-              borderStyle: 'dashed',
-              alignItems: 'center',
-              justifyContent: 'center',
-              opacity: on ? 1 : 0.45,
-            }}
-          >
-            {stamp.kind === 'neighborhood' ? (
-              <>
-                <Label style={{ fontSize: 20, lineHeight: 24, fontWeight: '800', color: ink }}>
-                  {monogram(stamp.label)}
-                </Label>
-                <View style={{ position: 'absolute', bottom: 3 }}>
-                  <Icon name={on ? 'location' : 'location-outline'} size={12} color={ink} />
-                </View>
-              </>
-            ) : (
-              <Icon
-                name={(on ? art(stamp) : `${art(stamp)}-outline`) as IconName}
-                size={28}
-                color={ink}
-              />
-            )}
-          </View>
-        </View>
-      </PopOn>
+      {fresh ? <Pop>{stampArt}</Pop> : stampArt}
       <Label
         numberOfLines={2}
         style={{
@@ -156,6 +158,17 @@ export default function PassportScreen() {
     [meetups, feed, plans],
   );
   const earned = all.filter((x) => x.earned).length;
+  // Stamps earned since my last visit pop once. Seen ids are read at open so the pop survives the save.
+  const [seenAtOpen] = useState(() => new Set(getState().passportSeen));
+  const fresh = all
+    .filter((x) => x.earned && !seenAtOpen.has(stampId(x)))
+    .map(stampId)
+    .join('\n');
+  useEffect(() => {
+    if (!fresh) return;
+    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+    setState({ passportSeen: [...new Set([...getState().passportSeen, ...fresh.split('\n')])] });
+  }, [fresh]);
   // Own stamps only, on the user's tap (CONTRACTS Decisions: Quests and Passport stay client-side).
   const share = () =>
     void Share.share({
@@ -253,7 +266,12 @@ export default function PassportScreen() {
             </View>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
               {items.map((x, i) => (
-                <StampTile key={x.key} stamp={x} i={i} />
+                <StampTile
+                  key={x.key}
+                  stamp={x}
+                  i={i}
+                  fresh={x.earned && !seenAtOpen.has(stampId(x))}
+                />
               ))}
             </View>
           </Card>

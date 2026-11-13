@@ -1,6 +1,6 @@
 // Meetup (PRD-1 §8.3): header, Muse's steps, approvals, who's coming, details, day of, feedback.
 import { useEffect, useRef, useState } from 'react';
-import { Alert, Linking, Platform, Pressable, Share, View } from 'react-native';
+import { Alert, Linking, Platform, Pressable, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import {
   Button,
@@ -221,6 +221,13 @@ export default function MeetupScreen() {
   const m = useCg((s) => s.meetups[meetupId]);
   const config = useCg((s) => s.config);
   const ready = useCg((s) => s.ready);
+  // Invite plans 404 on the public page, so no Share for them (same rule as the plan pop-up).
+  const origin = useCg((s) => (m ? s.plans[m.planId]?.origin : undefined));
+  const storyDone = useCg((s) => !!s.storyPrompt[meetupId]);
+  const planId = m?.planId;
+  useEffect(() => {
+    if (planId && !getState().plans[planId]) void load.plan(planId);
+  }, [planId]);
   const [stepsOpen, setStepsOpen] = useState(false);
   const [feedbackSent, setFeedbackSent] = useState(false);
   const [checkin, setCheckin] = useState<string | null>(null);
@@ -308,7 +315,7 @@ export default function MeetupScreen() {
           plan={{ venue: m.venue, activityType: m.activityType } as PlanCard}
           height={200}
         />
-        <SharePlanButton plan={m} />
+        {origin && origin !== 'invite' && <SharePlanButton plan={m} />}
         <View style={{ padding: 16, gap: 6 }}>
           <Label style={{ color: c.badge, fontWeight: '700', fontSize: 13 }}>
             {when(m.startsAt).toUpperCase()}
@@ -447,29 +454,20 @@ export default function MeetupScreen() {
             <Muted>Leave by {clock(m.travel.leaveBy)}</Muted>
           </Row>
         )}
-        {(m.status === 'setting_up' || m.status === 'confirmed') && (
-          <View
-            accessible
-            accessibilityLabel="Coming soon: Muse will soon call venues to book for you"
-          >
-            <Row icon="call-outline">
-              <Label style={{ color: c.secondary }}>
-                Muse will soon call venues to book for you
-              </Label>
-              <Muted>Coming soon</Muted>
-            </Row>
-          </View>
-        )}
-        <Button
-          title="Share"
-          icon="share-outline"
-          secondary
-          onPress={() =>
-            void Share.share({
-              message: `${m.title} · ${when(m.startsAt)} · ${m.venue.name}`,
-            }).catch(() => {})
-          }
-        />
+        {m.booking.status !== 'booked' &&
+          (m.status === 'setting_up' || m.status === 'confirmed') && (
+            <View
+              accessible
+              accessibilityLabel="Coming soon: Muse will soon call venues to book for you"
+            >
+              <Row icon="call-outline">
+                <Label style={{ color: c.secondary }}>
+                  Muse will soon call venues to book for you
+                </Label>
+                <Muted>Coming soon</Muted>
+              </Row>
+            </View>
+          )}
       </Section>
 
       {(dayOf || canCheckIn) && (
@@ -515,7 +513,8 @@ export default function MeetupScreen() {
         m.feedbackDue && <Feedback m={m} onSent={() => setFeedbackSent(true)} />
       )}
       <StoryPrompt m={m} />
-      <ShareMeetup m={m} />
+      {/* The story card keeps the one primary while it shows. */}
+      <ShareMeetup m={m} secondary={!!m.venue.photoUrl && !storyDone} />
       <SameTimeNextWeek m={m} />
 
       {!left && m.status !== 'cancelled' && m.status !== 'completed' && (

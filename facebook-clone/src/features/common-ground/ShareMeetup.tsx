@@ -7,7 +7,7 @@ import type { Meetup } from './types';
 
 const MAX = 140;
 
-export default function ShareMeetup({ m }: { m: Meetup }) {
+export default function ShareMeetup({ m, secondary }: { m: Meetup; secondary?: boolean }) {
   const [caption, setCaption] = useState('');
   const [sending, setSending] = useState(false);
   const [shared, setShared] = useState(false);
@@ -48,6 +48,7 @@ export default function ShareMeetup({ m }: { m: Meetup }) {
         </Muted>
         <Button
           title="Share to Explore"
+          secondary={secondary}
           disabled={sending || !caption.trim()}
           onPress={() => void send()}
         />
