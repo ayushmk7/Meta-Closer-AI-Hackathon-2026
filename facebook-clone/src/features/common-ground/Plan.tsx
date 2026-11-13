@@ -1,6 +1,15 @@
 // Plan pop-up (PRD-1 §8.2). Who's in is counts only (C5).
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Linking, Platform, Pressable, Switch, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  Linking,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Switch,
+  View,
+} from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { router, useLocalSearchParams } from 'expo-router';
 import {
@@ -20,7 +29,17 @@ import { getState, join, load, useCg, withdraw } from './store';
 import { planMessage, shareOut } from './share';
 import { pickSurprise } from './SurpriseButton';
 import type { GroupSize, PlanDetail } from './types';
-import { Banners, GroupSizePicker, NotFound, PersonAvatar, Pop, Section, usePoll } from './ui';
+import {
+  Banners,
+  GroupSizePicker,
+  NotFound,
+  PersonAvatar,
+  Pill,
+  Pop,
+  Section,
+  usePoll,
+} from './ui';
+import { when } from './time';
 import VenueMap from './VenueMap';
 
 // "google_maps" -> "Google Maps" when no connector label is known.
@@ -30,7 +49,7 @@ export const sourceName = (source: string, labels: Record<string, string>) =>
 // Not opted in (e.g. a cold deep link after a reset): offer setup instead of the API's 403.
 export function SetupPrompt() {
   return (
-    <Card style={{ margin: 16, padding: 16, gap: 8 }}>
+    <Card style={{ marginVertical: 16, padding: 16, gap: 8 }}>
       <Label accessibilityRole="header" style={{ fontSize: 17, fontWeight: '700' }}>
         Meetups
       </Label>
@@ -73,8 +92,8 @@ export function SharePlanButton({ plan }: { plan: Parameters<typeof planMessage>
     <View
       style={{
         position: 'absolute',
-        top: 8,
-        right: 8,
+        top: 12,
+        right: 12,
         borderRadius: 22,
         backgroundColor: 'rgba(0,0,0,0.4)',
       }}
@@ -177,13 +196,18 @@ export function BottomBar({ plan, surprise = false }: { plan: PlanDetail; surpri
     );
   }
   if (myJoin?.status === 'not_filled')
-    return <Muted style={{ textAlign: 'center' }}>This one didn&apos;t fill</Muted>;
+    return (
+      <View style={{ gap: 8 }}>
+        <Muted style={{ textAlign: 'center' }}>This one didn&apos;t fill</Muted>
+        <Button title="See other meetups" secondary onPress={() => go('/common-ground')} />
+      </View>
+    );
   if (plan.status !== 'open')
     return <Muted style={{ textAlign: 'center' }}>{`This meetup is ${plan.status}`}</Muted>;
 
   const current = size ?? clamp(plan.size, bounds);
   return (
-    <View style={{ gap: 8 }}>
+    <View>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
         <Button
           title="I'm in"
@@ -208,17 +232,15 @@ export function BottomBar({ plan, surprise = false }: { plan: PlanDetail; surpri
             <Label style={{ color: c.blue, fontWeight: '600' }}>Try another</Label>
           </Pressable>
         )}
-      </View>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+        {/* One footer row: the size link sits beside the primary action, not under it. */}
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={`Group size, ${current.min} to ${current.max} people`}
           onPress={() => setSizing(true)}
-          style={{ minHeight: 44, justifyContent: 'center', flex: 1 }}
+          style={{ minHeight: 44, justifyContent: 'center' }}
         >
           <Label style={{ color: c.blue, fontWeight: '600' }}>
-            Group size ·{' '}
-            {current.min === current.max ? current.min : `${current.min}–${current.max}`}
+            {current.min === current.max ? current.min : `${current.min}–${current.max}`} people
           </Label>
         </Pressable>
         {plusOneOn && (
@@ -229,6 +251,7 @@ export function BottomBar({ plan, surprise = false }: { plan: PlanDetail; surpri
               value={plusOne}
               onValueChange={setPlusOne}
               trackColor={{ false: c.secondary, true: c.blue }}
+              ios_backgroundColor={c.divider} // iOS ignores trackColor.false
               thumbColor="#fff"
               {...{ activeThumbColor: '#fff' }} // RN-web ignores thumbColor when on (default teal)
             />
@@ -281,7 +304,7 @@ export default function PlanScreen() {
       </Page>
     );
   const labels = Object.fromEntries(connectors.map((x) => [x.provider, x.label]));
-  const meta = [dayTime(plan.startsAt), duration(plan.durationMin), plan.cost.label].join(' · ');
+  const meta = [duration(plan.durationMin), plan.cost.label].join(' · ');
   return (
     <View style={{ flex: 1, backgroundColor: c.card }}>
       <Banners />
@@ -300,14 +323,34 @@ export default function PlanScreen() {
                 </Label>
               </View>
             )}
+            {/* Same anatomy as the Meetup header: date line, title, venue, address link. */}
+            <Label style={{ color: c.badge, fontWeight: '700', fontSize: 13, lineHeight: 18 }}>
+              {when(plan.startsAt).toUpperCase()}
+            </Label>
             <Label
               accessibilityRole="header"
               style={{ fontSize: 25, lineHeight: 31, fontWeight: '800' }}
             >
               {plan.title}
             </Label>
-            <Label>{plan.venue.name}</Label>
-            {!!plan.venue.address && <Muted>{plan.venue.address}</Muted>}
+            <Muted>{[plan.venue.name, plan.venue.neighborhood].filter(Boolean).join(' · ')}</Muted>
+            {!!plan.venue.address &&
+              (plan.directions?.apple ? (
+                <Pressable
+                  accessibilityRole="link"
+                  accessibilityLabel="Directions"
+                  accessibilityHint={plan.venue.address}
+                  onPress={() => void Linking.openURL(plan.directions.apple).catch(() => {})}
+                  style={{ minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 6 }}
+                >
+                  <Icon name="navigate-outline" size={16} color={c.blue} />
+                  <Label style={{ color: c.blue, fontWeight: '600', flexShrink: 1 }}>
+                    {plan.venue.address}
+                  </Label>
+                </Pressable>
+              ) : (
+                <Muted>{plan.venue.address}</Muted>
+              ))}
             <Label>{meta}</Label>
             {!!plan.description && <Muted>{plan.description}</Muted>}
           </View>
@@ -343,7 +386,7 @@ export default function PlanScreen() {
             <Block title="Muse will handle">
               {plan.museWillHandle.map((t) => (
                 <View key={t} style={{ flexDirection: 'row', gap: 8 }}>
-                  <Icon name="checkmark" size={18} color={c.secondary} />
+                  <Icon name="checkmark-circle" size={16} color={c.secondary} />
                   <Label style={{ flex: 1 }}>{t}</Label>
                 </View>
               ))}
@@ -360,32 +403,22 @@ export default function PlanScreen() {
             <Block title="Other times">
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
                 {plan.alternatives.map((a) => (
-                  <Button
+                  <Pill
                     key={a.planId}
-                    title={dayTime(a.startsAt)}
+                    label={dayTime(a.startsAt)}
                     accessibilityLabel={`${a.title}, ${dayTime(a.startsAt)}`}
-                    secondary
                     onPress={() => go(`/common-ground/plan/${a.planId}`)}
                   />
                 ))}
               </View>
             </Block>
           )}
-          {!!plan.directions?.apple && (
-            <Pressable
-              accessibilityRole="link"
-              onPress={() => void Linking.openURL(plan.directions.apple).catch(() => {})}
-              style={{ minHeight: 44, justifyContent: 'center', paddingHorizontal: 16 }}
-            >
-              <Label style={{ color: c.blue, fontWeight: '600' }}>Directions</Label>
-            </Pressable>
-          )}
         </View>
       </Page>
       <View
         style={{
           padding: 16,
-          borderTopWidth: 1,
+          borderTopWidth: StyleSheet.hairlineWidth,
           borderTopColor: c.divider,
           backgroundColor: c.card,
         }}

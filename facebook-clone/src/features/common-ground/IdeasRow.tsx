@@ -51,7 +51,7 @@ export default function IdeasRow() {
             })}
           >
             <SharePhoto share={s} height={100} />
-            <View style={{ padding: 10, gap: 2 }}>
+            <View style={{ padding: 12, gap: 2 }}>
               <Label style={{ fontWeight: '700' }} numberOfLines={1}>
                 {activityLabel(s.activityType)}
               </Label>

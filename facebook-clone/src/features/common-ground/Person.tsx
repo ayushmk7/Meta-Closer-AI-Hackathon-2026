@@ -73,7 +73,7 @@ export default function PersonScreen() {
         </Muted>
         {profile.sharedInterests.length > 0 && (
           <>
-            <Label style={{ fontWeight: '700' }}>You both like</Label>
+            <Label style={{ fontSize: 17, fontWeight: '700' }}>You both like</Label>
             <InterestChips interests={profile.sharedInterests} />
           </>
         )}
