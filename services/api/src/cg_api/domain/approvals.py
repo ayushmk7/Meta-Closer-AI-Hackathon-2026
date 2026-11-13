@@ -88,10 +88,10 @@ def decide(w: World, viewer: str, approval_id: str, decision: str) -> dict:
         raise Fail(400, "validation_failed", "Couldn't read that answer. Choose approve or decline.")
     a = w.approvals.get(approval_id)
     if not a or a["userId"] != viewer:
-        raise not_found()
+        raise not_found("request")
     expire(w)
     if a["status"] != "pending":
-        raise Fail(409, "conflict", "This was already decided. Pull to refresh.")
+        raise Fail(409, "conflict", "This was already decided.")
     _settle(w, a, "approved" if decision == "approve" else "declined")
     return view(a)
 
