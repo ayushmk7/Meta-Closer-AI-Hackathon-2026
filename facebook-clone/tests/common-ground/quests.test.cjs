@@ -148,6 +148,9 @@ test('Passport shows collected and locked stamps', async () => {
     store.setState({ meetups: { [m.meetupId]: done }, feed: fixtures.getFeed }),
   );
   const { tree, labels } = await render(React.createElement(Passport));
+  await renderer.act(async () =>
+    store.setState({ config: { ...fixtures.getConfig, features: {} } }),
+  );
   // features.sharing off or missing: no Share button (batch5 plan §C).
   expect(labels()).not.toContain('Share your passport');
   await renderer.act(async () =>
