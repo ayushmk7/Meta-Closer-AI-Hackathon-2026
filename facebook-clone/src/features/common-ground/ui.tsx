@@ -110,7 +110,8 @@ export const personName = (p: PersonCard): string => p.displayName ?? 'Someone n
 export function PersonAvatar({ person, size = 40 }: { person: PersonCard; size?: number }) {
   const c = useColors();
   const box = { width: size, height: size, borderRadius: size / 2, backgroundColor: c.input };
-  const url = person.avatarUrl;
+  // The clone's viewer is u_maya (CONTRACTS §2): without a server photo, use her clone photo.
+  const url = person.avatarUrl ?? (person.userId === 'u_maya' ? 'asset:maya' : null);
   if (url)
     return (
       <Image

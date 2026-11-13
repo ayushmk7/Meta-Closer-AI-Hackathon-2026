@@ -540,6 +540,8 @@ test('shares and verify: optimistic like, share needs a finished meetup, verify,
   const mine = await shareMeetup('mt_0001', 'Bowls!');
   assert.equal(mine?.mine, true);
   assert.equal(mine?.happenedOn, '2026-11-14', 'LA local date');
+  const seededHayes = getState().shares.find((x) => x.shareId === 'sh_0001')!;
+  assert.notEqual(mine?.photoUrl, seededHayes.photoUrl, 'a new share gets its own photo');
   assert.equal(getState().shares[0]!.shareId, mine!.shareId);
 
   // Maya cannot create plans in the fixture, so it goes through the Muse bar.

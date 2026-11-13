@@ -75,3 +75,23 @@ test('a private person keeps initials on the circle, with a lock badge and no bl
   expect(r.root.findAllByType('BlurView')).toHaveLength(0);
   expect(JSON.stringify(r.toJSON())).toContain('"R"');
 });
+
+test("Maya (the clone's viewer) shows her profile photo when the server has none", () => {
+  const { PersonAvatar } = require('../../src/features/common-ground/ui');
+  let r;
+  renderer.act(() => {
+    r = renderer.create(
+      React.createElement(PersonAvatar, {
+        person: {
+          userId: 'u_maya',
+          displayName: 'Maya Chen',
+          initials: 'MC',
+          avatarUrl: null,
+          profileVisibility: 'public',
+        },
+      }),
+    );
+  });
+  expect(r.root.findAllByType('Image')).toHaveLength(1);
+  expect(JSON.stringify(r.toJSON())).not.toContain('"MC"');
+});

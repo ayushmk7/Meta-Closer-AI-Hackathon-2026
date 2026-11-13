@@ -58,7 +58,7 @@ export default function HomeCard() {
       {because && !nudge.text.includes(because.label) && <Muted>Because: {because.label}</Muted>}
       <View style={{ flexDirection: 'row', gap: 8, marginTop: 3 }}>
         <Button
-          title="Open plan"
+          title="See plan"
           onPress={() => go(`/common-ground/plan/${nudge.planId}`)}
           style={{ flex: 1 }}
         />
@@ -70,7 +70,7 @@ export default function HomeCard() {
         />
       </View>
       {because?.signalId && (
-        // Tertiary link (guide 2.6): lighter than the Open plan / Not now pair above.
+        // Tertiary link (guide 2.6): lighter than the See plan / Not now pair above.
         <Pressable
           accessibilityRole="button"
           onPress={() => void dismissNudge(nudge.nudgeId, 'signal')}
