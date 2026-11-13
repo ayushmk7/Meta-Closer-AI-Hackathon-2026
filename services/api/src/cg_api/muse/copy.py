@@ -264,9 +264,12 @@ class MuseCopy:
             {"role": "user", "content": f"{task}\nFacts: {json.dumps(facts, ensure_ascii=False, sort_keys=True)}"},
         ]
 
+    def _key(self, purpose: str, task: str, facts: dict) -> str:
+        return hashlib.sha256(f"{purpose}|{self._messages(task, facts)[1]['content']}".encode()).hexdigest()
+
     async def _ask(self, purpose: str, task: str, facts: dict, schema: dict = _TEXT, *, live: bool = False):
         msgs = self._messages(task, facts)
-        key = hashlib.sha256(f"{purpose}|{msgs[1]['content']}".encode()).hexdigest()
+        key = self._key(purpose, task, facts)
         if key in self.cache:
             return self.cache[key]
         if live:
@@ -375,15 +378,20 @@ class MuseCopy:
             return j["text"], st
         return intro_text(first_names, shared_labels, plan), starters(plan, shared_labels)
 
-    async def nudge(self, signal_label: str, plan: dict) -> tuple[str, str]:
-        """(title, text); ports.Copy.nudge is being widened to return both (bplat)."""
+    async def nudge(self, signal_label: str, plan: dict, unless_pending: bool = False) -> tuple[str, str] | None:
+        """(title, text); ports.Copy.nudge is being widened to return both (bplat). unless_pending: None instead of
+        the template while Muse's text for this nudge is still being fetched (template once that fill gives up)."""
         title, text = nudge(signal_label, plan)
-        j = await self._ask(
-            "copy.nudge",
+        task = (
             "A short nudge about the activity and the place: a title under 40 characters ending in ?, and one "
-            "sentence under 160 characters.",
-            {"signal": signal_label, "plan": public_plan(plan)},
-            _NUDGE,
+            "sentence under 160 characters."
         )
+        facts = {"signal": signal_label, "plan": public_plan(plan)}
+        j = await self._ask("copy.nudge", task, facts, _NUDGE)
         t, x = (j or {}).get("title", "").strip(), (j or {}).get("text", "").strip()
-        return (t, x) if 0 < len(t) <= 80 and 0 < len(x) <= 160 else (title, text)
+        if 0 < len(t) <= 80 and 0 < len(x) <= 160:
+            return t, x
+        pending = self._key("copy.nudge", task, facts) in self._pending and not getattr(self.muse, "fake", False)
+        if unless_pending and j is None and pending:
+            return None
+        return title, text
