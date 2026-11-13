@@ -179,7 +179,7 @@ test('feedback needs every answer before Send', async () => {
   const send = jest.spyOn(api, 'sendFeedback').mockResolvedValue(undefined);
   const { press, byLabel } = await show(m);
   expect(byLabel('Send feedback').props.accessibilityState.disabled).toBe(true);
-  for (const name of ['Daniel Okafor', 'Rosa']) {
+  for (const name of ['Daniel', 'Rosa']) {
     await press(`Did ${name} show up? Yes`);
     await press(`Would you meet ${name} again? No`);
   }
@@ -246,4 +246,12 @@ test('the day-of section is titled by weekday when it is not today', async () =>
   });
   expect(text()).toContain(`"${weekday}"`);
   expect(text()).not.toContain('"Today"');
+});
+
+test('the header does not repeat the count when eventLabel carries it', async () => {
+  const m = clone(F.getMeetup);
+  m.eventLabel = 'Private event · 3 going';
+  const { text } = await show(m);
+  // Visible text only (the avatar row's accessibilityLabel keeps the count for VoiceOver).
+  expect(text().match(/"children":\[[^\]]*3 going/g)).toHaveLength(1);
 });
