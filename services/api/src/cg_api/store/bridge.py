@@ -52,7 +52,11 @@ def publish() -> None:
     if dw is None or store.world is None:
         return
     w = store.world
-    w.emit = lambda uid, type_, data=None: (w.events.append((uid, type_, data or {})), realtime.emit(uid, type_, data))
+    w.emit = lambda uid, type_, data=None: (
+        w.events.append((uid, type_, data or {})),
+        w.touched(type_),
+        realtime.emit(uid, type_, data),
+    )
     dw.current = w
 
 
@@ -86,6 +90,7 @@ def sync(uid: str) -> None:
     """Push A's view of one user into the World (keeps C-only keys the World added)."""
     if store.world is not None and uid in store.world.users:
         store.world.users[uid].update(_projection(uid))
+        store.world.touched()  # interests, busy, settings: rank inputs
 
 
 def changed(uid: str, *events: str) -> None:

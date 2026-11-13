@@ -62,6 +62,10 @@ def _runner():
     return runner
 
 
+# Events that never change a rank_plans input; the same action emits its own state event (meetup.updated, join.updated).
+CHAT_ONLY = frozenset({"message.created", "thread.updated", "meetup.step", "approval.requested"})
+
+
 class Fail(Exception):
     """Domain error that maps 1:1 to the CONTRACTS §7 envelope."""
 
@@ -149,6 +153,7 @@ class World:
     shares: dict[str, dict] = field(default_factory=dict)
     prefs: dict[str, dict[str, float]] = field(default_factory=dict)  # userId -> pref key -> w in [-1, 1]
     pref_version: int = 0
+    rank_version: int = 0  # bumped by any change rank_plans can see (emit, bridge.sync, block); keys the rank cache
     secret: str = field(default_factory=lambda: secrets.token_hex(8))  # verify codes; new each seed load
     runs: dict[str, Any] = field(default_factory=dict)  # meetupId -> D's ScriptedRun
     run_queues: dict[str, Any] = field(default_factory=dict)  # meetupId -> deque of pending run items
@@ -161,6 +166,12 @@ class World:
 
     def emit(self, user_id: str, type_: str, data: dict | None = None) -> None:
         self.events.append((user_id, type_, data or {}))
+        self.touched(type_)
+
+    def touched(self, type_: str = "") -> None:
+        """Invalidate the whole-pool rank unless the event only carries chat or agent progress."""
+        if type_ not in CHAT_ONLY:
+            self.rank_version += 1
 
     def user(self, user_id: str) -> dict:
         u = self.users.get(user_id)

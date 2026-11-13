@@ -55,6 +55,7 @@ def block(w: World, viewer: str, user_id: str) -> None:
     if user_id == viewer or user_id not in w.users:
         raise Fail(400, "validation_failed", "Couldn't block that person. Try again from their profile.")
     w.blocks.add(frozenset((viewer, user_id)))  # idempotent; P9 filters key off this set
+    w.touched()
 
 
 def report(w: World, viewer: str, body: dict) -> dict:

@@ -171,8 +171,8 @@ def rank(w: World, uid: str) -> list[str]:
     cgm = _cgm()
     if not cgm:
         return stubs.rank(w, uid)
-    # ponytail: whole-pool rank_plans cached until the next event or join; a version counter if it goes stale.
-    key = (id(w), len(w.events), len(w.joins), len(w.plans), w.pref_version, w.now().strftime("%Y-%m-%d"))
+    # ponytail: whole-pool rank_plans cached until the world changes (rank_version) or a join or plan is added.
+    key = (id(w), w.rank_version, len(w.joins), len(w.plans), w.pref_version, w.now().strftime("%Y-%m-%d"))
     if key not in _rank_cache:
         _rank_cache.clear()
         pool, params, rng = _ctx(cgm, w)
