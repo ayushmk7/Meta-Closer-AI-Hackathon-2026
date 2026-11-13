@@ -70,8 +70,9 @@ class Copy(Protocol):
     async def plan_reason(self, plan: dict, shared: list[CopyInterest]) -> str: ...
     async def setup_review(self, user_id: str, interests: list[CopyInterest]) -> str: ...
     async def intro(self, first_names: list[str], shared: list[CopyInterest], plan: dict) -> tuple[str, list[str]]: ...
-    async def nudge(self, signal_label: str, plan: dict) -> tuple[str, str]:
-        """(title, text) for Nudge.title / Nudge.text. About the activity and place, never about being alone."""
+    async def nudge(self, signal_label: str, plan: dict, unless_pending: bool = False) -> tuple[str, str] | None:
+        """(title, text) for Nudge.title / Nudge.text. About the activity and place, never about being alone.
+        unless_pending=True: None while Muse's text is still on its way (the caller asks again later)."""
         ...
 
 
@@ -125,7 +126,7 @@ class StubCopy:
         text = f"Hi {names}! I'm Muse.{common} I'm handling the booking and the calendar."
         return text, ["What got you into this?", "Been here before?", "Anyone want to grab food after?"]
 
-    async def nudge(self, signal_label: str, plan: dict) -> tuple[str, str]:
+    async def nudge(self, signal_label: str, plan: dict, unless_pending: bool = False) -> tuple[str, str] | None:
         title = (plan.get("title") or "A meetup you might like")[:60]
         return (
             title,

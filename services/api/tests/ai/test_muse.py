@@ -278,3 +278,33 @@ def test_bar_price_size_next_weekend_and_relaxing():
         "Wheel-throwing drop-in at Clay Hour Studio this weekend", [PLAN["venue"], VENUES["vn_lands_end"]]
     )
     assert v["venueId"] == "vn_clay_hour"
+
+
+def test_nudge_unless_pending_waits_for_the_fill_then_muse_or_template():
+    """None only while the background fill for that exact prompt runs; then Muse's text, or the template if it failed."""
+
+    class Slow:
+        fake = False
+
+        def __init__(self, answer):
+            self.answer, self.go = answer, asyncio.Event()
+
+        async def respond(self, purpose, input, **kw):
+            await self.go.wait()
+            if self.answer is None:
+                raise Unavailable("down")
+            return {"json": self.answer}
+
+    async def run(answer):
+        muse = Slow(answer)
+        copy = MuseCopy(muse, retries=1, backoff_s=0)
+        first = await copy.nudge("You've been to Clay Hour 4 times", PLAN, unless_pending=True)
+        plain = await copy.nudge("You've been to Clay Hour 4 times", PLAN)  # callers without the flag: template
+        muse.go.set()
+        await copy.drain()
+        return first, plain, await copy.nudge("You've been to Clay Hour 4 times", PLAN, unless_pending=True)
+
+    first, plain, after = asyncio.run(run({"title": "Wheel time?", "text": "Clay Hour has a drop-in Saturday."}))
+    assert first is None and plain[0].endswith("?") and after == ("Wheel time?", "Clay Hour has a drop-in Saturday.")
+    first, plain, after = asyncio.run(run(None))
+    assert first is None and after == plain  # Muse gave up: the template, never None again

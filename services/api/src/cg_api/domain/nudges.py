@@ -63,27 +63,36 @@ def _quiet(w: World, at: datetime) -> bool:
     return hm >= q["start"] or hm < q["end"]
 
 
-async def _recopy(w: World, uid: str) -> None:
-    """Live nudges re-ask Copy on each read: its template answers first, Muse's text replaces it once ready."""
+async def _copy(w: World, uid: str, sig: dict, plan: dict) -> tuple[str, str] | None:
+    """DEMO_MODE: None while Muse's wording is still on its way (the nudge waits unshown), so the copy a nudge is first
+    served with is final: re-asking after that swapped Muse's text and the template on screen (e2e-fable #24)."""
+    card = plans.card(w, uid, plan)
+    try:
+        return await ports.ports.copy.nudge(sig["label"], card, unless_pending=w.demo_mode)
+    except Exception:
+        log.exception("nudge copy failed for %s; using template", sig["signalId"])
+        return card["title"][:60], f"{sig['label']}. There's a meetup for that: {card['title']}."
+
+
+async def _settle(w: World, uid: str) -> None:
+    """Nudges still waiting for Muse's wording ask Copy again; served once it answers (or gives up: template)."""
     for n in w.nudges.values():
-        if n["userId"] != uid or not _live(w, n):
-            continue
-        sig = next((s for s in w.users[uid]["signals"] if s.get("signalId") == n["signalId"]), None)
-        if sig is None or sig.get("visibility") != "shown" or sig.get("sensitive"):
-            continue
-        try:
-            n["title"], n["text"] = await ports.ports.copy.nudge(sig["label"], plans.card(w, uid, w.plans[n["planId"]]))
-        except Exception:  # noqa: BLE001  (D4: keep the copy the user already saw)
-            log.warning("nudge copy refresh failed for %s", n["nudgeId"])
+        if n["userId"] == uid and n.get("copyPending") and _live(w, n, pending_ok=True):
+            sig = next(s for s in w.users[uid]["signals"] if s.get("signalId") == n["signalId"])
+            if got := await _copy(w, uid, sig, w.plans[n["planId"]]):
+                n["title"], n["text"] = got
+                n.pop("copyPending")
+                w.emit(uid, "nudge.created", view(n))
 
 
 async def refresh(w: World, uid: str) -> None:
-    """Create due nudges: one per signal, at most maxPerWeek, never in quiet hours (except DEMO_MODE)."""
+    """Create due nudges: one per signal, at most maxPerWeek, never in quiet hours (except DEMO_MODE).
+    A nudge's copy never changes once it is served; in DEMO_MODE it waits unseen for Muse's wording (see _copy)."""
     u = w.users.get(uid)
     if not u or not u.get("optedIn"):
         return
     now, p = w.now(), w.params["nudges"]
-    await _recopy(w, uid)
+    await _settle(w, uid)
     if _quiet(w, now) and not w.demo_mode:  # ponytail: wait for morning by not creating; the next list after 08:00 does
         return
     mine = [n for n in w.nudges.values() if n["userId"] == uid]
@@ -94,41 +103,44 @@ async def refresh(w: World, uid: str) -> None:
             break
         if sig["signalId"] in used or not (plan := _plan_for(w, uid, sig)):
             continue
-        card = plans.card(w, uid, plan)
-        try:
-            title, text = await ports.ports.copy.nudge(sig["label"], card)
-        except Exception:
-            log.exception("nudge copy failed for %s; using template", sig["signalId"])
-            title, text = card["title"][:60], f"{sig['label']}. There's a meetup for that: {card['title']}."
+        got = await _copy(w, uid, sig, plan)
         surfaces = ["plans"] + (["home"] if not mine else []) + (["events"] if sig.get("kind") == "ticket" else [])
         n = {
             "nudgeId": w.next_id("nd_"),
             "userId": uid,
             "signalId": sig["signalId"],
-            "title": title,
-            "text": text,
+            "title": got[0] if got else "",
+            "text": got[1] if got else "",
             "because": [{"source": sig["provider"], "label": sig["label"], "signalId": sig["signalId"]}],
             "planId": plan["planId"],
             "surfaces": surfaces,
             "createdAt": iso(now),
             "expiresAt": iso(min(now + timedelta(hours=p["expiresHours"]), parse(plan["startsAt"]))),
         }
+        if not got:
+            n["copyPending"] = True  # unseen until Muse's wording lands (_settle)
         w.nudges[n["nudgeId"]] = n
         mine.append(n)
         used.add(sig["signalId"])
         week += 1
-        w.emit(uid, "nudge.created", view(n))
+        if got:
+            w.emit(uid, "nudge.created", view(n))
 
 
 def view(n: dict) -> dict:
     return {k: n[k] for k in ("nudgeId", "title", "text", "because", "planId", "surfaces", "createdAt", "expiresAt")}
 
 
-def _live(w: World, n: dict) -> bool:
+def _live(w: World, n: dict, pending_ok: bool = False) -> bool:
     j = w.join_of(n["userId"], n["planId"])
     if j and j["status"] != "withdrawn":
         n["joined"] = True  # metrics (nudgesJoined); a joined plan's nudge is done
-    return not n.get("dismissed") and not n.get("joined") and parse(n["expiresAt"]) > w.now()
+    # P4: the signal it quotes must still be there and shown (the user can hide or delete it after the nudge exists)
+    sig = next((s for s in w.users[n["userId"]]["signals"] if s.get("signalId") == n["signalId"]), None)
+    shown = sig is not None and sig.get("visibility") == "shown" and not sig.get("sensitive")
+    if n.get("copyPending") and not pending_ok:
+        return False
+    return shown and not n.get("dismissed") and not n.get("joined") and parse(n["expiresAt"]) > w.now()
 
 
 def list_nudges(w: World, viewer: str, surface: str | None = None) -> list[dict]:
