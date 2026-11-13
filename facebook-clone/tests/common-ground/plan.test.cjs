@@ -158,7 +158,7 @@ test('Surprise me plan: Try another replaces with a different pick', async () =>
     React.createElement(BottomBar, { plan: { ...detail, myJoin: null }, surprise: true }),
   );
   await press('Try another');
-  expect(router.replace).toHaveBeenCalledWith('/common-ground/plan/pl_other?from=surprise');
+  expect(router.replace).toHaveBeenCalledWith('/common-ground/plan/pl_other?surprise=1');
 });
 
 test('full and not joined: status as muted text', async () => {

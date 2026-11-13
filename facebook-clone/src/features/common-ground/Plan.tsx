@@ -61,7 +61,7 @@ function tryAnother(planId: string) {
       s.feed.plans.filter((x) => x.planId !== planId),
       s.joins,
     );
-  if (p) router.replace(`/common-ground/plan/${p.planId}?from=surprise`);
+  if (p) router.replace(`/common-ground/plan/${p.planId}?surprise=1`);
 }
 
 export function BottomBar({ plan, surprise = false }: { plan: PlanDetail; surprise?: boolean }) {
@@ -200,8 +200,11 @@ export function BottomBar({ plan, surprise = false }: { plan: PlanDetail; surpri
 
 export default function PlanScreen() {
   const c = useColors();
-  const { planId = '', from } = useLocalSearchParams<{ planId: string; from?: string }>();
-  const surprise = from === 'surprise'; // opened by Surprise me
+  const { planId = '', surprise: picked } = useLocalSearchParams<{
+    planId: string;
+    surprise?: string;
+  }>();
+  const surprise = picked === '1'; // opened by Surprise me
   const plan = useCg((s) => s.plans[planId]);
   const missing = useCg((s) => !!s.missingPlans[planId]);
   const connectors = useCg((s) => s.connectors);

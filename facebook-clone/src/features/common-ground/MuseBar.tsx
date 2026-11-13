@@ -133,14 +133,7 @@ export default function MuseBar({
       <PromptChips
         prompts={reply?.prompts ?? feedPrompts}
         onPick={(p) => void send(p)}
-        lead={
-          !inviteUserIds?.length && (
-            // ponytail: SurpriseButton pads itself to the 16 gutter; cancel it inside the row.
-            <View style={{ marginHorizontal: -16 }}>
-              <SurpriseButton />
-            </View>
-          )
-        }
+        lead={!inviteUserIds?.length && <SurpriseButton />}
       />
       {!!status && (
         <View
