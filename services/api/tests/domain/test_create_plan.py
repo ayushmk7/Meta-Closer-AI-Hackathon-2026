@@ -46,8 +46,8 @@ def test_plan_something_like_this_from_a_share_prompt(world):
     assert (d["venue"]["venueId"], d["activityType"], d["title"]) == ("vn_trail", "walk", "Walk at Lands End Trail")
     assert d["origin"] == "user" and d["myJoin"]["status"] == "interested"
     start = parse(d["startsAt"]).astimezone(plans.TZ)
-    assert start.strftime("%A") == "Sunday" and "on Sunday" in d["description"]  # the named day beats "weekend"
-    assert "Muse is gathering" in d["description"] and d["reason"]  # pop-up has Muse's line
+    assert start.strftime("%A") == "Sunday"  # the named day beats "weekend"
+    assert "Lands End" not in d["description"] and d["reason"]  # description doesn't restate the header; pop-up has Muse's line
     assert "Sunday coastal walk" not in d["description"]  # template, never the raw words
 
 

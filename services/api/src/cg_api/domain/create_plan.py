@@ -152,12 +152,13 @@ async def create(w: World, viewer: str, text, invite_ids=None) -> dict:
     size = dict(w.params["plans"]["defaultSize"])
     if met_only:
         size["min"] = w.params["groups"]["metSizeMin"]
-    day = start.strftime("%A")
+    # seed copy for this activity says what it's like; time, place and price are already in the header
+    blurb = next((x["description"] for x in w.plans.values() if x["origin"] != "user" and x["activityType"] == activity), None)
     rec = {
         "planId": w.next_id("pl_u"),
         "poolId": pool,
         "title": title[:60],
-        "description": f"{plans.activity_noun(activity)} at {venue['name']} on {day}. Muse is gathering people.",
+        "description": blurb or "A relaxed get-together with people who share your interests.",
         "activityType": activity,
         "venueId": venue["venueId"],
         "startsAt": iso(start),
