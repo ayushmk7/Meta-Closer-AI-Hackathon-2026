@@ -4,7 +4,7 @@
 // Desktop (>= 900pt): wordmark + pitch left, login card right, gallery below.
 import { useEffect } from 'react';
 import { Modal, ScrollView, View, useWindowDimensions } from 'react-native';
-import Animated from 'react-native-reanimated';
+import Animated, { useReducedMotion } from 'react-native-reanimated';
 import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { Button, Card, Divider, Label, Muted, useColors } from '../../ui/native';
@@ -189,8 +189,14 @@ export default function WelcomeScreen() {
   const { width } = useWindowDimensions();
   // Logged out: no X-CG-User on the only call this screen makes.
   useEffect(() => void load.shares({}, { anonymous: true }), []);
+  const reduce = useReducedMotion();
   return (
-    <Modal visible animationType="none" presentationStyle="fullScreen" onRequestClose={enter}>
+    <Modal
+      visible
+      animationType={reduce ? 'none' : 'fade'}
+      presentationStyle="fullScreen"
+      onRequestClose={enter}
+    >
       {/* A Modal is its own native root: without a provider here the insets are 0 on iOS. */}
       <SafeAreaProvider>
         {/* Web: the Modal's focus trap focuses its first focusable descendant on open. A
