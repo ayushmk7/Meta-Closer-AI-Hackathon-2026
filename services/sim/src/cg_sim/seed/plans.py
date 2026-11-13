@@ -88,7 +88,7 @@ def _description(at: str, venue: dict, size: dict, targets: list[str], starts: d
     who = " and ".join(labels[t].lower() for t in targets[:2])
     cost = venue["booking"]["cost"]
     price = "Free." if cost["kind"] == "free" else (
-        f"${cost['perPersonCents'] / 100:.0f} each, {'paid ahead' if cost['kind'] == 'prepaid' else 'pay at the venue'} (simulated booking)."
+        f"${cost['perPersonCents'] / 100:.0f} each, {'paid ahead' if cost['kind'] == 'prepaid' else 'pay at the venue'}."
     )
     when = starts.astimezone(TZ).strftime("%A %-I:%M %p")
     return f"{when} at {venue['name']} in {venue['neighborhood']}. {size['min'] if size['min'] == size['max'] else f"{size['min']} to {size['max']}"} people into {who}. {price}"[:400]
