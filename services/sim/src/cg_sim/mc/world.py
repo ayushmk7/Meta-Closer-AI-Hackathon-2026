@@ -112,6 +112,7 @@ class World:
     export: dict               # pool_export used by the adapter (busy stripped)
     vectors: dict = field(default_factory=dict)
     venue_by_id: dict = field(default_factory=dict)
+    cands: dict = field(default_factory=dict)  # cg_matching.candidates: form_groups' pair affinity
 
     @property
     def days(self) -> int:
@@ -202,6 +203,7 @@ def build(pool_id: str, fake_laya: bool = True, weeks: int | None = None, limit_
         # for fake tables so an irrelevant impression converts at ~0, as it would with real tables.
         elig=elig, fit=fit, pj=tables.pj[:, act_i] * (fit if fake_tables else 1.0), ps=tables.ps[:, act_i], pm=tables.pm,
         tables=tables, export=export, vectors=vectors, venue_by_id=vby,
+        cands=ma.candidates(export, vectors, p),
     )
     return world
 
