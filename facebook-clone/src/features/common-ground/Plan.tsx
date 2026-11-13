@@ -4,7 +4,7 @@ import { ActivityIndicator, Alert, Linking, Platform, Pressable, Switch, View } 
 import * as Haptics from 'expo-haptics';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Button, Card, Icon, Label, Muted, Page, Sheet, go, useColors } from '../../ui/native';
-import { PlanPhoto, checkText, dayTime, duration, whosIn } from './PlanCard';
+import { CheckRow, PlanPhoto, dayTime, duration, whosIn } from './PlanCard';
 import { getState, join, load, useCg, withdraw } from './store';
 import { pickSurprise } from './SurpriseButton';
 import type { GroupSize, PlanDetail } from './types';
@@ -277,9 +277,7 @@ export default function PlanScreen() {
               <Label>{plan.travel.label}</Label>
             )}
             {plan.checks.map((k) => (
-              <Label key={k.kind + k.label} style={{ color: k.ok ? c.text : c.secondary }}>
-                {checkText(k)}
-              </Label>
+              <CheckRow key={k.kind + k.label} check={k} />
             ))}
             <Muted>{plan.reason}</Muted>
           </View>

@@ -91,10 +91,12 @@ test('plan card: checks (failed one muted, no tick), crowd counts, In badge', as
     ],
     myJoin: { joinId: 'jn_x', status: 'interested' },
   };
-  const { text } = await render(React.createElement(PlanCard, { plan: card }));
-  expect(text()).toContain('✓ Fits your Saturday');
+  const { tree, text } = await render(React.createElement(PlanCard, { plan: card }));
+  expect(text()).toContain('"Fits your Saturday"');
   expect(text()).toContain('"Over your budget"');
-  expect(text()).not.toContain('✓ Over your budget');
+  expect(text()).not.toContain('✓'); // met checks use the checkmark icon, not a text tick
+  const ticks = tree.root.findAll((n) => n.props.name === 'checkmark-circle');
+  expect(ticks.length).toBeGreaterThan(0);
   expect(text()).toContain('5 in · 1 spot left');
   expect(text()).toContain('"In"');
   for (const n of names) expect(text()).not.toContain(n); // C5

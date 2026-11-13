@@ -28,7 +28,20 @@ export const whosIn = (c: Crowd): string =>
     ...c.sharedWithYou.map((s) => `${s.count} also into ${s.interest.label.toLowerCase()}`),
     spots(c.spotsLeft),
   ].join(' · ');
-export const checkText = (k: PlanCheck): string => (k.ok ? `✓ ${k.label}` : k.label);
+// A plan reason: met checks get Meetup's checkmark icon (muted); unmet ones are muted text, aligned.
+export function CheckRow({ check: k, fontSize = 15 }: { check: PlanCheck; fontSize?: number }) {
+  const c = useColors();
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+      {k.ok ? (
+        <Icon name="checkmark-circle" size={16} color={c.secondary} />
+      ) : (
+        <View style={{ width: 16 }} />
+      )}
+      <Label style={{ flex: 1, fontSize, color: k.ok ? c.text : c.secondary }}>{k.label}</Label>
+    </View>
+  );
+}
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
 const ICONS: Record<string, IconName> = {
@@ -142,12 +155,7 @@ export default function PlanCard({
         </Muted>
         <Label style={{ fontSize: 14 }}>{meta}</Label>
         {checks.map((k) => (
-          <Label
-            key={k.kind + k.label}
-            style={{ fontSize: 14, color: k.ok ? c.text : c.secondary }}
-          >
-            {checkText(k)}
-          </Label>
+          <CheckRow key={k.kind + k.label} check={k} fontSize={14} />
         ))}
         <Label style={{ fontSize: 14, fontWeight: '600' }}>{crowdLine(plan.crowd)}</Label>
         <Muted numberOfLines={2}>{plan.reason}</Muted>
