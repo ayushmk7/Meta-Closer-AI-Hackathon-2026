@@ -44,7 +44,7 @@ const PAYMENT: Record<string, string> = {
 };
 const REASON: Record<string, string> = {
   outside_geofence: "You don't seem to be at the venue yet.",
-  outside_window: 'Check-in is not open right now.',
+  outside_window: "Check-in isn't open yet.",
   not_attendee: "You're not on this plan.",
 };
 const put = (m: Meetup) => setState({ meetups: { ...getState().meetups, [m.meetupId]: m } });
@@ -187,7 +187,7 @@ function Feedback({ m }: { m: Meetup }) {
           );
         })}
       <FeedbackExtras value={extras} onChange={setExtras} />
-      <Button title="Send" disabled={!complete || sending} onPress={() => void send()} />
+      <Button title="Send feedback" disabled={!complete || sending} onPress={() => void send()} />
     </Section>
   );
 }
@@ -309,7 +309,7 @@ export default function MeetupScreen() {
       <Section title={m.status === 'confirmed' ? 'Muse set this up' : 'Muse is setting this up'}>
         {m.status === 'confirmed' && (
           <Link
-            title={stepsOpen ? 'Hide steps' : `Show ${m.museSteps.length} steps`}
+            title={stepsOpen ? 'Hide steps' : `See all ${m.museSteps.length} steps`}
             onPress={() => setStepsOpen((x) => !x)}
           />
         )}
@@ -444,12 +444,13 @@ export default function MeetupScreen() {
         <Button
           title="Open group chat"
           icon="chatbubbles-outline"
+          secondary={canCheckIn} // one primary: Check in on the day, the chat otherwise
           onPress={() => go(`/common-ground/chat/${m.threadId}`)}
         />
         {!left && m.status !== 'cancelled' && m.status !== 'completed' && (
           <>
             <Button
-              title="Ask Muse to change something"
+              title="Ask Muse to change it"
               icon="sparkles-outline"
               secondary
               onPress={askMuse}

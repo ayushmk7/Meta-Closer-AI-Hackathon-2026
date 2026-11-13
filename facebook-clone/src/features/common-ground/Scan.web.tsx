@@ -3,7 +3,7 @@
 import { useRef, useState, type ReactNode } from 'react';
 import { View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Button, Card, Icon, Input, Label, Muted, Page, useColors } from '../../ui/native';
+import { Button, Card, Icon, Input, Label, Muted, Page, Title, useColors } from '../../ui/native';
 import { load, useCg, verifyAttendee } from './store';
 import type { VerifyResult } from './types';
 import { Banners, NotFound, personName, usePoll } from './ui';
@@ -50,7 +50,7 @@ export function ScanPage({
   const ready = useCg((s) => s.ready);
   const [typed, setTyped] = useState('');
   const { result, submit } = useVerify(meetupId);
-  // A second submit after success would verify the next attendee: clear the field, hide Confirm.
+  // A second submit after success would verify the next attendee: clear the field, hide Verify.
   const confirm = async () => void ((await submit(typed)) && setTyped(''));
   usePoll(() => void load.meetup(meetupId), 0);
 
@@ -58,13 +58,14 @@ export function ScanPage({
     return (
       <Page>
         <Banners />
-        {ready && <NotFound title="There's no code for this plan" />}
+        {ready && <NotFound title="This code isn't available" />}
       </Page>
     );
   const done = !!result?.accepted;
   return (
     <Page>
       <Banners />
+      <Title>Verify in person</Title>
       <Card style={{ padding: 16, gap: 12, alignItems: 'center' }}>
         <Label accessibilityRole="header" style={{ fontSize: 17, fontWeight: '700' }}>
           Your code
@@ -78,9 +79,7 @@ export function ScanPage({
           {m.verifyCode}
         </Label>
         <Muted style={{ textAlign: 'center' }}>
-          {qr
-            ? 'Let them scan this, or read it out to type in.'
-            : 'Read this out so they can type it in.'}
+          {qr ? 'Let them scan this or type it in.' : 'Read this out so they can type it in.'}
         </Muted>
       </Card>
 
@@ -94,7 +93,7 @@ export function ScanPage({
           <>
             <Input
               accessibilityLabel="Their code"
-              placeholder="6 letters or numbers"
+              placeholder="Their 6-character code"
               autoCapitalize="characters"
               autoCorrect={false}
               maxLength={64}
@@ -102,7 +101,7 @@ export function ScanPage({
               onChangeText={setTyped}
               onSubmitEditing={() => void confirm()}
             />
-            <Button title="Confirm" disabled={!typed.trim()} onPress={() => void confirm()} />
+            <Button title="Verify" disabled={!typed.trim()} onPress={() => void confirm()} />
           </>
         )}
         {result && (

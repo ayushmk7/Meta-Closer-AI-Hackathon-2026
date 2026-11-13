@@ -111,7 +111,7 @@ test('VerifyButton: hidden without my code or before confirm; opens the scan rou
   expect((await render(React.createElement(VerifyButton, { m: setting }))).text()).toBe('null');
   const { press, text } = await render(React.createElement(VerifyButton, { m: confirmed() }));
   expect(text()).toContain('Met in person');
-  await press('Show my code · scan theirs');
+  await press('Verify in person');
   expect(router.push).toHaveBeenCalledWith('/common-ground/scan/mt_0001');
 });
 
@@ -133,14 +133,14 @@ test('typed code: trimmed, upper-cased, sent once; accepted shows who', async ()
   expect(text()).toContain('MAYA42');
   expect(text()).not.toContain('CameraView');
   await type(tree, '  dan042 ');
-  await press('Confirm');
+  await press('Verify');
   expect(verify).toHaveBeenCalledTimes(1);
   expect(verify).toHaveBeenCalledWith('mt_0001', 'DAN042');
   expect(text()).toContain('You and Daniel are verified.');
   expect(text()).toContain('Back to the plan');
-  // Done: no field, no Confirm, so a second submit can't verify the next attendee.
+  // Done: no field, no Verify, so a second submit can't verify the next attendee.
   expect(tree.root.findAll((n) => n.props.accessibilityLabel === 'Their code')).toHaveLength(0);
-  expect(tree.root.findAll((n) => n.props.accessibilityLabel === 'Confirm')).toHaveLength(0);
+  expect(tree.root.findAll((n) => n.props.accessibilityLabel === 'Verify')).toHaveLength(0);
 });
 
 test('rejected codes show the reason, unknown reasons a fallback', async () => {
@@ -150,10 +150,10 @@ test('rejected codes show the reason, unknown reasons a fallback', async () => {
     .mockResolvedValue({ accepted: false, reason: 'self' });
   const { tree, press, text } = await render(React.createElement(ScanWeb.default));
   await type(tree, 'MAYA42');
-  await press('Confirm');
+  await press('Verify');
   expect(text()).toContain("That's your own code.");
   verify.mockResolvedValue({ accepted: false, reason: 'cosmic_rays' });
-  await press('Confirm');
+  await press('Verify');
   expect(text()).toContain("That code didn't work.");
 });
 
@@ -181,7 +181,7 @@ test('native: QR grid, camera only after permission, repeated scans sent once', 
 test('no code for this plan shows not found', async () => {
   confirmed({ verifyCode: null });
   const { text } = await render(React.createElement(ScanWeb.default));
-  expect(text()).toContain("There's no code for this plan");
+  expect(text()).toContain("This code isn't available");
 });
 
 test('native: a denied camera stays closed and points to typed entry', async () => {
