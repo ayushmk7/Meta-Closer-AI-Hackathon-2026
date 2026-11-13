@@ -43,7 +43,7 @@ function Body({ plan }: { plan: PublicPlan }) {
         <View style={{ padding: 16, gap: 4 }}>
           <Label
             accessibilityRole="header"
-            style={{ fontSize: 22, lineHeight: 28, fontWeight: '800' }}
+            style={{ fontSize: 25, lineHeight: 31, fontWeight: '800' }}
           >
             {plan.title}
           </Label>

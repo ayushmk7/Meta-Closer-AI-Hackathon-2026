@@ -35,13 +35,14 @@ import {
   Page,
   useColors,
 } from '../../ui/native';
+import { themes } from '../../ui/tokens';
 import { getUser } from './api';
 import { setIdentity, setState, start, useCg } from './store';
 import type { AvailabilitySlot, GroupSize, InterestRef, MyInterest, PersonCard } from './types';
 
 type Colors = ReturnType<typeof useColors>;
 // Same selected-pill pair as the clone's Chips.
-export const selectedBg = (c: Colors) => (c.canvas === '#18191A' ? '#263951' : '#e7f3ff');
+export const selectedBg = (c: Colors) => (c === themes.dark ? '#263951' : '#e7f3ff');
 const pill = { paddingHorizontal: 15, paddingVertical: 10, borderRadius: 22 } as const;
 // The clone Shell's warning banner pair (error banner, failed step icon).
 export const WARN = { bg: '#fff2d2', fg: '#634100' } as const;
@@ -575,7 +576,7 @@ export function Banners() {
             onPress={() => void setIdentity(null)}
             style={{ minHeight: 44, justifyContent: 'center' }}
           >
-            <Label style={{ color: c.blue, fontWeight: '600', fontSize: 13 }}>Back to Maya</Label>
+            <Label style={{ color: c.blue, fontWeight: '600', fontSize: 13, lineHeight: 18 }}>Back to Maya</Label>
           </Pressable>
         </View>
       )}

@@ -317,12 +317,12 @@ export default function MeetupScreen() {
         />
         {origin && origin !== 'invite' && <SharePlanButton plan={m} />}
         <View style={{ padding: 16, gap: 6 }}>
-          <Label style={{ color: c.badge, fontWeight: '700', fontSize: 13 }}>
+          <Label style={{ color: c.badge, fontWeight: '700', fontSize: 13, lineHeight: 18 }}>
             {when(m.startsAt).toUpperCase()}
           </Label>
           <Label
             accessibilityRole="header"
-            style={{ fontSize: 24, lineHeight: 30, fontWeight: '800' }}
+            style={{ fontSize: 25, lineHeight: 31, fontWeight: '800' }}
           >
             {m.title}
           </Label>

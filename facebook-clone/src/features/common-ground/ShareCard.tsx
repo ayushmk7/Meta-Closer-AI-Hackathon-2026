@@ -74,7 +74,7 @@ function Action({
         alignItems: 'center',
         justifyContent: 'center',
         gap: 6,
-        borderRadius: 6,
+        borderRadius: 8,
         backgroundColor: pressed ? c.input : 'transparent',
       })}
     >
@@ -82,7 +82,7 @@ function Action({
       <PopOn on={!!active} quiet>
         <Icon name={icon} size={19} color={color} />
       </PopOn>
-      <Label style={{ color, fontWeight: '600', fontSize: 13 }}>{label}</Label>
+      <Label style={{ color, fontWeight: '600', fontSize: 13, lineHeight: 18 }}>{label}</Label>
     </Pressable>
   );
 }

@@ -332,7 +332,7 @@ export default function PlansScreen() {
                   style={{ alignItems: 'center', gap: 4, minWidth: 56 }}
                 >
                   <PersonAvatar person={x.person} size={56} />
-                  <Label style={{ fontSize: 13 }}>{firstName(x)}</Label>
+                  <Label style={{ fontSize: 13, lineHeight: 18 }}>{firstName(x)}</Label>
                 </Pressable>
               ))}
             </ScrollView>

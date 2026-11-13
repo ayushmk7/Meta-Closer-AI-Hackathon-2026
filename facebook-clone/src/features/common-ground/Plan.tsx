@@ -76,7 +76,7 @@ export function SharePlanButton({ plan }: { plan: Parameters<typeof planMessage>
         top: 8,
         right: 8,
         borderRadius: 22,
-        backgroundColor: 'rgba(0,0,0,0.45)',
+        backgroundColor: 'rgba(0,0,0,0.4)',
       }}
     >
       <IconButton
@@ -294,14 +294,14 @@ export default function PlanScreen() {
             {surprise && (
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                 <Icon name="sparkles" size={16} color={c.blue} />
-                <Label style={{ color: c.blue, fontSize: 13, fontWeight: '600' }}>
+                <Label style={{ color: c.blue, fontSize: 13, lineHeight: 18, fontWeight: '600' }}>
                   Muse picked this for you
                 </Label>
               </View>
             )}
             <Label
               accessibilityRole="header"
-              style={{ fontSize: 24, lineHeight: 30, fontWeight: '800' }}
+              style={{ fontSize: 25, lineHeight: 31, fontWeight: '800' }}
             >
               {plan.title}
             </Label>
