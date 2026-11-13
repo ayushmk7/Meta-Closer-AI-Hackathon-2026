@@ -31,6 +31,7 @@ import {
   withdraw,
 } from '../../src/features/common-ground/store';
 import { STEP_DELAY_S, mockRequest, resetMock } from '../../src/features/common-ground/mock';
+import { clock, when } from '../../src/features/common-ground/time';
 import {
   handleEvent,
   hooks,
@@ -554,4 +555,38 @@ test('shares and verify: optimistic like, share needs a finished meetup, verify,
   assert.ok(r && 'conversationId' in r);
   assert.equal(getState().shares.find((x) => x.shareId === 'sh_0002')!.likedByMe, true);
   await reset();
+});
+
+test('a missing plan is marked per plan, not as the global error; copy uses contractions', async () => {
+  await reset();
+  await start();
+  await optIn('city');
+  await load.plan('pl_nope');
+  assert.equal(getState().missingPlans.pl_nope, true);
+  assert.equal(getState().error, null);
+  await load.plan('pl_0001');
+  assert.equal(getState().missingPlans.pl_0001, undefined);
+  assert.equal(
+    inboxRows(
+      [
+        {
+          threadId: 't',
+          kind: 'group',
+          title: 'G',
+          participants: [],
+          unreadCount: 0,
+          updatedAt: '',
+        },
+      ],
+      true,
+    )[0]!.subtitle,
+    'Say hi',
+  );
+  await reset();
+});
+
+test('when/clock: LA time, no ":00", plain space', () => {
+  assert.equal(clock('2026-11-14T18:00:00Z'), '10 AM');
+  assert.equal(clock('2026-11-14T16:30:00Z'), '8:30 AM');
+  assert.equal(when('2026-11-14T18:00:00Z'), 'Sat, Nov 14 · 10 AM');
 });
