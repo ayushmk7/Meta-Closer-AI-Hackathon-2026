@@ -69,7 +69,7 @@ def test_ground_truth_export_api():
     from cg_sim.seed.export import ground_truth_signals, load_ground_truth_export
 
     sig = ground_truth_signals("pool_sf_city")
-    assert sig["u_maya"]["frequentPlaces"] == ["vn_lands_end"] and sig["u_maya"]["sensitivePlace"]
+    assert sig["u_maya"]["frequentPlaces"] == ["vn_little_fern"] and sig["u_maya"]["sensitivePlace"]
     assert sum(bool(s["sensitivePlace"]) for s in sig.values()) >= 25
     export = load_ground_truth_export("pool_sf_city")
     reg = Registry()

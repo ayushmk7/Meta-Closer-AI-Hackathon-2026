@@ -3,13 +3,13 @@
   "mayaId": "u_maya",
   "featuredPlanIds": [
     "pl_sf_hero_wheel",
-    "pl_sf_lands_end_walk",
+    "pl_sf_little_fern_dinner",
     "pl_sf_wed_game_night",
     "pl_camping_volunteering_20261113_00",
-    "pl_eating_out_cooking_20261113_01"
+    "pl_eating_out_cooking_20261113_00"
   ],
   "heroPlanId": "pl_sf_hero_wheel",
-  "nudgePlanId": "pl_sf_lands_end_walk",
+  "nudgePlanId": "pl_sf_little_fern_dinner",
   "liveUserId": "u_0098",
   "counterpartIds": [
     "u_0098",

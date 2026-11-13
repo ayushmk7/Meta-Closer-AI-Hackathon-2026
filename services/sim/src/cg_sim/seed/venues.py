@@ -102,6 +102,8 @@ STREETS = {
 
 # Demo anchors: the hero studio (fictional, Hayes Valley) and the event-pool hero cafe.
 HERO_CITY = ("vn_clay_hour", "Clay Hour Studio", "Hayes Valley", "512 Hayes St", 37.7765, -122.4250, "studio", ["ceramics_studio", "craft_session"], ("class", "prepaid", 3500, 8), _hours("09:00", "21:00"))
+# The city nudge's restaurant (fictional, Hayes Valley): Maya's frequent dinner spot, reservation, pay there.
+NUDGE_CITY = ("vn_little_fern", "Little Fern Kitchen", "Hayes Valley", "461 Hayes St", 37.7768, -122.4240, "restaurant", ["food_crawl"], ("reservation", "pay_at_venue", 4500, 8), _hours("17:00", "22:30"))
 HERO_EVENT = ("vn_bayside_commons", "Bayside Commons Cafe", "Belle Haven", "1180 Willow Rd", 37.4801, -122.1560, "cafe", ["lunch", "coffee", "walk"], ("reservation", "prepaid", 1400, 12), _hours("08:00", "16:00"))
 
 SENSITIVE_CITY = [
@@ -155,7 +157,7 @@ def build(mode: str, rng: random.Random, total: int) -> list[dict]:
     hoods = EVENT_BUSINESS_HOODS if mode == "event" else CITY_BUSINESS_HOODS
     streets = STREETS[mode]
 
-    out = [_record(*v) for v in public] + [_record(*hero)]
+    out = [_record(*v) for v in public] + [_record(*hero)] + ([] if mode == "event" else [_record(*NUDGE_CITY)])
     used = {v["name"] for v in out}
     n_business = total - len(out) - len(sensitive)
     # Round-robin over templates so every activity type is covered before any repeats.

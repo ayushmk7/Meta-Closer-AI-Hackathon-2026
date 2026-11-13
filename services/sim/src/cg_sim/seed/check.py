@@ -220,7 +220,7 @@ def _check_maya_records(pool_id, records, venues, personas) -> list[str]:
     errors = []
     mine = [r for r in records if r["userId"] == maya.MAYA_ID]
     if maya_frequent_visits(records, maya.FREQUENT_VENUE) < 4:
-        errors.append(f"{pool_id}: Maya needs >= 4 Lands End visits in the last 30 days")
+        errors.append(f"{pool_id}: Maya needs >= 4 visits to her frequent place in the last 30 days")
     saved = [venues[r["venueId"]] for r in mine if r["kind"] == "saved_place"]
     if not any("ceramics_studio" in v["activityTypes"] for v in saved):
         errors.append(f"{pool_id}: Maya needs a saved ceramics studio")
@@ -257,8 +257,8 @@ def check_demo(pool_id, pool, demo, personas, truth, plans, venues) -> list[str]
     hero, nudge = plans[demo["heroPlanId"]], plans[demo["nudgePlanId"]]
     if hero["cost"]["kind"] != "prepaid":
         errors.append(f"{pool_id}/demo.json: hero plan must be prepaid")
-    if nudge["cost"]["kind"] != "free":
-        errors.append(f"{pool_id}/demo.json: nudge plan must be free")
+    if nudge["cost"]["kind"] == "prepaid":  # the nudge never asks for money (city: pay-at-venue reservation)
+        errors.append(f"{pool_id}/demo.json: nudge plan must not be prepaid")
     if nudge["origin"] != "signal":
         errors.append(f"{pool_id}/demo.json: nudge plan origin must be signal")
     if pool["mode"] == "city" and nudge["venueId"] != maya.FREQUENT_VENUE:  # CONTRACTS Decisions: city only

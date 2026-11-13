@@ -91,7 +91,7 @@ def _description(at: str, venue: dict, size: dict, targets: list[str], starts: d
         f"${cost['perPersonCents'] / 100:.0f} each, {'paid ahead' if cost['kind'] == 'prepaid' else 'pay at the venue'} (simulated booking)."
     )
     when = starts.astimezone(TZ).strftime("%A %-I:%M %p")
-    return f"{when} at {venue['name']} in {venue['neighborhood']}. {size['min']} to {size['max']} people into {who}. {price}"[:400]
+    return f"{when} at {venue['name']} in {venue['neighborhood']}. {size['min'] if size['min'] == size['max'] else f"{size['min']} to {size['max']}"} people into {who}. {price}"[:400]
 
 
 def maya_problems(plan: dict, venue: dict, home: dict, p: dict | None = None) -> list[str]:
@@ -165,10 +165,11 @@ def build(pool_id, mode, rng: random.Random, export, venues, people, personas, s
                      _local(2026, 11, 14, 10), _local(2026, 11, 14, 12), {"min": 3, "max": 5},
                      ["arts_crafts.ceramics"], None, "seed", [private.user_id, hero_join.user_id],
                      title="Saturday wheel-throwing drop-in")
-        nudge = _plan(f"{prefix}_lands_end_walk", pool_id, "walk", by_id["vn_lands_end"],
-                      _local(2026, 11, 15, 9), _local(2026, 11, 15, 10, 30), {"min": 3, "max": 6},
-                      ["outdoors.hiking"], None, "signal", [others[0]],
-                      title="Sunday coastal walk at Lands End")
+        # a table for 4: three pre-joined, Maya makes four; pay at the venue, so no approval
+        nudge = _plan(f"{prefix}_little_fern_dinner", pool_id, "food_crawl", by_id[maya.FREQUENT_VENUE],
+                      _local(2026, 11, 14, 19), _local(2026, 11, 14, 21), {"min": 4, "max": 4},
+                      ["food_drink.eating_out"], None, "signal", [others[0], others[1], hero_join.user_id],
+                      title="Saturday small plates at Little Fern Kitchen")
     else:
         prefix = "pl_evt"
         hero = _plan(f"{prefix}_hero_lunch_walk", pool_id, "lunch", by_id["vn_bayside_commons"],
