@@ -1,5 +1,5 @@
 // Muse bar (PRD-1 §8.1 item 1). Errors keep the typed text: it is only ever cleared by the user.
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { Card, Icon, IconButton, Input, Label, Muted, go, useColors } from '../../ui/native';
@@ -86,23 +86,30 @@ export default function MuseBar({
   const working = useCg((s) => Object.values(s.meetups).some((m) => m.status === 'setting_up'));
   const busy = muse.asking || creating || holding;
 
+  // `busy` lags a render: Enter plus a send tap in one frame would both see it false.
+  const sending = useRef(false);
   const send = async (value: string) => {
     const q = value.trim();
-    if (!q || busy) return;
-    setText(value);
-    if (inviteUserIds?.length) {
-      setCreating(true);
-      const p = await createPlan(q, inviteUserIds);
-      setCreating(false);
-      if (!p) return; // failed: stay in invite mode with the text kept
-      onEndInvite?.();
-      go(`/common-ground/plan/${p.planId}`);
-      return;
+    if (!q || busy || sending.current) return;
+    sending.current = true;
+    try {
+      setText(value);
+      if (inviteUserIds?.length) {
+        setCreating(true);
+        const p = await createPlan(q, inviteUserIds);
+        setCreating(false);
+        if (!p) return; // failed: stay in invite mode with the text kept
+        onEndInvite?.();
+        go(`/common-ground/plan/${p.planId}`);
+        return;
+      }
+      // ponytail: timer lives here, not in store.ts, so the Node tests stay timer-free.
+      setHolding(true);
+      await Promise.all([askMuse(q), new Promise((r) => setTimeout(r, 900))]);
+      setHolding(false);
+    } finally {
+      sending.current = false;
     }
-    // ponytail: timer lives here, not in store.ts, so the Node tests stay timer-free.
-    setHolding(true);
-    await Promise.all([askMuse(q), new Promise((r) => setTimeout(r, 900))]);
-    setHolding(false);
   };
   const onChange = (v: string) => {
     setText(v);

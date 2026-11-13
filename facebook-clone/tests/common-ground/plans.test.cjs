@@ -237,3 +237,20 @@ test('a fresh join row (no plan on the Join) takes its title from the feed card'
   expect(text()).not.toContain('"Your plan"');
   store.setState({ joins: [] });
 });
+
+test('Muse bar: Enter and the send tap in one frame ask (or create) once', async () => {
+  jest.spyOn(api, 'askMuse').mockReturnValue(new Promise(() => {}));
+  jest.spyOn(api, 'createPlan').mockReturnValue(new Promise(() => {}));
+  for (const props of [{ inviteUserIds: ['u_0002'] }, {}]) {
+    const { tree, find } = await render(React.createElement(MuseBar, props));
+    const input = find((p) => p.placeholder === 'What do you want to do?');
+    await renderer.act(async () => input.props.onChangeText('pottery'));
+    const send = tree.root.find((n) => n.props.label === 'Send to Muse');
+    await renderer.act(async () => {
+      input.props.onSubmitEditing();
+      send.props.onPress();
+    });
+  }
+  expect(api.askMuse).toHaveBeenCalledTimes(1);
+  expect(api.createPlan).toHaveBeenCalledTimes(1);
+});
