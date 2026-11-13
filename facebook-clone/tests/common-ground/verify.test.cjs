@@ -133,7 +133,7 @@ test('typed code: trimmed, upper-cased, sent once; accepted shows who', async ()
   expect(verify).toHaveBeenCalledTimes(1);
   expect(verify).toHaveBeenCalledWith('mt_0001', 'DAN042');
   expect(text()).toContain('You and Daniel are verified.');
-  expect(text()).toContain('See plan');
+  expect(text()).toContain('See meetup');
   // Done: no field, no Verify, so a second submit can't verify the next attendee.
   expect(tree.root.findAll((n) => n.props.accessibilityLabel === 'Their code')).toHaveLength(0);
   expect(tree.root.findAll((n) => n.props.accessibilityLabel === 'Verify')).toHaveLength(0);
@@ -171,7 +171,7 @@ test('native: QR grid, camera only after permission, repeated scans sent once', 
     cam.props.onBarcodeScanned({ data: 'DAN042' });
   });
   expect(verify).toHaveBeenCalledTimes(1);
-  expect(text()).toContain("That person isn't on this plan.");
+  expect(text()).toContain("That person isn't in this meetup.");
 });
 
 test('no code for this plan shows not found', async () => {

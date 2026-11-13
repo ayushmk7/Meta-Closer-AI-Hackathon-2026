@@ -167,7 +167,7 @@ test('Passport shows collected and locked stamps', async () => {
   );
   await renderer.act(async () => btn.props.onPress());
   const { message } = spy.mock.calls[0][0];
-  expect(message).toMatch(/^My Plans passport: 3 stamps\./);
+  expect(message).toMatch(/^My Meetups passport: 3 stamps\./);
   expect(message).toContain('app:///common-ground/welcome');
   expect(message).not.toContain(m.venue.name);
   expect(message).not.toContain('Board game night');
@@ -212,7 +212,7 @@ test('demo: ticks survive the staged clock jump; earned reward shows under the c
     );
     const { tree, labels } = await render(React.createElement(Quests));
     await renderer.act(async () => noteSurprise());
-    expect(labels()).toContain('Join a plan, done');
+    expect(labels()).toContain('Join a meetup, done');
     expect(labels()).toContain('Try Surprise me, done');
     expect(labels()).not.toContain('Unlocked');
     // The meetup flow jumps the clock to Saturday and unlocks plan creation.
@@ -223,9 +223,9 @@ test('demo: ticks survive the staged clock jump; earned reward shows under the c
       store.setState({ me: { ...me, capabilities: { ...me.capabilities, canCreatePlans: true } } });
     });
     await renderer.act(async () => {});
-    expect(labels()).toContain('Join a plan, done');
+    expect(labels()).toContain('Join a meetup, done');
     expect(labels()).toContain('Try Surprise me, done');
-    expect(labels()).toContain('Unlocked: Create your own plans');
+    expect(labels()).toContain('Unlocked: Create your own meetups');
     await renderer.act(async () => tree.unmount());
   } finally {
     jest.useRealTimers();
@@ -244,7 +244,7 @@ test('a completed meetup refetches me, so a fresh unlock shows under the card', 
   const { tree, labels } = await render(React.createElement(Quests));
   await renderer.act(async () => {});
   expect(getMe).toHaveBeenCalled();
-  expect(labels()).toContain('Unlocked: Create your own plans');
+  expect(labels()).toContain('Unlocked: Create your own meetups');
   getMe.mockRestore();
   await renderer.act(async () => tree.unmount());
 });

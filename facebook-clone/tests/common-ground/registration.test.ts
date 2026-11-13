@@ -20,7 +20,7 @@ test('Common Ground contributes exactly one of each extension point, registered 
     { ...c.tabs[0], useBadge: undefined },
     {
       id: 'common-ground',
-      label: 'Plans',
+      label: 'Meetups',
       href: '/common-ground',
       icon: 'sparkles-outline',
       activeIcon: 'sparkles',
@@ -28,13 +28,13 @@ test('Common Ground contributes exactly one of each extension point, registered 
       useBadge: undefined,
       headerAction: {
         icon: 'settings-outline',
-        label: 'Plans settings',
+        label: 'Meetups settings',
         href: '/common-ground/settings',
       },
     },
   );
   assert.equal(c.menuItems[0].icon, 'sparkles-outline');
-  assert.equal(c.inboxSources[0].label, 'Plans');
-  assert.equal(c.menuItems[0].label, 'Plans'); // one user-facing name
+  assert.equal(c.inboxSources[0].label, 'Meetups');
+  assert.equal(c.menuItems[0].label, 'Meetups'); // one user-facing name
   assert.equal(c.eventSources[0].label, 'Planned with Muse');
 });

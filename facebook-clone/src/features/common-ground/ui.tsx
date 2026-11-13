@@ -586,9 +586,13 @@ export function Banners() {
 export function NotFound({ title }: { title: string }) {
   return (
     <Card>
-      <Empty title={title} message="It may have been removed. Go back to Plans." />
+      <Empty title={title} message="It may have been removed. Go back to Meetups." />
       <View style={{ padding: 16 }}>
-        <Button title="Back to Plans" secondary onPress={() => router.replace('/common-ground')} />
+        <Button
+          title="Back to Meetups"
+          secondary
+          onPress={() => router.replace('/common-ground')}
+        />
       </View>
     </Card>
   );

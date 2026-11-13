@@ -104,7 +104,7 @@ test('Muse permissions only with features.autonomySettings, saved with updateMe'
   const r2 = await render(React.createElement(SettingsScreen));
   expect(r2.text()).toContain('What Muse can do without asking');
   const toggle = r2.tree.root.find(
-    ({ props: p }) => p.accessibilityLabel === 'Reschedule when plans change' && p.onValueChange,
+    ({ props: p }) => p.accessibilityLabel === 'Let Muse reschedule meetups' && p.onValueChange,
   );
   await renderer.act(async () => toggle.props.onValueChange(false));
   expect(update).toHaveBeenCalledWith({
@@ -119,14 +119,14 @@ test('sensitive signals show locked with their label only', async () => {
   expect(text()).toContain('Only you can see this');
 });
 
-test('Leave Plans confirms first, then opts out', async () => {
+test('Turn off Meetups confirms first, then opts out', async () => {
   const optOut = jest.spyOn(api, 'optOut');
   const { press } = await render(React.createElement(SettingsScreen));
   confirmWith('Cancel');
-  await press('Leave Plans');
+  await press('Turn off Meetups');
   expect(optOut).not.toHaveBeenCalled();
-  confirmWith('Leave');
-  await press('Leave Plans');
+  confirmWith('Turn off');
+  await press('Turn off Meetups');
   await renderer.act(async () => {});
   expect(optOut).toHaveBeenCalled();
   expect(store.getState().me.optedIn).toBe(false);

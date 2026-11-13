@@ -80,7 +80,7 @@ export default function StoryPrompt({ m }: { m: Meetup }) {
               {m.title}
             </Label>
             {!!sub && <Muted>{sub}</Muted>}
-            <Muted>Only the place and the plan name.</Muted>
+            <Muted>Only the place and the meetup name.</Muted>
           </View>
         </View>
         {failed && (

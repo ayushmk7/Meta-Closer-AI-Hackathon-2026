@@ -61,10 +61,10 @@ export function shareText(all: Stamp[], link: string): string {
     return xs.length > 3 ? `${xs.slice(0, 3).join(', ')} and ${xs.length - 3} more` : xs.join(', ');
   };
   return [
-    `My Plans passport: ${got.length} ${got.length === 1 ? 'stamp' : 'stamps'}.`,
+    `My Meetups passport: ${got.length} ${got.length === 1 ? 'stamp' : 'stamps'}.`,
     list('activity'),
     list('neighborhood'),
-    `See what people are doing on Facebook Plans: ${link}`,
+    `See what people are doing on Facebook Meetups: ${link}`,
   ]
     .filter(Boolean)
     .join('\n');

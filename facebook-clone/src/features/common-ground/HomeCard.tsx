@@ -20,7 +20,7 @@ export default function HomeCard() {
     return (
       <Card style={{ padding: 16, gap: 8 }}>
         <Label accessibilityRole="header" style={{ fontSize: 17, fontWeight: '700' }}>
-          Plans
+          Meetups
         </Label>
         <Muted>Muse can find things to do with people who are into what you&apos;re into.</Muted>
         <View style={{ flexDirection: 'row', gap: 8, marginTop: 3 }}>
@@ -46,7 +46,7 @@ export default function HomeCard() {
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
         <MuseAvatar size={40} />
         <View>
-          <Label style={{ fontWeight: '600' }}>Plans</Label>
+          <Label style={{ fontWeight: '600' }}>Meetups</Label>
           <Muted>Suggested for you</Muted>
         </View>
       </View>
@@ -58,7 +58,7 @@ export default function HomeCard() {
       {because && !nudge.text.includes(because.label) && <Muted>Because: {because.label}</Muted>}
       <View style={{ flexDirection: 'row', gap: 8, marginTop: 3 }}>
         <Button
-          title="See plan"
+          title="See meetup"
           onPress={() => go(`/common-ground/plan/${nudge.planId}`)}
           style={{ flex: 1 }}
         />
@@ -70,7 +70,7 @@ export default function HomeCard() {
         />
       </View>
       {because?.signalId && (
-        // Tertiary link (guide 2.6): lighter than the See plan / Not now pair above.
+        // Tertiary link (guide 2.6): lighter than the See meetup / Not now pair above.
         <Pressable
           accessibilityRole="button"
           onPress={() => void dismissNudge(nudge.nudgeId, 'signal')}

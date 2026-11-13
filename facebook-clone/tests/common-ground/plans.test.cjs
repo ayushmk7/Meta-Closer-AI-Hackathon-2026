@@ -125,7 +125,7 @@ test('muse bar: reply bubble and highlighted new plan; clearing returns to For y
   jest.useRealTimers();
   expect(api.askMuse).toHaveBeenCalledWith('pottery this weekend', null);
   expect(text()).toContain(reply.reply.text);
-  expect(text()).toContain('New · Muse made this plan');
+  expect(text()).toContain('New · Muse made this meetup');
   await renderer.act(async () => input().props.onChangeText(''));
   expect(store.getState().muse.reply).toBeNull();
 });
@@ -140,11 +140,11 @@ test('muse bar: thinking checklist while asking; last line spins until the reply
   await renderer.act(async () => void input().props.onSubmitEditing());
   expect(text()).toContain('Muse is reading what you asked…');
   await renderer.act(async () => void jest.advanceTimersByTime(5000));
-  expect(text()).toContain('Muse is picking plans…');
+  expect(text()).toContain('Muse is picking meetups…');
   const spinning = () => tree.root.findAll((n) => n.type === 'ActivityIndicator').length;
   expect(spinning()).toBe(1); // the last line has not ticked
   await renderer.act(async () => resolve(fixtures.askMuse));
-  expect(text()).not.toContain('Muse is picking plans…');
+  expect(text()).not.toContain('Muse is picking meetups…');
   expect(text()).toContain(fixtures.askMuse.reply.text);
   jest.useRealTimers();
 });
@@ -174,9 +174,9 @@ test('invite mode (?with=) ends with Ask Muse instead, and after a created plan'
   const createPlan = jest.spyOn(api, 'createPlan').mockResolvedValue(created);
   const { tree, find } = await render(React.createElement(PlansScreen));
   const input = () => find((p) => p.accessibilityLabel === 'What do you want to do?');
-  expect(input().props.value).toBe('Plan something with Daniel…');
+  expect(input().props.value).toBe('Meet up with Daniel…');
   await renderer.act(async () => input().props.onSubmitEditing());
-  expect(createPlan).toHaveBeenCalledWith('Plan something with Daniel…', [daniel.person.userId]);
+  expect(createPlan).toHaveBeenCalledWith('Meet up with Daniel…', [daniel.person.userId]);
   expect(router.setParams).toHaveBeenCalledWith({ with: undefined });
   expect(router.push).toHaveBeenCalledWith('/common-ground/plan/pl_new');
   router.setParams.mockClear();

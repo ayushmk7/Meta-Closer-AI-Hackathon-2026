@@ -11,12 +11,12 @@ import { MuseThinking, Pill, enter } from './ui';
 const ASKING = [
   'Muse is reading what you asked…',
   "Muse is checking who's free…",
-  'Muse is picking plans…',
+  'Muse is picking meetups…',
 ];
 const CREATING = [
   'Muse is finding a place…',
   'Muse is checking times…',
-  'Muse is making your plan…',
+  'Muse is making your meetup…',
 ];
 
 const NONE: string[] = []; // stable fallback outside useCg (useSyncExternalStore)
@@ -71,7 +71,7 @@ export default function MuseBar({
   onEndInvite,
 }: {
   prefill?: string;
-  // "Plan something again": the next send creates an invite plan instead of asking.
+  // "Meet up again": the next send creates an invite plan instead of asking.
   inviteUserIds?: string[];
   onEndInvite?: () => void;
 }) {
@@ -135,7 +135,7 @@ export default function MuseBar({
       </View>
       {!!inviteUserIds?.length && (
         <View style={{ paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center' }}>
-          <Muted style={{ flex: 1 }}>Muse will make a new plan and invite them.</Muted>
+          <Muted style={{ flex: 1 }}>Muse will make a new meetup and invite them.</Muted>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Ask Muse instead"
@@ -195,7 +195,7 @@ export default function MuseBar({
           <PlanCarousel
             plans={reply.plans}
             badgeFor={(p) =>
-              p.planId === reply.createdPlanId ? 'New · Muse made this plan' : undefined
+              p.planId === reply.createdPlanId ? 'New · Muse made this meetup' : undefined
             }
             onOpen={(p) => go(`/common-ground/plan/${p.planId}`)}
           />

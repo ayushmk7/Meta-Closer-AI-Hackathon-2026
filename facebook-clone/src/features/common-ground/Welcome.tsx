@@ -16,7 +16,7 @@ import { enter as rise } from './ui';
 const GREEN = '#42B72A'; // Facebook's "Create new account" green
 const enter = () => router.replace('/common-ground');
 const PITCH =
-  'Tell Muse what you want to do. It finds the plan and the people and handles the rest. You just show up.';
+  'Tell Muse what you want to do. It finds the meetup and the people and handles the rest. You just show up.';
 const PROMISE = 'People only see what you have in common, and only after a group forms.';
 
 function Wordmark({ size }: { size: number }) {
@@ -88,7 +88,7 @@ function Desktop() {
         >
           <View style={{ alignItems: 'center', gap: 8, paddingVertical: 8 }}>
             <MuseAvatar size={48} />
-            <Label style={{ fontSize: 17, fontWeight: '700' }}>Plans</Label>
+            <Label style={{ fontSize: 17, fontWeight: '700' }}>Meetups</Label>
           </View>
           <Button title="Log in" onPress={enter} style={{ minHeight: 48 }} />
           <Divider />
@@ -161,7 +161,9 @@ function Phone() {
           borderTopColor: c.divider,
         }}
       >
-        <Label style={{ fontWeight: '700', textAlign: 'center' }}>See more plans on Facebook</Label>
+        <Label style={{ fontWeight: '700', textAlign: 'center' }}>
+          See more meetups on Facebook
+        </Label>
         <Button title="Log in" onPress={enter} />
         <Button
           title="Create new account"

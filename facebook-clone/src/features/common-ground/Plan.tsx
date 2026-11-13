@@ -32,7 +32,7 @@ export function SetupPrompt() {
   return (
     <Card style={{ margin: 16, padding: 16, gap: 8 }}>
       <Label accessibilityRole="header" style={{ fontSize: 17, fontWeight: '700' }}>
-        Plans
+        Meetups
       </Label>
       <Muted>Muse can find things to do with people who are into what you&apos;re into.</Muted>
       <Button title="Get started" onPress={() => router.replace('/common-ground/setup')} />
@@ -64,7 +64,7 @@ function Block({ title, children }: { title: string; children: React.ReactNode }
   );
 }
 
-// "Share plan" on the header photo (plan pop-up, meetup). Hidden unless features.sharing; the
+// "Share meetup" on the header photo (plan pop-up, meetup). Hidden unless features.sharing; the
 // caller hides it for invite plans (the public page 404s them). The message never names people.
 export function SharePlanButton({ plan }: { plan: Parameters<typeof planMessage>[0] }) {
   const sharing = useCg((s) => !!s.config?.features.sharing);
@@ -81,7 +81,7 @@ export function SharePlanButton({ plan }: { plan: Parameters<typeof planMessage>
     >
       <IconButton
         name="share-outline"
-        label="Share plan"
+        label="Share meetup"
         color="#fff"
         onPress={() => void shareOut(planMessage(plan))}
       />
@@ -137,7 +137,7 @@ export function BottomBar({ plan, surprise = false }: { plan: PlanDetail; surpri
           </View>
         </View>
         <Button
-          title="See plan"
+          title="See meetup"
           disabled={!meetupId}
           onPress={() => meetupId && go(`/common-ground/meetup/${meetupId}`)}
         />
@@ -179,7 +179,7 @@ export function BottomBar({ plan, surprise = false }: { plan: PlanDetail; surpri
   if (myJoin?.status === 'not_filled')
     return <Muted style={{ textAlign: 'center' }}>This one didn&apos;t fill</Muted>;
   if (plan.status !== 'open')
-    return <Muted style={{ textAlign: 'center' }}>{`This plan is ${plan.status}`}</Muted>;
+    return <Muted style={{ textAlign: 'center' }}>{`This meetup is ${plan.status}`}</Muted>;
 
   const current = size ?? clamp(plan.size, bounds);
   return (
@@ -273,7 +273,7 @@ export default function PlanScreen() {
       <Page>
         <Banners />
         {missing ? (
-          <NotFound title="This plan isn't available" />
+          <NotFound title="This meetup isn't available" />
         ) : (
           <ActivityIndicator color={c.blue} style={{ marginTop: 40 }} />
         )}

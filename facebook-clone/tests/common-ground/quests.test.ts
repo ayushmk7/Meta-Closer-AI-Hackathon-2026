@@ -103,12 +103,12 @@ test('passport: stamps from meetups I checked in to or was verified at, before c
     earned: true,
   }));
   const msg = shareText([...acts, ...all], 'L');
-  assert.match(msg, /^My Plans passport: 8 stamps\.\nA, B, C and \d+ more\n/);
+  assert.match(msg, /^My Meetups passport: 8 stamps\.\nA, B, C and \d+ more\n/);
   assert.ok(
     !msg.includes(base.venue.name) && !msg.includes('Board game night'),
     'no venue, no locked',
   );
-  assert.ok(msg.endsWith('Facebook Plans: L'));
+  assert.ok(msg.endsWith('Facebook Meetups: L'));
 });
 
 test('noteVerifies ticks once per newly verified meetup and survives rollover', () => {

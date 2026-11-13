@@ -169,7 +169,7 @@ export function MusePermissions() {
         }}
       />
       <Toggle
-        label="Reschedule when plans change"
+        label="Let Muse reschedule meetups"
         value={settings.autoReschedule}
         onChange={(v) => save({ autoReschedule: v })}
       />
@@ -317,19 +317,19 @@ export default function SettingsScreen() {
         />
       </Section>
       <Rewards />
-      <Section title="Plans">
+      <Section title="Meetups">
         <Button title="Edit setup" secondary onPress={() => router.push('/common-ground/setup')} />
         <Button
-          title="Leave Plans"
+          title="Turn off Meetups"
           secondary
           onPress={() =>
             Alert.alert(
-              'Leave Plans?',
-              'Muse stops finding plans for you. You can come back any time.',
+              'Turn off Meetups?',
+              'Muse stops finding meetups for you. You can turn it back on any time.',
               [
                 { text: 'Cancel', style: 'cancel' },
                 {
-                  text: 'Leave',
+                  text: 'Turn off',
                   style: 'destructive',
                   onPress: async () => {
                     if (await act(() => api.optOut().then(() => true))) {
