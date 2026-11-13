@@ -139,12 +139,15 @@ The backend owns every transition. Clients render the state they are given and n
 | `nudge.created` | Nudge | `/v1/nudges` |
 | `message.created` | Message | that thread's messages (or appends `data` if contiguous) |
 | `thread.updated` | Thread | `/v1/threads` |
+| `thread.typing` | `{ threadId, userId }` | nothing: show a typing bubble for `userId` in that open thread until that user's next `message.created` there, or 6 s |
 | `connection.created` | Connection | `/v1/connections` |
 | `calendar.changed` | `{}` | call `syncCalendar` to receive new directives |
 | `signals.updated` | `{}` | `/v1/signals`, `/v1/me/setup` |
 | `me.updated` | `{}` | `/v1/me`, `/v1/config` |
 
 `meetup.step` is what makes Muse's work visible live; emit one per step transition, after the state change is committed.
+
+`thread.typing` goes only to the thread's other current members, never to the typer or to anyone who blocked them (P9), and never after a member left (their `cutoff`). It is a hint with no REST resource behind it; missing it only means no bubble.
 
 ## 7. Errors
 
@@ -350,6 +353,7 @@ Standard commands (each owner provides its own; the root `Makefile` only calls t
 
 ### Changelog
 
+- v2.4.0 (2026-11-13): realtime `thread.typing` `{ threadId, userId }` (§6). Additive; open enum.
 - v2.3.0 (2026-11-13): live Google Calendar. Internal `linkConnectorAccount` and `connectorOAuthCallback`; env `CONNECTORS_LIVE`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`; param `calendar.liveRefreshMinS`; P10 amended. No public API change.
 - v2.2.0 (2026-11-13, batch 5): `getPublicPlan` + `PublicPlan` (anonymous), `features.sharing`. Additive.
 - v2.1.3 (2026-11-13, batch 5): `usePostStory` from `@/extensions/story` (§11, R1), so Common Ground can offer to post a completed meetup to the user's own story. Additive.
@@ -387,3 +391,4 @@ Resolved open questions from the v2 build. Additive only; nothing renamed or tig
 - **Share links (batch 5).** Built on the client with `Linking.createURL('/common-ground/shared/<planId>')` (Expo Go `exp://…/--/…`, a build `facebook-demo://…`, web the page origin). The server never mints or stores links; a link grants nothing beyond `getPublicPlan`. Gallery shares link to `/common-ground/welcome?share=<shareId>`. Passport share is client-only text.
 - **Public plan page (batch 5).** `PublicPlan` has no people, no `because`/`reason`/`checks`/`travel`/`myJoin`, no address or coordinates. For `origin: user` plans the title is the server template (`<activity> at <venue>`), not the creator's wording. Invite, cancelled and sensitive-venue plans are 404, same as an unknown id.
 - **Live Google Calendar (2026-11-13).** With `CONNECTORS_LIVE=1`, the demo operator links one real Google account per demo user in the laptop browser (`linkConnectorAccount`; in the demo, only `u_maya`). Scope `calendar.freebusy`, primary calendar only, next `calendar.horizonDays`. On `connectConnector`, and then at most every `calendar.liveRefreshMinS` when the user's feed or a plan is fetched, the backend replaces that user's seeded `google_calendar` busy records with the real busy blocks. Any failure (no token, expired token, network) keeps the seeded records with a log line (D4). Demo reset re-applies the live records. Tokens stay in the backend's gitignored cache and never reach a client. `listConnectors` reports `simulated: false` to a linked user. Busy blocks stay owner-only (P7): other attendees see only the outcome. Synthetic users keep seeded records.
+- **Typing indicator (2026-11-13, Ayush approved).** Realtime `thread.typing` `{ threadId, userId }` (§6), sent to the thread's other members shortly before a message from `userId` (today: synthetic counterparts, about 1 to 3 s before their reply). The app shows a typing bubble for that person in that thread until their next `message.created` there or a 6 s timeout. Not persisted, no REST endpoint, no client-sent typing (clients still send only `ping`).

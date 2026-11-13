@@ -5870,7 +5870,7 @@
         "properties": {
           "type": {
             "type": "string",
-            "description": "Open enum. Values and what the client should refetch (CONTRACTS.md §6):\nfeed.updated ({}) -> /v1/feed;\njoin.updated (Join) -> /v1/joins;\nmeetup.updated (Meetup) -> that meetup and /v1/meetups;\nmeetup.step ({meetupId, step}) -> merge the step, or refetch that meetup;\napproval.requested (Approval) -> /v1/approvals and that meetup;\nnudge.created (Nudge) -> /v1/nudges;\nmessage.created (Message) -> append or refetch thread messages;\nthread.updated (Thread) -> /v1/threads;\nconnection.created (Connection) -> /v1/connections;\ncalendar.changed ({}) -> call syncCalendar;\nsignals.updated ({}) -> /v1/signals, /v1/me/setup;\nme.updated ({}) -> /v1/me and /v1/config.\n"
+            "description": "Open enum. Values and what the client should refetch (CONTRACTS.md §6):\nfeed.updated ({}) -> /v1/feed;\njoin.updated (Join) -> /v1/joins;\nmeetup.updated (Meetup) -> that meetup and /v1/meetups;\nmeetup.step ({meetupId, step}) -> merge the step, or refetch that meetup;\napproval.requested (Approval) -> /v1/approvals and that meetup;\nnudge.created (Nudge) -> /v1/nudges;\nmessage.created (Message) -> append or refetch thread messages;\nthread.updated (Thread) -> /v1/threads;\nthread.typing ({threadId, userId}) -> no refetch; show a typing bubble for userId in that thread until their next message.created or 6 s;\nconnection.created (Connection) -> /v1/connections;\ncalendar.changed ({}) -> call syncCalendar;\nsignals.updated ({}) -> /v1/signals, /v1/me/setup;\nme.updated ({}) -> /v1/me and /v1/config.\n"
           },
           "eventId": {
             "type": "string"

@@ -2212,6 +2212,7 @@ components:
             nudge.created (Nudge) -> /v1/nudges;
             message.created (Message) -> append or refetch thread messages;
             thread.updated (Thread) -> /v1/threads;
+            thread.typing ({threadId, userId}) -> no refetch; show a typing bubble for userId in that thread until their next message.created or 6 s;
             connection.created (Connection) -> /v1/connections;
             calendar.changed ({}) -> call syncCalendar;
             signals.updated ({}) -> /v1/signals, /v1/me/setup;
