@@ -105,7 +105,17 @@ HERO_CITY = ("vn_clay_hour", "Clay Hour Studio", "Hayes Valley", "512 Hayes St",
 # The city nudge's restaurant (fictional, Hayes Valley): Maya's frequent dinner spot, reservation, pay there.
 NUDGE_CITY = ("vn_little_fern", "Little Fern Kitchen", "Hayes Valley", "418 Hayes St", 37.7768, -122.4236, "restaurant", ["food_crawl", "brunch", "lunch"], ("reservation", "pay_at_venue", 3200, 12), _hours("11:00", "22:00"))
 # Demo venue photos: copies of the clone's licensed images (facebook-clone/assets/provenance.md), by venueId.
-PHOTOS = {"vn_little_fern": "salad.jpg", "vn_clay_hour": "pottery.jpg"}
+# Every venue of a demo featuredPlanIds plan has a photo (ux-fable N-P0-3: no empty blue blocks on the demo path).
+PHOTOS = {
+    "vn_little_fern": "salad.jpg",
+    "vn_clay_hour": "pottery.jpg",
+    "vn_meeple_harbor": "coffee.jpg",
+    "vn_commonwealth_cowork": "workspace.jpg",
+    "vn_nopal_table": "weekend-breakfast.jpg",
+    "vn_bayside_commons": "cafe.jpg",
+    "vn_bedwell_bayfront": "coast-1.jpg",
+    "vn_kilnworks_studio": "paintbrushes.jpg",
+}
 PHOTO_PROVENANCE = """# Venue photo provenance
 
 Each `vn_*.jpg` here is a copy of a Facebook clone image, an Unsplash photo used under the Unsplash

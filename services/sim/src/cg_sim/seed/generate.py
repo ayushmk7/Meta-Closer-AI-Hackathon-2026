@@ -465,7 +465,7 @@ def generate(pool_id: str, seed: int, root: Path | None = None) -> dict:
     _dump_jsonl(seed_dir / "personas.jsonl", personas)
     _dump_jsonl(seed_dir / "activity.jsonl", activity)
     _dump_jsonl(seed_dir / "connectors.jsonl", records)
-    photos = [v for v in venue_rows if v["venueId"] in venues.PHOTOS]  # demo venues only (city pool)
+    photos = [v for v in venue_rows if v["venueId"] in venues.PHOTOS]  # demo venues only (venues.PHOTOS)
     if photos:
         (seed_dir / "venue_photos").mkdir()
         for v in photos:
