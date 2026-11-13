@@ -10,6 +10,7 @@ How the running system fits together. Every fact cites code or config on `main`;
 | [laya.md](laya.md) | Laya server, questions, tables, precompute |
 | [sim.md](sim.md) | Seed, Monte Carlo, param evidence, dashboard |
 | [app.md](app.md) | `facebook-clone` Common Ground feature |
+| [e2e.md](e2e.md) | The demo flow end to end, `scripts/e2e_flow.py`, known gaps |
 | [runbook.md](runbook.md) | Run the whole demo locally; common failures |
 | [decisions.md](decisions.md) | Dated decisions |
 
