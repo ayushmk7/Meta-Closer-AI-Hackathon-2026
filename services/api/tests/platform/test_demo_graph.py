@@ -49,3 +49,21 @@ def test_graph_and_metrics(api):
     m = api("liveMetrics", "/internal/v1/metrics", params={"poolId": "pool_sf_city"}).json()
     assert m["meetupsConfirmed"] == 1 and m["connections"] == 1 and m["members"] == 4
     assert api("liveMetrics", "/internal/v1/metrics", params={"poolId": "pool_nope"}).status_code == 404
+
+
+def test_isolated_and_export_pairs_match_a_full_scan(api):
+    store.connections[frozenset(("u_0125", "u_0144"))] = {"connectionId": "cn_a", "status": "met"}
+    store.connections[frozenset(("u_0125", "u_0098"))] = {"connectionId": "cn_b", "status": "new"}
+    store.blocks.add(frozenset(("u_0144", "u_0098")))
+    met = lambda u: [o for k, c in store.connections.items() if c["status"] == "met" and u in k for o in k - {u}]
+    g = api("poolGraph", "/internal/v1/pools/pool_sf_city/graph").json()
+    assert {n["userId"] for n in g["nodes"] if not n["isolated"]} == {
+        u for u in ("u_0125", "u_0144") if u in {n["userId"] for n in g["nodes"]}
+    }
+    m = api("liveMetrics", "/internal/v1/metrics", params={"poolId": "pool_sf_city"}).json()
+    assert m["isolated"] == sum(not met(n["userId"]) for n in g["nodes"])
+    for u in api("exportPool", "/internal/v1/pools/pool_sf_city/export").json()["users"]:
+        uid = u["userId"]
+        assert u["metIds"] == sorted(met(uid))
+        assert u["connectionIds"] == sorted(o for k in store.connections if uid in k for o in k - {uid})
+        assert u["blockedIds"] == sorted(o for k in store.blocks if uid in k for o in k - {uid})
