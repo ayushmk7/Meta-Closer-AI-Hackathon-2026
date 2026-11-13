@@ -9,6 +9,8 @@ from cg_api.store import store
 
 def test_one_world_end_to_end(api):
     assert dw.current is store.world and store.plans is store.world.plans
+    if hasattr(store.world, "nudges"):
+        assert store.nudges is store.world.nudges
     api("optIn", json={"mode": "city"})
     api("connectConnector", "/v1/connectors/google_maps")
     api("updateMe", json={"travel": {"maxMinutes": 60, "modes": ["transit"]}})

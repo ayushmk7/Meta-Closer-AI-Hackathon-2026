@@ -150,6 +150,45 @@ def test_cancelled_event_cancels_and_posts_alternatives(world):
     assert meetups.list_meetups(world, "u_maya") == []
 
 
+def test_copy_gets_interest_objects_that_survive_fail_closed_filter(world, monkeypatch):
+    """Copy drops anything that isn't a shown, non-sensitive CopyInterest; ours must survive, or text goes blank."""
+    import asyncio
+
+    from cg_api import ports
+    from cg_api.domain import plans
+
+    seen = {}
+
+    async def plan_reason(plan, shared):
+        seen["reason"] = ports.safe_labels(shared)
+        return "ok"
+
+    async def intro(names, shared, plan):
+        seen["intro"] = ports.safe_labels(shared)
+        return "hi", ["a", "b", "c"]
+
+    monkeypatch.setattr(ports.ports.copy, "plan_reason", plan_reason)
+    monkeypatch.setattr(ports.ports.copy, "intro", intro)
+    asyncio.run(plans.warm_reasons(world, "u_maya", ["pl_hero"]))
+    world.on_formed = runner.start
+    formed(world)
+    assert seen == {"reason": ["Ceramics", "Board games", "Hiking"], "intro": ["Wheel throwing"]}
+
+
+def test_refunds_then_cancel_after_double_booking_failure(world):
+    pytest.importorskip("cg_api.agent")
+    world.on_formed, world.on_decided = runner.start, runner.decided
+    mt = formed(world)
+    world.venues["vn_clay"]["booking"]["capacityPerSlot"] = 2  # room vanished after the availability check
+    for a in list(world.approvals.values()):
+        approvals.decide(world, a["userId"], a["approvalId"], "approve")
+    m = meetups.view(world, "u_maya", mt)
+    kinds = [s["kind"] for s in m["museSteps"]]
+    assert m["status"] == "cancelled" and kinds[-1] == "cancel" and "refund" in kinds
+    assert m["cost"]["myPayment"] == "not_needed" and m["calendar"]["desired"] == "none"
+    assert "cancelled this one" in chat.list_messages(world, "u_dan", m["threadId"])[-1]["text"]
+
+
 def test_join_approve_confirmed_with_synthetic_counterparts(world, monkeypatch):
     """Checkpoint A: Maya joins the hero plan, OKs her $35, and the meetup reaches confirmed."""
     pytest.importorskip("cg_api.agent")
@@ -176,3 +215,65 @@ def test_fail_next_booking_comes_from_live_demo_state(world, monkeypatch):
     monkeypatch.setattr(store, "world", world)
     monkeypatch.setattr(store, "demo_state", {"failNextBooking": True})
     assert runner._take_fail_next_booking(world) is True and store.demo_state["failNextBooking"] is False
+
+
+def _confirmed_hero(world, monkeypatch):
+    from cg_api import synthetic
+    from cg_api.store import store
+
+    monkeypatch.setattr(store, "demo_state", {"forcedYes": True, "counterpart": "synthetic"})
+    for u in ("u_dan", "u_rosa"):
+        world.users[u]["synthetic"] = True
+    world.on_formed, world.on_decided, world.on_approval = runner.start, runner.decided, synthetic.on_approval
+    world.on_to_muse = runner.to_muse
+    mt = formed(world)
+    [mine] = approvals.pending(world, "u_maya")
+    approvals.decide(world, "u_maya", mine["approvalId"], "approve")
+    assert world.meetups[mt]["status"] == "confirmed"
+    return mt
+
+
+def test_to_muse_moves_the_time(world, monkeypatch):
+    """Moment 5: 'Muse, can we do 11 instead?' -> Muse replies, reschedule + calendar steps, startsAt moves."""
+    pytest.importorskip("cg_api.agent")
+    mt = _confirmed_hero(world, monkeypatch)
+    th = world.meetups[mt]["threadId"]
+    chat.send(world, "u_dan", th, "Muse, can we do 11 instead?", "c-11")
+    m = meetups.view(world, "u_maya", mt)
+    assert (m["startsAt"], m["endsAt"]) == ("2026-11-14T19:00:00Z", "2026-11-14T21:00:00Z")  # 11 AM PT
+    reply = chat.list_messages(world, "u_maya", th)[-1]
+    assert reply["sender"]["kind"] == "muse" and reply["text"].startswith("Done.")
+    [att] = [a for a in reply["attachments"] if a["kind"] == "muse_steps"]
+    kinds = {s["stepId"]: s["kind"] for s in m["museSteps"]}
+    assert {kinds[i] for i in att["stepIds"]} >= {"reschedule", "calendar"}
+    assert m["calendar"]["startsAt"] == "2026-11-14T19:00:00Z"
+
+
+def test_to_muse_question_gets_an_answer_and_failures_are_logged(world, monkeypatch, caplog):
+    pytest.importorskip("cg_api.agent")
+    mt = _confirmed_hero(world, monkeypatch)
+    th = world.meetups[mt]["threadId"]
+    chat.send(world, "u_dan", th, "Muse, what should I bring?", "c-q")
+    assert chat.list_messages(world, "u_maya", th)[-1]["sender"]["kind"] == "muse"
+    from cg_api import agent
+
+    monkeypatch.setattr(agent, "answer_question", lambda *a: 1 / 0)
+    chat.send(world, "u_dan", th, "Muse, is it indoors?", "c-q2")
+    assert "toMuse turn failed" in caplog.text
+
+
+def test_to_muse_change_requests_and_questions(world, monkeypatch):
+    pytest.importorskip("cg_api.agent")
+    mt = _confirmed_hero(world, monkeypatch)
+    th = world.meetups[mt]["threadId"]
+    said = {}
+    for k, text in enumerate(
+        ["Muse, can we do Sunday instead?", "Muse, is it Saturday?", "Muse, can I bring 2 friends?", "Muse, cancel it"]
+    ):
+        chat.send(world, "u_dan", th, text, f"c{k}")
+        said[text] = chat.list_messages(world, "u_maya", th)[-1]["text"]
+    assert said["Muse, can we do Sunday instead?"].startswith("Moving it to Sunday needs everyone's OK")
+    assert said["Muse, is it Saturday?"].startswith("Here's the plan:")
+    assert said["Muse, can I bring 2 friends?"].startswith("Here's the plan:")  # not a time (D's cue rule)
+    assert said["Muse, cancel it"].startswith("Cancelling needs everyone's OK")
+    assert world.meetups[mt]["status"] == "confirmed" and world.meetups[mt]["startsAt"] == "2026-11-14T18:00:00Z"

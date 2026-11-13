@@ -81,17 +81,40 @@ def test_run_report_replay_end_to_end(tmp_path, monkeypatch):
         (tmp_path / sub).symlink_to(real / sub)
     monkeypatch.setenv("CG_DATA_DIR", str(tmp_path))
     argv = ["--pool", POOL, "--fake-laya", "--users", "30", "--seeds", "3", "--cells", "center",
-            "--workers", "1", "--run-id", "toy", "--weeks", "3"]
+            "--workers", "1", "--run-id", "toy", "--weeks", "3",
+            "--policies", "random,greedy,common_ground,common_ground_learned"]
     assert mc.main(argv) == 0
     assert report.main(["--run-id", "toy"]) == 0
     run = tmp_path / "sim" / "runs" / "toy"
     text = (run / "REPORT.md").read_text()
     assert "## Headline" in text and "not predictions" in text and (run / "isolated_share.png").exists()
     rp = json.loads((run / "replay.json").read_text())
-    assert rp["policies"] == list(engine.POLICIES) and rp["weeks"] == 3
+    assert rp["policies"] == [*engine.POLICIES, "common_ground_learned"] and rp["weeks"] == 3
+    assert "## Learned prefs vs plain Common Ground" in text and "no worse" not in text
     for pol, frames in rp["frames"].items():
         assert [f["week"] for f in frames] == [1, 2, 3]
         for f in frames:
             assert all(a < b for a, b in f["metPairs"] + f["friendships"])
         assert len(rp["isolatedShare"][pol]["mean"]) == 4
     assert {"userId", "lat", "lng", "sceneId", "lowOutgoing"} <= set(rp["people"][0])
+
+
+def test_learned_with_zero_alpha_equals_common_ground(toy):
+    """prefAlpha=0 keeps every pref at 0, so the learned policy must reproduce common_ground bit for bit."""
+    import copy
+    import dataclasses
+
+    p = copy.deepcopy(toy.params)
+    p["matching"]["prefAlpha"] = 0.0
+    w0 = dataclasses.replace(toy, params=p)
+    assert json.dumps(engine.simulate(w0, "common_ground_learned", 4)) == json.dumps(engine.simulate(w0, "common_ground", 4))
+
+
+def test_learned_policy_rewards_meetups(toy, monkeypatch):
+    calls = []
+    real = engine._learn
+    monkeypatch.setattr(engine, "_learn", lambda prefs, uid, keys, r, a: (calls.append((keys, r)), real(prefs, uid, keys, r, a)))
+    m = engine.simulate(toy, "common_ground_learned", 3)
+    assert calls and all(r in (0.5, -0.5) for _, r in calls)
+    assert all(any(k.startswith("act:") for k in keys) for keys, _ in calls)
+    assert len(m["showRateByWeek"]) == len(m["friendShareByWeek"]) == toy.weeks
