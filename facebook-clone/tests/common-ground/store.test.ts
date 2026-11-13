@@ -590,3 +590,24 @@ test('when/clock: LA time, no ":00", plain space', () => {
   assert.equal(clock('2026-11-14T16:30:00Z'), '8:30 AM');
   assert.equal(when('2026-11-14T18:00:00Z'), 'Sat, Nov 14 · 10 AM');
 });
+
+test('demo mock: seeded progress and a join from today; finishing a meetup unlocks plans', async (t) => {
+  t.mock.timers.enable({ apis: ['Date'], now: Date.parse('2026-11-12T18:00:00Z') });
+  resetMock();
+  type Json = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any -- raw mock JSON
+  const call = (m: string, p: string, b?: unknown) =>
+    mockRequest('u_maya', m, p, b) as Promise<Json>;
+  await call('POST', '/v1/optin', { mode: 'city' });
+  assert.equal((await call('GET', '/v1/me')).rewards.confirmedMeetups, 2);
+  const seeded = (await call('GET', '/v1/joins')).items[0];
+  assert.equal(seeded.createdAt.slice(0, 10), '2026-11-12');
+  await call('POST', '/v1/plans/pl_0001/join', {});
+  t.mock.timers.tick(3 * 86_400_000);
+  await call('GET', '/v1/meetups/mt_0001');
+  const me = await call('GET', '/v1/me');
+  assert.deepEqual(
+    [me.rewards.confirmedMeetups, me.rewards.nextUnlock, me.capabilities.canCreatePlans],
+    [3, null, true],
+  );
+  resetMock();
+});

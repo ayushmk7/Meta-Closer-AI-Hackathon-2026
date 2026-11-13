@@ -19,7 +19,7 @@ export default function HomeCard() {
     return (
       <Card style={{ padding: 16, gap: 8 }}>
         <Label accessibilityRole="header" style={{ fontSize: 17, fontWeight: '700' }}>
-          Plans with Muse
+          Plans
         </Label>
         <Muted>Muse can find things to do with people who are into what you&apos;re into.</Muted>
         <View style={{ flexDirection: 'row', gap: 8, marginTop: 3 }}>
@@ -45,7 +45,8 @@ export default function HomeCard() {
         {nudge.title}
       </Label>
       <Label>{nudge.text}</Label>
-      {because && <Muted>Because: {because.label}</Muted>}
+      {/* Skip the Because line when the body already says it (it usually does). */}
+      {because && !nudge.text.includes(because.label) && <Muted>Because: {because.label}</Muted>}
       <View style={{ flexDirection: 'row', gap: 8, marginTop: 3 }}>
         <Button
           title="Open plan"
