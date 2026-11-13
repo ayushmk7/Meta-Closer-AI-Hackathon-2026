@@ -99,6 +99,8 @@ def simulate(w: World, policy: str, seed: int, flake: float = 1.0, join: float =
     seats: dict[int, list[list[int]]] = {}
     met = np.zeros((n, n), bool)
     together = np.zeros((n, n), np.int16)
+    coatt = np.zeros((n, n), np.int16)  # meetups both attended, liked or not
+    group_sizes: list[int] = []
     friends = np.zeros((n, n), bool)
     seated_ever = np.zeros(n, bool)
     first_meet = np.full(n, -1)
@@ -158,6 +160,7 @@ def simulate(w: World, policy: str, seed: int, flake: float = 1.0, join: float =
                 for g in seats.pop(j):
                     showed = [i for i in g if us[i, j] < ps[i, j]]
                     n_seated += len(g)
+                    group_sizes.append(len(g))
                     n_showed += len(showed)
                     wk_seated += len(g)
                     wk_showed += len(showed)
@@ -174,6 +177,7 @@ def simulate(w: World, policy: str, seed: int, flake: float = 1.0, join: float =
                     for x, a in enumerate(showed):
                         for b in showed[x + 1:]:
                             a_, b_ = min(a, b), max(a, b)
+                            coatt[a_, b_] += 1
                             if not met[a_, b_]:
                                 met[a_, b_] = met[b_, a_] = True
                                 if trace:
@@ -220,6 +224,12 @@ def simulate(w: World, policy: str, seed: int, flake: float = 1.0, join: float =
         "showRate": n_showed / n_seated if n_seated else float("nan"),
         "giniFriends": gini(fc),
         "medianDaysFirstMeetup": float(np.median(first_meet[first_meet >= 0])) if (first_meet >= 0).any() else float("nan"),
+        # reunion diagnostic: share of met pairs that co-attended >= 2 meetups (liked or not / both liked)
+        "repeatCoattendShare": float((coatt >= 2).sum() / max(1, (coatt >= 1).sum())),
+        "repeatLikedShare": float((together >= 2).sum() / max(1, (coatt >= 1).sum())),
+        "metPairs": int((coatt >= 1).sum()),
+        "repeatLikedPairs": int((together >= 2).sum()),
+        "meanGroupSize": float(np.mean(group_sizes)) if group_sizes else float("nan"),
         "lowSeatedShare": float(seated_ever[low].mean()) if low.any() else float("nan"),
     }
     if trace:
@@ -242,11 +252,13 @@ def _learn(prefs: dict, uid: str, keys: list[str], r: float, alpha: float) -> No
 
 
 def _cg_form(w: World, j: int, members: list[int], met: np.ndarray, seed: int, d: int) -> list[list[int]]:
-    """Shared form_groups on a mini pool of just the interested people (fallback reads only metIds/blockedIds)."""
+    """Shared form_groups on a mini pool of just the interested people. Met pairs ride in metIds (_pool); cands
+    gives pair() its affinity (with {} every pair scored 0 and splits followed queue order). ponytail: state stays
+    {}: venue capacity never binds here (seats are not scarce) and seat_history only reorders an unbinding queue."""
     if len(members) < w.size_min[j]:
         return []
     ids = [w.users[i] for i in members]
     pool = _pool(w, met, members)
-    res = ma.form_groups(w.plans[j], ids, pool, {}, w.tables, {}, w.params, random.Random(f"{seed}|{d}|{j}"))
+    res = ma.form_groups(w.plans[j], ids, pool, w.cands, w.tables, {}, w.params, random.Random(f"{seed}|{d}|{j}"))
     ui = w.tables.ui
     return [[ui[m] for m in g["member_ids"]] for g in res["groups"]]
