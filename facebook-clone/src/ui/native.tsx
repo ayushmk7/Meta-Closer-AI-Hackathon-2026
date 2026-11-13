@@ -166,7 +166,7 @@ export function Button({
       disabled={disabled}
       style={({ pressed }) => [
         {
-          minHeight: 42,
+          minHeight: 44,
           borderRadius: 7,
           paddingHorizontal: 13,
           paddingVertical: 9,
@@ -331,7 +331,7 @@ export function Chips({
           accessibilityState={{ selected: item === value }}
           onPress={() => onChange(item)}
           style={{
-            minHeight: 40,
+            minHeight: 44,
             paddingHorizontal: 15,
             paddingVertical: 10,
             borderRadius: 22,
