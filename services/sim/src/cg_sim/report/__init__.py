@@ -151,7 +151,7 @@ def render(run_dir) -> str:
             d = paired(base, key, lr, cg)
             v = _verdict(d[1], d[2], hb)
             L.append(f"| {label} | {d[0]:+.1%} [{d[1]:+.1%}, {d[2]:+.1%}] | "
-                     f"{['worse', 'no worse (unclear)', 'better'][v + 1]} |")
+                     f"{['worse', 'unclear', 'better'][v + 1]} |")
         L.append(caveat.strip() if caveat else "")
 
     abl = defaultdict(list)

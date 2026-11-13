@@ -81,14 +81,16 @@ def test_run_report_replay_end_to_end(tmp_path, monkeypatch):
         (tmp_path / sub).symlink_to(real / sub)
     monkeypatch.setenv("CG_DATA_DIR", str(tmp_path))
     argv = ["--pool", POOL, "--fake-laya", "--users", "30", "--seeds", "3", "--cells", "center",
-            "--workers", "1", "--run-id", "toy", "--weeks", "3"]
+            "--workers", "1", "--run-id", "toy", "--weeks", "3",
+            "--policies", "random,greedy,common_ground,common_ground_learned"]
     assert mc.main(argv) == 0
     assert report.main(["--run-id", "toy"]) == 0
     run = tmp_path / "sim" / "runs" / "toy"
     text = (run / "REPORT.md").read_text()
     assert "## Headline" in text and "not predictions" in text and (run / "isolated_share.png").exists()
     rp = json.loads((run / "replay.json").read_text())
-    assert rp["policies"] == list(engine.POLICIES) and rp["weeks"] == 3
+    assert rp["policies"] == [*engine.POLICIES, "common_ground_learned"] and rp["weeks"] == 3
+    assert "## Learned prefs vs plain Common Ground" in text and "no worse" not in text
     for pol, frames in rp["frames"].items():
         assert [f["week"] for f in frames] == [1, 2, 3]
         for f in frames:

@@ -14,7 +14,7 @@ import numpy as np
 from cg_sim import matching_adapter as ma
 from cg_sim.mc.world import World
 
-POLICIES = ("random", "greedy", "common_ground", "common_ground_learned")
+POLICIES = ("random", "greedy", "common_ground")  # default; common_ground_learned via `cg-sim run --policies`
 CG = ("common_ground", "common_ground_learned")  # learned = common_ground + MatchState.prefs from update_prefs
 # Calibration knob (not a contract param): one day's impression converts at JOIN_DAILY x p_join. At 1/7 almost
 # nothing forms in a 300-person pool; 0.5 gives fill rates in a plausible 0.2-0.7 band. The join sweep brackets it.
