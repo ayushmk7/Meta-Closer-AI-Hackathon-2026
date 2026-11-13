@@ -58,6 +58,7 @@ export interface CgState {
   approvals: Approval[];
   nudges: Nudge[];
   connections: Connection[];
+  missingPlans: Record<string, true>; // getPlan said 404
   shares: Share[]; // the unfiltered anonymous gallery (Explore, Welcome, Ideas)
   sharesBy: Record<string, Share[]>; // filtered loads, keyed by shareQuery(filter)
   publicShares: Share[]; // logged-out gallery (anonymous listShares)
@@ -104,6 +105,7 @@ const initial = (): CgState => ({
   approvals: [],
   nudges: [],
   connections: [],
+  missingPlans: {},
   shares: [],
   sharesBy: {},
   publicShares: [],
@@ -193,9 +195,16 @@ export const load = {
   connectors: loader(async () => ({ connectors: await api.listConnectors() })),
   signals: loader(async () => ({ signals: await api.listSignals() })),
   feed: loader(async () => ({ feed: await api.getFeed() })),
+  // A 404 marks the plan missing (the pop-up shows NotFound) instead of the global banner.
   plan: loader(async (planId: string) => {
-    const p = await api.getPlan(planId);
-    return { plans: { ...state.plans, [planId]: p } };
+    try {
+      const p = await api.getPlan(planId);
+      const { [planId]: _found, ...missingPlans } = state.missingPlans;
+      return { plans: { ...state.plans, [planId]: p }, missingPlans };
+    } catch (e) {
+      if ((e as { status?: number }).status !== 404) throw e;
+      return { missingPlans: { ...state.missingPlans, [planId]: true as const } };
+    }
   }),
   joins: loader(async () => ({ joins: await api.listJoins() })),
   meetups: loader(async () => ({
@@ -268,7 +277,7 @@ export function start(): Promise<void> {
       starting = null;
       return setState({
         error: {
-          message: state.error?.message ?? 'Could not reach Common Ground. Check your connection.',
+          message: state.error?.message ?? "Couldn't reach Common Ground. Check your connection.",
           retry: () => void start(),
         },
       });
@@ -648,7 +657,7 @@ export const inboxRows = (threads: Thread[], optedIn: boolean): ExternalRow[] =>
     ? threads.map((t) => ({
         id: t.threadId,
         title: t.title,
-        subtitle: t.lastMessage?.text ?? 'Say hello',
+        subtitle: t.lastMessage?.text ?? 'Say hi',
         imageUri: t.kind === 'direct' ? uri(t.participants[0]?.avatarUrl) : null,
         initials: (t.kind === 'direct' && t.participants[0]?.initials) || t.title.slice(0, 1),
         unread: t.unreadCount > 0,

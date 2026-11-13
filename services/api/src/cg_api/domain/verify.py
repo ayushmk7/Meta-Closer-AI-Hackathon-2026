@@ -99,7 +99,7 @@ def check_in(w: World, viewer: str, meetup_id: str, location: dict) -> dict:
     try:
         far = _metres(location, w.venues[m["venueId"]]["location"]) > w.params["checkin"]["geofenceM"]
     except (KeyError, TypeError, ValueError) as e:
-        raise Fail(400, "validation_failed", "That location doesn't look right.") from e
+        raise Fail(400, "validation_failed", "Couldn't read your location. Try checking in again.") from e
     if not _relaxed(w):
         if not _in_window(w, m):
             return {"accepted": False, "reason": "outside_window"}
@@ -143,7 +143,7 @@ def feedback(w: World, viewer: str, meetup_id: str, body: dict) -> None:
         and all(isinstance(t, str) for t in tags)
     )
     if not ok:
-        raise Fail(400, "validation_failed", "That feedback is missing something.")
+        raise Fail(400, "validation_failed", "Couldn't send that feedback. Answer for each person and try again.")
     first = not m["members"][viewer].get("feedbackSent")
     m["members"][viewer].update(feedback=body, feedbackSent=True)
     for uid in body.get("reportUserIds") or []:

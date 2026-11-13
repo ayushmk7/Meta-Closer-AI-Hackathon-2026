@@ -19,6 +19,7 @@ from cg_api.muse.extract import Extractor
 from cg_api.settings import get_settings
 
 log = logging.getLogger("cg_api.providers")
+COPY_CACHE = Path(__file__).resolve().parents[3] / ".cache" / "muse_copy.json"  # services/api/.cache (gitignored)
 
 
 def simulated_book(venue: dict, start: str, party: int, *, fail: bool = False) -> str | None:
@@ -58,7 +59,7 @@ def install(ports) -> None:
         timeout_s=p["muse"]["liveTimeoutS"],
     )
     threading.Thread(target=ports.muse.log_models, daemon=True).start()  # off the startup path
-    ports.copy = MuseCopy(ports.muse, s.contracts_dir)
+    ports.copy = MuseCopy(ports.muse, s.contracts_dir, cache_path=None if s.muse_fake else COPY_CACHE)
     ports.extractor = Extractor(
         ports.muse,
         ports.laya,
@@ -66,6 +67,7 @@ def install(ports) -> None:
         venue=seed_venue,
         threshold=p["laya"]["decisiveThreshold"],
         batch_timeout_s=p["muse"]["batchTimeoutS"],
+        muse_live=not s.muse_fake,
     )
     # ponytail: ports.agent stays the stub until slice C's meetup store exists; ScriptedRun is ready for it
     log.info(

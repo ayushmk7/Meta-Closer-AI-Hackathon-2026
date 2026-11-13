@@ -15,7 +15,7 @@ SECRETS = ["u_0125", "Buddhism", "cr_secret", "Quiet Temple", "2026-11-13T17:00:
 
 def test_copy_prompts_whitelist_plan_fields():
     spy = Spy()
-    copy = MuseCopy(spy)
+    copy = MuseCopy(spy, backoff_s=0)
     leaky = {
         **PLAN,
         "seedJoinIds": ["u_0125"],
@@ -23,12 +23,17 @@ def test_copy_prompts_whitelist_plan_fields():
         "interested": ["u_0125"],
         "venue": {**PLAN["venue"], "location": {"lat": 37.7595}},
     }
-    asyncio.run(copy.intro(["Maya", "Rosa"], [ok("Wheel throwing")], leaky))
-    asyncio.run(copy.plan_reason(leaky, [ok("Ceramics")]))
-    asyncio.run(copy.plan_title(leaky))
-    asyncio.run(copy.nudge("You've been to Lands End 4 times", leaky))
-    asyncio.run(copy.setup_review("u_0125", [ok("Ceramics")]))
-    assert len(spy.prompts) == 5
+
+    async def all_copy():
+        await copy.intro(["Maya", "Rosa"], [ok("Wheel throwing")], leaky)
+        await copy.plan_reason(leaky, [ok("Ceramics")])
+        await copy.plan_title(leaky)
+        await copy.nudge("You've been to Lands End 4 times", leaky)
+        await copy.setup_review("u_0125", [ok("Ceramics")])
+        await copy.drain()  # background fills send their prompts too
+
+    asyncio.run(all_copy())
+    assert {p for p, _ in spy.prompts} == {"copy.intro", "copy.reason", "copy.title", "copy.nudge", "copy.setup"}
     for _, prompt in spy.prompts:
         assert not [s for s in SECRETS if s in prompt], prompt
 
@@ -43,7 +48,9 @@ def test_extraction_never_sends_busy_blocks_or_user_ids():
         "at": "2026-11-13T17:00:00Z",
         "end": "2026-11-13T18:00:00Z",
     }
-    asyncio.run(Extractor(spy, LayaClient(CONTRACTS, fake=True), CONTRACTS).extract("u_0125", [], [busy]))
+    asyncio.run(
+        Extractor(spy, LayaClient(CONTRACTS, fake=True), CONTRACTS, inline_muse=True).extract("u_0125", [], [busy])
+    )
     assert spy.prompts and all("cr_secret" not in p and "u_0125" not in p for _, p in spy.prompts)
 
 

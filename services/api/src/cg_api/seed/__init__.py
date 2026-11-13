@@ -262,7 +262,10 @@ async def _extract(uid: str, records: list[dict], reextract: bool) -> dict:
     """ports.extractor, cached by content hash in services/api/.cache/extract/."""
     payload = {"activity": store.activity.get(uid, []), "records": records}
     key = hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()
-    path = Path(__file__).resolve().parents[3] / ".cache" / "extract" / f"{type(ports.extractor).__name__}-{key}.json"
+    # Salted with the extractor's mode and version: fake and live Muse (or a changed extractor) never share results.
+    ex = ports.extractor
+    salt = f"{type(ex).__name__}-{'live' if getattr(ex, 'muse_live', False) else 'fake'}-v{getattr(ex, 'cache_version', 1)}"
+    path = Path(__file__).resolve().parents[3] / ".cache" / "extract" / f"{salt}-{key}.json"
     if path.exists() and not reextract:
         return json.loads(path.read_text())
     out = await ports.extractor.extract(uid, payload["activity"], records)

@@ -28,7 +28,7 @@ def message_view(viewer: str, msg: dict) -> dict:
 def get(w: World, viewer: str, thread_id: str) -> dict:
     t = w.threads.get(thread_id)
     if not t or viewer not in t["members"]:
-        raise not_found()
+        raise not_found("chat")
     return t
 
 
@@ -128,7 +128,11 @@ def send(
         or len(text) > w.params["messages"]["maxChars"]
         or not client_id
     ):
-        raise Fail(400, "validation_failed", "That message can't be sent.")
+        raise Fail(
+            400,
+            "validation_failed",
+            f"Couldn't send that message. Keep it under {w.params['messages']['maxChars']} characters.",
+        )
     dup = next(
         (m for m in t["messages"] if m["clientId"] == client_id and m["sender"].get("userId") == viewer),
         None,
