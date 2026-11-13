@@ -426,18 +426,17 @@ export default function ChatScreen() {
           borderTopWidth: StyleSheet.hairlineWidth,
           borderTopColor: c.divider,
           padding: 10,
-          gap: 8,
         }}
       >
-        <View style={{ alignSelf: 'flex-start' }}>
+        {/* One composer row, Messenger-style: the Muse toggle sits left of the field. */}
+        <View style={{ flexDirection: 'row', gap: 6, alignItems: 'flex-end' }}>
           <Pill
-            label="Ask Muse"
+            label="Muse"
+            accessibilityLabel="Ask Muse"
             icon="sparkles"
             selected={toMuse}
             onPress={() => setToMuse((x) => !x)}
           />
-        </View>
-        <View style={{ flexDirection: 'row', gap: 6, alignItems: 'flex-end' }}>
           <Input
             multiline
             maxLength={maxChars}
