@@ -83,7 +83,7 @@ def fake_p(key: str, state: str, version: int | None = None) -> float:
 
 # Laya answer field mapping: the ONLY place that knows laya-serve's answer shape. UNVERIFIED (no laya-serve
 # available); fix these names once confirmed against the installed docs.
-ANSWER_SCALAR_FIELDS = ("p", "probability", "yes", "value", "expected")  # first numeric one wins
+ANSWER_SCALAR_FIELDS = ("noul", "p", "probability", "yes", "value", "expected")  # first numeric one wins; real laya-serve 0.2.1 sends {"noul": p}
 ANSWER_DIST_FIELDS = ("probabilities", "distribution")  # list over criteria, or {label: p}
 
 
@@ -96,7 +96,7 @@ def _answer_p(ans: dict | float, qtype: str, criteria: list | None) -> float:
             return float(ans[k])
     probs = next((ans[k] for k in ANSWER_DIST_FIELDS if ans.get(k)), None)
     if qtype == "score" and probs:
-        vals = probs if isinstance(probs, list) else [probs.get(c, 0.0) for c in criteria]
+        vals = probs if isinstance(probs, list) else [probs.get(c, probs.get(str(i), 0.0)) for i, c in enumerate(criteria)]  # real Laya keys by index
         return sum(p * i / (len(vals) - 1) for i, p in enumerate(vals))
     if qtype == "noul" and isinstance(probs, dict) and isinstance(probs.get("yes", probs.get("true")), (int, float)):
         return float(probs.get("yes", probs.get("true")))
