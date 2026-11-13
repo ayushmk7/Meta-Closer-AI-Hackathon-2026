@@ -1,6 +1,6 @@
 // Plan pop-up (PRD-1 §8.2). Who's in is counts only (C5).
 import { useEffect, useState } from 'react';
-import { Alert, Linking, Pressable, Switch, View } from 'react-native';
+import { ActivityIndicator, Alert, Linking, Pressable, Switch, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Button, Card, Icon, Label, Muted, Page, Sheet, go, useColors } from '../../ui/native';
@@ -153,6 +153,7 @@ export default function PlanScreen() {
   const plan = useCg((s) => s.plans[planId]);
   const ready = useCg((s) => s.ready);
   const error = useCg((s) => !!s.error);
+  const missing = useCg((s) => !!s.missingPlans[planId]);
   const connectors = useCg((s) => s.connectors);
   const optedIn = useCg((s) => !!s.me?.optedIn);
   const notOptedIn = useCg((s) => s.ready && !!s.me && !s.me.optedIn);
@@ -171,7 +172,11 @@ export default function PlanScreen() {
     return (
       <Page>
         <Banners />
-        {ready && error && <NotFound title="Plan not found" />}
+        {missing || (ready && error) ? (
+          <NotFound title="This plan isn't available" />
+        ) : (
+          <ActivityIndicator color={c.blue} style={{ marginTop: 40 }} />
+        )}
       </Page>
     );
   const labels = Object.fromEntries(connectors.map((x) => [x.provider, x.label]));
