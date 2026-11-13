@@ -1,8 +1,8 @@
 // Private progress (DESIGN Rewards): only the user sees it; never shown to others or used in ranking.
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { View, type StyleProp, type ViewStyle } from 'react-native';
 import { Button, Card, Icon, Label, Muted, go, useColors } from '../../ui/native';
-import { createPlan, useCg } from './store';
+import { createPlan, load, useCg } from './store';
 import { TZ, type Meetup } from './types';
 import { when } from './ui';
 
@@ -33,6 +33,13 @@ export function RewardRow() {
   const c = useColors();
   const unlocks = useCg((st) => st.me?.unlocks);
   const canCreate = useCg((st) => !!st.me?.capabilities.canCreatePlans);
+  // A completed meetup can unlock something; Me isn't pushed, so refetch it when one completes.
+  const completed = useCg(
+    (st) => Object.values(st.meetups).filter((m) => m.status === 'completed').length,
+  );
+  useEffect(() => {
+    if (completed) void load.me();
+  }, [completed]);
   const latest = unlocks?.length
     ? [...unlocks].sort((a, b) => a.earnedAt.localeCompare(b.earnedAt)).at(-1)!.label
     : canCreate // the mock flips this without adding an Unlock

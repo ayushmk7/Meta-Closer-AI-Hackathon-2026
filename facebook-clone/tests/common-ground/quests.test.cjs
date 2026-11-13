@@ -198,3 +198,19 @@ test('demo: ticks survive the staged clock jump; earned reward shows under the c
     await renderer.act(async () => store.setState({ config: null }));
   }
 });
+
+test('a completed meetup refetches me, so a fresh unlock shows under the card', async () => {
+  const { api } = require('../../src/features/common-ground/api');
+  const me = fixtures.getMe;
+  const getMe = jest
+    .spyOn(api, 'getMe')
+    .mockResolvedValue({ ...me, capabilities: { ...me.capabilities, canCreatePlans: true } });
+  const m = { ...fixtures.getMeetup, status: 'completed' };
+  await renderer.act(async () => store.setState({ me, meetups: { [m.meetupId]: m } }));
+  const { tree, labels } = await render(React.createElement(Quests));
+  await renderer.act(async () => {});
+  expect(getMe).toHaveBeenCalled();
+  expect(labels()).toContain('Unlocked: Create your own plans');
+  getMe.mockRestore();
+  await renderer.act(async () => tree.unmount());
+});
