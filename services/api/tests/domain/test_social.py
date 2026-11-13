@@ -259,7 +259,15 @@ def test_caption_naming_a_coattendee_is_refused(world):
     mt = confirmed(world)
     verify.check_in(world, "u_maya", mt, world.venues["vn_clay"]["location"])
     finished(world, mt)
-    for cap in ("Fun with Daniel at the studio", "With Daniel Okafor and Rosa!", "rosa made the best bowl", "okafor!"):
+    for cap in (
+        "Fun with Daniel at the studio",
+        "With Daniel Okafor and Rosa!",
+        "rosa made the best bowl",
+        "okafor!",
+        "Danïel threw a mug",  # diacritic
+        "R o s a was there",  # spaced out
+        "Dan was great",  # nickname
+    ):
         with pytest.raises(Fail) as e:
             share(world, "u_maya", mt, cap)
         assert (e.value.status, e.value.code) == (422, "screened") and "names" in e.value.message
@@ -289,7 +297,14 @@ def test_relike_does_not_farm_prefs(world):
     assert world.prefs["u_kai"][f"act:{s['activityType']}"] == pytest.approx(0.09)
 
 
-def test_caption_goes_through_plan_ok_screening(world, laya_yes):
+def test_caption_goes_through_plan_ok_screening(world, laya_yes, monkeypatch):
+    """Real Laya (not LAYA_FAKE) screens captions like user-created plans."""
+    import dataclasses
+
+    from cg_api.settings import get_settings
+
+    real = dataclasses.replace(get_settings(), laya_fake=False)
+    monkeypatch.setattr(shares, "get_settings", lambda: real)
     mt = confirmed(world)
     verify.check_in(world, "u_maya", mt, world.venues["vn_clay"]["location"])
     finished(world, mt)
@@ -301,3 +316,47 @@ def test_caption_goes_through_plan_ok_screening(world, laya_yes):
     laya_yes.p = 0.6  # undecided passes
     assert share(world, "u_maya", mt, "Lopsided bowls all round.")["mine"]
     assert share(world, "u_maya", mt, "Maya says: lopsided bowls.")["mine"]  # my own name is mine to share
+
+
+ORDINARY = [
+    "Best Saturday in ages.",
+    "Came alone, left with a crew.",
+    "Fog, coffee, good talk.",
+    "Board games till close.",
+    "Three strangers, three lopsided bowls.",
+    "Came for the clay, stayed for the people.",
+    "Muddy shoes, big smiles.",
+    "We stayed two hours past closing.",
+    "Nobody won, everyone laughed.",
+    "Already planning round two.",
+    "The view was worth the hills.",
+    "Tacos after, obviously.",
+    "First time bouldering. Not the last.",
+    "Lopsided mugs for everyone.",
+    "Surprisingly competitive trivia.",
+    "Sunset, snacks, new friends.",
+    "Fell off the wall twice. Worth it.",
+    "Quiet morning, great company.",
+    "We closed the cafe down.",
+    "Ten out of ten, would wander again.",
+]
+
+
+def test_laya_fake_never_refuses_ordinary_captions(world):
+    """Demo config: under LAYA_FAKE the hash answer is noise, so 20 ordinary captions all post; names still 422."""
+    from cg_api import ports
+    from cg_api.laya import LayaClient
+    from cg_api.settings import get_settings
+
+    st = get_settings()
+    assert st.laya_fake
+    ports.ports.laya = LayaClient(
+        st.contracts_dir, fake=True, url="", model="", threshold=st.params["laya"]["decisiveThreshold"]
+    )
+    mt = confirmed(world)
+    verify.check_in(world, "u_maya", mt, world.venues["vn_clay"]["location"])
+    finished(world, mt)
+    assert all(share(world, "u_maya", mt, c)["mine"] for c in ORDINARY)
+    with pytest.raises(Fail) as e:
+        share(world, "u_maya", mt, "Fun with Daniel at the studio")
+    assert (e.value.status, e.value.code) == (422, "screened")

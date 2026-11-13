@@ -7,12 +7,17 @@ Who shared it and who liked it stay server-side; `mine` and `likedByMe` are only
 from __future__ import annotations
 
 import hashlib
+import logging
 import re
+import unicodedata
 from datetime import timedelta
 
 from cg_api import ports
 from cg_api.domain import meetups, plans, prefs
 from cg_api.domain.world import Fail, World, not_found, parse
+from cg_api.settings import get_settings
+
+log = logging.getLogger("cg_api.domain.shares")
 
 CAPTIONS = [  # ponytail: seed captions that fit any card; real ones come from shareMeetup
     "Strangers at the start, friends by the end.",
@@ -124,6 +129,22 @@ def _names(w: World, m: dict, viewer: str) -> set[str]:
     return {n for n in out if len(n) >= 2}
 
 
+def _fold(text: str) -> str:
+    """Accents off (Danïel -> Daniel) and spaced-out letters rejoined (R o s a -> Rosa)."""
+    t = "".join(c for c in unicodedata.normalize("NFKD", text) if not unicodedata.combining(c))
+    return re.sub(r"\b(?:\w[\s.\-_*]+){2,}\w\b", lambda m: re.sub(r"[\s.\-_*]+", "", m.group(0)), t)
+
+
+def _names_someone(caption: str, names: set[str]) -> bool:
+    """Whole-word name match after folding, plus nicknames: a capitalised 3+ letter token that starts a name."""
+    t = _fold(caption)
+    folded = {_fold(n).lower() for n in names}
+    if any(re.search(rf"\b{re.escape(n)}\b", t, re.I) for n in folded):
+        return True
+    tokens = re.findall(r"\b[A-Z][a-z]{2,}\b", t)
+    return any(n.startswith(tok.lower()) for tok in tokens for n in folded if len(n) > len(tok))
+
+
 def _eligible(w: World, viewer: str, meetup_id: str, caption) -> dict:
     m = meetups.get(w, viewer, meetup_id)
     if not isinstance(caption, str) or not caption.strip():
@@ -137,7 +158,7 @@ def _eligible(w: World, viewer: str, meetup_id: str, caption) -> dict:
         raise Fail(422, "not_allowed", "You can share a plan once you've been to it.")
     if w.venues[m["venueId"]].get("sensitive"):
         raise Fail(422, "not_allowed", "This place stays private, so it can't be shared.")
-    if any(re.search(rf"\b{re.escape(n)}\b", caption, re.I) for n in _names(w, m, viewer)):
+    if _names_someone(caption, _names(w, m, viewer)):
         # the gallery is public and logged-out: nobody is named there without their say
         raise Fail(422, "screened", "Shares stay anonymous, so leave people's names out of the caption.")
     return m
@@ -147,9 +168,13 @@ async def share_meetup(w: World, viewer: str, meetup_id: str, caption) -> dict:
     """Checks first, then the same Laya screen as user-created plans (laya_questions plan_ok): a decisive no is
     422 screened. Undecided passes. ponytail: Muse escalation for undecided answers comes with createPlan (M2)."""
     m = _eligible(w, viewer, meetup_id, caption)
-    p, decisive = await ports.ports.laya.ask("plan_ok", {"text": caption.strip()})
-    if decisive and p < 0.5:
-        raise Fail(422, "screened", "I can't share that one. Try describing the activity instead.")
+    if get_settings().laya_fake:
+        # LAYA_FAKE's hash answer is noise, not judgement: never refuse a happy post on it (D4)
+        log.info("shareMeetup: LAYA_FAKE, plan_ok screen skipped for %s", meetup_id)
+    else:
+        p, decisive = await ports.ports.laya.ask("plan_ok", {"text": caption.strip()})
+        if decisive and p < 0.5:
+            raise Fail(422, "screened", "I couldn't post that one. Try a different caption.")
     plan = {**w.plans[m["planId"]], "venueId": m["venueId"]}
     day = parse(m["startsAt"]).astimezone(plans.TZ).date().isoformat()
     s = _make(w, viewer, plan, caption.strip(), len(meetups.going(m)), day)
