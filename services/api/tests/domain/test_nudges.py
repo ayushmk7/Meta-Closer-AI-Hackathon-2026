@@ -29,14 +29,28 @@ def test_nudge_gone_after_join_or_dismiss_and_mute(world):
     assert nudges.list_nudges(world, "u_maya") == []
 
 
+def test_nudge_gone_once_its_signal_is_hidden_or_deleted(world):
+    asyncio.run(nudges.refresh(world, "u_maya"))
+    [n] = nudges.list_nudges(world, "u_maya")
+    sigs = world.users["u_maya"]["signals"]
+    sig = next(s for s in sigs if s["signalId"] == n["because"][0]["signalId"])
+    sig["visibility"] = "hidden"
+    assert nudges.list_nudges(world, "u_maya") == []  # P4: its label is in `because`
+    sig["visibility"] = "shown"
+    assert nudges.list_nudges(world, "u_maya") == [n]
+    sigs.remove(sig)
+    assert nudges.list_nudges(world, "u_maya") == []
+
+
 def test_empty_before_opt_in(world):
     world.users["u_maya"]["optedIn"] = False
     asyncio.run(nudges.refresh(world, "u_maya"))
     assert nudges.list_nudges(world, "u_maya") == []
 
 
-def test_copy_upgrades_from_template_to_muse_on_the_next_read(world, monkeypatch):
-    """D's MuseCopy answers the template first and Muse's text later, from its cache: we must ask again."""
+def test_nudge_copy_is_stable_per_nudge_while_reasons_still_upgrade(world, monkeypatch):
+    """MuseCopy answers the template first and Muse's text later. Card reasons take the upgrade; a nudge keeps the
+    copy it was first served with, so its wording never swaps while the user is looking (e2e-fable #24)."""
     from cg_api import ports
     from cg_api.domain import plans
 
@@ -52,9 +66,10 @@ def test_copy_upgrades_from_template_to_muse_on_the_next_read(world, monkeypatch
 
     monkeypatch.setattr(ports.ports, "copy", Copy())
     asyncio.run(nudges.refresh(world, "u_maya"))
+    [first] = nudges.list_nudges(world, "u_maya")
     asyncio.run(plans.warm_reasons(world, "u_maya", ["pl_hero"]))
     assert plans.card(world, "u_maya", world.plans["pl_hero"])["reason"] == "template"
     asyncio.run(plans.warm_reasons(world, "u_maya", ["pl_hero"]))
     assert plans.card(world, "u_maya", world.plans["pl_hero"])["reason"] == "Muse's line"
-    asyncio.run(nudges.refresh(world, "u_maya"))
-    assert nudges.list_nudges(world, "u_maya")[0]["title"] == "Muse title?"
+    asyncio.run(nudges.refresh(world, "u_maya"))  # Copy would now answer Muse's text
+    assert nudges.list_nudges(world, "u_maya") == [first] and (first["title"], first["text"]) == ("T1", "x1")
