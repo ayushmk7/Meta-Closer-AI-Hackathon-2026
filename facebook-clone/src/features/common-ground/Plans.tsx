@@ -8,6 +8,7 @@ import {
   StyleSheet,
   View,
 } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { router, useLocalSearchParams } from 'expo-router';
 import {
   Button,
@@ -28,7 +29,7 @@ import Quests from './Quests';
 import IdeasRow from './IdeasRow';
 import { dismissNudge, nudgesFor, pendingApprovals, refreshAll, useCg } from './store';
 import type { Connection, Join, Meetup, Nudge, PlanCard as Plan } from './types';
-import { Banners, InterestChips, PersonAvatar, Section } from './ui';
+import { Banners, InterestChips, PersonAvatar, Section, enter } from './ui';
 
 // Selectors must return stable references (useSyncExternalStore): never `?? []` inside useCg.
 const NONE: Plan[] = [];
@@ -283,15 +284,15 @@ export default function PlansScreen() {
             <Section title="Your plans" />
             <Card style={{ marginHorizontal: 16 }}>
               <View style={{ marginTop: -StyleSheet.hairlineWidth }}>
-                {sorted.map((j) => (
-                  <YourPlanRow
-                    key={j.joinId}
-                    join={j}
-                    meetup={j.meetupId ? meetups[j.meetupId] : undefined}
-                  />
+                {sorted.map((j, i) => (
+                  <Animated.View key={j.joinId} entering={enter(i)}>
+                    <YourPlanRow join={j} meetup={j.meetupId ? meetups[j.meetupId] : undefined} />
+                  </Animated.View>
                 ))}
-                {orphans.map((m) => (
-                  <YourPlanRow key={m.meetupId} meetup={m} />
+                {orphans.map((m, i) => (
+                  <Animated.View key={m.meetupId} entering={enter(sorted.length + i)}>
+                    <YourPlanRow meetup={m} />
+                  </Animated.View>
                 ))}
               </View>
             </Card>

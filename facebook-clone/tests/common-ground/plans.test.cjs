@@ -126,6 +126,25 @@ test('muse bar: reply bubble and highlighted new plan; clearing returns to For y
   expect(store.getState().muse.reply).toBeNull();
 });
 
+test('muse bar: thinking checklist while asking; last line spins until the reply', async () => {
+  jest.useFakeTimers();
+  let resolve;
+  jest.spyOn(api, 'askMuse').mockReturnValue(new Promise((r) => (resolve = r)));
+  const { tree, text, find } = await render(React.createElement(MuseBar));
+  const input = () => find((p) => p.accessibilityLabel === 'What do you want to do?');
+  await renderer.act(async () => input().props.onChangeText('pottery'));
+  await renderer.act(async () => void input().props.onSubmitEditing());
+  expect(text()).toContain('Muse is reading what you asked…');
+  await renderer.act(async () => void jest.advanceTimersByTime(5000));
+  expect(text()).toContain('Muse is picking plans…');
+  const spinning = () => tree.root.findAll((n) => n.type === 'ActivityIndicator').length;
+  expect(spinning()).toBe(1); // the last line has not ticked
+  await renderer.act(async () => resolve(fixtures.askMuse));
+  expect(text()).not.toContain('Muse is picking plans…');
+  expect(text()).toContain(fixtures.askMuse.reply.text);
+  jest.useRealTimers();
+});
+
 test('muse bar: a failed call keeps the typed text', async () => {
   jest
     .spyOn(api, 'askMuse')
