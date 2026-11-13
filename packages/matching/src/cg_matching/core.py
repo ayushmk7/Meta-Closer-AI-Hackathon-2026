@@ -475,7 +475,7 @@ def rank_plans(
     reunion, crowd = m.get("reunionBoost", 0.0), m.get("crowdBoost", 0.0)  # absent = off (byte-identical)
     buffer_min = params["calendar"]["minFreeBufferMin"]
     met = _met(pool, state)
-    iso = {uid for uid in pool.users if not any(uid in pair for pair in met)}
+    iso = set(pool.users) - set().union(*met)
     met_of: dict[str, set[str]] = {}
     for a, b in (tuple(pair) for pair in met if len(pair) == 2):
         met_of.setdefault(a, set()).add(b)
@@ -630,8 +630,9 @@ def form_groups(
     aff = {a: dict(lst) for a, lst in cands.items()}
     order = {u: k for k, u in enumerate(dict.fromkeys(interested_ids))}
     elig = [u for u in order if u in pool.users and pool.users[u].get("trustFloorOk") is not False]
-    iso = {u for u in elig if not any(u in pair for pair in met)}
+    iso = set(elig) - set().union(*met)
     queue = sorted(elig, key=lambda u: (u not in iso, -state.seat_history.get(u, 0), order[u]))
+    pos = {u: k for k, u in enumerate(queue)}
     seats = min(len(queue), state.venue_capacity.get(plan.venue_id, len(queue)))
 
     def pair(a: str, b: str) -> float:
@@ -700,21 +701,19 @@ def form_groups(
         else:
             break
         group = [rest.pop(0)]
+        low = {c: pair(c, group[0]) for c in rest}  # min pair(c, x) over the group, kept as the group grows
         while len(group) < size and rest and placed + len(group) < seats:
             n = len(group) + 1
-            fits = [c for c in rest if umax(c) >= n and all(umax(x) >= n for x in group)]
-            fits = [c for c in fits if min(pair(c, x) for x in group) >= 0]
+            fits = [c for c in rest if umax(c) >= n and low[c] >= 0] if all(umax(x) >= n for x in group) else []
             if not fits:
                 break
             window = set(rest[: seats - placed - len(group)])
             near = [c for c in fits if c in window]
-            best = (
-                max(near, key=lambda c: (met_in(c, group), min(pair(c, x) for x in group), -queue.index(c)))
-                if near
-                else fits[0]
-            )
+            best = max(near, key=lambda c: (met_in(c, group), low[c], -pos[c])) if near else fits[0]
             group.append(best)
             rest.remove(best)
+            for c in rest:
+                low[c] = min(low[c], pair(c, best))
         placed += len(group)
         groups.append(group)
     waiting = rest
