@@ -674,19 +674,30 @@ def form_groups(
             met_in,
         )
 
-    # Split size: plan cap, lowered to the median member's own max so the split fits most people.
-    split = min(hi, median_low([umax(u) for u in queue[:seats]] or [hi]))
-    k = max(1, -(-seats // split))  # ceil
-    while k > 1 and seats // k < g["strangerSizeMin"]:
-        k -= 1
-    seats = min(seats, k * split)  # k lowered for the stranger minimum must not overflow the cap
-    sizes = [seats // k + (i < seats % k) for i in range(k)]
+    # fillToMax: fewest, fullest groups. Each group aims at the plan cap; when members' own groupSize.max closes
+    # one short, the free seats roll into the next group. A remainder below the stranger minimum waits (backfill).
+    fill = params["matching"].get("fillToMax", False)
+    sizes: list[int] = []
+    if not fill:
+        # Split size: plan cap, lowered to the median member's own max so the split fits most people.
+        split = min(hi, median_low([umax(u) for u in queue[:seats]] or [hi]))
+        k = max(1, -(-seats // split))  # ceil
+        while k > 1 and seats // k < g["strangerSizeMin"]:
+            k -= 1
+        seats = min(seats, k * split)  # k lowered for the stranger minimum must not overflow the cap
+        sizes = [seats // k + (i < seats % k) for i in range(k)]
     groups: list[list[str]] = []
     # Seats go by priority: candidates come from the next free seats' worth of the queue; someone further
     # back steps in only when nobody in that window can join (blocked, size preference).
     rest, placed = list(queue), 0
-    for size in sizes:
-        if not rest or placed >= seats:
+    while rest and placed < seats:
+        if fill:
+            size = min(hi, seats - placed)
+            if groups and size < g["strangerSizeMin"]:
+                break
+        elif len(groups) < len(sizes):
+            size = sizes[len(groups)]
+        else:
             break
         group = [rest.pop(0)]
         while len(group) < size and rest and placed + len(group) < seats:
