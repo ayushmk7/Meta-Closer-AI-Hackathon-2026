@@ -401,15 +401,38 @@ on('POST', '/v1/calendar/sync', (_, b) => {
   return { acceptedBusy: body?.busy?.length ?? 0, directives };
 });
 // Muse bar on the mock: keyword filter over the plans (title, activity, venue, LA weekday).
-// ponytail: every meaningful word must match (plural 's' dropped, a few aliases); the live
-// backend does the real ranking.
+// ponytail: the plans matching the most meaningful words win (plural 's' dropped, a few
+// aliases); nothing matches -> Muse makes one, like the live backend. The backend does the real ranking.
 const STOP = new Set(
-  'a an and anything at do for go i in it let lets like me my next of on or people plan plans some something the this time to want week with'.split(
+  'a an and anyone anything at do for get go i in it let lets like maybe me meet meetup meetups my next of on or people plan plans some someone something the this time to together up want week with'.split(
     ' ',
   ),
 );
+// [title, the fixture plan it looks like]: the mock has three venues, so the photo matches the idea.
+const SURPRISE_IDEAS: [string, string][] = [
+  ['Chess and coffee', 'pl_0002'],
+  ['Speed chess night', 'pl_0002'],
+  ['Card game night', 'pl_0002'],
+  ['Sunset coastal walk', 'pl_0003'],
+  ['Lands End photo walk', 'pl_0003'],
+  ['Clay night drop-in', 'pl_0001'],
+  ['Glaze and chill', 'pl_0001'],
+];
+const FOLLOW_UPS = [
+  'Something Sunday afternoon',
+  'Board games this week',
+  'A coastal walk',
+  'Climb this weekend',
+  'Chess in the park',
+  'Karaoke Friday night',
+  'Pottery this weekend',
+  'A sunset picnic',
+];
+const pick = <T>(xs: T[], n: number): T[] => [...xs].sort(() => Math.random() - 0.5).slice(0, n);
 const ALIAS: Record<string, string> = {
   pottery: 'ceramics',
+  chess: 'board game',
+  games: 'game',
   clay: 'ceramics',
   hike: 'walk',
   climb: 'climbing',
@@ -420,7 +443,7 @@ const words = (text: string) =>
     .toLowerCase()
     .split(/[^a-z]+/)
     .filter((t) => t.length > 1 && !STOP.has(t));
-function matches(p: PlanCard, wanted: string[]): boolean {
+function score(p: PlanCard, wanted: string[]): number {
   const day = new Date(p.startsAt)
     .toLocaleDateString('en-US', { weekday: 'long', timeZone: TZ })
     .toLowerCase();
@@ -428,29 +451,66 @@ function matches(p: PlanCard, wanted: string[]): boolean {
     .concat(day.startsWith('s') ? ['weekend'] : [])
     .join(' ')
     .toLowerCase();
-  return wanted.every((t) => hay.includes(ALIAS[t] ?? t.replace(/s$/, '')));
+  return wanted.filter((t) => hay.includes(ALIAS[t] ?? t.replace(/s$/, ''))).length;
+}
+// "Muse made this": a new open plan from the words asked (the backend picks a real venue and time).
+function makePlan(title: string, like?: string): PlanCard {
+  const p: PlanDetail = {
+    ...clone(F.getPlan),
+    ...clone((like && w.plans[like]) || {}),
+    planId: nextId('pl_'),
+    title: title.slice(0, 60),
+    origin: 'user',
+    myJoin: null,
+  };
+  w.plans[p.planId] = p;
+  return withJoin(p);
 }
 on('POST', '/v1/muse/ask', (_, b) => {
   gate();
   w.conversationId ??= F.askMuse.conversationId;
   const text = String(b?.text ?? '').trim();
   const wanted = words(text);
-  const plans = Object.values(w.plans)
-    .filter((p) => p.status === 'open' && wanted.length > 0 && matches(p, wanted))
-    .map(withJoin);
+  const open = Object.values(w.plans).filter((p) => p.status === 'open');
+  let plans: PlanCard[];
+  let created: string | null = null;
+  let reply: string;
+  if (/^surprise me\W*$/i.test(text)) {
+    const [idea, like] = pick(SURPRISE_IDEAS, 1)[0]!;
+    const made = makePlan(idea, like);
+    created = made.planId;
+    plans = [made, ...pick(open, 3).map(withJoin)];
+    reply = `Here's something new: ${made.title}. Plus ${plans.length - 1} more to try.`;
+  } else {
+    const scored = open.map((p) => [p, score(p, wanted)] as const);
+    const best = Math.max(0, ...scored.map(([, n]) => n));
+    plans = best ? scored.filter(([, n]) => n === best).map(([p]) => withJoin(p)) : [];
+    if (plans.length) {
+      reply =
+        best === wanted.length
+          ? `Got it, I filtered for ${wanted.join(' ')}.`
+          : `I couldn't find exactly that, so here ${plans.length === 1 ? 'is the closest one' : `are the ${plans.length} closest`}.`;
+    } else if (wanted.length) {
+      const what = wanted.join(' ');
+      const made = makePlan(`${what[0]!.toUpperCase()}${what.slice(1)} meetup`);
+      created = made.planId;
+      plans = [made];
+      reply = `Nothing fit, so I set one up: ${made.title}. Join to get it going.`;
+    } else {
+      reply = 'Nothing matches that yet. Try another day or activity.';
+    }
+  }
   return {
     ...clone(F.askMuse),
     conversationId: w.conversationId,
-    reply: {
-      ...F.askMuse.reply,
-      messageId: nextId('mm_'),
-      createdAt: now(),
-      text: plans.length
-        ? `Got it, I filtered for ${wanted.join(' ')}.`
-        : 'Nothing matches that yet. Try another day or activity.',
-    },
+    reply: { ...F.askMuse.reply, messageId: nextId('mm_'), createdAt: now(), text: reply },
     plans,
-    createdPlanId: null,
+    createdPlanId: created,
+    // the bar's own Surprise me chip leads this row
+    prompts: pick(
+      FOLLOW_UPS.filter((f) => f.toLowerCase() !== text.toLowerCase()),
+      3,
+    ),
   };
 });
 on('GET', '/v1/feed', () => {
@@ -531,6 +591,7 @@ on('POST', '/v1/plans/{id}/join', ([id], b) => {
         };
   if (j.calendar && !j.calendar.key) j.calendar.key = j.joinId;
   w.joins[id] = j;
+  w.nudges = w.nudges.filter((n) => n.planId !== id); // a joined plan's nudge is done
   if (id === F.joinPlan.planId) w.stage.formAt = Date.now() + 2 * D; // group forms after two steps
   return j;
 });

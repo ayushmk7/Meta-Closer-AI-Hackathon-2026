@@ -1,5 +1,5 @@
 // Plans home, the tab root (PRD-1 §8.1). Not set up -> the setup flow.
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Platform,
@@ -9,11 +9,12 @@ import {
   StyleSheet,
   View,
 } from 'react-native';
-import Animated from 'react-native-reanimated';
+import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { router, useLocalSearchParams } from 'expo-router';
 import {
   Button,
   Card,
+  Icon,
   IconButton,
   Label,
   Muted,
@@ -29,7 +30,7 @@ import { StatusMark } from './StepTimeline';
 import SetupScreen from './Setup';
 import Quests from './Quests';
 import IdeasRow from './IdeasRow';
-import { dismissNudge, nudgesFor, pendingApprovals, refreshAll, useCg } from './store';
+import { dismissNudge, nudgesFor, pendingApprovals, refreshAll, setState, useCg } from './store';
 import type { Connection, Join, Meetup, Nudge, PlanCard as Plan } from './types';
 import { Banners, InterestChips, PersonAvatar, Section, enter } from './ui';
 
@@ -37,6 +38,28 @@ import { Banners, InterestChips, PersonAvatar, Section, enter } from './ui';
 const NONE: Plan[] = [];
 const firstName = (c: Connection) => c.person.displayName?.split(' ')[0] ?? c.person.initials;
 const openPlan = (p: { planId: string }) => go(`/common-ground/plan/${p.planId}`);
+
+// Where a nudge was, after acting on it: one line that fades out (UX: the card answers, not just vanishes).
+export function NudgeNote() {
+  const c = useColors();
+  const note = useCg((s) => s.nudgeNote);
+  useEffect(() => {
+    if (!note) return;
+    const t = setTimeout(() => setState({ nudgeNote: null }), 4000);
+    return () => clearTimeout(t);
+  }, [note]);
+  if (!note) return null;
+  return (
+    <Animated.View entering={FadeIn} exiting={FadeOut}>
+      <Card style={{ padding: 16, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+        <Icon name="checkmark-circle" size={20} color={c.blue} />
+        <Label accessibilityLiveRegion="polite" style={{ flex: 1 }}>
+          {note}
+        </Label>
+      </Card>
+    </Animated.View>
+  );
+}
 
 export function NudgeCard({ nudge }: { nudge: Nudge }) {
   const c = useColors();
@@ -273,7 +296,7 @@ export default function PlansScreen() {
           inviteUserIds={invite ? [invite.person.userId] : undefined}
           onEndInvite={endInvite}
         />
-        {nudge && <NudgeCard nudge={nudge} />}
+        {nudge ? <NudgeCard nudge={nudge} /> : <NudgeNote />}
         {(sorted.length > 0 || orphans.length > 0) && (
           <>
             <Section title="Your meetups" />

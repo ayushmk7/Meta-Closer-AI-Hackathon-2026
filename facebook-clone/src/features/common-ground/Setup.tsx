@@ -5,6 +5,7 @@ import Animated from 'react-native-reanimated';
 import { router } from 'expo-router';
 import { Button, Icon, Label, Muted, Page, useColors } from '../../ui/native';
 import { api } from './api';
+import CalendarPreview from './CalendarPreview';
 import Connectors from './Connectors';
 import { MuseAvatar } from './MuseBar';
 import { GroupSizeSetting, MusePermissions, PillRow, SignalRow, TravelPicker } from './Settings';
@@ -145,6 +146,9 @@ function PickedUp({ edits, onEdit }: { edits: Edits; onEdit(id: string, e: Edits
   const setup = useCg((s) => s.setup);
   const me = useCg((s) => s.me);
   const [evidence, setEvidence] = useState(false);
+  const gcal = useCg((s) =>
+    s.connectors.some((x) => x.provider === 'google_calendar' && x.status === 'connected'),
+  );
   useEffect(() => void load.setup(), []);
   if (!setup || !me)
     return (
@@ -171,6 +175,11 @@ function PickedUp({ edits, onEdit }: { edits: Edits; onEdit(id: string, e: Edits
           </View>
         </View>
       </Section>
+      {gcal && (
+        <Section title="Your week">
+          <CalendarPreview />
+        </Section>
+      )}
       <Section title="Your interests">
         <InterestEditor
           interests={interests}

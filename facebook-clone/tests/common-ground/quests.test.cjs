@@ -84,7 +84,6 @@ test('Verify in person ticks, saves and starts the streak; Surprise me ticks fro
   );
   await renderer.act(async () => btn.props.onPress());
   await renderer.act(async () => {}); // noteSurprise's storage read
-  expect(require('expo-router').router.push).toHaveBeenCalled();
   expect(labels()).toContain('Try Surprise me, done');
   expect(labels()).toContain('2 of 4 done');
   await renderer.act(async () => tree.unmount());

@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { Pressable, View } from 'react-native';
 import { Button, Card, Label, Muted, go, useColors } from '../../ui/native';
 import { MuseAvatar } from './MuseBar';
+import { NudgeNote } from './Plans';
 import { dismissNudge, nudgesFor, setState, start, useCg } from './store';
 
 // Visual reference: the request card in src/features/friends/Screen.tsx.
@@ -38,7 +39,7 @@ export default function HomeCard() {
         </View>
       </Card>
     );
-  if (!nudge) return null;
+  if (!nudge) return <NudgeNote />;
   const because = nudge.because[0];
   return (
     <Card style={{ padding: 16, gap: 8 }}>
