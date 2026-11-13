@@ -1,10 +1,11 @@
 import { useEffect } from 'react';
-import { View } from 'react-native';
-import { Button, Card, Label, Muted, go } from '../../ui/native';
+import { Pressable, View } from 'react-native';
+import { Button, Card, Label, Muted, go, useColors } from '../../ui/native';
 import { dismissNudge, nudgesFor, setState, start, useCg } from './store';
 
 // Visual reference: the request card in src/features/friends/Screen.tsx.
 export default function HomeCard() {
+  const c = useColors();
   // Web Home has no tab badge hook to start the store, so the card starts it (idempotent).
   useEffect(() => {
     void start();
@@ -59,11 +60,16 @@ export default function HomeCard() {
         />
       </View>
       {because?.signalId && (
-        <Button
-          title="Not interested in this place"
-          secondary
+        // Tertiary link (guide 2.6): lighter than the Open plan / Not now pair above.
+        <Pressable
+          accessibilityRole="button"
           onPress={() => void dismissNudge(nudge.nudgeId, 'signal')}
-        />
+          style={{ minHeight: 44, justifyContent: 'center', alignSelf: 'flex-start' }}
+        >
+          <Label style={{ color: c.blue, fontWeight: '600', fontSize: 15 }}>
+            Not interested in this place
+          </Label>
+        </Pressable>
       )}
     </Card>
   );

@@ -120,9 +120,9 @@ test('Same time next week? creates the same plan 7 days later, only once feedbac
     (n) => n.props.accessibilityLabel === 'Same time next week?' && n.props.onPress,
   );
   await renderer.act(async () => btn.props.onPress());
-  // fixture starts Sat Nov 14 10:00 AM PT -> Sat Nov 21.
+  // fixture starts Sat Nov 14 10 AM PT -> Sat Nov 21 (when() drops ":00", UX guide 1.1).
   expect(create).toHaveBeenCalledWith(
-    `${m.title} at ${m.venue.name}, Sat, Nov 21 · 10:00 AM`,
+    `${m.title} at ${m.venue.name}, Sat, Nov 21 · 10 AM`,
     undefined,
   );
 });
