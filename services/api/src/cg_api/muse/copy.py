@@ -81,6 +81,23 @@ def clock(iso: str, ampm: bool = False) -> str:
     return f"{s} {'AM' if t.hour < 12 else 'PM'}" if ampm else s
 
 
+def span(start: str, end: str) -> str:
+    """UX guide 1.1: "10 AM–12 PM", "9:30–11 AM" (en dash; a repeated meridiem is dropped)."""
+    a, b = clock(start, True), clock(end, True)
+    return f"{a[:-3]}–{b}" if a[-2:] == b[-2:] else f"{a}–{b}"
+
+
+def short_when(iso: str) -> str:
+    """Cards, rows, chips: "Sat 10 AM"."""
+    return f"{local(iso).strftime('%a')} {clock(iso, True)}"
+
+
+def long_when(start: str, end: str | None = None) -> str:
+    """Detail headers, approvals, chat: "Sat, Nov 14 · 10 AM" (or "· 10 AM–12 PM" with an end)."""
+    t = local(start)
+    return f"{t.strftime('%a, %b')} {t.day} · {span(start, end) if end else clock(start, True)}"
+
+
 def money(cents: int) -> str:
     return f"${cents // 100}" if cents % 100 == 0 else f"${cents / 100:.2f}"
 
@@ -116,9 +133,11 @@ def on_day(title: str, iso: str) -> str:
 # ---------- templates (also the MUSE_FAKE output) ----------
 def intro_text(first_names: list[str], shared_labels: list[str], plan: dict) -> str:
     p = public_plan(plan)
-    common = f" You're all into {lc(shared_labels[0])}." if shared_labels else ""
-    when = f" See you {day(p['startsAt'])} at {p['venue']}." if p["startsAt"] and p["venue"] else ""
-    return f"{names(first_names)}, meet each other!{common}{when} I'm handling the booking and the calendar."
+    # UX guide 1.1: at most 2 sentences; the group intro is the one line allowed an exclamation mark
+    common = f"You're all into {lc(shared_labels[0])}, and " if shared_labels else ""
+    when = f" for {day(p['startsAt'])} at {p['venue']}" if p["startsAt"] and p["venue"] else ""
+    rest = f"{common}I'm handling the booking and the calendar{when}."
+    return f"{names(first_names)}, meet each other! {rest[0].upper()}{rest[1:]}"
 
 
 def starters(plan: dict, shared_labels: list[str]) -> list[str]:
@@ -140,8 +159,7 @@ def approval_copy(plan: dict, venue: dict) -> dict:
         fallback = "If you'd rather not, I'll look for a free option or let the group know you can't make it."
     return {
         "title": f"OK {money(cents)} for your {seat}?",
-        "detail": f"Muse pays {vname} for your seat on {day(plan['startsAt'])}, "
-        f"{clock(plan['startsAt'], True)} to {clock(plan['endsAt'], True)}.",
+        "detail": f"Muse pays {vname} for your seat on {long_when(plan['startsAt'], plan['endsAt'])}.",
         "fallback": fallback,
     }
 

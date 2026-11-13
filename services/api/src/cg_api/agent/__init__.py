@@ -25,7 +25,7 @@ from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 
-from cg_api.muse.copy import SEAT, approval_copy, clock, day, local, money
+from cg_api.muse.copy import SEAT, approval_copy, clock, local, long_when, money, span
 from cg_api.providers import simulated_book
 
 PROVIDER = "Simulated booking"
@@ -100,7 +100,7 @@ class ScriptedRun:
         yield self._step(
             "find_time",
             "done",
-            f"Everyone's free {day(p['startsAt'])} {clock(p['startsAt'])} to {clock(p['endsAt'])}",
+            f"Everyone's free {local(p['startsAt']).strftime('%a')} {span(p['startsAt'], p['endsAt'])}",
             detail=f"Checked {n} calendars",
         )
         if self.needs_booking:
@@ -109,7 +109,9 @@ class ScriptedRun:
                 if not (yield from self._shift(n, "No room")):
                     return
             yield self._step(
-                "check_availability", "done", f"{v['name']} has {self._seat(n)} open at {clock(self.plan['startsAt'])}"
+                "check_availability",
+                "done",
+                f"{v['name']} has {self._seat(n)} open at {clock(self.plan['startsAt'], True)}",
             )
         else:
             yield self._step("check_availability", "done", f"No booking needed at {v['name']}")
@@ -237,10 +239,10 @@ class ScriptedRun:
             yield self._booking("failed", "Couldn't book it", None)
             yield from self._cancel()
             return False
-        old = clock(p["startsAt"])
+        old = clock(p["startsAt"], True)
         self.plan = {**p, "startsAt": later, "endsAt": _iso(_dt(p["endsAt"]) + shift)}
         yield self._step(
-            "reschedule", "done", f"{why} at {old}, so I moved it to {clock(later)}; everyone's still free"
+            "reschedule", "done", f"{why} at {old}. Moved it to {clock(later, True)}; everyone's still free"
         )
         yield {"type": "reschedule", "startsAt": self.plan["startsAt"], "endsAt": self.plan["endsAt"]}
         return True
@@ -254,7 +256,10 @@ class ScriptedRun:
                 yield self._step("refund", "done", f"Refunded your {amount}", for_user=uid)
                 yield {"type": "payment", "userId": uid, "myPayment": "not_needed"}  # nothing owed after the refund
         reason = f"I couldn't find a time that works at {self.venue['name']}, so I cancelled this one."
-        yield self._step("cancel", "done", f"{reason} Similar plans are in the chat.")
+        # the step is Muse's timeline (no "I"); `reason` is posted by Muse in the chat, first person (UX guide 1.1)
+        yield self._step(
+            "cancel", "done", f"Couldn't find a time that works at {self.venue['name']}. Similar plans are in the chat."
+        )
         yield {"type": "cancelled", "reason": reason}
 
     def _finish(self) -> Iterator[dict]:
@@ -274,7 +279,7 @@ class ScriptedRun:
         end = new + (_dt(p["endsAt"]) - old)
         party = self._party()
         if new == old:
-            return [], f"It's already at {clock(new_start)}.", []
+            return [], f"It's already at {clock(new_start, True)}.", []
         if self.pending:  # approvals name the current time; never let someone OK a time that moved
             return [], "I can move it once everyone's OK'd the payment.", []
 
@@ -293,24 +298,22 @@ class ScriptedRun:
             slots = [old + timedelta(minutes=k) for k in range(-w, w + 1, 30) if k]
             slot = min((x for x in slots if fits(x)), key=lambda x: abs(x - new), default=None)
             far = abs(new - old) > timedelta(minutes=w) or local(new_start).date() != local(p["startsAt"]).date()
-            lead = (
-                f"{clock(new_start, True)} is too far for me to move it on my own."
-                if far
-                else (
-                    f"{clock(new_start, True)} doesn't work for everyone."  # never who is busy (P6)
-                )
-            )
-            tail = (
-                f" {clock(_iso(slot), True)} works for everyone. Ask me for {clock(_iso(slot), True)} and I'll move it."
-                if slot
-                else (" I couldn't find another time today that works for everyone.")
-            )
-            return [], lead + tail, []
+            # Muse speaks (chat bubble): at most 2 sentences (UX guide 1.1)
+            asked = clock(new_start, True)
+            if slot:
+                alt = clock(_iso(slot), True)
+                lead = f"{asked} is too far for me to move it on my own" if far else f"{asked} doesn't work"
+                reply = f"{lead}, but {alt} works for everyone. Ask me for {alt} and I'll move it."  # never who (P6)
+                return [], reply, []
+            lead = f"{asked} is too far for me to move it on my own." if far else f"{asked} doesn't work for everyone."
+            return [], f"{lead} I couldn't find another time today that works.", []
         n0 = len(self.steps)
-        old_label = clock(p["startsAt"])
+        old_label = clock(p["startsAt"], True)
         self.plan = {**p, "startsAt": new_start, "endsAt": _iso(end)}
         events = [
-            self._step("reschedule", "done", f"Moved it from {old_label} to {clock(new_start)}; everyone's still free")
+            self._step(
+                "reschedule", "done", f"Moved it from {old_label} to {clock(new_start, True)}; everyone's still free"
+            )
         ]
         events.append({"type": "reschedule", "startsAt": new_start, "endsAt": self.plan["endsAt"]})
         booked = any(s["kind"] == "book" and s["status"] == "done" for s in self.steps)
@@ -325,7 +328,7 @@ class ScriptedRun:
         events.append(self._step("calendar", "done", "Updated everyone's calendar"))
         events.append({"type": "calendar", "desired": "event"})
         room = f" and {v['name']} has room then" if self.needs_booking else ""
-        reply = f"Done. Everyone's free at {clock(new_start)}{room}, so I moved it. Your calendars are updated."
+        reply = f"Done. Everyone's free at {clock(new_start, True)}{room}, so I moved it and updated your calendars."
         return events, reply, [s["stepId"] for s in self.steps[n0:]]
 
 
@@ -381,10 +384,10 @@ def parse_time_change(text: str, current_start: str) -> str | None:
 
 
 def answer_question(plan: dict, venue: dict) -> str:
-    when = f"{day(plan['startsAt'])} {clock(plan['startsAt'], True)} to {clock(plan['endsAt'], True)}"
     cost = (plan.get("cost") or {}).get("perPersonCents", 0)
-    money_line = f" It's {money(cost)} each." if cost else " It's free."
-    return f"It's {when} at {venue['name']}.{money_line} I'm handling the booking and the calendar."
+    price = f", {money(cost)} each" if cost else ", free"
+    when = long_when(plan["startsAt"], plan["endsAt"])
+    return f"It's {when} at {venue['name']}{price}. I'm handling the booking and the calendar."
 
 
 def _free(busy: list[dict], start: datetime, end: datetime) -> bool:

@@ -39,7 +39,7 @@ def test_hero_default_sequence_waits_for_every_payment():
         ("book", "queued"),
     ]
     first = ev[1]["step"]
-    assert first["label"] == "Everyone's free Saturday 10 to 12"
+    assert first["label"] == "Everyone's free Sat 10 AM–12 PM"
     approvals = [e["approval"] for e in ev if e["type"] == "approval"]
     assert [a["title"] for a in approvals] == ["OK $35 for your wheel?"] * 3 and all(a["simulated"] for a in approvals)
     assert approvals[0]["expiresAt"] == "2026-11-13T06:12:00Z"  # now + 12 h, before start - 2 h
@@ -76,7 +76,7 @@ def test_booking_failure_is_visible_then_rescheduled_in_order():
     ]
     labels = [s["label"] for s in r.steps]
     assert "Clay Hour Studio is full at 10 AM" in labels
-    assert "Full at 10, so I moved it to 11; everyone's still free" in labels
+    assert "Full at 10 AM. Moved it to 11 AM; everyone's still free" in labels
     assert labels[-1] == "Set leave-by reminders for everyone"
     assert r.plan["startsAt"] == "2026-11-14T19:00:00Z"
 
@@ -177,7 +177,7 @@ def test_reschedule_in_bounds_rebooks_and_replies():
         ("calendar", None),
     ]
     assert reply == (
-        "Done. Everyone's free at 11 and Clay Hour Studio has room then, so I moved it. Your calendars are updated."
+        "Done. Everyone's free at 11 AM and Clay Hour Studio has room then, so I moved it and updated your calendars."
     )
     assert (
         ids == [e["step"]["stepId"] for e in events if e["type"] == "step"]
@@ -205,10 +205,14 @@ def test_reschedule_out_of_bounds_changes_nothing_and_offers_a_slot():
     n = len(r.steps)
     events, reply, ids = r.reschedule_to("2026-11-14T19:00:00Z", busy)
     assert (events, ids, len(r.steps)) == ([], [], n)
-    assert reply == "11 AM doesn't work for everyone. 12 PM works for everyone. Ask me for 12 PM and I'll move it."
+    assert reply == "11 AM doesn't work, but 12 PM works for everyone. Ask me for 12 PM and I'll move it."
     assert "u_0125" not in reply and "Rosa" not in reply  # never who is busy (P6)
     events, reply, _ = r.reschedule_to("2026-11-14T23:00:00Z", {})
     assert events == [] and reply == (
-        "3 PM is too far for me to move it on my own. 12 PM works for everyone. Ask me for 12 PM and I'll move it."
+        "3 PM is too far for me to move it on my own, but 12 PM works for everyone. Ask me for 12 PM and I'll move it."
     )
     assert r.plan["startsAt"] == HERO["startsAt"]
+    full = {"u_0125": [{"start": "2026-11-14T15:00:00Z", "end": "2026-11-15T03:00:00Z"}]}  # busy all day: no slot
+    assert r.reschedule_to("2026-11-14T19:00:00Z", full)[1] == (
+        "11 AM doesn't work for everyone. I couldn't find another time today that works."
+    )
