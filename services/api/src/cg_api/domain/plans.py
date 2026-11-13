@@ -14,6 +14,23 @@ log = logging.getLogger("cg_api.domain.plans")
 TZ = ZoneInfo("America/Los_Angeles")  # ponytail: one city; per-pool tz when a second pool lands
 
 
+ACTIVITY_NOUNS = {  # laya_questions.yaml#activityTypes as card copy; unknown types fall back to the ID in words
+    "coffee": "Coffee", "walk": "Walk", "hike": "Hike", "climbing_session": "Climbing session", "run": "Group run",
+    "pickup_sport": "Pickup game", "board_game_night": "Board game night", "video_game_session": "Game session",
+    "trivia_night": "Trivia night", "concert": "Live music", "museum_visit": "Museum visit",
+    "film_screening": "Film night", "cooking_together": "Cooking night", "food_crawl": "Food crawl",
+    "brunch": "Brunch", "craft_session": "Craft session", "ceramics_studio": "Wheel-throwing",
+    "photo_walk": "Photo walk", "book_club": "Book club", "language_exchange": "Language exchange",
+    "volunteering": "Volunteering", "farmers_market": "Farmers market stroll", "yoga_class": "Yoga class",
+    "beach_day": "Beach day", "picnic": "Picnic", "karaoke": "Karaoke night", "dance_class": "Dance class",
+    "hackathon_or_cowork": "Cowork session", "bike_ride": "Bike ride", "comedy_show": "Comedy night",
+}  # fmt: skip
+
+
+def activity_noun(activity_type: str) -> str:
+    return ACTIVITY_NOUNS.get(activity_type) or activity_type.replace("_", " ").capitalize()
+
+
 def with_venue(title: str, venue: str) -> str:
     """Name the venue once: 'Board games at Meeple Harbor', never '... at Meeple Harbor at Meeple Harbor'."""
     return title if venue in title else f"{title} at {venue}"
