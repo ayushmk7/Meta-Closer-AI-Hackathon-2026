@@ -147,7 +147,7 @@ async function request<T>(
         : new CgError(
             0,
             'unavailable',
-            'Could not reach Common Ground. Check your connection.',
+            "Couldn't reach Common Ground. Check your connection.",
             true,
           );
     } finally {

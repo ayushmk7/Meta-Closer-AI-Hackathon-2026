@@ -1,5 +1,5 @@
 // Shared Common Ground pieces, built only from the clone's tokens and primitives.
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, type ReactNode } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { Image } from 'expo-image';
@@ -17,13 +17,94 @@ import {
   useColors,
 } from '../../ui/native';
 import { setIdentity, setState, start, useCg } from './store';
-import { TZ } from './types';
 import type { AvailabilitySlot, GroupSize, InterestRef, MyInterest, PersonCard } from './types';
 
 type Colors = ReturnType<typeof useColors>;
 // Same selected-pill pair as the clone's Chips.
-const selectedBg = (c: Colors) => (c.canvas === '#18191A' ? '#263951' : '#e7f3ff');
+export const selectedBg = (c: Colors) => (c.canvas === '#18191A' ? '#263951' : '#e7f3ff');
 const pill = { paddingHorizontal: 15, paddingVertical: 10, borderRadius: 22 } as const;
+// The clone Shell's warning banner pair (error banner, failed step icon).
+export const WARN = { bg: '#fff2d2', fg: '#634100' } as const;
+
+// Section header (17/700). With children it is a titled Card (padding 16); without, an
+// on-canvas header row with the 16 gutter.
+export function Section({
+  title,
+  aside,
+  children,
+}: {
+  title: string;
+  aside?: ReactNode;
+  children?: ReactNode;
+}) {
+  const header = (
+    <View style={{ flexDirection: 'row', alignItems: 'center', minHeight: 44 }}>
+      <Label accessibilityRole="header" style={{ fontSize: 17, fontWeight: '700', flex: 1 }}>
+        {title}
+      </Label>
+      {aside}
+    </View>
+  );
+  if (children === undefined) return <View style={{ paddingHorizontal: 16 }}>{header}</View>;
+  return (
+    <Card style={{ padding: 16, gap: 12 }}>
+      {header}
+      {children}
+    </Card>
+  );
+}
+
+// The one chip: 44 tall, radius 22, 14/600. `c.input` inside a card, `c.card` on the canvas;
+// selected uses the clone Chips pair; `outlined` is the chat quick reply.
+export function Pill({
+  label,
+  selected = false,
+  outlined = false,
+  onCanvas = false,
+  onPress,
+  icon,
+  accessibilityLabel,
+}: {
+  label: string;
+  selected?: boolean;
+  outlined?: boolean;
+  onCanvas?: boolean;
+  onPress?: () => void;
+  icon?: Parameters<typeof Icon>[0]['name'];
+  accessibilityLabel?: string;
+}) {
+  const c = useColors();
+  const color = selected || outlined ? c.blue : c.text;
+  return (
+    <Pressable
+      // A display chip (no onPress) reads as text, not a dimmed button.
+      accessibilityRole={onPress ? 'button' : 'text'}
+      accessibilityLabel={accessibilityLabel ?? label}
+      accessibilityState={onPress ? { selected } : undefined}
+      onPress={onPress}
+      style={{
+        minHeight: 44,
+        maxWidth: '100%',
+        paddingHorizontal: 15,
+        borderRadius: 22,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        backgroundColor: outlined
+          ? 'transparent'
+          : selected
+            ? selectedBg(c)
+            : onCanvas
+              ? c.card
+              : c.input,
+        ...(outlined ? { borderWidth: 1, borderColor: c.divider } : null),
+      }}
+    >
+      {icon && <Icon name={icon} size={16} color={color} />}
+      <Label style={{ fontSize: 14, fontWeight: '600', color, flexShrink: 1 }}>{label}</Label>
+    </Pressable>
+  );
+}
 
 export const personName = (p: PersonCard): string => p.displayName ?? 'Someone nearby';
 
@@ -232,13 +313,13 @@ export function AvailabilityGrid({
                 style={{
                   flex: 1,
                   minHeight: 44,
-                  borderRadius: 7,
+                  borderRadius: 8,
                   alignItems: 'center',
                   justifyContent: 'center',
                   backgroundColor: on ? selectedBg(c) : c.input,
                 }}
               >
-                <Label style={{ fontSize: 13, fontWeight: '600', color: on ? c.blue : c.text }}>
+                <Label style={{ fontSize: 14, fontWeight: '600', color: on ? c.blue : c.text }}>
                   {label}
                 </Label>
               </Pressable>
@@ -265,18 +346,18 @@ export function Banners() {
         <View
           accessibilityRole="alert"
           style={{
-            backgroundColor: '#fff2d2',
+            backgroundColor: WARN.bg,
             paddingHorizontal: 12,
             flexDirection: 'row',
             alignItems: 'center',
           }}
         >
-          <Label style={{ color: '#634100', flex: 1, fontSize: 13 }}>{error.message}</Label>
+          <Label style={{ color: WARN.fg, flex: 1, fontSize: 13 }}>{error.message}</Label>
           {error.retry && (
             <IconButton
               name="refresh"
               label="Retry"
-              color="#634100"
+              color={WARN.fg}
               onPress={() => {
                 setState({ error: null });
                 error.retry?.();
@@ -286,7 +367,7 @@ export function Banners() {
           <IconButton
             name="close"
             label="Dismiss"
-            color="#634100"
+            color={WARN.fg}
             onPress={() => setState({ error: null })}
           />
         </View>
@@ -319,7 +400,7 @@ export function Banners() {
 export function NotFound({ title }: { title: string }) {
   return (
     <Card>
-      <Empty title={title} message="It may no longer be available. Head back to Plans." />
+      <Empty title={title} message="It may have been removed. Go back to Plans." />
       <View style={{ padding: 16 }}>
         <Button title="Back to Plans" secondary onPress={() => router.replace('/common-ground')} />
       </View>
@@ -342,11 +423,7 @@ export function usePoll(fn: () => void, seconds?: number): void {
   );
 }
 
-// "Sat, Nov 15 · 7:30 AM"
-export const when = (iso: string): string => {
-  const d = new Date(iso);
-  return `${d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: TZ })} · ${d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: TZ })}`;
-};
+export { clock, when } from './time';
 // "in 5 hours" / "3 minutes ago". ponytail: hand-rolled; Hermes lacks Intl.RelativeTimeFormat.
 export const fromNow = (iso: string): string => {
   const secs = (Date.parse(iso) - Date.now()) / 1000;
@@ -368,7 +445,7 @@ export function Stub({ title }: { title: string }) {
     <Page>
       <Banners />
       <Card>
-        <Empty title={title} message="Coming soon." />
+        <Empty title={title} message="Coming soon" />
       </Card>
     </Page>
   );

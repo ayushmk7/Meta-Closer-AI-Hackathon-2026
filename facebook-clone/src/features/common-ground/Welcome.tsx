@@ -14,7 +14,7 @@ import { load, useCg } from './store';
 const GREEN = '#42B72A'; // Facebook's "Create new account" green
 const enter = () => router.replace('/common-ground');
 const PITCH =
-  'Tell Muse what you want to do. It finds the plan, finds the people, and handles the rest. You just show up.';
+  'Tell Muse what you want to do. It finds the plan and the people and handles the rest. You just show up.';
 const PROMISE = 'People only see what you have in common, and only after a group forms.';
 
 function Wordmark({ size }: { size: number }) {

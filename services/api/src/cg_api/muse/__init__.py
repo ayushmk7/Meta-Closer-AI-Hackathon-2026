@@ -36,7 +36,7 @@ class MuseClient:
         if not fake:
             from openai import AsyncOpenAI
 
-            self._client = AsyncOpenAI(base_url=base_url, api_key=api_key, max_retries=1)
+            self._client = AsyncOpenAI(base_url=base_url, api_key=api_key, max_retries=0)  # we back off (cap 5 s)
 
     def _count(self, purpose: str, outcome: str) -> None:
         k = f"{purpose}.{outcome}"
@@ -69,9 +69,8 @@ class MuseClient:
             kw["tools"] = tools
         t0 = time.monotonic()
         try:
-            # live calls (bar, chat, agent) get one attempt so the timeout is the whole budget; batch gets a retry
-            retries = 1 if effort == "high" else 0
-            client = self._client.with_options(timeout=timeout_s or self.timeout_s, max_retries=retries)
+            # one attempt: the SDK would honour Retry-After 60 on a 503 and stall; callers do their own capped backoff
+            client = self._client.with_options(timeout=timeout_s or self.timeout_s, max_retries=0)
             r = await client.responses.create(**kw)
             text = r.output_text or ""
             data = json.loads(text) if schema else None

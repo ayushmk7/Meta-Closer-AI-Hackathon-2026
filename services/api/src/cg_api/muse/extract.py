@@ -160,6 +160,9 @@ def _schema(signal_kinds: list[str]) -> dict:
 
 
 class Extractor:
+    # seed._extract's disk cache key includes this and muse_live; bump it whenever extraction output can change
+    cache_version = 3  # 2: no inline Muse; 3: fail closed only with live Muse and live Laya
+
     def __init__(
         self,
         muse,
@@ -169,9 +172,13 @@ class Extractor:
         venue: Callable[[str], dict | None] = lambda _: None,
         threshold: float = 0.85,
         batch_timeout_s: float = 60,
+        muse_live: bool = False,
+        inline_muse: bool = False,
     ):
         self.muse, self.laya, self.dir, self.venue = muse, laya, Path(contracts_dir), venue
         self.threshold, self.batch_timeout_s = threshold, batch_timeout_s
+        self.muse_live, self.inline_muse = muse_live, inline_muse
+        self.fail_closed = muse_live and not getattr(laya, "fake", False)
         self.tax = taxonomy(self.dir)
         self.kinds = list(yaml.safe_load((self.dir / "connectors.yaml").read_text())["signalKinds"])
         # ponytail: in-process cache by content hash; add a .cache/ file when real-Muse seed load passes 60 s
@@ -248,7 +255,9 @@ class Extractor:
         place_texts += [r.get("eventName") or r.get("placeName") or "" for r in records]
         place_texts += [(r.get("routine") or {}).get("activity", "") for r in records]
         signals: list[dict] = []  # rule kinds come from the seed loader; only Muse-derived kinds here
-        m = await self._muse(activity, records)
+        # ponytail: Muse extraction is off the request/startup path (live Muse takes ~10 s and 503s; seed load extracts
+        # every persona before the server listens). Keyword + Laya + taxonomy only; set inline_muse when Muse is fast.
+        m = await self._muse(activity, records) if self.inline_muse else None
         try:
             interests, extra = self._accept(m, activity, records) if m else (None, [])
         except (KeyError, TypeError, ValueError) as e:  # malformed item: whole answer falls back
@@ -263,13 +272,17 @@ class Extractor:
         return {"interests": gated, "signals": [await self.gate_signal(s, gated) for s in signals]}
 
     async def _yes(self, question: str, state: dict) -> bool:
-        """Laya decisive answer, else Muse escalation; unknown counts as no (taxonomy/venue flags still apply)."""
+        """Laya decisive answer; else Muse escalation only when `inline_muse`. Undecided and not escalated: sensitive
+        (fail closed, P4) only when both Muse and Laya are live. LAYA_FAKE's hash is a stand-in, not a judgement:
+        failing closed on it hid ~70% of Maya's interests, so groups could not form (live test, #65)."""
         try:
             p, decisive = await self.laya.ask(question, state)
         except Unavailable:
             p, decisive = 0.5, False
         if decisive:
             return p >= self.threshold
+        if not self.inline_muse:
+            return self.fail_closed
         try:
             q = load_questions(self.dir)["questions"][question]["instructions"]
             r = await self.muse.respond(
@@ -284,7 +297,7 @@ class Extractor:
             )
             return (r["json"] or {}).get("yes") is True
         except Unavailable:
-            return False
+            return self.fail_closed
 
     async def _gate_interest(self, i: dict) -> dict:
         node = self.tax[i["id"]]

@@ -262,3 +262,28 @@ def test_unlocks_follow_counted_meetups(api):
     assert me["capabilities"]["maxGroupSize"] == 8 and me["capabilities"]["openJoinsMax"] == 7
     store.reports.append({"reportId": "rp_t", "userId": "u_maya", "by": "u_0098"})
     assert "regular" not in [u["unlockId"] for u in api("getMe").json()["unlocks"]]
+
+
+def test_extraction_cache_split_by_mode(monkeypatch):
+    """Fake-Muse extraction results are never served to a live-Muse run (and vice versa)."""
+    import asyncio
+
+    from cg_api import seed
+    from cg_api.ports import ports
+
+    class Counting:
+        calls = 0
+        muse_live = False
+        cache_version = 99  # private cache namespace for this test
+
+        async def extract(self, uid, activity, records):
+            Counting.calls += 1
+            return {"interests": [], "signals": []}
+
+    monkeypatch.setattr(ports, "extractor", Counting())
+    for live, expected in ((False, 1), (False, 1), (True, 2), (True, 2)):
+        ports.extractor.muse_live = live
+        asyncio.run(seed._extract("u_maya", [{"recordId": "cr_cache_probe"}], reextract=False))
+        assert Counting.calls == expected
+    for p in (seed.Path(seed.__file__).resolve().parents[3] / ".cache" / "extract").glob("Counting-*-v99-*.json"):
+        p.unlink()

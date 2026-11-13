@@ -57,22 +57,22 @@ def test_fake_copy_is_templated_and_bounded():
     copy = MuseCopy(FAKE)
     text, starters = asyncio.run(copy.intro(["Maya", "Rosa", "Dan"], [ok("Wheel throwing")], PLAN))
     assert text == (
-        "Maya, Rosa and Dan, meet each other! You're all into wheel throwing. See you Saturday at Clay "
-        "Hour Studio. I'm handling the booking and the calendar."
+        "Maya, Rosa and Dan, meet each other! You're all into wheel throwing, and I'm handling the booking and "
+        "the calendar for Saturday at Clay Hour Studio."
     )
     assert len(starters) == 3 and all(len(s) < 90 for s in starters)
     assert len(asyncio.run(copy.plan_title({**PLAN, "title": "x" * 99}))) == 60
     assert len(asyncio.run(copy.plan_reason(PLAN, [ok("Ceramics")]))) <= 160
     assert FAKE.calls == {"copy.intro.fake": 1, "copy.title.fake": 1, "copy.reason.fake": 1}
     a = approval_copy(PLAN, {"name": "Clay Hour Studio", "booking": {"payAtVenueAllowed": True}})
-    assert a["detail"] == "Muse pays Clay Hour Studio for your seat on Saturday, 10 AM to 12 PM."
+    assert a["detail"] == "Muse pays Clay Hour Studio for your seat on Sat, Nov 14 · 10 AM–12 PM."
     # over-long live answers fall back to the template
     long = MuseCopy(Spy({"text": "y" * 200, "starters": ["a", "b", "c"]}))
     assert asyncio.run(long.plan_reason(PLAN, [])).startswith("Something new at Clay Hour Studio")
 
 
 def _extractor(muse=FAKE):
-    return Extractor(muse, LayaClient(CONTRACTS, fake=True), CONTRACTS, venue=VENUES.get)
+    return Extractor(muse, LayaClient(CONTRACTS, fake=True), CONTRACTS, venue=VENUES.get, inline_muse=True)
 
 
 def test_fallback_extraction_and_signal_gate():
@@ -253,3 +253,22 @@ def test_labels_fail_closed_without_flags():
     unknown = {"label": "Hiking", "visibility": "shown"}  # no sensitive flag: don't speak
     said = asyncio.run(copy.setup_review("u_x", [ok("Ceramics"), "Running", flagged, unknown]))
     assert said == "I noticed you're into ceramics. I'll look for small plans around those."
+
+
+def test_bar_price_size_next_weekend_and_relaxing():
+    thu, sun = "2026-11-12T18:00:00Z", "2026-11-15T18:00:00Z"
+    f = bar.keyword_filter("something free for a small group", thu, CONTRACTS)
+    assert f["maxCents"] == 0 and f["groupSize"] == 4
+    f = bar.keyword_filter("pottery under $40 with 2 friends", thu, CONTRACTS)
+    assert f["maxCents"] == 4000 and f["groupSize"] == 3 and f["activityTypes"] == ["ceramics_studio"]
+    assert bar.keyword_filter("walk for 30 minutes", thu, CONTRACTS)["groupSize"] is None
+    assert bar.keyword_filter("hike next weekend", sun, CONTRACTS)["days"] == ["2026-11-21", "2026-11-22"]
+    card = {**PLAN, "size": {"min": 3, "max": 5}, "crowd": {"interestedCount": 3}}
+    assert bar.best([card], bar.keyword_filter("pottery free", thu, CONTRACTS), None) == ([card], True)
+    assert bar.best([card], bar.keyword_filter("pottery under $40", thu, CONTRACTS), None) == ([card], False)
+    assert bar.best([card], bar.keyword_filter("karaoke", thu, CONTRACTS), None) == ([], False)  # activity stays
+    assert bar.reply([card], {}, relaxed=True) == "I couldn't find exactly that, so here is the closest plan."
+    v = bar.venue_in_text(
+        "Wheel-throwing drop-in at Clay Hour Studio this weekend", [PLAN["venue"], VENUES["vn_lands_end"]]
+    )
+    assert v["venueId"] == "vn_clay_hour"

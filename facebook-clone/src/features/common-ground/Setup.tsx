@@ -1,12 +1,12 @@
 // Setup flow (PRD-1 §8.5): intro -> connect apps -> what Muse picked up -> preferences.
 import { useEffect, useState } from 'react';
-import { Pressable, View } from 'react-native';
+import { ActivityIndicator, Pressable, View } from 'react-native';
 import { router } from 'expo-router';
-import { Button, Chips, Icon, Label, Muted, Page, useColors } from '../../ui/native';
+import { Button, Icon, Label, Muted, Page, useColors } from '../../ui/native';
 import { api } from './api';
 import Connectors from './Connectors';
 import { MuseAvatar } from './MuseBar';
-import { GroupSizeSetting, MusePermissions, Section, SignalRow, TravelPicker } from './Settings';
+import { GroupSizeSetting, MusePermissions, PillRow, SignalRow, TravelPicker } from './Settings';
 import { act, load, optIn, refreshAll, setState, useCg } from './store';
 import type {
   AvailabilitySlot,
@@ -17,9 +17,24 @@ import type {
   TravelPrefs,
   Visibility,
 } from './types';
-import { AvailabilityGrid, Banners, InterestEditor } from './ui';
+import { AvailabilityGrid, Banners, InterestEditor, Section } from './ui';
 
 const NO_MODES: ModeInfo[] = []; // stable fallback outside useCg (useSyncExternalStore)
+
+// Tertiary action (UX 2.6): blue text, 44pt target.
+function TextLink({ title, onPress }: { title: string; onPress(): void }) {
+  const c = useColors();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={title}
+      onPress={onPress}
+      style={{ minHeight: 44, justifyContent: 'center' }}
+    >
+      <Label style={{ color: c.blue, fontWeight: '600' }}>{title}</Label>
+    </Pressable>
+  );
+}
 
 function Intro({ onNext }: { onNext(): void }) {
   const c = useColors();
@@ -33,11 +48,19 @@ function Intro({ onNext }: { onNext(): void }) {
     <Section title="Plans with Muse">
       <View style={{ flexDirection: 'row', gap: 10, alignItems: 'flex-start' }}>
         <MuseAvatar />
-        <View style={{ flex: 1, gap: 6 }}>
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: c.input,
+            borderRadius: 18,
+            paddingHorizontal: 12,
+            paddingVertical: 8,
+          }}
+        >
           <Label>
-            Tell me what you want to do. I find the plan and the people, and handle the rest.
+            Tell me what you want to do. I&apos;ll find the plan and the people and handle the rest.
+            You just show up.
           </Label>
-          <Label>You just show up.</Label>
         </View>
       </View>
       <Muted>People only see what you have in common, and only after a group forms.</Muted>
@@ -99,11 +122,12 @@ const applyEdits = (interests: MyInterest[], edits: Edits): MyInterest[] =>
     });
 
 function PickedUp({ edits, onEdit }: { edits: Edits; onEdit(id: string, e: Edits[string]): void }) {
+  const c = useColors();
   const setup = useCg((s) => s.setup);
   const me = useCg((s) => s.me);
   const [evidence, setEvidence] = useState(false);
   useEffect(() => void load.setup(), []);
-  if (!setup || !me) return <Muted style={{ padding: 16 }}>Muse is looking…</Muted>;
+  if (!setup || !me) return <ActivityIndicator color={c.blue} style={{ marginTop: 40 }} />;
   const interests = applyEdits(setup.proposedInterests, edits);
   return (
     <>
@@ -193,13 +217,11 @@ function Preferences({ edits, onDone }: { edits: Edits; onDone(): void }) {
   return (
     <>
       <Section title="Your profile">
-        <View style={{ marginHorizontal: -16, marginBottom: -12 }}>
-          <Chips
-            items={['Public', 'Private']}
-            value={v === 'public' ? 'Public' : 'Private'}
-            onChange={(x) => setVisibility(x === 'Public' ? 'public' : 'private')}
-          />
-        </View>
+        <PillRow
+          items={['Public', 'Private']}
+          value={v === 'public' ? 'Public' : 'Private'}
+          onChange={(x) => setVisibility(x === 'Public' ? 'public' : 'private')}
+        />
       </Section>
       <Section title="Group size">
         <GroupSizeSetting value={g} onChange={setSize} />
@@ -253,7 +275,6 @@ export default function SetupScreen() {
           </Muted>
           <Connectors />
           <Button title="Continue" onPress={next} />
-          <Button title="Skip for now" secondary onPress={next} />
         </Section>
       )}
       {p === 2 && (
@@ -265,11 +286,11 @@ export default function SetupScreen() {
         </>
       )}
       {p === 3 && <Preferences edits={edits} onDone={() => router.replace('/common-ground')} />}
-      {p > 0 && (p !== first || router.canGoBack()) && (
-        <View style={{ paddingHorizontal: 16 }}>
-          <Button title="Back" secondary onPress={back} />
-        </View>
-      )}
+      <View style={{ flexDirection: 'row', paddingHorizontal: 16 }}>
+        {p > 0 && (p !== first || router.canGoBack()) && <TextLink title="Back" onPress={back} />}
+        <View style={{ flex: 1 }} />
+        {p === 1 && <TextLink title="Skip for now" onPress={next} />}
+      </View>
     </Page>
   );
 }

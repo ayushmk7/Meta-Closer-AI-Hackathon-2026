@@ -120,7 +120,9 @@ test('a starter fills the composer; Ask Muse sends toMuse and resets', async () 
     }));
   const { tree, press, byLabel } = await show();
   const [starter] = tree.root.findAll(
-    (n) => n.props.accessibilityHint === 'Puts this in your message' && n.props.onPress,
+    (n) =>
+      n.props.accessibilityLabel === 'What was the first thing you ever made on a wheel?' &&
+      n.props.onPress,
   );
   await renderer.act(async () => starter.props.onPress());
   expect(byLabel('Message').props.value).toBe('What was the first thing you ever made on a wheel?');

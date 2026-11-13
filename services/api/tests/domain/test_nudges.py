@@ -33,3 +33,28 @@ def test_empty_before_opt_in(world):
     world.users["u_maya"]["optedIn"] = False
     asyncio.run(nudges.refresh(world, "u_maya"))
     assert nudges.list_nudges(world, "u_maya") == []
+
+
+def test_copy_upgrades_from_template_to_muse_on_the_next_read(world, monkeypatch):
+    """D's MuseCopy answers the template first and Muse's text later, from its cache: we must ask again."""
+    from cg_api import ports
+    from cg_api.domain import plans
+
+    calls = {"n": 0}
+
+    class Copy(ports.StubCopy):
+        async def plan_reason(self, plan, shared):
+            calls["n"] += 1
+            return "template" if calls["n"] == 1 else "Muse's line"
+
+        async def nudge(self, label, plan):
+            return ("T1", "x1") if calls["n"] < 2 else ("Muse title?", "Muse text.")
+
+    monkeypatch.setattr(ports.ports, "copy", Copy())
+    asyncio.run(nudges.refresh(world, "u_maya"))
+    asyncio.run(plans.warm_reasons(world, "u_maya", ["pl_hero"]))
+    assert plans.card(world, "u_maya", world.plans["pl_hero"])["reason"] == "template"
+    asyncio.run(plans.warm_reasons(world, "u_maya", ["pl_hero"]))
+    assert plans.card(world, "u_maya", world.plans["pl_hero"])["reason"] == "Muse's line"
+    asyncio.run(nudges.refresh(world, "u_maya"))
+    assert nudges.list_nudges(world, "u_maya")[0]["title"] == "Muse title?"

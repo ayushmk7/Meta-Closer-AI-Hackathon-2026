@@ -47,3 +47,18 @@ def test_conversations_are_owner_scoped_and_unguessable(public):
         public.post("/v1/muse/ask", json={"text": "  "}).json()["error"]["message"] == "Tell me what you'd like to do."
     )
     muse_bar.clear()
+
+
+def test_gallery_prompt_text_end_to_end(public):
+    """'Plan something like this': a share's promptText goes to askMuse and comes back as live cards."""
+    shares = public.get("/v1/shares").json()["items"]
+    assert shares, "tiny seed should seed some gallery shares"
+    share = shares[0]
+    r = public.post("/v1/muse/ask", json={"text": share["promptText"]})
+    assert r.status_code == 200, r.text
+    contracts.validate(contracts.op_by_id("askMuse"), 200, r.json())
+    body = r.json()
+    assert body["plans"] and body["plans"][0]["activityType"] == share["activityType"]
+    assert body["reply"]["text"]
+    assert not any(p["planId"].startswith("pl_000") for p in body["plans"])  # live cards, never spec examples
+    assert body["plans"][0]["venue"]["venueId"] == share["venue"]["venueId"]

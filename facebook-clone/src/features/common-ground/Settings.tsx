@@ -1,8 +1,8 @@
 // Settings (PRD-1 §8.6) plus the preference pieces the setup flow reuses.
 import { useEffect } from 'react';
-import { Alert, Pressable, Switch, View } from 'react-native';
+import { Alert, Switch, View } from 'react-native';
 import { router } from 'expo-router';
-import { Button, Card, Chips, Icon, Label, Muted, Page, useColors } from '../../ui/native';
+import { Button, Icon, Label, Muted, Page, Title, useColors } from '../../ui/native';
 import { api } from './api';
 import Connectors from './Connectors';
 import Rewards from './Rewards';
@@ -17,7 +17,7 @@ import type {
   TravelPrefs,
   Visibility,
 } from './types';
-import { Banners, GroupSizePicker, InterestEditor } from './ui';
+import { Banners, GroupSizePicker, InterestEditor, Pill, Section } from './ui';
 
 // NEEDS(ioscore): store actions for updateMe, interest/signal visibility, delete and optOut.
 // Until then these call the api through the store's act() (same error banner) and reload.
@@ -42,17 +42,6 @@ export async function setSignal(signalId: string, visibility: Visibility | 'dele
   if (ok) await Promise.all([load.signals(), load.setup()]);
 }
 
-export function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <Card style={{ padding: 16, gap: 10 }}>
-      <Label accessibilityRole="header" style={{ fontSize: 17, fontWeight: '700' }}>
-        {title}
-      </Label>
-      {children}
-    </Card>
-  );
-}
-
 export function Toggle({
   label,
   value,
@@ -62,16 +51,39 @@ export function Toggle({
   value: boolean;
   onChange(v: boolean): void;
 }) {
+  const c = useColors();
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', minHeight: 44, gap: 12 }}>
       <Label style={{ flex: 1 }}>{label}</Label>
-      <Switch accessibilityLabel={label} value={value} onValueChange={onChange} />
+      <Switch
+        accessibilityLabel={label}
+        value={value}
+        onValueChange={onChange}
+        trackColor={{ false: c.secondary, true: c.blue }}
+        thumbColor="#fff"
+      />
     </View>
   );
 }
 
-// Chips puts 16pt padding around itself; undo it inside a padded card.
-const flush = { marginHorizontal: -16, marginBottom: -12 } as const;
+// Chips-shaped row of shared Pills (44pt, wraps): CG settings and setup use this, not Chips.
+export function PillRow({
+  items,
+  value,
+  onChange,
+}: {
+  items: string[];
+  value: string;
+  onChange(v: string): void;
+}) {
+  return (
+    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+      {items.map((x) => (
+        <Pill key={x} label={x} selected={x === value} onPress={() => onChange(x)} />
+      ))}
+    </View>
+  );
+}
 
 export function GroupSizeSetting({
   value,
@@ -95,44 +107,30 @@ export function TravelPicker({
   value: TravelPrefs;
   onChange(v: TravelPrefs): void;
 }) {
-  const c = useColors();
   return (
     <View style={{ gap: 8 }}>
       <Muted>Up to {value.maxMinutes} minutes</Muted>
-      <View style={flush}>
-        <Chips
-          items={MINUTES}
-          value={String(value.maxMinutes)}
-          onChange={(m) => onChange({ ...value, maxMinutes: Number(m) })}
-        />
-      </View>
+      <PillRow
+        items={MINUTES}
+        value={String(value.maxMinutes)}
+        onChange={(m) => onChange({ ...value, maxMinutes: Number(m) })}
+      />
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
         {MODES.map((m) => {
           const on = value.modes.includes(m);
           return (
-            <Pressable
+            <Pill
               key={m}
-              accessibilityRole="button"
+              label={m[0]!.toUpperCase() + m.slice(1)}
               accessibilityLabel={`Travel by ${m}`}
-              accessibilityState={{ selected: on }}
+              selected={on}
               onPress={() =>
                 onChange({
                   ...value,
                   modes: on ? value.modes.filter((x) => x !== m) : [...value.modes, m],
                 })
               }
-              style={{
-                minHeight: 44,
-                justifyContent: 'center',
-                paddingHorizontal: 15,
-                borderRadius: 22,
-                backgroundColor: on ? (c.canvas === '#18191A' ? '#263951' : '#e7f3ff') : c.input,
-              }}
-            >
-              <Label style={{ color: on ? c.blue : c.text, fontWeight: '600', fontSize: 14 }}>
-                {m[0]!.toUpperCase() + m.slice(1)}
-              </Label>
-            </Pressable>
+            />
           );
         })}
       </View>
@@ -161,16 +159,14 @@ export function MusePermissions() {
   return (
     <Section title="What Muse can do without asking">
       <Muted>Spend up to</Muted>
-      <View style={flush}>
-        <Chips
-          items={items.includes(spend) ? items : [...items, spend]}
-          value={spend}
-          onChange={(l) => {
-            const v = SPEND.find(([x]) => x === l)?.[1];
-            if (v !== undefined) save({ spendWithoutAskingCents: v });
-          }}
-        />
-      </View>
+      <PillRow
+        items={items.includes(spend) ? items : [...items, spend]}
+        value={spend}
+        onChange={(l) => {
+          const v = SPEND.find(([x]) => x === l)?.[1];
+          if (v !== undefined) save({ spendWithoutAskingCents: v });
+        }}
+      />
       <Toggle
         label="Reschedule when plans change"
         value={settings.autoReschedule}
@@ -203,7 +199,7 @@ export function SignalRow({ signal, onDelete }: { signal: Signal; onDelete?: () 
       {signal.sensitive && <Icon name="lock-closed" size={16} color={c.secondary} />}
       <View style={{ flex: 1 }}>
         <Label style={{ color: shown ? c.text : c.secondary }}>{signal.label}</Label>
-        <Muted>{signal.sensitive ? 'Only you can see this' : source}</Muted>
+        <Muted>{signal.sensitive ? 'Only you can see this.' : source}</Muted>
       </View>
       <Button
         title={shown ? 'Hide' : 'Show'}
@@ -249,18 +245,17 @@ export default function SettingsScreen() {
   return (
     <Page style={{ paddingHorizontal: 0 }}>
       <Banners />
+      <Title>Settings</Title>
       {available.length > 1 && (
         <Section title="Mode">
-          <View style={flush}>
-            <Chips
-              items={available.map((m) => m.label)}
-              value={modes.find((m) => m.mode === me.mode)?.label ?? ''}
-              onChange={(label) => {
-                const m = available.find((x) => x.label === label);
-                if (m) void optIn(m.mode, m.poolId);
-              }}
-            />
-          </View>
+          <PillRow
+            items={available.map((m) => m.label)}
+            value={modes.find((m) => m.mode === me.mode)?.label ?? ''}
+            onChange={(label) => {
+              const m = available.find((x) => x.label === label);
+              if (m) void optIn(m.mode, m.poolId);
+            }}
+          />
         </Section>
       )}
       {connectorsOn && (
@@ -287,15 +282,13 @@ export default function SettingsScreen() {
         />
       </Section>
       <Section title="Profile">
-        <View style={flush}>
-          <Chips
-            items={['Public', 'Private']}
-            value={me.profileVisibility === 'public' ? 'Public' : 'Private'}
-            onChange={(v) =>
-              void saveMe({ profileVisibility: v === 'Public' ? 'public' : 'private' })
-            }
-          />
-        </View>
+        <PillRow
+          items={['Public', 'Private']}
+          value={me.profileVisibility === 'public' ? 'Public' : 'Private'}
+          onChange={(v) =>
+            void saveMe({ profileVisibility: v === 'Public' ? 'public' : 'private' })
+          }
+        />
         <Muted>
           {me.profileVisibility === 'public'
             ? 'People in your groups can see your profile.'
@@ -323,11 +316,7 @@ export default function SettingsScreen() {
       </Section>
       <Rewards />
       <Section title="Common Ground">
-        <Button
-          title="Revisit setup"
-          secondary
-          onPress={() => router.push('/common-ground/setup')}
-        />
+        <Button title="Edit setup" secondary onPress={() => router.push('/common-ground/setup')} />
         <Button
           title="Leave Common Ground"
           secondary
