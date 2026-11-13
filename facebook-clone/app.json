@@ -33,7 +33,7 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Scan a friend's code to confirm you met.",
+          "cameraPermission": "Scan another attendee's code to confirm you met.",
           "microphonePermission": false,
           "recordAudioAndroid": false
         }
