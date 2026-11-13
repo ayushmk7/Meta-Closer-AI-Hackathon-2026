@@ -14,7 +14,8 @@ import numpy as np
 from cg_sim import matching_adapter as ma
 from cg_sim.mc.world import World
 
-POLICIES = ("random", "greedy", "common_ground")
+POLICIES = ("random", "greedy", "common_ground", "common_ground_learned")
+CG = ("common_ground", "common_ground_learned")  # learned = common_ground + MatchState.prefs from update_prefs
 # Calibration knob (not a contract param): one day's impression converts at JOIN_DAILY x p_join. At 1/7 almost
 # nothing forms in a 300-person pool; 0.5 gives fill rates in a plausible 0.2-0.7 band. The join sweep brackets it.
 JOIN_DAILY = 0.5
@@ -41,18 +42,18 @@ def _pool(w: World, met: np.ndarray, members=None) -> dict:
 
 
 def _carousel(w: World, policy: str, d: int, active: np.ndarray, joined: np.ndarray, counts: np.ndarray,
-              seed: int, met: np.ndarray) -> np.ndarray:
+              seed: int, met: np.ndarray, prefs: dict) -> np.ndarray:
     """bool [n, len(active)]: plans shown to each person today."""
     n, k = len(w.users), w.params["feed"]["size"]
     shown = np.zeros((n, len(active)), bool)
     if not len(active):
         return shown
-    if policy == "common_ground":
+    if policy in CG:
         col = {j: c for c, j in enumerate(active)}
         # Live joiners ride in seedJoinIds: rank_plans then skips plans a person already joined and counts the
         # joins toward fill likelihood, as the backend does with live plans.
         plans = [{**w.plans[j], "seedJoinIds": [w.users[i] for i in np.flatnonzero(joined[:, j])]} for j in active]
-        ranked = ma.rank_plans(_pool(w, met), plans, w.vectors, w.venue_by_id, w.tables, {},
+        ranked = ma.rank_plans(_pool(w, met), plans, w.vectors, w.venue_by_id, w.tables, {"prefs": prefs},
                                w.params, random.Random(f"{seed}|{d}"))
         ui, pi = w.tables.ui, {w.plans[j]["planId"]: j for j in active}
         for uid, feed in ranked.items():
@@ -103,14 +104,19 @@ def simulate(w: World, policy: str, seed: int, flake: float = 1.0, join: float =
     first_meet = np.full(n, -1)
     n_joins = n_attend = n_seated = n_showed = 0
     formed = np.zeros(P, bool)
-    iso_series, friend_series, frames = [], [], []
+    iso_series, friend_series, show_series, frames = [], [], [], []
+    wk_seated = wk_showed = 0
+    prefs: dict[str, dict[str, float]] = {}  # common_ground_learned only; stays empty otherwise
+    learn = policy == "common_ground_learned"
+    pref_keys = _pref_keys(w) if learn else None
+    alpha = p["matching"]["prefAlpha"]
     week_frame = {"meetups": [], "metPairs": [], "friendships": []}
     low = w.low
 
     for d in range(days):
         active = np.flatnonzero((w.propose_day <= d) & (w.form_day >= d))
         # 1-2. carousel + joins
-        shown = _carousel(w, policy, d, active, joined, counts, seed, met)
+        shown = _carousel(w, policy, d, active, joined, counts, seed, met, prefs)
         u = _rng(seed, d, "join").random((n, len(active)))
         n_open = open_join.sum(1)
         fatigue = np.clip(1 - n_open / open_max, 0, 1)[:, None]  # documented fatigue: linear to 0 at openJoinsMax
@@ -133,7 +139,7 @@ def simulate(w: World, policy: str, seed: int, flake: float = 1.0, join: float =
             members.sort(key=lambda i: join_time[i, j])
             open_join[:, j] = False
             lo, hi = int(w.size_min[j]), int(w.size_max[j])
-            if policy == "common_ground":
+            if policy in CG:
                 groups = _cg_form(w, j, members, met, seed, d)
             else:
                 groups, _ = _first_come(members, lo, hi)
@@ -153,6 +159,12 @@ def simulate(w: World, policy: str, seed: int, flake: float = 1.0, join: float =
                     showed = [i for i in g if us[i, j] < ps[i, j]]
                     n_seated += len(g)
                     n_showed += len(showed)
+                    wk_seated += len(g)
+                    wk_showed += len(showed)
+                    liked = set()
+                    if learn:  # D: a no-show of mine is -0.5
+                        for i in set(g) - set(showed):
+                            _learn(prefs, w.users[i], pref_keys[j], -0.5, alpha)
                     if len(showed) < 2:
                         continue
                     n_attend += len(showed)
@@ -167,11 +179,15 @@ def simulate(w: World, policy: str, seed: int, flake: float = 1.0, join: float =
                                 if trace:
                                     week_frame["metPairs"].append([w.users[a_], w.users[b_]])
                             if um[a_, b_] < w.pm[a_, b_]:
+                                liked |= {a_, b_}
                                 together[a_, b_] += 1
                                 if together[a_, b_] >= p["sim"]["friendshipMeetups"] and not friends[a_, b_]:
                                     friends[a_, b_] = friends[b_, a_] = True
                                     if trace:
                                         week_frame["friendships"].append([w.users[a_], w.users[b_]])
+                    if learn:  # D feedback stand-in: +0.5 if I'd meet someone again, else -0.5
+                        for i in showed:
+                            _learn(prefs, w.users[i], pref_keys[j], 0.5 if i in liked else -0.5, alpha)
                     if trace:
                         x = w.plans[j]
                         week_frame["meetups"].append({
@@ -183,6 +199,8 @@ def simulate(w: World, policy: str, seed: int, flake: float = 1.0, join: float =
             has_friend = friends.any(1)
             iso_series.append(float((~has_friend[low]).mean()) if low.any() else float("nan"))
             friend_series.append(float(has_friend.mean()))
+            show_series.append(wk_showed / wk_seated if wk_seated else float("nan"))
+            wk_seated = wk_showed = 0
             if trace:
                 frames.append({"week": d // 7 + 1, "isolatedShareLowOut": iso_series[-1],
                                "friendshipShare": friend_series[-1], **week_frame})
@@ -195,6 +213,8 @@ def simulate(w: World, policy: str, seed: int, flake: float = 1.0, join: float =
         "friendShareW8": friend_series[-1],
         "isolatedLowW8": iso_series[-1],
         "isolatedLowByWeek": [1.0] + iso_series,
+        "friendShareByWeek": friend_series,
+        "showRateByWeek": show_series,
         "fillRate": float(formed[in_horizon].mean()) if in_horizon.any() else float("nan"),
         "joinToMeetup": n_attend / n_joins if n_joins else float("nan"),
         "showRate": n_showed / n_seated if n_seated else float("nan"),
@@ -205,6 +225,20 @@ def simulate(w: World, policy: str, seed: int, flake: float = 1.0, join: float =
     if trace:
         out["frames"] = frames
     return out
+
+
+def _pref_keys(w: World) -> list[list[str]]:
+    """cg_matching.plan_pref_keys per plan (act:, vn:, int:), so sim and backend learn on the same keys."""
+    import cg_matching as cgm
+
+    return [cgm.plan_pref_keys(cgm.Plan.from_record(x), cgm.Venue.from_record(w.venue_by_id[x["venueId"]]))
+            for x in w.plans]
+
+
+def _learn(prefs: dict, uid: str, keys: list[str], r: float, alpha: float) -> None:
+    import cg_matching as cgm
+
+    prefs[uid] = cgm.update_prefs(prefs.get(uid, {}), keys, r, alpha)
 
 
 def _cg_form(w: World, j: int, members: list[int], met: np.ndarray, seed: int, d: int) -> list[list[int]]:

@@ -58,7 +58,7 @@ def _chart(rows, center, weeks, policies, path) -> None:
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
-    colors = {"random": "#9aa0a6", "greedy": "#d93025", "common_ground": "#1a73e8"}
+    colors = {"random": "#9aa0a6", "greedy": "#d93025", "common_ground": "#1a73e8", "common_ground_learned": "#188038"}
     fig, ax = plt.subplots(figsize=(7, 4), dpi=120)
     for p in policies:
         b = band(rows, p, center, weeks)
@@ -134,6 +134,25 @@ def render(run_dir) -> str:
         v = [_verdict(*paired(base, key, at("common_ground", ci), at("greedy", ci))[1:], hb) for ci in cells_run]
         claim = ("yes" if evidence else "not evidence") if v.count(1) == len(v) else "no"
         L.append(f"| {label} | {v.count(1)} | {v.count(0)} | {v.count(-1)} | {claim} |")
+
+    if "common_ground_learned" in pols:
+        cg, lr = at("common_ground", center), at("common_ground_learned", center)
+        L += ["", "## Learned prefs vs plain Common Ground (center cell)", "",
+              "`common_ground_learned` = common_ground plus `MatchState.prefs` from `cg_matching.update_prefs` after "
+              "each meetup (+0.5 if I'd meet someone again, -0.5 otherwise or for my no-show).", "",
+              "| week | show rate CG | show rate learned | friend share CG | friend share learned |",
+              "| --- | --- | --- | --- | --- |"]
+        for k in range(weeks):
+            v = [ci95([r[m][k] for r in base if sel(r)])[0] for m in ("showRateByWeek", "friendShareByWeek")
+                 for sel in (cg, lr)]
+            L.append(f"| {k + 1} | {v[0]:.1%} | {v[1]:.1%} | {v[2]:.1%} | {v[3]:.1%} |")
+        L += ["", "| week 8, learned - CG (seed-paired 95%) | difference | verdict |", "| --- | --- | --- |"]
+        for key, label, hb in (METRICS[0], METRICS[2], METRICS[5]):
+            d = paired(base, key, lr, cg)
+            v = _verdict(d[1], d[2], hb)
+            L.append(f"| {label} | {d[0]:+.1%} [{d[1]:+.1%}, {d[2]:+.1%}] | "
+                     f"{['worse', 'no worse (unclear)', 'better'][v + 1]} |")
+        L.append(caveat.strip() if caveat else "")
 
     abl = defaultdict(list)
     for r in rows:

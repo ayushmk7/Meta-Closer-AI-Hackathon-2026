@@ -95,3 +95,24 @@ def test_run_report_replay_end_to_end(tmp_path, monkeypatch):
             assert all(a < b for a, b in f["metPairs"] + f["friendships"])
         assert len(rp["isolatedShare"][pol]["mean"]) == 4
     assert {"userId", "lat", "lng", "sceneId", "lowOutgoing"} <= set(rp["people"][0])
+
+
+def test_learned_with_zero_alpha_equals_common_ground(toy):
+    """prefAlpha=0 keeps every pref at 0, so the learned policy must reproduce common_ground bit for bit."""
+    import copy
+    import dataclasses
+
+    p = copy.deepcopy(toy.params)
+    p["matching"]["prefAlpha"] = 0.0
+    w0 = dataclasses.replace(toy, params=p)
+    assert json.dumps(engine.simulate(w0, "common_ground_learned", 4)) == json.dumps(engine.simulate(w0, "common_ground", 4))
+
+
+def test_learned_policy_rewards_meetups(toy, monkeypatch):
+    calls = []
+    real = engine._learn
+    monkeypatch.setattr(engine, "_learn", lambda prefs, uid, keys, r, a: (calls.append((keys, r)), real(prefs, uid, keys, r, a)))
+    m = engine.simulate(toy, "common_ground_learned", 3)
+    assert calls and all(r in (0.5, -0.5) for _, r in calls)
+    assert all(any(k.startswith("act:") for k in keys) for keys, _ in calls)
+    assert len(m["showRateByWeek"]) == len(m["friendShareByWeek"]) == toy.weeks
