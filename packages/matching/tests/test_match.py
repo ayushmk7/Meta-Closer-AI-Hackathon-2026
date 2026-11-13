@@ -307,3 +307,8 @@ def test_fill_to_max(params):
     us = [user(u, MAKER, groupSize={"min": 3, "max": 6}) for u in ids]
     res = _form(_with(params, fillToMax=True), us, ids, p=p)
     assert [len(g.member_ids) for g in res.groups] == [6, 5] and res.unseated_ids == []
+    # A group closed short by a small-max member hands its free seats to the next group (advback #61).
+    ids = [f"u_{i}" for i in range(9)]
+    us = [user(u, MAKER, groupSize={"min": 3, "max": 3 if u == "u_0" else 6}) for u in ids]
+    res = _form(_with(params, fillToMax=True), us, ids, p=p)
+    assert [len(g.member_ids) for g in res.groups] == [3, 6] and res.unseated_ids == []
