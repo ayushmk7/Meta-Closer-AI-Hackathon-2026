@@ -26,6 +26,7 @@ jest.mock('../../src/extensions/registry', () => ({
       after: '/friends',
       useBadge: mockBadge,
       headerAction: { icon: 'settings-outline', label: 'Meetups settings', href: '/x' },
+      titles: { settings: 'Settings' },
     },
   ],
 }));
@@ -67,4 +68,18 @@ test('a contributed tab root titles the top bar and shows its header action; Hom
   renderer.act(() => tree.update(React.createElement(Shell, null, 'home')));
   expect(has('Meetups settings')).toBe(false);
   expect(header()).toHaveLength(0);
+});
+
+test("a contributed tab's pushed route names itself in the bar; unnamed ones keep the tab label", () => {
+  mockReady = true;
+  mockPath = '/common-ground/settings';
+  let tree;
+  renderer.act(() => {
+    tree = renderer.create(React.createElement(Shell, null, 'settings'));
+  });
+  const barTitle = () => tree.root.findByProps({ numberOfLines: 1 }).props.children;
+  expect(barTitle()).toBe('Settings');
+  mockPath = '/common-ground/chat/th_1';
+  renderer.act(() => tree.update(React.createElement(Shell, null, 'chat')));
+  expect(barTitle()).toBe('Meetups');
 });
