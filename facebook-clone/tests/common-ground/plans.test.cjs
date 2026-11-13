@@ -84,7 +84,7 @@ async function render(el) {
 const plan = fixtures.getFeed.plans[0];
 const names = fixtures.listConnections.items.map((c) => c.person.displayName);
 
-test('plan card: checks (failed one muted, no tick), crowd counts, In badge', async () => {
+test('plan card: met checks only, crowd counts, In badge', async () => {
   const card = {
     ...plan,
     checks: [
@@ -95,7 +95,7 @@ test('plan card: checks (failed one muted, no tick), crowd counts, In badge', as
   };
   const { tree, text } = await render(React.createElement(PlanCard, { plan: card }));
   expect(text()).toContain('"Fits your Saturday"');
-  expect(text()).toContain('"Over your budget"');
+  expect(text()).not.toContain('Over your budget'); // unmet checks stay on the Plan pop-up
   expect(text()).not.toContain('✓'); // met checks use the checkmark icon, not a text tick
   const ticks = tree.root.findAll((n) => n.props.name === 'checkmark-circle');
   expect(ticks.length).toBeGreaterThan(0);

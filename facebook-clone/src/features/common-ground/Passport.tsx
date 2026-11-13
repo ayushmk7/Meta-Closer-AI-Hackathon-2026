@@ -193,7 +193,6 @@ export default function PassportScreen() {
       )}
       <Card
         style={{
-          marginHorizontal: 16,
           padding: 16,
           gap: 12,
           backgroundColor: c.brand,
@@ -220,10 +219,7 @@ export default function PassportScreen() {
             <Label
               style={{ flex: 1, fontSize: 20, lineHeight: 25, fontWeight: '800', color: '#fff' }}
             >
-              Passport
-            </Label>
-            <Label style={{ fontSize: 17, fontWeight: '700', color: '#fff' }}>
-              {`${earned} of ${all.length}`}
+              {`${earned} of ${all.length} stamps`}
             </Label>
           </View>
           <View style={{ height: 6, borderRadius: 3, backgroundColor: '#ffffff44' }}>
@@ -245,7 +241,7 @@ export default function PassportScreen() {
       </Card>
       <Muted style={{ paddingHorizontal: 16 }}>Only you can see this.</Muted>
       {!all.length && (
-        <Card style={{ marginHorizontal: 16, paddingBottom: 16, alignItems: 'center' }}>
+        <Card style={{ paddingBottom: 16, alignItems: 'center' }}>
           <Empty title="No stamps yet" message="Join a meetup to see what you can collect." />
           <Button title="See meetups" secondary onPress={() => router.push('/common-ground')} />
         </Card>
@@ -254,7 +250,7 @@ export default function PassportScreen() {
         const items = all.filter((x) => x.kind === kind);
         if (!items.length) return null;
         return (
-          <Card key={kind} style={{ marginHorizontal: 16, padding: 16, gap: 12 }}>
+          <Card key={kind} style={{ padding: 16, gap: 12 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               <Label
                 accessibilityRole="header"

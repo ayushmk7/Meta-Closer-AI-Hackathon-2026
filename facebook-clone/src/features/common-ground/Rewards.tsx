@@ -1,6 +1,6 @@
 // Private progress (DESIGN Rewards): only the user sees it; never shown to others or used in ranking.
-import { useEffect, useState } from 'react';
-import { View, type StyleProp, type ViewStyle } from 'react-native';
+import { useEffect, useState, type ReactNode } from 'react';
+import { View } from 'react-native';
 import { Button, Card, Icon, Label, Muted, go, useColors } from '../../ui/native';
 import { createPlan, load, useCg } from './store';
 import { TZ, type Meetup } from './types';
@@ -62,16 +62,17 @@ export function RewardRow() {
   );
 }
 
-export default function Rewards({ style }: { style?: StyleProp<ViewStyle> }) {
+// children: extra actions inside the card (e.g. the passport link on Meetups home).
+export default function Rewards({ children }: { children?: ReactNode }) {
   const c = useColors();
   const r = useCg((st) => st.me?.rewards);
   const regular = useCg((st) => !!st.me?.unlocks.some((u) => u.unlockId === 'regular'));
   const next = r?.nextUnlock;
-  if (!r || (!next && !r.streakWeeks && !regular)) return null;
+  if (!r || (!next && !r.streakWeeks && !regular && !children)) return null;
   const goal = next && goalText(next);
   const total = next ? r.confirmedMeetups + next.remaining : 0;
   return (
-    <Card style={[{ padding: 16, gap: 10 }, style]}>
+    <Card style={{ padding: 16, gap: 10 }}>
       <Label accessibilityRole="header" style={{ fontSize: 17, fontWeight: '700' }}>
         Your progress
       </Label>
@@ -118,6 +119,7 @@ export default function Rewards({ style }: { style?: StyleProp<ViewStyle> }) {
         </View>
       )}
       <Muted>Only you can see this.</Muted>
+      {children}
     </Card>
   );
 }

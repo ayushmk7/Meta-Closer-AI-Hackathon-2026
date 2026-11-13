@@ -104,7 +104,7 @@ export default function PublicPlanScreen() {
         <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: c.canvas }}>
           <TopBar />
           {shown === null ? (
-            <Card style={{ margin: 16 }}>
+            <Card style={{ marginVertical: 16 }}>
               <Empty
                 title="This meetup isn't available"
                 message="See what people are doing instead."

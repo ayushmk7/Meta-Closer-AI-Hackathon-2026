@@ -1,6 +1,6 @@
 // Connected apps (PRD-1 §8.5 page 2, §8.6). Shared by Setup and Settings.
 import { useEffect } from 'react';
-import { Platform, Switch, View } from 'react-native';
+import { Platform, Pressable, Switch, View } from 'react-native';
 import { Icon, Label, Muted, useColors } from '../../ui/native';
 import { connectDeviceCalendar } from './calendar';
 import { connect, disconnect, load, useCg } from './store';
@@ -31,9 +31,14 @@ export default function Connectors() {
           Platform.OS === 'web' && x.provider === 'device_calendar' ? 'Calendar' : x.label;
         const soon = x.status === 'coming_soon';
         const on = x.status === 'connected';
+        const flip = (v: boolean) => void (v ? turnOn(x.provider) : disconnect(x.provider));
+        // The whole row toggles (44pt+ target); the Switch stays the accessible control.
         return (
-          <View
+          <Pressable
             key={x.provider}
+            accessible={false}
+            disabled={soon}
+            onPress={() => flip(!on)}
             style={{
               flexDirection: 'row',
               alignItems: 'center',
@@ -52,12 +57,12 @@ export default function Connectors() {
               accessibilityLabel={`${label}, ${on ? 'connected' : 'not connected'}`}
               value={on}
               disabled={soon}
-              onValueChange={(v) => void (v ? turnOn(x.provider) : disconnect(x.provider))}
+              onValueChange={flip}
               trackColor={{ false: c.secondary, true: c.blue }}
               thumbColor="#fff"
               {...{ activeThumbColor: '#fff' }} // RN-web ignores thumbColor when on (default teal)
             />
-          </View>
+          </Pressable>
         );
       })}
     </View>

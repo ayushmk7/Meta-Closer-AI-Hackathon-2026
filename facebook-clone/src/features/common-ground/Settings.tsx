@@ -1,6 +1,6 @@
 // Settings (PRD-1 §8.6) plus the preference pieces the setup flow reuses.
 import { useEffect } from 'react';
-import { Alert, Platform, Switch, View } from 'react-native';
+import { Alert, Platform, Pressable, Switch, View } from 'react-native';
 import { router } from 'expo-router';
 import { Button, Icon, Label, Muted, Page, Title, useColors } from '../../ui/native';
 import { api } from './api';
@@ -53,7 +53,11 @@ export function Toggle({
 }) {
   const c = useColors();
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', minHeight: 44, gap: 12 }}>
+    <Pressable
+      accessible={false}
+      onPress={() => onChange(!value)}
+      style={{ flexDirection: 'row', alignItems: 'center', minHeight: 44, gap: 12 }}
+    >
       <Label style={{ flex: 1 }}>{label}</Label>
       <Switch
         accessibilityLabel={label}
@@ -63,7 +67,7 @@ export function Toggle({
         thumbColor="#fff"
         {...{ activeThumbColor: '#fff' }} // RN-web ignores thumbColor when on (default teal)
       />
-    </View>
+    </Pressable>
   );
 }
 

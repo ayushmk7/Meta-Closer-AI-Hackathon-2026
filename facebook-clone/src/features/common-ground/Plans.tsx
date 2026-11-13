@@ -41,7 +41,7 @@ export function NudgeCard({ nudge }: { nudge: Nudge }) {
   const c = useColors();
   const because = nudge.because[0];
   return (
-    <Card style={{ marginHorizontal: 16, padding: 16, gap: 8 }}>
+    <Card style={{ padding: 16, gap: 8 }}>
       <Label accessibilityRole="header" style={{ fontSize: 17, fontWeight: '700' }}>
         {nudge.title}
       </Label>
@@ -141,8 +141,16 @@ function YourPlanRow({ join, meetup }: { join?: Join; meetup?: Meetup }) {
     (join && (plans[join.planId] ?? feed.find((p) => p.planId === join.planId))?.title) ??
     'Your meetup';
   const openMeetup = meetup && (() => go(`/common-ground/meetup/${meetup.meetupId}`));
-  if (meetup?.status === 'completed' && meetup.feedbackDue)
-    return <Row title={title} lines={['How was it?']} onPress={openMeetup} />;
+  if (meetup?.status === 'completed')
+    return (
+      <Row
+        title={title}
+        lines={[
+          meetup.feedbackDue ? 'How was it?' : `${dayTime(meetup.startsAt)} · ${meetup.venue.name}`,
+        ]}
+        onPress={openMeetup}
+      />
+    );
   if (meetup?.status === 'confirmed')
     return (
       <Row
@@ -276,17 +284,10 @@ export default function PlansScreen() {
           onEndInvite={endInvite}
         />
         {nudge && <NudgeCard nudge={nudge} />}
-        {!replying && feed.length > 0 && (
-          <>
-            <Section title="For you" />
-            <PlanCarousel plans={feed} onOpen={openPlan} />
-          </>
-        )}
-        {!invite && <Quests />}
         {(sorted.length > 0 || orphans.length > 0) && (
           <>
             <Section title="Your meetups" />
-            <Card style={{ marginHorizontal: 16 }}>
+            <Card>
               <View style={{ marginTop: -StyleSheet.hairlineWidth }}>
                 {sorted.map((j, i) => (
                   <Animated.View key={j.joinId} entering={enter(i)}>
@@ -302,15 +303,22 @@ export default function PlansScreen() {
             </Card>
           </>
         )}
+        {!replying && feed.length > 0 && (
+          <>
+            <Section title="For you" />
+            <PlanCarousel plans={feed} onOpen={openPlan} />
+          </>
+        )}
+        {!invite && <Quests />}
         <IdeasRow />
-        <Rewards style={{ marginHorizontal: 16 }} />
-        <Button
-          title="Your passport"
-          icon="ribbon-outline"
-          secondary
-          onPress={() => go('/common-ground/passport')}
-          style={{ marginHorizontal: 16 }}
-        />
+        <Rewards>
+          <Button
+            title="Your passport"
+            icon="ribbon-outline"
+            secondary
+            onPress={() => go('/common-ground/passport')}
+          />
+        </Rewards>
         {connections.length > 0 && (
           <>
             <Section title="People you've met" />
