@@ -71,10 +71,16 @@ def main(argv: list[str]) -> int:
     ap.add_argument("--users", type=int, help="toy pool: first N personas")
     ap.add_argument("--world", choices=["tables", "truth"], default="tables")
     ap.add_argument("--no-ablate", action="store_true")
+    ap.add_argument("--policies", default=",".join(engine.POLICIES),
+                    help="comma list; add common_ground_learned to compare learned prefs (~+33%% run time)")
     ap.add_argument("--workers", type=int, default=max(1, (os.cpu_count() or 2) - 1))
     ap.add_argument("--run-id")
     a = ap.parse_args(argv)
 
+    pols = tuple(a.policies.split(","))
+    bad = set(pols) - set(engine.POLICIES) - {"common_ground_learned"}
+    if bad:
+        ap.error(f"unknown policies: {sorted(bad)}")
     t0 = time.time()
     if not a.fake_laya and not (data_dir() / "sim" / "laya_gt" / a.pool / "activity.parquet").exists():
         print(f"no data/sim/laya_gt/{a.pool}; run `cg-sim precompute` or pass --fake-laya", file=sys.stderr)
@@ -89,9 +95,9 @@ def main(argv: list[str]) -> int:
     out = data_dir() / "sim" / "runs" / run_id
     out.mkdir(parents=True, exist_ok=True)
     print(f"run {run_id}: {len(world.users)} people, {len(world.plans)} plans, {seeds} seeds x {len(use)} cells "
-          f"x {len(engine.POLICIES)} policies, {a.workers} workers", file=sys.stderr)
+          f"x {len(pols)} policies, {a.workers} workers", file=sys.stderr)
 
-    tasks = [(engine.POLICIES, ci, cell, s, a.world) for ci, cell in use for s in range(seeds)]
+    tasks = [(pols, ci, cell, s, a.world) for ci, cell in use for s in range(seeds)]
     rows = [{"variant": "base", **r} for r in _run(world, tasks, a.workers)]
     t_main = time.time() - t0
 
@@ -105,11 +111,11 @@ def main(argv: list[str]) -> int:
         for r in rows:
             f.write(json.dumps(r, separators=(",", ":")) + "\n")
     traces = {pol: engine.simulate(world, pol, 0, 1.0, 1.0, trace=True, world_model=a.world)["frames"]
-              for pol in engine.POLICIES}
+              for pol in pols}
     (out / "replay.json").write_text(json.dumps(replay.build(world, run_id, traces, rows, center), separators=(",", ":")))
     config = {"runId": run_id, "poolId": a.pool, "fakeLaya": a.fake_laya, "world": a.world, "seeds": seeds,
               "cells": [{"flake": c[0], "join": c[1]} for _, c in use], "centerCell": center,
-              "policies": list(engine.POLICIES), "people": len(world.users), "plans": len(world.plans),
+              "policies": list(pols), "people": len(world.users), "plans": len(world.plans),
               "weeks": world.weeks, "joinDaily": engine.JOIN_DAILY, "ablations": ABLATIONS if not a.no_ablate else {},
               "mainSeconds": round(t_main, 1), "totalSeconds": round(time.time() - t0, 1),
               "matching": "cg_matching" if engine.ma.HAVE_MATCHING else "matching_adapter fallback"}
