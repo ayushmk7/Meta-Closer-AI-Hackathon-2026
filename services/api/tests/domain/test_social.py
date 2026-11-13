@@ -27,6 +27,32 @@ def finished(world, mt):
     meetups.set_status(world, mt, "completed")
 
 
+class Laya:
+    """Pinned plan_ok answer: tests must not depend on which Laya the session app installed."""
+
+    def __init__(self, p=0.95):
+        self.p, self.asked = p, []
+
+    async def ask(self, question, state):
+        self.asked.append((question, state))
+        return self.p, abs(self.p - 0.5) >= 0.35
+
+
+@pytest.fixture(autouse=True)
+def laya_yes(monkeypatch):
+    from cg_api import ports
+
+    fake = Laya()
+    monkeypatch.setattr(ports.ports, "laya", fake)
+    return fake
+
+
+def share(world, viewer, mt, caption):
+    import asyncio
+
+    return asyncio.run(shares.share_meetup(world, viewer, mt, caption))
+
+
 def check(obj, op_id, status=200):
     contracts.validate(contracts.op_by_id(op_id), status, obj)
     return obj
@@ -36,7 +62,7 @@ def test_list_shares_has_no_person_fields(world):
     mt = confirmed(world)
     verify.check_in(world, "u_maya", mt, world.venues["vn_clay"]["location"])
     finished(world, mt)
-    mine = shares.share_meetup(world, "u_maya", mt, "Three strangers, three lopsided bowls.")
+    mine = share(world, "u_maya", mt, "Three strangers, three lopsided bowls.")
     assert mine["mine"] and mine["groupSize"] == 3
     for viewer in (None, "u_maya", "u_dan"):
         items = shares.list_shares(world, viewer)
@@ -52,16 +78,16 @@ def test_list_shares_has_no_person_fields(world):
 def test_share_needs_attended_finished_and_not_sensitive(world):
     mt = confirmed(world)
     with pytest.raises(Fail) as e:  # not over yet
-        shares.share_meetup(world, "u_maya", mt, "hi")
+        share(world, "u_maya", mt, "hi")
     assert e.value.status == 422
     finished(world, mt)
     with pytest.raises(Fail) as e:  # never checked in or verified
-        shares.share_meetup(world, "u_maya", mt, "hi")
+        share(world, "u_maya", mt, "hi")
     assert e.value.status == 422
     world.meetups[mt]["members"]["u_maya"]["checkedIn"] = True
     world.venues["vn_clay"]["sensitive"] = True
     with pytest.raises(Fail) as e:
-        shares.share_meetup(world, "u_maya", mt, "hi")
+        share(world, "u_maya", mt, "hi")
     assert e.value.status == 422 and e.value.code == "not_allowed"
     assert all(s["venue"]["venueId"] != "vn_clay" for s in shares.list_shares(world, None))  # P4
 
@@ -216,7 +242,7 @@ def test_blank_caption_says_add_one(world):
     mt = confirmed(world)
     for cap, msg in (("   ", "Add a caption"), ("x" * 141, "under 140")):
         with pytest.raises(Fail) as e:
-            shares.share_meetup(world, "u_maya", mt, cap)
+            share(world, "u_maya", mt, cap)
         assert e.value.status == 400 and msg in e.value.message
 
 
@@ -233,11 +259,11 @@ def test_caption_naming_a_coattendee_is_refused(world):
     mt = confirmed(world)
     verify.check_in(world, "u_maya", mt, world.venues["vn_clay"]["location"])
     finished(world, mt)
-    for cap in ("With Daniel Okafor and Rosa!", "rosa made the best bowl"):
+    for cap in ("Fun with Daniel at the studio", "With Daniel Okafor and Rosa!", "rosa made the best bowl", "okafor!"):
         with pytest.raises(Fail) as e:
-            shares.share_meetup(world, "u_maya", mt, cap)
-        assert (e.value.status, e.value.code) == (422, "not_allowed")
-    assert shares.share_meetup(world, "u_maya", mt, "Rosary beads? No, bowls.")["mine"]  # word match, not substring
+            share(world, "u_maya", mt, cap)
+        assert (e.value.status, e.value.code) == (422, "screened") and "names" in e.value.message
+    assert share(world, "u_maya", mt, "Rosary beads? No, bowls.")["mine"]  # word match, not substring
 
 
 def test_verify_guessing_is_capped(world):
@@ -261,3 +287,17 @@ def test_relike_does_not_farm_prefs(world):
     for liked in (True, False, True, False, True):
         shares.like(world, "u_kai", s["shareId"], liked)
     assert world.prefs["u_kai"][f"act:{s['activityType']}"] == pytest.approx(0.09)
+
+
+def test_caption_goes_through_plan_ok_screening(world, laya_yes):
+    mt = confirmed(world)
+    verify.check_in(world, "u_maya", mt, world.venues["vn_clay"]["location"])
+    finished(world, mt)
+    laya_yes.p = 0.05  # decisive no
+    with pytest.raises(Fail) as e:
+        share(world, "u_maya", mt, "Lopsided bowls all round.")
+    assert (e.value.status, e.value.code) == (422, "screened")
+    assert laya_yes.asked == [("plan_ok", {"text": "Lopsided bowls all round."})]
+    laya_yes.p = 0.6  # undecided passes
+    assert share(world, "u_maya", mt, "Lopsided bowls all round.")["mine"]
+    assert share(world, "u_maya", mt, "Maya says: lopsided bowls.")["mine"]  # my own name is mine to share

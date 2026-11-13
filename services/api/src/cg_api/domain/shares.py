@@ -10,6 +10,7 @@ import hashlib
 import re
 from datetime import timedelta
 
+from cg_api import ports
 from cg_api.domain import meetups, plans, prefs
 from cg_api.domain.world import Fail, World, not_found, parse
 
@@ -111,17 +112,24 @@ def list_shares(w: World, viewer: str | None, activity_type=None, neighborhood=N
     return [view(w, viewer, s) for s in out[: w.params["shares"]["galleryMax"]]]
 
 
-def share_meetup(w: World, viewer: str, meetup_id: str, caption) -> dict:
+def _names(w: World, m: dict, viewer: str) -> set[str]:
+    """Every other attendee's first, last and display name: the server knows them, the gallery must not."""
+    out = set()
+    for u in m["members"]:
+        if u != viewer:
+            rec = w.users[u]
+            out |= {rec.get("firstName") or "", rec.get("displayName") or ""} | set(
+                (rec.get("displayName") or "").split()
+            )
+    return {n for n in out if len(n) >= 2}
+
+
+def _eligible(w: World, viewer: str, meetup_id: str, caption) -> dict:
     m = meetups.get(w, viewer, meetup_id)
     if not isinstance(caption, str) or not caption.strip():
         raise Fail(400, "validation_failed", "Add a caption to share it.")
     if len(caption) > 140:
         raise Fail(400, "validation_failed", "Keep the caption under 140 characters.")
-    names = {n for u in m["members"] for n in (w.users[u].get("firstName"), w.users[u].get("displayName")) if n}
-    if any(re.search(rf"\b{re.escape(n)}\b", caption, re.I) for n in names):
-        # the gallery is public and anonymous: nobody is named without their say (P5/P6 spirit)
-        # ponytail: no Laya message_flag here yet (chat lacks it too); LAYA_FAKE would reject ~15% at random
-        raise Fail(422, "not_allowed", "Shares stay anonymous, so leave names out of the caption.")
     me = m["members"][viewer]
     over = m["status"] == "completed" or parse(m["endsAt"]) <= w.now()
     attended = me["rsvp"] == "going" and (me["checkedIn"] or me.get("verified") or me.get("counted"))
@@ -129,6 +137,19 @@ def share_meetup(w: World, viewer: str, meetup_id: str, caption) -> dict:
         raise Fail(422, "not_allowed", "You can share a plan once you've been to it.")
     if w.venues[m["venueId"]].get("sensitive"):
         raise Fail(422, "not_allowed", "This place stays private, so it can't be shared.")
+    if any(re.search(rf"\b{re.escape(n)}\b", caption, re.I) for n in _names(w, m, viewer)):
+        # the gallery is public and logged-out: nobody is named there without their say
+        raise Fail(422, "screened", "Shares stay anonymous, so leave people's names out of the caption.")
+    return m
+
+
+async def share_meetup(w: World, viewer: str, meetup_id: str, caption) -> dict:
+    """Checks first, then the same Laya screen as user-created plans (laya_questions plan_ok): a decisive no is
+    422 screened. Undecided passes. ponytail: Muse escalation for undecided answers comes with createPlan (M2)."""
+    m = _eligible(w, viewer, meetup_id, caption)
+    p, decisive = await ports.ports.laya.ask("plan_ok", {"text": caption.strip()})
+    if decisive and p < 0.5:
+        raise Fail(422, "screened", "I can't share that one. Try describing the activity instead.")
     plan = {**w.plans[m["planId"]], "venueId": m["venueId"]}
     day = parse(m["startsAt"]).astimezone(plans.TZ).date().isoformat()
     s = _make(w, viewer, plan, caption.strip(), len(meetups.going(m)), day)

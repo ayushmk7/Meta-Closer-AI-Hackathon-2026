@@ -99,7 +99,14 @@ def test_own_lan_address_is_used_for_static_urls(live, public):
     assert urls and all(u.startswith("http://127.0.0.1:48000/static/avatars/") for u in urls)
 
 
-def test_social_routes_validate(live, public):
+def test_social_routes_validate(live, public, monkeypatch):
+    from cg_api import ports
+
+    class Yes:
+        async def ask(self, q, state):
+            return 0.95, True
+
+    monkeypatch.setattr(ports.ports, "laya", Yes())
     from fastapi.testclient import TestClient
 
     from cg_api.domain import meetups, verify

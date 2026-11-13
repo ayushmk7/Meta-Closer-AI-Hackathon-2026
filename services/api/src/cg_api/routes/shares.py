@@ -6,7 +6,7 @@ from fastapi import APIRouter, Body, Header
 
 from cg_api.deps import User
 from cg_api.domain import shares, world
-from cg_api.domain.http import REQUEST_BASE, call, items
+from cg_api.domain.http import REQUEST_BASE, acall, call, items
 
 router = APIRouter(dependencies=REQUEST_BASE)
 
@@ -26,7 +26,7 @@ async def list_shares(
 
 @router.post("/v1/meetups/{meetupId}/share", operation_id="shareMeetup")
 async def share_meetup(meetupId: str, user: User, body: dict = Body(...)):
-    return call("shareMeetup", shares.share_meetup, user, meetupId, body.get("caption"))
+    return await acall("shareMeetup", shares.share_meetup, user, meetupId, body.get("caption"))
 
 
 @router.put("/v1/shares/{shareId}/like", operation_id="likeShare")
