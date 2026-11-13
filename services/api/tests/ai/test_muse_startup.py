@@ -5,6 +5,7 @@ import json
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
 
 import pytest
 
@@ -17,7 +18,7 @@ from cg_api.muse.extract import Extractor
 from cg_api.settings import get_settings
 
 
-def stub(status: int):
+def stub(status: int, delay_s: float = 0):
     """An OpenAI-compatible Muse: 503 + Retry-After 60 forever, or a minimal Responses API answer."""
     calls = []
 
@@ -25,6 +26,7 @@ def stub(status: int):
         def do_POST(self):
             calls.append(self.path)
             self.rfile.read(int(self.headers.get("content-length", 0)))
+            time.sleep(delay_s)  # a slow Muse: the server thread sleeps, never our event loop
             if status == 503:
                 body = {"error": {"message": "The backend is temporarily overloaded.", "type": "service_overloaded"}}
                 self.send_response(503)
@@ -67,8 +69,8 @@ def stub(status: int):
 
 @pytest.fixture
 def live_muse(monkeypatch, tmp_path):
-    def install(status):
-        srv, calls = stub(status)
+    def install(status, delay_s=0.0):
+        srv, calls = stub(status, delay_s)
         muse = MuseClient(fake=False, base_url=f"http://127.0.0.1:{srv.server_port}/v1", api_key="x", timeout_s=8)
         laya = LayaClient(get_settings().contracts_dir, fake=True)
         copy = MuseCopy(muse, get_settings().contracts_dir, backoff_s=0.05, cache_path=tmp_path / "muse_copy.json")
@@ -116,3 +118,59 @@ def test_precompute_cache_is_on_disk_and_reused(live_muse):
     got = asyncio.run(warm.plan_reason({"title": "x", "venue": {"name": "v"}, "startsAt": "2026-11-14T18:00:00Z"}, []))
     assert got == "Muse wrote this." and len(calls) == n  # a restarted server answers from disk, no Muse call
     srv.shutdown()
+
+
+def test_checkpoint_flow_confirms_with_a_slow_muse(live_muse, monkeypatch):
+    """Muse takes 10 s per call: join -> group forms -> approve -> confirmed, within 30 s (live test, #65).
+    Runs on the repo's real data/seed (the tiny built-in seed has no group that seats Maya after setup)."""
+    import httpx
+
+    from cg_api.app import create_apps
+
+    repo_seed = Path(__file__).resolve().parents[4] / "data"
+    if not (repo_seed / "seed" / "pool_sf_city" / "pool.json").exists():
+        pytest.skip("needs data/seed/pool_sf_city")
+    monkeypatch.setattr(seed, "seed_dir", lambda pid: repo_seed / "seed" / pid)
+
+    live_muse(200, delay_s=10)
+    pub, _ = create_apps()
+
+    async def flow():
+        await seed.load("pool_sf_city", reextract=True)
+        h = {"X-CG-User": "u_maya"}
+        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=pub), base_url="http://cg", timeout=30) as c:
+            t0 = time.monotonic()
+            assert (await c.post("/v1/optin", json={"mode": "city"}, headers=h)).status_code == 200
+            await c.post("/v1/connectors/google_maps", headers=h)
+            su = (await c.get("/v1/me/setup", headers=h)).json()
+            ids = lambda v: [i["interest"]["id"] for i in su["proposedInterests"] if i["visibility"] == v]
+            body = {
+                "acceptedInterestIds": ids("shown"),
+                "hiddenInterestIds": ids("hidden"),
+                "groupSize": su["proposedGroupSize"],
+                "travel": su["proposedTravel"],
+                "profileVisibility": "public",
+            }
+            assert (await c.post("/v1/me/setup", json=body, headers=h)).status_code == 200
+            await c.get("/v1/feed", headers=h)
+            await c.post("/v1/plans/pl_sf_hero_wheel/join", json={}, headers=h)
+            t0 = time.monotonic()  # the 30 s budget runs from I'm in
+            mt = None
+            while not mt and time.monotonic() - t0 < 30:
+                await asyncio.sleep(0.5)
+                js = (await c.get("/v1/joins", headers=h)).json()["items"]
+                mt = next((j["meetupId"] for j in js if j["planId"] == "pl_sf_hero_wheel"), None)
+            assert mt, "group never formed"
+            ap = None
+            while not ap and time.monotonic() - t0 < 30:
+                await asyncio.sleep(0.5)
+                ap = [a for a in (await c.get("/v1/approvals", headers=h)).json()["items"] if a["status"] == "pending"]
+            assert ap, "no approval"
+            await c.post(f"/v1/approvals/{ap[0]['approvalId']}/decision", json={"decision": "approve"}, headers=h)
+            status = None
+            while status != "confirmed" and time.monotonic() - t0 < 30:
+                await asyncio.sleep(0.5)
+                status = (await c.get(f"/v1/meetups/{mt}", headers=h)).json()["status"]
+            assert status == "confirmed", f"meetup {status} after {time.monotonic() - t0:.0f}s"
+
+    asyncio.run(flow())

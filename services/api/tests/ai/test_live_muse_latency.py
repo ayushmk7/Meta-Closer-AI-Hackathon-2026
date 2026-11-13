@@ -119,4 +119,4 @@ def test_interactive_muse_uses_the_params_live_timeout():
     asyncio.run(MuseCopy(Rec()).intro(["A", "B"], OK, PLAN))
     asyncio.run(bar.understand(Rec(), "coffee", [], "2026-11-12T18:00:00Z", get_settings().contracts_dir))
     # None = MuseClient's own timeout, which providers set from params.muse.liveTimeoutS (R5: no hardcoded copy)
-    assert seen == [("copy.intro", None, "minimal"), ("bar", None, "low")]
+    assert seen == [("copy.intro", None, "low"), ("bar", None, "low")]

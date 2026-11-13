@@ -246,8 +246,7 @@ class MuseCopy:
             return self.cache[key]
         if live:
             try:
-                # ponytail: "minimal", not PRD-2's "low": live muse-spark-1.3 takes ~10 s even at minimal (orchestrator)
-                r = await self.muse.respond(purpose, msgs, schema=schema, effort="minimal")
+                r = await self.muse.respond(purpose, msgs, schema=schema, effort="low")  # PRD-2 §3.11
                 return r["json"]
             except Unavailable:
                 return None
