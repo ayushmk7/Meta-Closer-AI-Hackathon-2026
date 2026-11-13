@@ -3270,11 +3270,10 @@ svg {
   }
   .listing-large-photo {
     min-height: 0;
-    height: 360px;
   }
   .listing-large-photo > img {
-    height: 100%;
-    object-fit: contain;
+    aspect-ratio: 1;
+    object-fit: cover;
   }
   .listing-description {
     padding: 20px 16px;
