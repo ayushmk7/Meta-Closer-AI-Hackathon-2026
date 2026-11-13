@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import contextvars
+import secrets
 import socket
 from collections import defaultdict
 from collections.abc import Callable
@@ -143,6 +144,10 @@ class World:
     blocks: set[frozenset] = field(default_factory=set)
     reports: list[dict] = field(default_factory=list)
     nudges: dict[str, dict] = field(default_factory=dict)
+    shares: dict[str, dict] = field(default_factory=dict)
+    prefs: dict[str, dict[str, float]] = field(default_factory=dict)  # userId -> pref key -> w in [-1, 1]
+    pref_version: int = 0
+    secret: str = field(default_factory=lambda: secrets.token_hex(8))  # verify codes; new each seed load
     runs: dict[str, Any] = field(default_factory=dict)  # meetupId -> D's ScriptedRun
     run_queues: dict[str, Any] = field(default_factory=dict)  # meetupId -> deque of pending run items
     events: list[tuple[str, str, dict]] = field(default_factory=list)  # (userId, type, data) for the realtime hub

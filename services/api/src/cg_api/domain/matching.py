@@ -107,6 +107,7 @@ def _state(cgm, w: World):
     return cgm.MatchState(
         blocked_pairs=[sorted(k) for k in w.blocks],
         venue_capacity={vid: v["booking"]["capacityPerSlot"] for vid, v in w.venues.items()},
+        prefs=w.prefs,
     )
 
 
@@ -150,7 +151,7 @@ def rank(w: World, uid: str) -> list[str]:
     if not cgm:
         return stubs.rank(w, uid)
     # ponytail: whole-pool rank_plans cached until the next event or join; a version counter if it goes stale.
-    key = (id(w), len(w.events), len(w.joins), len(w.plans), w.now().strftime("%Y-%m-%d"))
+    key = (id(w), len(w.events), len(w.joins), len(w.plans), w.pref_version, w.now().strftime("%Y-%m-%d"))
     if key not in _rank_cache:
         _rank_cache.clear()
         pool, params, rng = _ctx(cgm, w)
