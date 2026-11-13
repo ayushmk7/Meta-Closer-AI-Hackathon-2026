@@ -1,5 +1,5 @@
 // Muse's step timeline (PRD-1 §8.3.1). Unknown kinds and statuses render label + status (CONTRACTS §3).
-import { useEffect, useState, type ComponentProps } from 'react';
+import { useEffect, useRef, useState, type ComponentProps } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import Animated, {
   cancelAnimation,
@@ -99,7 +99,7 @@ const RING_MS = 1200;
 const LINE_MS = 900;
 
 // Muse calls the venue (UI only): ringing, transcript lines, then the reserved check.
-function CallCard({ step, meetup }: { step: MuseStep; meetup?: Meetup }) {
+function CallCard({ step, meetup, onDone }: { step: MuseStep; meetup?: Meetup; onDone(): void }) {
   const c = useColors();
   const reduce = useReducedMotion();
   const { venue, lines, done } = callScript(step, meetup);
@@ -113,6 +113,10 @@ function CallCard({ step, meetup }: { step: MuseStep; meetup?: Meetup }) {
     );
     return () => timers.forEach(clearTimeout);
   }, [reduce, end]);
+  const ended = phase >= end;
+  useEffect(() => {
+    if (ended) onDone();
+  }, [ended]); // onDone is a fresh closure each render; fire once per call
   const ringing = phase === 0 && !reduce;
   useEffect(() => {
     if (!ringing) return;
@@ -186,7 +190,15 @@ function CallCard({ step, meetup }: { step: MuseStep; meetup?: Meetup }) {
   );
 }
 
-export default function StepTimeline({ meetupId, steps }: { meetupId: string; steps: MuseStep[] }) {
+export default function StepTimeline({
+  meetupId,
+  steps,
+  onCall,
+}: {
+  meetupId: string;
+  steps: MuseStep[];
+  onCall?(y: number): void; // the call card started at y (in this timeline): scroll it into view
+}) {
   const c = useColors();
   // listApprovals and meetup.approvals only carry my own approvals.
   const approvals = useCg((s) => s.meetups[meetupId]?.approvals ?? NONE);
@@ -194,14 +206,22 @@ export default function StepTimeline({ meetupId, steps }: { meetupId: string; st
   // Play the call once per meetup per session; later opens show just the step row.
   const table = steps.find(isTableStep)?.stepId;
   const [callId, setCallId] = useState<string>();
+  const [calling, setCalling] = useState(false);
+  const shown = useRef(false); // scroll to the call once; later layouts (lines growing) don't
   useEffect(() => {
     if (!table || calledMeetups.has(meetupId)) return;
     calledMeetups.add(meetupId);
     setCallId(table);
+    setCalling(true);
   }, [table, meetupId]);
   return (
     <View style={{ gap: 4 }}>
-      {steps.map((s) => {
+      {steps.map((step) => {
+        // The booking row reads as running while Muse is still on the call; the check pops after.
+        const s =
+          calling && step.stepId === callId
+            ? { ...step, status: 'running', detail: undefined }
+            : step;
         const approval =
           s.status === 'needs_you' && s.approvalId
             ? approvals.find((a) => a.approvalId === s.approvalId && a.status === 'pending')
@@ -209,8 +229,23 @@ export default function StepTimeline({ meetupId, steps }: { meetupId: string; st
         const muted = s.status === 'skipped' || s.status === 'queued';
         return (
           // enter() honours the system reduce-motion setting (Reanimated default).
-          <Animated.View key={s.stepId} entering={enter()} style={{ gap: 8 }}>
-            {s.stepId === callId && <CallCard step={s} meetup={meetup} />}
+          <Animated.View
+            key={s.stepId}
+            entering={enter()}
+            style={{ gap: 8 }}
+            onLayout={
+              s.stepId === callId && calling
+                ? (e) => {
+                    if (shown.current) return;
+                    shown.current = true;
+                    onCall?.(e.nativeEvent.layout.y);
+                  }
+                : undefined
+            }
+          >
+            {s.stepId === callId && (
+              <CallCard step={step} meetup={meetup} onDone={() => setCalling(false)} />
+            )}
             <View
               accessible
               accessibilityLabel={stepLabel(s)}

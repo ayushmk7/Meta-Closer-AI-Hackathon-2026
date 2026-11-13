@@ -1,5 +1,5 @@
 // Plan pop-up (PRD-1 §8.2). Who's in is counts only (C5).
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -10,6 +10,7 @@ import {
   Switch,
   View,
 } from 'react-native';
+import Animated from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { router, useLocalSearchParams } from 'expo-router';
 import {
@@ -24,13 +25,14 @@ import {
   go,
   useColors,
 } from '../../ui/native';
-import { CheckRow, PlanPhoto, dayTime, duration, whosIn } from './PlanCard';
+import { CheckRow, PlanPhoto, Progress, dayTime, duration, whosIn } from './PlanCard';
 import { getState, join, load, useCg, withdraw } from './store';
 import { planMessage, shareOut } from './share';
 import { pickSurprise } from './SurpriseButton';
 import type { GroupSize, PlanDetail } from './types';
 import {
   Banners,
+  enter,
   GroupSizePicker,
   NotFound,
   PersonAvatar,
@@ -133,12 +135,30 @@ export function BottomBar({ plan, surprise = false }: { plan: PlanDetail; surpri
   const [sizing, setSizing] = useState(false);
   const [plusOne, setPlusOne] = useState(false);
   const [tapped, setTapped] = useState(false); // pop on a fresh join only, not on reopening
+  // The group forming animates (plus one haptic) only if I watched it happen, not on reopen.
+  const waited = useRef(false);
+  const [formed, setFormed] = useState(false);
+  // joins is polled fast while Muse gathers people; plan.myJoin only on the slow feed refresh,
+  // so the newer join row decides (else the pop-up sits on "forming your group").
+  const status = joinRow
+    ? joinRow.status === 'withdrawn'
+      ? undefined
+      : joinRow.status
+    : myJoin?.status;
+  useEffect(() => {
+    if (status === 'interested') waited.current = true;
+    if (status === 'matched' && waited.current) {
+      waited.current = false;
+      setFormed(true);
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+    }
+  }, [status]);
 
-  if (myJoin?.status === 'matched') {
+  if (status === 'matched') {
     const meetupId = joinRow?.meetupId;
     const going = meetup?.attendees.filter((a) => a.rsvp === 'going') ?? [];
     return (
-      <View style={{ gap: 12 }}>
+      <Animated.View entering={formed ? enter() : undefined} style={{ gap: 12 }}>
         <View
           accessibilityLiveRegion="polite"
           style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}
@@ -149,9 +169,13 @@ export function BottomBar({ plan, surprise = false }: { plan: PlanDetail; surpri
           </Label>
           <View style={{ flexDirection: 'row' }}>
             {going.slice(0, 4).map((a, i) => (
-              <View key={a.person.userId} style={{ marginLeft: i ? -8 : 0 }}>
+              <Animated.View
+                key={a.person.userId}
+                entering={formed ? enter(i + 1) : undefined}
+                style={{ marginLeft: i ? -8 : 0 }}
+              >
                 <PersonAvatar person={a.person} size={28} />
-              </View>
+              </Animated.View>
             ))}
           </View>
         </View>
@@ -160,10 +184,10 @@ export function BottomBar({ plan, surprise = false }: { plan: PlanDetail; surpri
           disabled={!meetupId}
           onPress={() => meetupId && go(`/common-ground/meetup/${meetupId}`)}
         />
-      </View>
+      </Animated.View>
     );
   }
-  if (myJoin?.status === 'interested') {
+  if (status === 'interested') {
     const p = joinRow?.progress;
     const more = p ? p.needed - p.joined : 0;
     const line = (
@@ -177,7 +201,8 @@ export function BottomBar({ plan, surprise = false }: { plan: PlanDetail; surpri
     );
     return (
       <View style={{ gap: 8 }}>
-        {tapped ? <Pop key={myJoin.status}>{line}</Pop> : line}
+        {tapped ? <Pop key={status}>{line}</Pop> : line}
+        {p && <Progress {...p} />}
         <Button
           title="Can't make it"
           secondary
@@ -195,7 +220,7 @@ export function BottomBar({ plan, surprise = false }: { plan: PlanDetail; surpri
       </View>
     );
   }
-  if (myJoin?.status === 'not_filled')
+  if (status === 'not_filled')
     return (
       <View style={{ gap: 8 }}>
         <Muted style={{ textAlign: 'center' }}>This one didn&apos;t fill</Muted>

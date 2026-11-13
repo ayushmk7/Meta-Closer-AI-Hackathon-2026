@@ -70,7 +70,8 @@ function TypingDot({ i }: { i: number }) {
 function MuseTyping() {
   const c = useColors();
   return (
-    <View
+    <Animated.View
+      entering={enter()}
       accessible
       accessibilityLiveRegion="polite"
       accessibilityLabel="Muse is on it…"
@@ -91,7 +92,7 @@ function MuseTyping() {
           <TypingDot key={i} i={i} />
         ))}
       </View>
-    </View>
+    </Animated.View>
   );
 }
 

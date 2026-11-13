@@ -1,7 +1,12 @@
 // Plan card (PRD-1 §8.1 item 3). Used by the For you carousel, Muse's reply row and alternatives.
-import type { ComponentProps } from 'react';
+import { useEffect, type ComponentProps } from 'react';
 import { PixelRatio, ScrollView, View } from 'react-native';
-import Animated from 'react-native-reanimated';
+import Animated, {
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 import { Image } from 'expo-image';
 import type Ionicons from '@expo/vector-icons/Ionicons';
 import { imageSource } from '../../data/media';
@@ -287,5 +292,27 @@ export function PlanCarousel({
         </Animated.View>
       ))}
     </ScrollView>
+  );
+}
+
+// Muse is gathering people: a bar that fills as people join (counts only, C5).
+export function Progress({ joined, needed }: { joined: number; needed: number }) {
+  const c = useColors();
+  const pct = needed ? Math.min(1, joined / needed) : 0;
+  // The bar fills as people join (instant under reduce motion).
+  const reduce = useReducedMotion();
+  const fill = useSharedValue(pct);
+  useEffect(() => {
+    fill.value = reduce ? pct : withTiming(pct, { duration: 300 });
+  }, [pct, reduce, fill]);
+  const anim = useAnimatedStyle(() => ({ width: `${fill.value * 100}%` }));
+  return (
+    <View
+      accessibilityRole="progressbar"
+      accessibilityValue={{ min: 0, max: needed, now: joined }}
+      style={{ height: 6, borderRadius: 3, backgroundColor: c.divider, overflow: 'hidden' }}
+    >
+      <Animated.View style={[{ height: 6, backgroundColor: c.blue }, anim]} />
+    </View>
   );
 }
