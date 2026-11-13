@@ -160,6 +160,9 @@ def _schema(signal_kinds: list[str]) -> dict:
 
 
 class Extractor:
+    # seed._extract's disk cache key includes this and muse_live; bump it whenever extraction output can change
+    cache_version = 2  # 2: no inline Muse, undecided Laya fails closed when live
+
     def __init__(
         self,
         muse,
