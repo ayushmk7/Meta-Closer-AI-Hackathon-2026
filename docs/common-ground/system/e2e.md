@@ -32,6 +32,7 @@ python3 scripts/e2e_flow.py --reset    # POST /internal/v1/demo/reset first: res
 CG_API_URL=http://127.0.0.1:8010 CG_INTERNAL_URL=http://127.0.0.1:9011 python3 scripts/e2e_flow.py --reset
 ```
 
+- The anonymous gallery on Welcome reads the primary pool, which is the pool seeded last: for the San Francisco demo, load `pool_sf_city` last.
 - Needs a `DEMO_MODE=1` backend with `pool_sf_city` loaded ([runbook.md](runbook.md)). Defaults: `CG_API_URL=http://127.0.0.1:8000`, `CG_INTERNAL_URL=http://127.0.0.1:9001`.
 - `--reset` wipes the whole world. On a backend other people are using, run it against a private one on other ports.
 - Exit code 0 when all 12 steps pass. Waits: 90 s for the group and for confirmed, 45 s for a chat reply.
@@ -42,14 +43,11 @@ What it does not cover: anything on screen, the WebSocket (it polls), device cal
 
 ## Known gaps
 
-Open on 2026-11-13. Evidence and smallest fixes: orchestrator findings `e2e-run`, `e2e-anim`, `e2e-fable`.
+Open on main at `b373217` (2026-11-13). Evidence and smallest fixes: orchestrator findings `e2e-run`, `e2e-anim`, `e2e-fable`.
 
 | Gap | Area |
 | --- | ---- |
-| With the WebSocket down, joins, the feed and an open plan pop-up refresh only every `limits.feedRefreshS` (60 s) (`realtime.ts` `pollSlow`, `Plan.tsx` `usePoll`), while the backend forms a group in a few seconds. A Simulator burst showed the pop-up unchanged for about 8 s across a join and group formation made through the API, and no socket connection appeared in the backend log during that run. **TODO:** confirm whether the socket connects from Expo Go. | ios |
 | The notifications permission alert appears on the first leave-by reminder, which is the moment the meetup confirms, and covers the screen. Grant it on demo phones beforehand. | ios, demo setup |
-| On iOS the logged-out Welcome and public plan pages draw their top bar under the status bar: `SafeAreaView` inside a `Modal` gets no insets. | ios |
-| The anonymous gallery on Welcome reads the primary pool, which is the pool seeded last. For the San Francisco demo, load `pool_sf_city` last. | runbook |
 | The step timeline unmounts the moment the meetup is confirmed (`Meetup.tsx` `showSteps`), so the last checks and a still-playing faux call are cut off; the call does not replay (`calledMeetups`). | ios |
 | The faux call starts after its step is already `done`: the planner sends the book step `queued` then `done`, and the card keys off the done label. The row shows a check and a confirmation code while the card says "Calling". | ios |
 | The Little Fern Kitchen meetup (the one with the call) has no payment approval; the approval sheet only appears on the hero plan. One meetup does not show both beats. | demo script |
@@ -58,4 +56,17 @@ Open on 2026-11-13. Evidence and smallest fixes: orchestrator findings `e2e-run`
 | Synthetic chat lines fall back to templates when Muse times out. | backend |
 | Setup steps and Log in are hard cuts; "What Muse picked up" loads behind a bare spinner. | ios |
 | `useReducedMotion()` is read once at launch; changing the setting mid-session needs an app restart to apply everywhere. | ios |
-| **TODO:** the animated flow has not been watched in motion. Simulator review so far is stills only (nothing can tap the Simulator), and verify, feedback, story and passport were hidden behind the permission alert. The motion notes above come from the code. | |
+| Not yet watched in motion on native: a step going from running to done, the approval sheet, a chat reply and typing, verify, feedback, story, passport, setup, and any pass with Reduce Motion on. | review |
+
+Closed since the first version of this page: the Welcome top bar under the status bar (`Welcome.tsx` `SafeAreaProvider`); joins and the open plan pop-up now refresh at `limits.pollIntervalS` while a join is `interested` (`realtime.ts` `gathering`).
+
+## Review status
+
+Design review of flow and motion, scored 1 to 10 from Simulator screenshot bursts (about 150 ms apart). The track is done at 9 or more on both.
+
+| Build | Flow | Motion | Seen |
+| --- | --- | --- | --- |
+| main `b373217` | 6.5 | 6 | stills only; the timeline and call gaps above are still open |
+| e2e-anim's build with its motion fixes (bursts `s3-fern`, `s6-main`); those fixes are not in `Plan.tsx` or `StepTimeline.tsx` on main | 7 | 7.5 | join, group set, steps, the call and confirmed, in motion |
+
+On that build the timeline stays open through confirmed and the booking row spins until the call ends. Still open on it: steps after the booking (calendar, event, reminders) get their checks while the call is still playing; the spinning row reads "Reserved a table" in the past tense during the call; the "Hide steps" link is inserted above the timeline at confirmed and moves everything down.
