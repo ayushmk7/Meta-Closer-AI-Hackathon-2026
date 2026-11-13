@@ -40,7 +40,15 @@ const tabs = coreTabs.reduce<ShellTab[]>((list, tab) => {
   return list;
 }, []);
 
+// Logged-out Welcome gets no tab chrome, so no authenticated badge hooks run there.
+// A separate component keeps hook order stable when navigating in or out.
 export default function Shell({ children }: { children: ReactNode }) {
+  const c = useColors();
+  if (usePathname() !== '/common-ground/welcome') return <TabShell>{children}</TabShell>;
+  return <SafeAreaView style={{ flex: 1, backgroundColor: c.card }}>{children}</SafeAreaView>;
+}
+
+function TabShell({ children }: { children: ReactNode }) {
   const demo = useDemo();
   const c = useColors();
   const path = usePathname();
