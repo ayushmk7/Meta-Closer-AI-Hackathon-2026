@@ -97,6 +97,7 @@ export function callScript(s: MuseStep, m?: Meetup) {
 
 const RING_MS = 1200;
 const LINE_MS = 900;
+const STEP_MS = 400; // held steps tick this far apart once the call ends
 
 // Muse calls the venue (UI only): ringing, transcript lines, then the reserved check.
 function CallCard({ step, meetup, onDone }: { step: MuseStep; meetup?: Meetup; onDone(): void }) {
@@ -208,20 +209,39 @@ export default function StepTimeline({
   const [callId, setCallId] = useState<string>();
   const [calling, setCalling] = useState(false);
   const shown = useRef(false); // scroll to the call once; later layouts (lines growing) don't
+  // Steps after the call wait for it: held as queued while it plays, then released one by one.
+  const [freed, setFreed] = useState(Infinity);
+  const reduce = useReducedMotion();
   useEffect(() => {
     if (!table || calledMeetups.has(meetupId)) return;
     calledMeetups.add(meetupId);
     setCallId(table);
     setCalling(true);
+    setFreed(0);
   }, [table, meetupId]);
+  const callAt = steps.findIndex((s) => s.stepId === callId);
+  const after = callAt < 0 ? 0 : steps.length - callAt - 1;
+  useEffect(() => {
+    if (calling || freed >= after) return;
+    const t = setTimeout(() => setFreed((f) => f + 1), reduce ? 0 : STEP_MS);
+    return () => clearTimeout(t);
+  }, [calling, freed, after, reduce]);
   return (
     <View style={{ gap: 4 }}>
-      {steps.map((step) => {
-        // The booking row reads as running while Muse is still on the call; the check pops after.
+      {steps.map((step, i) => {
+        // The booking row reads as running ("Reserving…") while Muse is still on the call; the
+        // check pops after. Later steps stay queued until the call ends.
         const s =
           calling && step.stepId === callId
-            ? { ...step, status: 'running', detail: undefined }
-            : step;
+            ? {
+                ...step,
+                status: 'running',
+                detail: undefined,
+                label: step.label.replace(/^Reserved/, 'Reserving'),
+              }
+            : callAt >= 0 && i > callAt + freed
+              ? { ...step, status: 'queued', detail: undefined }
+              : step;
         const approval =
           s.status === 'needs_you' && s.approvalId
             ? approvals.find((a) => a.approvalId === s.approvalId && a.status === 'pending')
