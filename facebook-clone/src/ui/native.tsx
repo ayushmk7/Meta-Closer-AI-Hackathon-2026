@@ -448,7 +448,6 @@ export function Busy() {
       style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: c.canvas }}
     >
       <ActivityIndicator size="large" color={c.blue} />
-      <Muted style={{ marginTop: 12 }}>Opening your demo…</Muted>
     </View>
   );
 }
