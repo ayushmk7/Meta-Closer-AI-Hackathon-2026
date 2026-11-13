@@ -14,7 +14,7 @@ from cg_api.settings import get_settings
 from cg_api.store import store
 
 log = logging.getLogger("cg_api.bridge")
-SHARED = ("venues", "plans", "joins", "meetups", "threads", "approvals", "connections", "blocks", "reports")
+SHARED = ("venues", "plans", "joins", "meetups", "threads", "approvals", "connections", "blocks", "reports", "nudges")
 
 
 def _domain():
@@ -40,7 +40,8 @@ def build() -> None:
     for plan in seeded_plans:
         w.add_plan({k: v for k, v in plan.items() if k != "status"})
     for name in SHARED:
-        setattr(store, name, getattr(w, name))
+        if hasattr(w, name):  # a World without that collection keeps the store's own
+            setattr(store, name, getattr(w, name))
     store.world = w
     publish()
 
