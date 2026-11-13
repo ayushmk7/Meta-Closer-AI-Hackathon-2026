@@ -32,3 +32,9 @@
 
 - Done: `Sheet` (`src/ui/native.tsx`) slides up from the bottom in 250 ms (ease-out) over the existing backdrop fade, using RN `Animated` and no new dependency. Under reduce motion (`AccessibilityInfo.isReduceMotionEnabled`) it appears instantly. It only slides in: closing still uses the Modal fade, because the Modal unmounts on close and a slide-out would need delayed-unmount state. Reanimated was not used because it doesn't load in the jest preset.
 - Done: a top-level contributed tab gets its `label` as a bold top-bar title beside the logo, plus its optional `headerAction` (contracts §11 `TabItem.headerAction`) as an icon button before search. Home and every other route are unchanged.
+
+## Batch 5
+
+- Done: `usePostStory()` in `src/extensions/story.ts` (CONTRACTS §11 v2.1.3). A media key posts as is; an http(s) URL is downloaded by `importPhoto(url)` (`src/platform/photo.ts`) into the owned photos directory with the `photo-<ts>-<n>.jpg` name, so `validMedia` accepts it and `reconcileOwnedPhotos` keeps or cleans it like any other story photo. Text is trimmed and capped at 500. Returns the story id or null (failed download, unknown key); a null posts nothing and shows no core error banner. The story lands in the existing persisted `stories` list, so it shows in the Home stories tray and at `/stories/<id>`.
+- Web: `importPhoto` returns null (web runs on the mock, which only has media keys). Keys still post.
+- Kept out of `registry.ts` so the registry graph stays free of expo modules.
