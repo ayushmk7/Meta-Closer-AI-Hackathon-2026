@@ -83,11 +83,18 @@ Nobody has run the live backend inside the real app yet, so expect a few native-
 - [ ] After the meetup (dashboard "advance to completed"): stars + tags feedback, share with a caption → appears in Explore and the logged-out gallery.
 - [ ] Six tabs fit at phone width; dark mode.
 
-## 7. Decisions still open
+## 7. Decisions (resolved 2026-11-12)
 
-- **Isolation pitch.** In the sim, Common Ground loses to greedy on "low-outgoing still isolated" (66% vs 52%). A fix (`matching.reunionBoost`) is being tested; if no setting wins, pitch "beats random by a wide margin, best show-up rate" instead of "beats greedy".
-- **Learning loop.** Wired end to end and live ("Because you liked ceramics"), but the sim shows no significant gain yet; tuning is running. Present it as learning, not proven.
-- **NFC/RFID tap.** Expo Go can't read NFC, so meeting verification is QR + typed code. Real NFC needs a custom dev build (`react-native-nfc-manager`), about 2 h or more.
+- **Demo labels:** keep the muted "· Demo data" / "Simulated booking" labels (CONTRACTS §2: simulated things are labeled).
+- **Web directions:** the meetup address is a Directions link on web too (PRD-1 §2 updated).
+- **Pitch framing for isolation:** in the sim (fake Laya), Common Ground with the adopted params (`fillToMax`, `reunionBoost 1`, `crowdBoost 0.5`) is 1.6-5.6 pts less isolated than before in all 25 cells, beats random by a wide margin and has the best show-up rate, but still trails greedy. Pitch "better than before, beats random, best show-up"; don't claim "beats greedy".
+- **Learning loop:** live in the product ("Because you liked ceramics"); the sim found no robust gain on held-out seeds, so present it as learning, not proven. Params stay at prefAlpha 0.3 / prefBoost 0.3.
+- **NFC/RFID tap:** QR + typed code (Expo Go can't read NFC); real NFC needs a dev build.
+
+## Already done (no action)
+
+- Muse API key works (models list, Responses API with structured output and tools); stored only in the gitignored `.env`. Muse copy cache precomputed for both pools (`services/api/.cache/`).
+- Live backend + live Muse verified end to end (Checkpoint A, batch-2 smoke, e2e 12/12).
 
 ## 8. Optional
 
