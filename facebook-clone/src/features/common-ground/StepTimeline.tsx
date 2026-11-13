@@ -194,11 +194,13 @@ function CallCard({ step, meetup, onDone }: { step: MuseStep; meetup?: Meetup; o
 export default function StepTimeline({
   meetupId,
   steps,
-  onCall,
+  onReveal,
 }: {
   meetupId: string;
   steps: MuseStep[];
-  onCall?(y: number): void; // the call card started at y (in this timeline): scroll it into view
+  // A step that needs watching (the call starting, an approval waiting on me) is at y in this
+  // timeline: scroll it into view.
+  onReveal?(y: number): void;
 }) {
   const c = useColors();
   // listApprovals and meetup.approvals only carry my own approvals.
@@ -208,7 +210,7 @@ export default function StepTimeline({
   const table = steps.find(isTableStep)?.stepId;
   const [callId, setCallId] = useState<string>();
   const [calling, setCalling] = useState(false);
-  const shown = useRef(false); // scroll to the call once; later layouts (lines growing) don't
+  const shown = useRef(new Set<string>()); // reveal each step once; later layouts don't
   // Steps after the call wait for it: held as queued while it plays, then released one by one.
   const [freed, setFreed] = useState(Infinity);
   const reduce = useReducedMotion();
@@ -254,11 +256,11 @@ export default function StepTimeline({
             entering={enter()}
             style={{ gap: 8 }}
             onLayout={
-              s.stepId === callId && calling
+              (s.stepId === callId && calling) || approval
                 ? (e) => {
-                    if (shown.current) return;
-                    shown.current = true;
-                    onCall?.(e.nativeEvent.layout.y);
+                    if (shown.current.has(s.stepId)) return;
+                    shown.current.add(s.stepId);
+                    onReveal?.(e.nativeEvent.layout.y);
                   }
                 : undefined
             }
