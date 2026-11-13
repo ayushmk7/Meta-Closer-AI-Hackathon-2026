@@ -66,7 +66,7 @@ Maya is in the city pool; the backend lets her opt into the event pool too.
 **Demo identities and plans** (`demo.json`, both pools):
 
 - `heroPlanId`: a **prepaid** plan (it shows the payment approval) matching Maya's top interests (the reference is a Saturday 10 AM wheel-throwing drop-in at a fictional Hayes Valley studio, $35, size 3 to 5), within her travel limit, free in her fallback calendar, formed by Maya plus counterparts.
-- `nudgePlanId`: a plan with no prepay (no approval) at Little Fern Kitchen, Maya's frequent place: Saturday 7 PM dinner, a table for 4.
+- `nudgePlanId`: a plan with no prepay (no approval) at Little Fern Kitchen, Maya's frequent place: Sunday 7 PM small plates, a table for 4.
 - `featuredPlanIds`: 3 to 8 plans for her first feed, in order, including the hero and nudge plans, all passing her hard filters.
 - `liveUserId`: a public profile sharing at least two of Maya's top interests, not in the hero plan's `seedJoinIds` (the second phone joins live). Must be in `counterpartIds`.
 - `privateCounterpartId`: a private profile sharing at least one interest, in the hero plan's `seedJoinIds`, so the group reveal shows a first-name-only person.
