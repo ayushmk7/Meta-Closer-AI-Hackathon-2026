@@ -71,4 +71,4 @@ Design review of flow and motion, scored 1 to 10 from Simulator screenshot burst
 
 Reduce Motion was checked on the join, group set, meetup and call bursts (`e2e-anim/s4-reduce-*`): state changes only, and the call card shows its final state at once.
 
-Both scores are at 9, which is the bar this review set. They come from bursts shot on the branches that became #196 and #199, not from one fresh run of merged main; the gaps above are what a 10 would still need.
+Both scores are at 9, which is the bar this review set. The call pacing was re-shot on merged main (`e2e-run/final-196-fern-steps-call-confirm`). The approval scroll was shot on the #199 branch and on an equivalent e2e-run branch (`e2e-run/final-196-hero-approval-reveal`), not on the merged build; the gaps above are what a 10 would still need.
