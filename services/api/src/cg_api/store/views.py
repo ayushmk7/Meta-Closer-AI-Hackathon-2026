@@ -73,7 +73,7 @@ def signal_view(s: dict, base: str) -> dict:
 
 def capabilities(uid: str) -> dict:
     p = get_settings().params
-    earned = {x["unlockId"] for x in store.users[uid]["unlocks"]}
+    earned = {x["unlockId"] for x in earned_unlocks(uid)}
     bigger = "bigger_groups" in earned
     return {
         "canCreatePlans": "create_plans" in earned,
@@ -93,13 +93,35 @@ def counted_starts(uid: str) -> list[datetime]:
     ]
 
 
+def _reported(uid: str) -> bool:
+    return any(r.get("userId") == uid for r in store.reports)
+
+
+def earned_unlocks(uid: str) -> list[dict]:
+    """params.unlocks earned from counted meetups (same rule as Me.rewards and C's createPlan gate).
+    earnedAt = start of the meetup that crossed the threshold."""
+    starts = sorted(counted_starts(uid))
+    out = []
+    for u in get_settings().params["unlocks"]:
+        n = u["afterConfirmedMeetups"]
+        if len(starts) >= n and not (u.get("requiresNoReports") and _reported(uid)):
+            at = starts[n - 1] if n else datetime.fromisoformat(store.users[uid]["persona"]["joinedAt"])
+            out.append(
+                {
+                    "unlockId": u["unlockId"],
+                    "label": u["label"],
+                    "earnedAt": at.astimezone(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                }
+            )
+    return out
+
+
 def rewards_view(uid: str) -> dict:
     """Me.rewards: private progress, only ever in the user's own Me."""
     from cg_api.domain.rewards import rewards
 
     now = store.world.now() if store.world is not None else datetime.now(UTC)
-    reported = any(r.get("userId") == uid for r in store.reports)
-    return rewards(counted_starts(uid), get_settings().params["unlocks"], now, has_reports=reported)
+    return rewards(counted_starts(uid), get_settings().params["unlocks"], now, has_reports=_reported(uid))
 
 
 def me_view(uid: str, base: str) -> dict:
@@ -120,7 +142,7 @@ def me_view(uid: str, base: str) -> dict:
         "interests": [my_interest(i) for i in sorted(u["interests"].values(), key=lambda i: (-i["weight"], i["id"]))],
         "museSettings": u["museSettings"],
         "capabilities": capabilities(uid),
-        "unlocks": u["unlocks"],
+        "unlocks": earned_unlocks(uid),
         "rewards": rewards_view(uid),
     }
 

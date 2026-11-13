@@ -87,7 +87,6 @@ def new_user(persona: dict, synthetic: bool, mode: str, pool_id: str) -> dict:
         "muted": set(),
         "removedInterests": set(),
         "deletedSignals": set(),
-        "unlocks": [],
     }
 
 

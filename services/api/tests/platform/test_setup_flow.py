@@ -243,3 +243,22 @@ def test_me_rewards_own_only(api):
     assert api("getMe", headers={"X-CG-User": "u_0125"}).json()["rewards"]["confirmedMeetups"] == 0
     other = api("getPerson", "/v1/people/u_maya", headers={"X-CG-User": "u_0125"})
     assert "rewards" not in other.text  # P-private: never on someone else's profile
+
+
+def test_unlocks_follow_counted_meetups(api):
+    """One counted meetup unlocks plan creation in Me.capabilities and Me.unlocks; reports block "regular"."""
+    me = api("getMe").json()
+    assert me["unlocks"] == [] and me["capabilities"]["canCreatePlans"] is False
+    for k in range(5):
+        store.meetups[f"mt_u{k}"] = {"meetupId": f"mt_u{k}", "startsAt": f"2026-11-0{k + 1}T18:00:00Z",
+                                     "endsAt": f"2026-11-0{k + 1}T20:00:00Z", "members": {"u_maya": {"counted": True}}}  # fmt: skip
+        if k == 0:
+            me = api("getMe").json()
+            assert me["capabilities"]["canCreatePlans"] is True
+            assert me["unlocks"] == [{"unlockId": "create_plans", "label": "Create your own plans",
+                                      "earnedAt": "2026-11-01T18:00:00Z"}]  # fmt: skip
+    me = api("getMe").json()
+    assert [u["unlockId"] for u in me["unlocks"]] == ["create_plans", "bigger_groups", "regular"]
+    assert me["capabilities"]["maxGroupSize"] == 8 and me["capabilities"]["openJoinsMax"] == 7
+    store.reports.append({"reportId": "rp_t", "userId": "u_maya", "by": "u_0098"})
+    assert "regular" not in [u["unlockId"] for u in api("getMe").json()["unlocks"]]
