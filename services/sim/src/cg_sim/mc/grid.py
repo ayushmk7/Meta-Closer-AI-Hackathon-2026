@@ -46,7 +46,7 @@ def _one(args):
             p[sec][key] = v
     m = engine.simulate(dataclasses.replace(_W, params=p), policy, seed)
     return {"combo": combo, "policy": policy, "seed": seed,
-            **{k: m[k] for k in ("isolatedLowW8", "fillRate", "friendShareW8")}}
+            **{k: v for k, v in m.items() if not isinstance(v, list)}}
 
 
 def _key(c: dict) -> str:

@@ -77,10 +77,10 @@ def main(argv: list[str]) -> int:
     ap.add_argument("--run-id")
     a = ap.parse_args(argv)
 
-    pols = tuple(a.policies.split(","))
+    pols = tuple(dict.fromkeys(a.policies.split(",")))
     bad = set(pols) - set(engine.POLICIES) - {"common_ground_learned"}
-    if bad:
-        ap.error(f"unknown policies: {sorted(bad)}")
+    if bad or not {"greedy", "common_ground"} <= set(pols):
+        ap.error(f"unknown policies {sorted(bad)}" if bad else "--policies must include greedy and common_ground")
     t0 = time.time()
     if not a.fake_laya and not (data_dir() / "sim" / "laya_gt" / a.pool / "activity.parquet").exists():
         print(f"no data/sim/laya_gt/{a.pool}; run `cg-sim precompute` or pass --fake-laya", file=sys.stderr)
