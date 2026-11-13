@@ -257,8 +257,8 @@ def check_demo(pool_id, pool, demo, personas, truth, plans, venues) -> list[str]
     hero, nudge = plans[demo["heroPlanId"]], plans[demo["nudgePlanId"]]
     if hero["cost"]["kind"] != "prepaid":
         errors.append(f"{pool_id}/demo.json: hero plan must be prepaid")
-    if nudge["cost"]["kind"] == "prepaid":  # the nudge never asks for money (city: pay-at-venue reservation)
-        errors.append(f"{pool_id}/demo.json: nudge plan must not be prepaid")
+    if nudge["cost"]["kind"] not in ("free", "pay_at_venue"):  # never a payment approval (CONTRACTS Decisions)
+        errors.append(f"{pool_id}/demo.json: nudge plan must need no payment approval (free or pay at venue)")
     if nudge["origin"] != "signal":
         errors.append(f"{pool_id}/demo.json: nudge plan origin must be signal")
     if pool["mode"] == "city" and nudge["venueId"] != maya.FREQUENT_VENUE:  # CONTRACTS Decisions: city only

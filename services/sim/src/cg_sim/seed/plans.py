@@ -166,10 +166,10 @@ def build(pool_id, mode, rng: random.Random, export, venues, people, personas, s
                      ["arts_crafts.ceramics"], None, "seed", [private.user_id, hero_join.user_id],
                      title="Saturday wheel-throwing drop-in")
         # a table for 4: three pre-joined, Maya makes four; pay at the venue, so no approval
-        nudge = _plan(f"{prefix}_little_fern_dinner", pool_id, "food_crawl", by_id[maya.FREQUENT_VENUE],
-                      _local(2026, 11, 14, 19), _local(2026, 11, 14, 21), {"min": 4, "max": 4},
+        nudge = _plan(f"{prefix}_little_fern_table", pool_id, "food_crawl", by_id[maya.FREQUENT_VENUE],
+                      _local(2026, 11, 15, 19), _local(2026, 11, 15, 20, 30), {"min": 4, "max": 4},
                       ["food_drink.eating_out"], None, "signal", [others[0], others[1], hero_join.user_id],
-                      title="Saturday small plates at Little Fern Kitchen")
+                      title="Sunday small plates at Little Fern Kitchen")
     else:
         prefix = "pl_evt"
         hero = _plan(f"{prefix}_hero_lunch_walk", pool_id, "lunch", by_id["vn_bayside_commons"],

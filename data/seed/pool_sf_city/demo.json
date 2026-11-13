@@ -3,13 +3,13 @@
   "mayaId": "u_maya",
   "featuredPlanIds": [
     "pl_sf_hero_wheel",
-    "pl_sf_little_fern_dinner",
+    "pl_sf_little_fern_table",
     "pl_sf_wed_game_night",
     "pl_camping_volunteering_20261113_00",
     "pl_eating_out_cooking_20261113_00"
   ],
   "heroPlanId": "pl_sf_hero_wheel",
-  "nudgePlanId": "pl_sf_little_fern_dinner",
+  "nudgePlanId": "pl_sf_little_fern_table",
   "liveUserId": "u_0098",
   "counterpartIds": [
     "u_0098",
@@ -20,7 +20,7 @@
   ],
   "privateCounterpartId": "u_0125",
   "fakeLocation": {
-    "lat": 37.75948,
-    "lng": -122.46722
+    "lat": 37.76095,
+    "lng": -122.46772
   }
 }
