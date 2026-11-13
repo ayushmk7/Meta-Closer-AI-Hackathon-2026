@@ -70,10 +70,8 @@ export const PlansScreen = page(Plans, null);
 export const PlanScreen = page(Plan, (s, p) => s.plans[p.planId ?? '']?.title);
 export const SetupScreen = page(Setup, named('Plans'));
 export const MeetupScreen = page(Meetup, (s, p) => s.meetups[p.meetupId ?? '']?.title);
-export const ChatScreen = page(
-  Chat,
-  (s, p) => s.threads.find((t) => t.threadId === p.threadId)?.title,
-);
+// Chat draws its own Messenger header (back, avatars, title, See plan).
+export const ChatScreen = page(Chat, null);
 export const PersonScreen = page(Person, named('Profile'));
 export const SettingsScreen = page(Settings, named('Settings'));
 export const DemoScreen = page(Demo, named('Demo'));
