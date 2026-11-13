@@ -23,6 +23,8 @@ Without it, Muse runs on the scripted fake (`MUSE_FAKE=1`).
 
 ## 2. Laya: required for real sensitivity checks
 
+**Status: the orchestrator is running Laya locally.**
+
 Without it, Laya runs on the hash fake (`LAYA_FAKE=1`), which marks random interests as sensitive (e.g. "Book swaps").
 
 1. Run `laya-serve` somewhere reachable, or get its URL.
@@ -41,6 +43,8 @@ Without it, Laya runs on the hash fake (`LAYA_FAKE=1`), which marks random inter
 
 ## 3. Phone networking: required for the iPhones
 
+**Status: LAN IP done: 172.20.5.84** (so `EXPO_PUBLIC_CG_API_URL=http://172.20.5.84:8000`).
+
 1. Find your laptop's LAN IP: `ipconfig getifaddr en0`.
 2. In `facebook-clone/.env`:
    ```sh
@@ -51,6 +55,8 @@ Without it, Laya runs on the hash fake (`LAYA_FAKE=1`), which marks random inter
 3. Laptop and phones must be on the same Wi-Fi. Venue Wi-Fi often blocks device-to-device traffic: bring a hotspot.
 
 ## 4. Google Calendar, Strava, Eventbrite, Luma, Beli: nothing to do
+
+**Status: Handled.**
 
 All connectors are **simulated** on purpose (CONTRACTS P10: in v2, user data goes only to Muse and Laya). "Connect" returns seeded records; no OAuth, no real accounts. Real Google Calendar would need an OAuth client and a contracts change; ask Claude if you want it.
 
@@ -68,22 +74,13 @@ make app                        # Expo dev server; scan the QR with Expo Go
 
 Offline fallback: set `MUSE_FAKE=1 LAYA_FAKE=1`, or `EXPO_PUBLIC_CG_MOCK=1` for the app alone.
 
-## 6. Checkpoint B on two iPhones (Expo Go)
+## 6. Checkpoint B on two iPhones
 
-Nobody has run the live backend inside the real app yet, so expect a few native-only bugs. Tell Claude what breaks.
-
-- [ ] Phone 1 as `u_maya`, phone 2 as a second attendee (Settings › demo identity / second-phone mode).
-- [ ] Logged-out Welcome page looks like Facebook's; "Log in" enters the app.
-- [ ] Setup: connect Google Maps, interests appear, sensitive ones hidden.
-- [ ] Plans home: hero plan first, Lands End nudge on Home, Rewards card, Quests, Surprise me opens a plan.
-- [ ] Join hero → brief "gathering" → group forms → steps tick → approve $35 → confirmed.
-- [ ] Event appears in the iPhone Calendar app; leave-by notification fires (dashboard "advance to leave_by").
-- [ ] Chat: Muse intro; send "Muse, can we do 11 instead?" → Muse reschedules.
-- [ ] Phones scan each other's QR (Meetup › Show my code · scan theirs) → both verified; Passport gets a stamp.
-- [ ] After the meetup (dashboard "advance to completed"): stars + tags feedback, share with a caption → appears in Explore and the logged-out gallery.
-- [ ] Six tabs fit at phone width; dark mode.
+See [CHECKPOINT_B.md](CHECKPOINT_B.md).
 
 ## 7. Decisions (resolved 2026-11-12)
+
+**Status: resolved, nothing to do.**
 
 - **Demo labels:** keep the muted "· Demo data" / "Simulated booking" labels (CONTRACTS §2: simulated things are labeled).
 - **Web directions:** the meetup address is a Directions link on web too (PRD-1 §2 updated).
@@ -95,6 +92,8 @@ Nobody has run the live backend inside the real app yet, so expect a few native-
 
 - Muse API key works (models list, Responses API with structured output and tools); stored only in the gitignored `.env`. Muse copy cache precomputed for both pools (`services/api/.cache/`).
 - Live backend + live Muse verified end to end (Checkpoint A, batch-2 smoke, e2e 12/12).
+- Demo labels removed from the app (batch 4); simulated stays flagged in data. Mention it in the pitch/README disclosure.
+- Muse calling venues is a "Coming soon" teaser only (no telephony).
 
 ## 8. Optional
 

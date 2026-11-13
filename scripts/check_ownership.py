@@ -31,6 +31,7 @@ OWNERS: dict[str, dict[str, list[str]]] = {
             ".github/*",
             "README.md",
             "HUMAN_TODO.md",
+            "CHECKPOINT_B.md",
             "Makefile",
             ".env.example",
             ".gitignore",
