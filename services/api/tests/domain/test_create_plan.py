@@ -28,11 +28,8 @@ def create(world, viewer, text, invites=None):
     return asyncio.run(create_plan.create(world, viewer, text, invites))
 
 
-def test_gated_until_the_first_meetup_counts(world):
-    with pytest.raises(Fail) as e:
-        create(world, "u_maya", "pottery this weekend")
-    assert (e.value.status, e.value.code) == (403, "not_allowed")
-    unlocked(world, "u_maya")
+def test_gated_only_by_the_feature_flag(world):
+    assert create(world, "u_maya", "pottery this weekend")["planId"]  # no first-meetup gate
     world.params["features"]["userPlans"] = False
     with pytest.raises(Fail) as e:
         create(world, "u_maya", "pottery this weekend")

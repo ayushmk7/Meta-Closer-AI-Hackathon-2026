@@ -244,7 +244,7 @@ def test_me_rewards_own_only(api):
     """Me.rewards counts the user's counted meetups and points at the next unlock; no other surface carries it."""
     me = api("getMe").json()  # validated against Me (incl. Rewards)
     assert me["rewards"] == {"confirmedMeetups": 0, "streakWeeks": 0,
-                             "nextUnlock": {"unlockId": "create_plans", "label": "Create your own meetups", "remaining": 1}}  # fmt: skip
+                             "nextUnlock": {"unlockId": "bigger_groups", "label": "Groups up to 8 and 2 more open meetups", "remaining": 3}}  # fmt: skip
     store.meetups["mt_r"] = {"meetupId": "mt_r", "startsAt": "2026-11-10T18:00:00Z", "endsAt": "2026-11-10T20:00:00Z",
                              "members": {"u_maya": {"counted": True}, "u_0125": {"counted": False}}}  # fmt: skip
     r = api("getMe").json()["rewards"]
@@ -261,17 +261,12 @@ def test_me_rewards_own_only(api):
 def test_unlocks_follow_counted_meetups(api):
     """One counted meetup unlocks plan creation in Me.capabilities and Me.unlocks; reports block "regular"."""
     me = api("getMe").json()
-    assert me["unlocks"] == [] and me["capabilities"]["canCreatePlans"] is False
+    assert me["unlocks"] == [] and me["capabilities"]["canCreatePlans"] is True  # no first-meetup gate
     for k in range(5):
         store.meetups[f"mt_u{k}"] = {"meetupId": f"mt_u{k}", "startsAt": f"2026-11-0{k + 1}T18:00:00Z",
                                      "endsAt": f"2026-11-0{k + 1}T20:00:00Z", "members": {"u_maya": {"counted": True}}}  # fmt: skip
-        if k == 0:
-            me = api("getMe").json()
-            assert me["capabilities"]["canCreatePlans"] is True
-            assert me["unlocks"] == [{"unlockId": "create_plans", "label": "Create your own meetups",
-                                      "earnedAt": "2026-11-01T18:00:00Z"}]  # fmt: skip
     me = api("getMe").json()
-    assert [u["unlockId"] for u in me["unlocks"]] == ["create_plans", "bigger_groups", "regular"]
+    assert [u["unlockId"] for u in me["unlocks"]] == ["bigger_groups", "regular"]
     assert me["capabilities"]["maxGroupSize"] == 8 and me["capabilities"]["openJoinsMax"] == 7
     store.reports.append({"reportId": "rp_t", "userId": "u_maya", "by": "u_0098"})
     assert "regular" not in [u["unlockId"] for u in api("getMe").json()["unlocks"]]

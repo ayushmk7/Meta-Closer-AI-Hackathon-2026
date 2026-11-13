@@ -20,16 +20,6 @@ HOURS = {"morning": 10, "afternoon": 14, "evening": 18}
 DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
 
 
-def counted_meetups(w: World, uid: str) -> int:
-    return sum(1 for m in w.meetups.values() if m["members"].get(uid, {}).get("counted"))
-
-
-def can_create(w: World, uid: str) -> bool:
-    """Me.capabilities.canCreatePlans: the create_plans unlock, earned by counted meetups (params.unlocks)."""
-    need = next((u["afterConfirmedMeetups"] for u in w.params["unlocks"] if u["unlockId"] == "create_plans"), 1)
-    return counted_meetups(w, uid) >= need
-
-
 def _venue(w: World, viewer: str, text: str, pool: str | None, wanted: list[str], link: dict | None) -> dict | None:
     """A venue the text names, else a pasted maps link's nearest venue, else the nearest that hosts the activity."""
     vs = [
@@ -91,8 +81,6 @@ async def create(w: World, viewer: str, text, invite_ids=None) -> dict:
         raise Fail(403, "not_allowed", "Creating meetups isn't available yet.")
     if not isinstance(text, str) or not text.strip() or len(text) > w.params["muse"]["askMaxChars"]:
         raise Fail(400, "validation_failed", "Tell Muse what you'd like to do, in a sentence or two.")
-    if not can_create(w, viewer):
-        raise Fail(403, "not_allowed", "You can create meetups after your first one.")
     invite_ids = list(dict.fromkeys(invite_ids or []))
     if not all(
         isinstance(i, str)

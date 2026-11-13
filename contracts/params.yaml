@@ -116,7 +116,6 @@ trust:
   newAccountGroupOnly: true   # strangers-only groups of strangerSizeMin+ until the first counted meetup (always true for strangers in v2)
 
 unlocks:
-  - { unlockId: create_plans, afterConfirmedMeetups: 1, label: "Create your own meetups" }
   - { unlockId: bigger_groups, afterConfirmedMeetups: 3, label: "Groups up to 8 and 2 more open meetups" }
   - { unlockId: regular, afterConfirmedMeetups: 5, requiresNoReports: true, label: "Regular badge" }
 

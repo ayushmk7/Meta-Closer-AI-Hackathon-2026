@@ -18,7 +18,7 @@ def test_empty():
     assert r == {
         "confirmedMeetups": 0,
         "streakWeeks": 0,
-        "nextUnlock": {"unlockId": "create_plans", "label": "Create your own meetups", "remaining": 1},
+        "nextUnlock": {"unlockId": "bigger_groups", "label": "Groups up to 8 and 2 more open meetups", "remaining": 3},
     }
 
 
@@ -48,4 +48,4 @@ def test_all_earned_and_reports():
 
 
 def test_unlock_order_independent_of_yaml_order():
-    assert rewards([], UNLOCKS[::-1], NOW)["nextUnlock"]["unlockId"] == "create_plans"
+    assert rewards([], UNLOCKS[::-1], NOW)["nextUnlock"]["unlockId"] == "bigger_groups"

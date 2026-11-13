@@ -53,11 +53,11 @@ class AskBody(BaseModel):
 
 
 async def _create(user: str, text: str) -> dict | None:
-    """createPlan from the bar's text; None when locked (create_plans unlock), screened, or unplaceable."""
+    """createPlan from the bar's text; None when screened, rate limited, or unplaceable."""
     from cg_api.domain import create_plan, plans, world
 
     w = world.current
-    if w is None or not create_plan.can_create(w, user):
+    if w is None:
         return None
     try:
         d = await create_plan.create(w, user, text)
@@ -98,9 +98,9 @@ async def ask_muse(body: AskBody, user: User):
     history = _conversations.setdefault((user, cid), [])
     surprise = bool(re.fullmatch(r"surprise me\W*", text, re.IGNORECASE))
     cards = await plan_source(user)
-    if surprise:  # no filter, no Muse round trip: one random upcoming meetup
+    if surprise:  # no filter, no Muse round trip: 3 random upcoming meetups (+ a new one below)
         f, said = bar.keyword_filter("", _now(), s.contracts_dir), None
-        cards = [random.choice(cards)] if cards else []
+        cards = random.sample(cards, min(3, len(cards)))
     else:
         f, said = await bar.understand(ports.muse, text, history, _now(), s.contracts_dir)
     venues = list({c["venue"]["venueId"]: c["venue"] for c in cards}.values())
@@ -108,14 +108,19 @@ async def ask_muse(body: AskBody, user: User):
     found, relaxed = bar.best(cards, f, venue["venueId"] if venue else None)
     plans = found[: s.params["feed"]["size"]]
     created = None
-    if not plans or relaxed:  # nothing fits exactly: make one, if this user has unlocked creating meetups
-        made = await _create(user, f"{random.choice(list(bar.TYPE_WORDS))} this weekend" if surprise else text)
+    # ponytail: every Surprise me makes a real plan; createPlan's userPlansPerWeek limit caps it, then it's picks only
+    if surprise or not plans or relaxed:  # nothing fits exactly: make one
+        made = await _create(user, f"{random.choice(bar.IDEAS)} this weekend" if surprise else text)
         if made:
-            created, plans, relaxed = made["planId"], [made], False
-    if created:
+            created, relaxed = made["planId"], False
+            plans = [made, *plans] if surprise else [made]
+    if surprise and plans:
+        first = plans[0]
+        lead = "Here's something new" if created else "Try this one"
+        more = f" Plus {len(plans) - 1} more to try." if len(plans) > 1 else ""
+        answer = f"{lead}: {first['title']}{on_day(first['title'], first['startsAt'])}.{more}"
+    elif created:
         answer = f"Nothing fit, so I set one up: {plans[0]['title']}. You're in."
-    elif surprise and plans:
-        answer = f"Try this one: {plans[0]['title']}{on_day(plans[0]['title'], plans[0]['startsAt'])}."
     else:
         answer = said if said and plans and not relaxed else bar.reply(plans, f, relaxed)
     history += [{"role": "user", "content": text}, {"role": "assistant", "content": answer}]

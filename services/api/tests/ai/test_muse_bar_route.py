@@ -64,14 +64,9 @@ def test_gallery_prompt_text_end_to_end(public):
     assert body["plans"][0]["venue"]["venueId"] == share["venue"]["venueId"]
 
 
-def test_nothing_fits_creates_a_meetup_once_unlocked(public, monkeypatch):
-    """Chess maps to board games; with no exact fit, an unlocked user gets a new meetup (createdPlanId)."""
-    from cg_api.domain import create_plan
-
+def test_nothing_fits_creates_a_meetup(public):
+    """Chess maps to board games; with no exact fit, Muse makes a new meetup (createdPlanId), no unlock needed."""
     ask = "chess meetup at 3am on wednesday for 2 people under $1"  # nothing seeded fits exactly
-    locked = public.post("/v1/muse/ask", json={"text": ask}).json()
-    assert locked["createdPlanId"] is None
-    monkeypatch.setattr(create_plan, "can_create", lambda w, uid: True)  # the unlock itself: test_create_plan
     r = public.post("/v1/muse/ask", json={"text": ask})
     contracts.validate(contracts.op_by_id("askMuse"), 200, r.json())
     body = r.json()
@@ -80,7 +75,11 @@ def test_nothing_fits_creates_a_meetup_once_unlocked(public, monkeypatch):
     assert "set one up" in body["reply"]["text"]
 
 
-def test_surprise_me_returns_one_meetup(public):
+def test_surprise_me_mixes_a_new_meetup_with_picks(public):
     body = public.post("/v1/muse/ask", json={"text": "Surprise me!"}).json()
-    assert len(body["plans"]) == 1 and body["reply"]["text"].startswith("Try this one:")
-    assert "Surprise me" not in body["prompts"]
+    contracts.validate(contracts.op_by_id("askMuse"), 200, body)
+    assert body["reply"]["text"].startswith(("Here's something new:", "Try this one:"))
+    assert 1 <= len(body["plans"]) <= 4 and len({p["planId"] for p in body["plans"]}) == len(body["plans"])
+    if body["createdPlanId"]:
+        assert body["plans"][0]["planId"] == body["createdPlanId"]
+    assert body["prompts"][0] == "Surprise me" and len(body["prompts"]) == 3

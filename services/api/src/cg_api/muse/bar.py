@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import math
+import random
 import re
 from datetime import timedelta
 from pathlib import Path
@@ -59,12 +60,42 @@ TYPE_WORDS = {
     "stroll": "walk",
 }
 FOLLOW_UPS = [
-    "Surprise me",
     "Something Sunday afternoon",
     "Board games this week",
     "A coastal walk",
     "Climb this weekend",
     "Coffee tomorrow morning",
+    "Chess in the park",
+    "Karaoke Friday night",
+    "Pottery this weekend",
+    "Trivia night this week",
+    "Brunch Sunday",
+    "A sunset picnic",
+    "Dance class this week",
+    "Free things this weekend",
+]
+# "Surprise me" makes one new meetup from these (each names an activity a seeded venue hosts)
+IDEAS = [
+    "chess and coffee",
+    "karaoke night",
+    "sunset picnic",
+    "pottery class",
+    "trivia night",
+    "bouldering",
+    "comedy show",
+    "farmers market morning",
+    "bike ride",
+    "dance class",
+    "museum visit",
+    "cooking together",
+    "photo walk",
+    "board game night",
+    "brunch",
+    "language exchange",
+    "beach day",
+    "volunteering",
+    "film screening",
+    "book club",
 ]
 _SCHEMA = {
     "type": "object",
@@ -261,7 +292,9 @@ def reply(plans: list[dict], f: dict, relaxed: bool = False) -> str:
 
 
 def follow_ups(text: str) -> list[str]:
-    return [p for p in FOLLOW_UPS if p.lower() not in text.lower()][:3]
+    """"Surprise me" first, then 2 random others, so the chips change each time."""
+    rest = [p for p in FOLLOW_UPS if p.lower() not in text.lower()]
+    return ["Surprise me", *random.sample(rest, min(2, len(rest)))]
 
 
 async def understand(
