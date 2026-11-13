@@ -38,7 +38,7 @@ def public(apps):
 
 @pytest.fixture(scope="session")
 def internal(apps):
-    return TestClient(apps[1])
+    return TestClient(apps[1], base_url="http://127.0.0.1:9001")  # the internal listener answers loopback hosts only
 
 
 def call(client, operation_id: str, path: str | None = None, **kw):
