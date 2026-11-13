@@ -102,7 +102,8 @@ test('header, steps with the inline approval, attendees and details render', asy
   expect(byLabel('Review: OK $35 for your wheel?')).toBeTruthy();
   expect(text()).toContain('Wheel throwing');
   expect(text()).toContain('22 min by transit');
-  expect(text()).toContain('Simulated booking');
+  expect(text()).not.toContain('Simulated booking');
+  expect(byLabel('Coming soon: Muse will soon call venues to book for you')).toBeTruthy();
   // Not day of: no status buttons, no check-in.
   expect(byLabel('On my way')).toBeUndefined();
   expect(byLabel('Check in')).toBeUndefined();
@@ -210,6 +211,7 @@ test('a cancelled meetup shows no day-of actions', async () => {
   m.checkinWindow = { opensAt: m.startsAt, closesAt: m.endsAt };
   const { byLabel, text } = await show(m);
   expect(text()).toContain('This plan was cancelled');
+  expect(byLabel('Coming soon: Muse will soon call venues to book for you')).toBeUndefined();
   expect(byLabel('On my way')).toBeUndefined();
   expect(byLabel('Check in')).toBeUndefined();
 });
