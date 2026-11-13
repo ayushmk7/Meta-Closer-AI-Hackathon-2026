@@ -60,28 +60,15 @@ def on_approval(w, a: dict) -> None:
         asyncio.run(answer(w, a["approvalId"], 0.0))
 
 
-FALLBACK_LINES = ("Sounds great, see you there!", "Can't wait!", "Looking forward to it 🙂", "Nice, I'm in!")
-
-
-async def _say(w, uid: str, thread_id: str, text: str, msg_id: str) -> str:
-    """One short in-character line from this persona's public profile; templated when Muse is unavailable (D4)."""
-    from cg_api import ports
-
-    u = w.users[uid].get("persona") or {}
-    name = u.get("firstName") or w.users[uid]["displayName"].split()[0]
-    m = w.meetups.get(w.threads[thread_id].get("meetupId"), {})
-    prompt = (
-        f"You are {name}, a real person in a small group chat for a meetup: {m.get('title', 'a meetup')}. "
-        f"Your public bio: {u.get('bio', '')}. Someone in the group just wrote: {text!r}. "
-        "Reply casually in one short sentence (max 15 words), no hashtags, don't mention being an AI."
-    )
-    try:
-        r = await ports.ports.muse.respond("chat.synthetic", [{"role": "user", "content": prompt}], effort="low")
-        if line := (r.get("text") or "").strip().strip('"'):
-            return line[:200]
-    except ports.Unavailable:
-        pass
-    return FALLBACK_LINES[int(hashlib.sha256(msg_id.encode()).hexdigest()[:8], 16) % len(FALLBACK_LINES)]
+# Templated on purpose: real Muse refuses to speak as a person ("I'm Muse Spark, an AI...") and takes 8-20 s.
+CHAT_LINES = (
+    "Sounds great, see you there!",
+    "Can't wait!",
+    "Looking forward to it 🙂",
+    "Nice, I'm in!",
+    "Same here, should be fun!",
+    "See you all soon 👋",
+)
 
 
 async def reply(w, msg: dict, uid: str, delay_s: float) -> None:
@@ -90,7 +77,7 @@ async def reply(w, msg: dict, uid: str, delay_s: float) -> None:
     await asyncio.sleep(delay_s)
     if not acts_for(w, uid, _demo_state()):
         return
-    line = await _say(w, uid, msg["threadId"], msg["text"], msg["messageId"])
+    line = CHAT_LINES[int(hashlib.sha256(msg["messageId"].encode()).hexdigest()[:8], 16) % len(CHAT_LINES)]
     chat.post(w, msg["threadId"], "user", uid, line)
     log.info("synthetic %s replied in %s", uid, msg["threadId"])
 

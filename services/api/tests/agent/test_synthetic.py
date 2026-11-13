@@ -47,8 +47,8 @@ def test_counterpart_answers_in_chat(hooked):
     tid = w.meetups[joins.join(w, "u_maya", "pl_hero")["meetupId"]]["threadId"]
     n = len(w.threads[tid]["messages"])
     chat.send(w, "u_maya", tid, "Excited to meet you all!", "c1")
-    [r] = w.threads[tid]["messages"][n + 1 :]  # exactly one reply; the stub Muse gives the templated line
-    assert r["sender"]["userId"] in {"u_dan", "u_rosa"} and r["text"] in synthetic.FALLBACK_LINES
+    [r] = w.threads[tid]["messages"][n + 1 :]  # exactly one reply
+    assert r["sender"]["userId"] in {"u_dan", "u_rosa"} and r["text"] in synthetic.CHAT_LINES
     state["counterpart"], state["liveUserId"] = "live", r["sender"]["userId"]
     chat.send(w, "u_maya", tid, "Muse, what's the address?", "c2")  # toMuse goes to Muse, not the counterparts
     chat.send(w, "u_maya", tid, "See you soon", "c3")
