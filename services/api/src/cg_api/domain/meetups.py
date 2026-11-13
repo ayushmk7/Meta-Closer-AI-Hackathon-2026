@@ -242,6 +242,7 @@ def view(w: World, viewer: str, meetup_id: str) -> dict:
                 "checkedIn": m["members"][u]["checkedIn"],
                 "status": m["members"][u]["status"],
                 "sharedInterests": privacy.shared_full(w, viewer, u),
+                "verified": bool(m["members"][u].get("verified")),
             }
             for u in people
         ],
@@ -256,7 +257,17 @@ def view(w: World, viewer: str, meetup_id: str) -> dict:
         "checkinWindow": window,
         "feedbackDue": m["status"] == "completed" and not me.get("feedbackSent", False),
         "eventLabel": m["eventLabel"],
+        "verifyCode": _my_code(w, m, viewer),
     }
+
+
+def _my_code(w: World, m: dict, viewer: str) -> str | None:
+    """Owner-only: my own code, and only once there is someone to meet."""
+    if m["members"][viewer]["rsvp"] != "going" or m["status"] not in ("confirmed", "completed"):
+        return None
+    from cg_api.domain import verify  # cycle: verify -> meetups
+
+    return verify.code(w, m["meetupId"], viewer)
 
 
 def list_meetups(w: World, viewer: str) -> list[dict]:

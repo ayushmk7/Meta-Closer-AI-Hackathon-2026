@@ -95,3 +95,34 @@ def test_own_lan_address_is_used_for_static_urls(live, public):
     m = ok(public.get("/v1/meetups", headers={**MAYA, "Host": "127.0.0.1:48000"}), "listMeetups")["items"][0]
     urls = [a["person"]["avatarUrl"] for a in m["attendees"] if a["person"]["avatarUrl"]]
     assert urls and all(u.startswith("http://127.0.0.1:48000/static/avatars/") for u in urls)
+
+
+def test_social_routes_validate(live, public):
+    from fastapi.testclient import TestClient
+
+    from cg_api.domain import meetups, verify
+
+    live.demo["relaxCheckin"] = True
+    anon = TestClient(public.app)  # listShares is public (security: [])
+    s = ok(anon.get("/v1/shares"), "listShares")["items"][0]
+    assert s["likedByMe"] is False and s["mine"] is False
+    assert ok(public.put(f"/v1/shares/{s['shareId']}/like", headers=MAYA, json={"liked": True}), "likeShare")[
+        "likedByMe"
+    ]
+    if joins.join(live, "u_maya", "pl_hero")["status"] == "interested":
+        joins.form(live, "pl_hero")
+    mt = next(iter(live.meetups))
+    meetups.set_status(live, mt, "confirmed")
+    m = ok(public.get(f"/v1/meetups/{mt}", headers=DAN), "getMeetup")
+    loc = live.venues["vn_clay"]["location"]
+    assert ok(public.post(f"/v1/meetups/{mt}/checkin", headers=MAYA, json={"location": loc}), "checkIn")["accepted"]
+    r = ok(public.post(f"/v1/meetups/{mt}/verify", headers=MAYA, json={"code": m["verifyCode"]}), "verifyAttendee")
+    assert r["accepted"] and verify.code(live, mt, "u_dan") == m["verifyCode"]
+    body = {"answers": [{"userId": "u_dan", "showedUp": True, "meetAgain": True}], "rating": 5, "tags": ["good_group"]}
+    ok(public.post(f"/v1/meetups/{mt}/feedback", headers=MAYA, json=body), "sendFeedback")
+    meetups.set_status(live, mt, "completed")
+    live.meetups[mt]["endsAt"] = "2026-11-12T17:00:00Z"
+    sh = ok(public.post(f"/v1/meetups/{mt}/share", headers=MAYA, json={"caption": "Lopsided bowls."}), "shareMeetup")
+    assert sh["mine"] and not ok(anon.get("/v1/shares"), "listShares")["items"][0]["mine"]
+    r = public.post(f"/v1/meetups/{mt}/share", headers=DAN, json={"caption": "x" * 141})
+    assert r.status_code == 400
