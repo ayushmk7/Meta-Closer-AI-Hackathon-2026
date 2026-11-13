@@ -147,12 +147,6 @@ def me_view(uid: str, base: str) -> dict:
     }
 
 
-def _gcal_linked(uid: str) -> bool:
-    from cg_api.internal import gcal  # local: gcal -> seed -> store
-
-    return gcal.linked(uid)
-
-
 def connector_view(uid: str, provider: str) -> dict:
     spec = get_settings().contract("connectors.yaml")["providers"][provider]
     c = store.users[uid]["connectors"].get(provider)
@@ -162,7 +156,7 @@ def connector_view(uid: str, provider: str) -> dict:
         "label": spec["label"],
         "reads": spec["reads"],
         "status": status,
-        "simulated": spec["simulated"] and not (provider == "google_calendar" and _gcal_linked(uid)),
+        "simulated": spec["simulated"],
         "connectedAt": c["connectedAt"] if c else None,
         "lastSyncAt": c["lastSyncAt"] if c else None,
         "signalCount": sum(s["provider"] == provider for s in store.users[uid]["signals"].values()),

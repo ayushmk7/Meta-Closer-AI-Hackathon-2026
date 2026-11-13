@@ -5,14 +5,12 @@ from fastapi import APIRouter
 from cg_api.deps import User
 from cg_api.domain import plans, world
 from cg_api.domain.http import REQUEST_BASE, call, warm
-from cg_api.internal import gcal
 
 router = APIRouter(dependencies=REQUEST_BASE)
 
 
 @router.get("/v1/feed", operation_id="getFeed")
 async def get_feed(user: User):
-    await gcal.refresh(user)  # throttled; no-op unless a Google account is linked
     await warm(user, lambda w: plans.ordered_ids(w, user, w.params["feed"]["size"]))
     return call("getFeed", plans.feed, user)
 
