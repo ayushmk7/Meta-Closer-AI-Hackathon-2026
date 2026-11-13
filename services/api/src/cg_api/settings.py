@@ -31,6 +31,9 @@ class Settings:
     internal_host: str = field(default_factory=lambda: _env("CG_INTERNAL_HOST", "127.0.0.1"))
     internal_port: int = field(default_factory=lambda: int(_env("CG_INTERNAL_PORT", "9001")))
     database_url: str = field(default_factory=lambda: _env("DATABASE_URL", ""), repr=False)
+    connectors_live: bool = field(default_factory=lambda: _env("CONNECTORS_LIVE", "0") == "1")
+    google_client_id: str = field(default_factory=lambda: _env("GOOGLE_CLIENT_ID", ""))
+    google_client_secret: str = field(default_factory=lambda: _env("GOOGLE_CLIENT_SECRET", ""), repr=False)
     data_dir: Path = field(default_factory=lambda: Path(_env("CG_DATA_DIR", str(REPO / "data"))))
     contracts_dir: Path = field(default_factory=lambda: Path(_env("CG_CONTRACTS_DIR", str(REPO / "contracts"))))
 

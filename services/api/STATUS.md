@@ -14,7 +14,10 @@ Milestone: slice A M2 (platform) done
 
 - 2026-11-12 Perf guard `tests/perf/test_budgets.py` writes the real city seed scaled to 400 people and 600 plans as a seed dir and loads it for real: load 1.7 s, reset 0.09 s; p95 over 20 samples (2xx checked): getMe 4 ms, export 113 ms, graph 7 ms, the rest ≤ 3 ms (stub extraction). Asserts load < 60 s, reset < 10 s, GET p95 < 300 ms.
 
+- 2026-11-13 Live Google Calendar (contracts v2.3.0, #136): `linkConnectorAccount`, `connectorOAuthCallback` (internal, HTML pages) in `internal/live_calendar.py`; logic in `cg_api/live_calendar.py`. Off unless `CONNECTORS_LIVE=1` with `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`. Tests: `tests/platform/test_live_calendar.py` (Google is an httpx MockTransport).
+
 ## Decisions
+- 2026-11-13 Live Google Calendar hooks: `connectConnector` (google_calendar) runs `live_calendar.refresh(force=True)` after `seed.derive`; `getFeed` and `getPlan` run `live_calendar.refresh` (throttled by `calendar.liveRefreshMinS`, no-op unless linked and connected, never raises). Live busy records (`cr_live_<uid>_NNN`) replace that user's `google_calendar` records in `store.records`; any failure leaves records as they are (seeded until the first success, then the last good read). Tokens: `services/api/.cache/tokens/google_calendar/<uid>.json`, mode 0600, kept across resetDemo. `connector_view` reports `simulated: false` to a linked user. When live busy blocks change, `World.emit(uid, "me.updated")` moves the rank cache key so clashing plans drop out.
 - 2026-11-13 Restaurant venues (`venue.kind == "restaurant"`): "has a table for N at 7 PM" / "has no table at 7 PM"; queued "Reserve a table for N"; book "Reserved a table for N at <venue> · 7 PM", `Booking.label` "Reserved · <code>"; chat reschedule "Moved your table for N at <venue> to 8 PM"; Muse intro says "the reservation". Tiny seed: Lands End removed; nudge `pl_sf_little_fern_table` (Sun 7 PM, pay at venue, no approval).
 - 2026-11-12 The extraction cache key is `{Extractor}-{live|fake}-v{cache_version}-{sha256(input)}`, from `ports.extractor.muse_live` and `.cache_version` (default 1). Fake and live Muse never share results; bump `cache_version` when extraction logic changes.
 - 2026-11-12 `cg-api-precompute-muse` script → `cg_api.muse.precompute:main` (slice D, PR #65).
@@ -56,3 +59,4 @@ Milestone: slice A M2 (platform) done
 - `regeneratePlans`, `triggerNudge`, `formPlan` are slice C (example fallthrough until #16).
 - Stub extractor returns no interests, so feeds are thin until slice D's fake extraction lands.
 - Synthesised examples use placeholder strings (`"x"`) for free-text and unpatterned IDs; they validate but are not realistic.
+- 2026-11-13 `domain/matching.rank` caches on `len(w.events)` etc., but `bridge.changed` only pushes realtime and does not append to `w.events`. So busy changes from `connectConnector`/`disconnectConnector`/`syncCalendar` don't re-rank the feed until the next event or join (the per-plan "Fits your …" check is live). Live Google Calendar works around it with `World.emit`; the general fix is slice C's call.
