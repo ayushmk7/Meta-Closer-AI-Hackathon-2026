@@ -454,20 +454,6 @@ export default function MeetupScreen() {
             <Muted>Leave by {clock(m.travel.leaveBy)}</Muted>
           </Row>
         )}
-        {m.booking.status !== 'booked' &&
-          (m.status === 'setting_up' || m.status === 'confirmed') && (
-            <View
-              accessible
-              accessibilityLabel="Coming soon: Muse will soon call venues to book for you"
-            >
-              <Row icon="call-outline">
-                <Label style={{ color: c.secondary }}>
-                  Muse will soon call venues to book for you
-                </Label>
-                <Muted>Coming soon</Muted>
-              </Row>
-            </View>
-          )}
       </Section>
 
       {(dayOf || canCheckIn) && (

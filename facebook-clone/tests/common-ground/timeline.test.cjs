@@ -141,3 +141,54 @@ test('a step already done on open stays still; a live flip to done pops', async 
   await renderer.act(async () => tree.update(el('done')));
   expect(popped()).toBe(true);
 });
+
+const table = (status = 'done') =>
+  step('bk', status, 'book', { label: 'Reserved a table for 4 at Little Fern Kitchen · 7 PM' });
+
+test('a restaurant booking step plays the call once, then shows the reserved check', async () => {
+  jest.useFakeTimers();
+  try {
+    const { text, byLabel } = await render(
+      React.createElement(StepTimeline, { meetupId: 'mt_call', steps: [table()] }),
+    );
+    expect(byLabel('Muse is calling Little Fern Kitchen')).toBeTruthy();
+    expect(text()).toContain('Calling Little Fern Kitchen…');
+    expect(text()).not.toContain('how can I help');
+    await renderer.act(async () => jest.advanceTimersByTime(1300));
+    expect(text()).toContain('Little Fern Kitchen, how can I help?');
+    await renderer.act(async () => jest.advanceTimersByTime(5000));
+    expect(text()).toContain("Hi, I'm Muse, an AI assistant.");
+    expect(byLabel('Muse called Little Fern Kitchen. Reserved · table for 4 · 7 PM')).toBeTruthy();
+    expect(byLabel('Reserved a table for 4 at Little Fern Kitchen · 7 PM, done')).toBeTruthy();
+  } finally {
+    jest.useRealTimers();
+  }
+  // Second open of the same meetup: just the normal row.
+  const again = await render(
+    React.createElement(StepTimeline, { meetupId: 'mt_call', steps: [table()] }),
+  );
+  expect(again.text()).not.toContain('Calling');
+  expect(again.byLabel('Reserved a table for 4 at Little Fern Kitchen · 7 PM, done')).toBeTruthy();
+});
+
+test('a non-restaurant booking step gets no call card', async () => {
+  const s = step('bk', 'done', 'book', { label: 'Booked 3 wheels at Clay Hour Studio' });
+  const { text } = await render(
+    React.createElement(StepTimeline, { meetupId: 'mt_wheels', steps: [s] }),
+  );
+  expect(text()).not.toContain('Calling');
+  expect(text()).not.toContain('Muse called');
+});
+
+test('reduce motion shows the finished call at once', async () => {
+  global.__reduceMotion = true;
+  try {
+    const { text, byLabel } = await render(
+      React.createElement(StepTimeline, { meetupId: 'mt_calm', steps: [table()] }),
+    );
+    expect(byLabel('Muse called Little Fern Kitchen. Reserved · table for 4 · 7 PM')).toBeTruthy();
+    expect(text()).toContain('Thank you!');
+  } finally {
+    global.__reduceMotion = false;
+  }
+});
