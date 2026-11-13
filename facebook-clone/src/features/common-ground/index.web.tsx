@@ -1,8 +1,9 @@
 import type { ComponentType } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { IconButton, Label, useColors } from '../../ui/native';
+import { useCg, type CgState } from './store';
 import Plans from './Plans';
 import Plan from './Plan';
 import Setup from './Setup';
@@ -18,10 +19,14 @@ import Scan from './Scan';
 
 // Web reuses the native screens inside the clone's narrow column. Fixed height because the
 // screens are flex:1 with their own scroll; the web layout has no SafeAreaProvider of its own.
-// Pushed routes get the native Shell's header row (back arrow + "Plans"), which the web
-// shell doesn't draw; the tab root and logged-out Welcome don't.
-function BackRow() {
+// Pushed routes get one Facebook header row (back arrow + the screen's title), which the web
+// shell doesn't draw; the tab root and logged-out Welcome don't. Detail titles come from the
+// store and fall back to "Plans" while loading.
+type Titler = (s: CgState, p: Record<string, string | undefined>) => string | undefined;
+function BackRow({ title }: { title: Titler }) {
   const c = useColors();
+  const params = useLocalSearchParams<Record<string, string>>();
+  const text = useCg((s) => title(s, params)) ?? 'Plans';
   return (
     <View
       style={{
@@ -41,31 +46,38 @@ function BackRow() {
         onPress={() => (router.canGoBack() ? router.back() : router.replace('/common-ground'))}
       />
       <Label numberOfLines={1} style={{ fontSize: 18, fontWeight: '700', flex: 1 }}>
-        Plans
+        {text}
       </Label>
     </View>
   );
 }
-const page = (Screen: ComponentType, back = true) =>
+const page = (Screen: ComponentType, title: Titler | null) =>
   function CommonGroundPage() {
     return (
       <div className="narrow-page cg-page">
         <SafeAreaProvider style={{ flex: 1 }}>
-          {back && <BackRow />}
+          {title && <BackRow title={title} />}
           <Screen />
         </SafeAreaProvider>
       </div>
     );
   };
-export const PlansScreen = page(Plans, false);
-export const PlanScreen = page(Plan);
-export const SetupScreen = page(Setup);
-export const MeetupScreen = page(Meetup);
-export const ChatScreen = page(Chat);
-export const PersonScreen = page(Person);
-export const SettingsScreen = page(Settings);
-export const DemoScreen = page(Demo);
-export const WelcomeScreen = page(Welcome, false);
-export const ExploreScreen = page(Explore);
-export const PassportScreen = page(Passport);
-export const ScanScreen = page(Scan);
+const named =
+  (name: string): Titler =>
+  () =>
+    name;
+export const PlansScreen = page(Plans, null);
+export const PlanScreen = page(Plan, (s, p) => s.plans[p.planId ?? '']?.title);
+export const SetupScreen = page(Setup, named('Plans'));
+export const MeetupScreen = page(Meetup, (s, p) => s.meetups[p.meetupId ?? '']?.title);
+export const ChatScreen = page(
+  Chat,
+  (s, p) => s.threads.find((t) => t.threadId === p.threadId)?.title,
+);
+export const PersonScreen = page(Person, named('Profile'));
+export const SettingsScreen = page(Settings, named('Settings'));
+export const DemoScreen = page(Demo, named('Demo'));
+export const WelcomeScreen = page(Welcome, null);
+export const ExploreScreen = page(Explore, named('Explore'));
+export const PassportScreen = page(Passport, named('Your passport'));
+export const ScanScreen = page(Scan, named('Verify in person'));
