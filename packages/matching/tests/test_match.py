@@ -222,3 +222,68 @@ def test_shared_interests_and_plan_overlap(params):
         ("arts_crafts.ceramics", 2),
         ("food_drink.coffee_tea", 1),
     ]
+
+
+def _with(params, **kw):
+    return cgm.Params(params | {"matching": params["matching"] | kw})
+
+
+def _reunion_world():
+    v = {
+        "vn_clay": cgm.Venue.from_record(venue()),
+        "vn_cafe": cgm.Venue.from_record(venue("vn_cafe", types=("coffee",))),
+    }
+    plans = [
+        plan("pl_a", sceneId="sc_a"),
+        plan(
+            "pl_b",
+            at="coffee",
+            vid="vn_cafe",
+            targets=["food_drink.coffee_tea"],
+            sceneId="sc_b",
+            seedJoinIds=["u_v"],
+        ),
+    ]
+    users = [user("u_u", MAKER, metIds=["u_v"]), user("u_v", MAKER), user("u_w", MAKER, metIds=["u_z"])]
+    return users, plans, v
+
+
+def test_reunion_zero_is_identity(params):
+    users, plans, v = _reunion_world()
+    for prm in (_with(params, reunionBoost=0.0, crowdBoost=0.0), _with(params, reunionBoost=0)):
+        assert _rank(prm, users, plans, venues=v) == _rank(params, users, plans, venues=v)
+    ids = [f"u_{i}" for i in range(8)]
+    us = [user(u, MAKER, metIds=["u_x"]) for u in ids]
+    st = cgm.MatchState(met_pairs=[["u_0", "u_7"]])
+    zero = _with(params, reunionBoost=0.0)
+    assert _form(zero, us, ids, p=plan(size=(3, 4)), state=st) == _form(
+        params, us, ids, p=plan(size=(3, 4)), state=st
+    )
+
+
+def test_rank_reunion_lifts_plan_with_met_joiner(params):
+    users, plans, v = _reunion_world()
+    ids = lambda out, u: [s.plan_id for s in out[u]]  # noqa: E731
+    before = _rank(params, users, plans, venues=v)
+    assert ids(before, "u_u") == ids(before, "u_w") == ["pl_a", "pl_b"]
+    after = _rank(_with(params, reunionBoost=1.0), users, plans, venues=v)
+    assert ids(after, "u_u") == ["pl_b", "pl_a"] and after["u_u"][0].debug["reunion"] is True
+    assert after["u_w"] == before["u_w"]  # never met anyone going: unchanged
+    crowd = _rank(_with(params, crowdBoost=4.0), users, plans, venues=v)
+    assert ids(crowd, "u_w") == ["pl_b", "pl_a"]  # fallback: concentration on the plan already filling
+
+
+def test_form_keeps_met_pair_together(params):
+    ids = [f"u_{i}" for i in range(8)]
+    us = [user(u, MAKER, metIds=["u_x"]) for u in ids]  # nobody isolated: queue is join order
+    st = cgm.MatchState(met_pairs=[["u_0", "u_7"]])
+
+    def together(prm):
+        res = _form(prm, us, ids, p=plan(size=(3, 4)), state=st)
+        assert len(res.groups) == 2
+        return any({"u_0", "u_7"} <= set(g.member_ids) for g in res.groups)
+
+    assert not together(params) and together(_with(params, reunionBoost=1.0))
+    fixed = cgm.MatchState(met_pairs=[["u_0", "u_7"]], fixed_ids={"pl_wheel": ["u_0", "u_1"]})
+    res = _form(_with(params, reunionBoost=1.0), us, ids[2:], p=plan(size=(3, 4)), state=fixed)
+    assert "u_7" in res.groups[0].member_ids  # backfill pulls the met person in first

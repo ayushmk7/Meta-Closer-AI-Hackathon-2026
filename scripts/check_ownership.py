@@ -30,6 +30,7 @@ OWNERS: dict[str, dict[str, list[str]]] = {
             "scripts/*",
             ".github/*",
             "README.md",
+            "HUMAN_TODO.md",
             "Makefile",
             ".env.example",
             ".gitignore",

@@ -8,6 +8,7 @@ import { connect, disconnect, load, useCg } from './store';
 // Facebook Settings row: outline icon, bold title, secondary line, control on the right.
 const ICONS: Record<string, Parameters<typeof Icon>[0]['name']> = {
   device_calendar: 'calendar-outline',
+  google_calendar: 'calendar-clear-outline',
   google_maps: 'map-outline',
   strava: 'bicycle-outline',
   eventbrite: 'ticket-outline',

@@ -13,7 +13,7 @@ import unicodedata
 from datetime import timedelta
 
 from cg_api import ports
-from cg_api.domain import meetups, plans, prefs
+from cg_api.domain import meetups, plans, prefs, screen
 from cg_api.domain.world import Fail, World, not_found, parse
 from cg_api.settings import get_settings
 
@@ -158,6 +158,8 @@ def _eligible(w: World, viewer: str, meetup_id: str, caption) -> dict:
         raise Fail(422, "not_allowed", "You can share a plan once you've been to it.")
     if w.venues[m["venueId"]].get("sensitive"):
         raise Fail(422, "not_allowed", "This place stays private, so it can't be shared.")
+    if screen.blocked(caption):
+        raise Fail(422, "screened", "I couldn't post that one. Try a different caption.")
     if _names_someone(caption, _names(w, m, viewer)):
         # the gallery is public and logged-out: nobody is named there without their say
         raise Fail(422, "screened", "Shares stay anonymous, so leave people's names out of the caption.")

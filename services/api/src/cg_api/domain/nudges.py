@@ -63,12 +63,27 @@ def _quiet(w: World, at: datetime) -> bool:
     return hm >= q["start"] or hm < q["end"]
 
 
+async def _recopy(w: World, uid: str) -> None:
+    """Live nudges re-ask Copy on each read: its template answers first, Muse's text replaces it once ready."""
+    for n in w.nudges.values():
+        if n["userId"] != uid or not _live(w, n):
+            continue
+        sig = next((s for s in w.users[uid]["signals"] if s.get("signalId") == n["signalId"]), None)
+        if sig is None or sig.get("visibility") != "shown" or sig.get("sensitive"):
+            continue
+        try:
+            n["title"], n["text"] = await ports.ports.copy.nudge(sig["label"], plans.card(w, uid, w.plans[n["planId"]]))
+        except Exception:  # noqa: BLE001  (D4: keep the copy the user already saw)
+            log.warning("nudge copy refresh failed for %s", n["nudgeId"])
+
+
 async def refresh(w: World, uid: str) -> None:
     """Create due nudges: one per signal, at most maxPerWeek, never in quiet hours (except DEMO_MODE)."""
     u = w.users.get(uid)
     if not u or not u.get("optedIn"):
         return
     now, p = w.now(), w.params["nudges"]
+    await _recopy(w, uid)
     if _quiet(w, now) and not w.demo_mode:  # ponytail: wait for morning by not creating; the next list after 08:00 does
         return
     mine = [n for n in w.nudges.values() if n["userId"] == uid]

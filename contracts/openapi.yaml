@@ -240,6 +240,7 @@ paths:
                 items:
                   - { provider: device_calendar, label: "Calendar on this iPhone", reads: "When you're busy. Never what your events are.", status: connected, simulated: false, connectedAt: "2026-11-12T18:00:00Z", lastSyncAt: "2026-11-12T18:00:05Z", signalCount: 0 }
                   - { provider: google_maps, label: "Google Maps", reads: "Places you visit often and places you saved.", status: connected, simulated: true, connectedAt: "2026-11-12T18:00:10Z", lastSyncAt: "2026-11-12T18:00:11Z", signalCount: 2 }
+                  - { provider: google_calendar, label: "Google Calendar", reads: "When you're busy. Never what your events are.", status: not_connected, simulated: true, connectedAt: null, lastSyncAt: null, signalCount: 0 }
                   - { provider: strava, label: "Strava", reads: "Your regular runs and rides: activity, area, day and time.", status: not_connected, simulated: true, connectedAt: null, lastSyncAt: null, signalCount: 0 }
                   - { provider: eventbrite, label: "Eventbrite", reads: "Tickets you hold.", status: not_connected, simulated: true, connectedAt: null, lastSyncAt: null, signalCount: 0 }
                   - { provider: luma, label: "Luma", reads: "Events you RSVP'd to.", status: not_connected, simulated: true, connectedAt: null, lastSyncAt: null, signalCount: 0 }
