@@ -6,7 +6,6 @@ from cg_api.deps import User
 from cg_api.domain import create_plan as create_plan_mod
 from cg_api.domain import plans, public
 from cg_api.domain.http import REQUEST_BASE, acall, call, warm
-from cg_api.internal import gcal
 
 router = APIRouter(dependencies=REQUEST_BASE)
 
@@ -18,7 +17,6 @@ def _detail(w, user: str, plan_id: str) -> dict:
 
 @router.get("/v1/plans/{planId}", operation_id="getPlan")
 async def get_plan(planId: str, user: User):
-    await gcal.refresh(user)
     await warm(user, [planId])
     return call("getPlan", _detail, user, planId)
 
