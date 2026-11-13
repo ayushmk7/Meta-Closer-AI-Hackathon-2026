@@ -105,6 +105,12 @@ test('share card: post layout, no person fields, date is the LA day', async () =
   for (const p of people) expect(text()).not.toContain(p);
 });
 
+test('share card: no reactions row until someone likes it', async () => {
+  const fresh = { ...share(), likes: 0, likedByMe: false };
+  const { text } = await render(React.createElement(ShareCard, { share: fresh }));
+  expect(text()).not.toContain('0');
+});
+
 test('Like is optimistic and toggles through likeShare', async () => {
   const before = share().likes;
   const { press } = await render(React.createElement(ShareCard, { share: share() }));
