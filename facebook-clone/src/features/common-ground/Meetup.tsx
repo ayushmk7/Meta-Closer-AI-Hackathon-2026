@@ -224,11 +224,11 @@ export default function MeetupScreen() {
     if (planId && !getState().plans[planId]) void load.plan(planId);
   }, [planId]);
   const [stepsOpen, setStepsOpen] = useState(false);
-  // Muse's call to the venue plays once, so bring it on screen when it starts.
+  // Bring what needs watching on screen: Muse's call to the venue (plays once) or an OK waiting on me.
   const reduce = useReducedMotion();
   const scroll = useRef<ScrollView>(null);
   const stepsAt = useRef({ section: 0, timeline: 0 });
-  const showCall = (y: number) =>
+  const reveal = (y: number) =>
     scroll.current?.scrollTo({
       y: Math.max(0, stepsAt.current.section + stepsAt.current.timeline + y - 120),
       animated: !reduce,
@@ -421,7 +421,7 @@ export default function MeetupScreen() {
           )}
           {showSteps && (
             <View onLayout={(e) => (stepsAt.current.timeline = e.nativeEvent.layout.y)}>
-              <StepTimeline meetupId={m.meetupId} steps={m.museSteps} onCall={showCall} />
+              <StepTimeline meetupId={m.meetupId} steps={m.museSteps} onReveal={reveal} />
             </View>
           )}
           {/* Below the steps, so it appearing at confirm never pushes them down. */}
