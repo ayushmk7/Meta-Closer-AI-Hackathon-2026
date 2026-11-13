@@ -1,11 +1,11 @@
 {
   "poolId": "pool_sf_city",
   "questionsVersion": 2,
-  "layaModel": "fake",
+  "layaModel": "laya",
   "createdAt": "2026-11-11T20:00:00Z",
   "rows": {
     "activity": 9331,
-    "meet_again": 3392
+    "meet_again": 2804
   },
   "exportGeneratedAt": "2026-11-11T20:00:00Z"
 }
