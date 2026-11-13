@@ -20,6 +20,11 @@ export const commonGroundFeature: FeatureDefinition = {
       activeIcon: 'sparkles',
       after: '/friends',
       useBadge,
+      headerAction: {
+        icon: 'settings-outline',
+        label: 'Plans settings',
+        href: '/common-ground/settings',
+      },
     },
   ],
   menuItems: [

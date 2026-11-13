@@ -26,6 +26,11 @@ test('Common Ground contributes exactly one of each extension point, registered 
       activeIcon: 'sparkles',
       after: '/friends',
       useBadge: undefined,
+      headerAction: {
+        icon: 'settings-outline',
+        label: 'Plans settings',
+        href: '/common-ground/settings',
+      },
     },
   );
   assert.equal(c.menuItems[0].icon, 'sparkles-outline');
