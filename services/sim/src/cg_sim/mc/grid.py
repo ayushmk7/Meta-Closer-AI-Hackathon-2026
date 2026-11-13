@@ -23,11 +23,10 @@ from cg_sim.mc import engine
 from cg_sim.mc.world import build, ci95
 
 INF = 99  # ponytail: "no cap" = larger than any feed (feed.size 8)
+# ponytail: caps / fill floor / isolationBoost were swept in the b2 grid (none passed); b3 sweeps the reunion levers.
 GRID = {
-    "feed.maxPerActivityType": [2, 4, INF],
-    "feed.maxPerScene": [2, 4, INF],
-    "plans.fillLikelihoodFloor": [None, 0.0],  # None = current
-    "matching.isolationBoost": [0.0, 1.0, 2.0],
+    "matching.reunionBoost": [0, 0.5, 1, 2, 4],
+    "matching.crowdBoost": [0, 0.5, 1, 2],
 }
 _W = None
 
@@ -46,7 +45,7 @@ def _one(args):
             p[sec][key] = v
     m = engine.simulate(dataclasses.replace(_W, params=p), policy, seed)
     return {"combo": combo, "policy": policy, "seed": seed,
-            **{k: m[k] for k in ("isolatedLowW8", "fillRate", "friendShareW8")}}
+            **{k: m[k] for k in ("isolatedLowW8", "fillRate", "friendShareW8", "repeatLikedPairs", "meanGroupSize")}}
 
 
 def _key(c: dict) -> str:
@@ -61,7 +60,7 @@ def main(argv=None) -> int:
     ap.add_argument("--workers", type=int, default=max(1, (os.cpu_count() or 2) - 1))
     a = ap.parse_args(argv)
     w = build(a.pool, a.fake_laya)
-    cur = {k: (w.params[k.split(".")[0]][k.split(".")[1]]) for k in GRID}
+    cur = {k: w.params[k.split(".")[0]].get(k.split(".")[1]) for k in GRID}
     combos = [dict(zip(GRID, vals)) for vals in itertools.product(*GRID.values())]
     base = {k: None for k in GRID}  # current params
     tasks = [(c, "common_ground", s) for c in combos + [base] for s in range(a.seeds)]
@@ -99,11 +98,10 @@ def main(argv=None) -> int:
          f"Laya {'fake (render_state hash)' if a.fake_laya else 'data/sim/laya_gt'}. Current params: {cur}. Exploratory; params.yaml unchanged.",
          "", f"Baselines: greedy isolated {g_iso[0]:.1%} [{g_iso[1]:.1%}, {g_iso[2]:.1%}]; "
          f"CG at current params {c_iso[0]:.1%} [{c_iso[1]:.1%}, {c_iso[2]:.1%}].", "",
-         "| type cap | scene cap | fill floor | boost | CG isolated w8 | CG - greedy isolated | fill vs CG current "
-         "| fill vs greedy | passes |", "|---|---|---|---|---|---|---|---|---|"]
+         "| " + " | ".join(k.split(".")[1] for k in GRID) + " | CG isolated w8 | CG - greedy isolated | fill vs CG current "
+         "| fill vs greedy | passes |", "|---" * (len(GRID) + 5) + "|"]
     for _, c, iso, d_g, f_cg, f_g, ok in res:
-        L.append(f"| {lab(c['feed.maxPerActivityType'])} | {lab(c['feed.maxPerScene'])} | "
-                 f"{lab(c['plans.fillLikelihoodFloor'])} | {lab(c['matching.isolationBoost'])} | "
+        L.append("| " + " | ".join(lab(c[k]) for k in GRID) + " | "
                  f"{iso[0]:.1%} [{iso[1]:.1%}, {iso[2]:.1%}] | {pct(d_g)} | {pct(f_cg)} | {pct(f_g)} | "
                  f"{'yes' if ok else 'no'} |")
     (out / "GRID.md").write_text("\n".join(L) + "\n")
