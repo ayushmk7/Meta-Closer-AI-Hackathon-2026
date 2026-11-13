@@ -228,15 +228,17 @@ test('IdeasRow: compact cards from the gallery; See all opens Explore', async ()
   expect(router.push).toHaveBeenCalledWith('/common-ground/explore');
 });
 
-test('IdeasRow: photo-less shares are left out (Explore still lists them)', async () => {
+test('IdeasRow: photo cards only, one per venue (Explore still lists all)', async () => {
   const IdeasRow = require('../../src/features/common-ground/IdeasRow').default;
   const before = shares();
   const a = before[0];
   const b = { ...a, shareId: 'sh_nophoto', caption: 'No photo here', photoUrl: null };
-  await renderer.act(async () => store.setState({ shares: [b, a] }));
+  const dup = { ...a, shareId: 'sh_samevenue', caption: 'Same venue again' };
+  await renderer.act(async () => store.setState({ shares: [b, a, dup] }));
   const { text } = await render(React.createElement(IdeasRow));
   expect(text()).not.toContain(b.caption);
   expect(text()).toContain(a.caption);
+  expect(text()).not.toContain(dup.caption); // one card per venue
   await renderer.act(async () => store.setState({ shares: before }));
 });
 

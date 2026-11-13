@@ -237,3 +237,19 @@ test('polls that return the same data do not re-render the open chat', async () 
   for (let i = 0; i < 5; i++) await renderer.act(() => store.load.messages('th_0001'));
   expect(commits - settled).toBe(0);
 });
+
+test('a missing chat says so once: NotFound card, no error banner (P2-18)', async () => {
+  store.setState({ threads: [], ready: true });
+  const gone = Object.assign(new Error("This chat isn't available."), { status: 404 });
+  jest.spyOn(api, 'getThread').mockRejectedValue(gone);
+  jest.spyOn(api, 'listMessages').mockRejectedValue(gone);
+  jest.spyOn(api, 'markThreadRead').mockRejectedValue(gone);
+  store.setState({ messages: { th_0001: [] }, drafts: {} });
+  const { text } = await render(React.createElement(Chat.default));
+  // What the failed calls leave in the store; the screen must not draw it as a banner too.
+  await renderer.act(async () =>
+    store.setState({ error: { message: "This chat isn't available." } }),
+  );
+  expect(text()).toContain("This chat isn't available");
+  expect(text()).not.toContain('"alert"');
+});

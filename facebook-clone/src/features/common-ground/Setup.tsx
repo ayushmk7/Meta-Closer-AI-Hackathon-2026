@@ -67,40 +67,47 @@ function Intro({ onNext }: { onNext(): void }) {
       </View>
       <Muted>People only see what you have in common, and only after a group forms.</Muted>
       <Label style={{ fontWeight: '700' }}>Where should Muse look?</Label>
-      {modes.map((m) => {
-        const on = m.mode === mode?.mode;
-        return (
-          <Pressable
-            key={m.mode}
-            accessibilityRole="radio"
-            accessibilityLabel={m.available ? m.label : `${m.label}, coming soon`}
-            accessibilityState={{ checked: on, disabled: !m.available }}
-            disabled={!m.available}
-            onPress={() => setPicked(m.mode)}
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: 10,
-              minHeight: 52,
-              padding: 10,
-              borderRadius: 8,
-              borderWidth: 1,
-              borderColor: on ? c.blue : c.divider,
-              opacity: m.available ? 1 : 0.5,
-            }}
-          >
-            <Icon
-              name={on ? 'radio-button-on' : 'radio-button-off'}
-              size={20}
-              color={on ? c.blue : c.secondary}
-            />
-            <View style={{ flex: 1 }}>
-              <Label style={{ fontWeight: '600' }}>{m.label}</Label>
-              <Muted>{m.available ? m.description : 'Coming soon'}</Muted>
-            </View>
-          </Pressable>
-        );
-      })}
+      {modes
+        .filter((m) => m.available)
+        .map((m) => {
+          const on = m.mode === mode?.mode;
+          return (
+            <Pressable
+              key={m.mode}
+              accessibilityRole="radio"
+              accessibilityLabel={m.label}
+              accessibilityState={{ checked: on }}
+              onPress={() => setPicked(m.mode)}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 10,
+                minHeight: 52,
+                padding: 10,
+                borderRadius: 8,
+                borderWidth: 1,
+                borderColor: on ? c.blue : c.divider,
+              }}
+            >
+              <Icon
+                name={on ? 'radio-button-on' : 'radio-button-off'}
+                size={20}
+                color={on ? c.blue : c.secondary}
+              />
+              <View style={{ flex: 1 }}>
+                <Label style={{ fontWeight: '600' }}>{m.label}</Label>
+                <Muted>{m.description}</Muted>
+              </View>
+            </Pressable>
+          );
+        })}
+      {/* One line, not a disabled row each: keeps Continue above the fold. */}
+      {modes.some((m) => !m.available) && (
+        <Muted>{`Coming soon: ${modes
+          .filter((m) => !m.available)
+          .map((m) => m.label)
+          .join(', ')}`}</Muted>
+      )}
       <Button
         title="Continue"
         disabled={!mode || busy}

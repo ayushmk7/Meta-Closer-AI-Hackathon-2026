@@ -268,7 +268,7 @@ export default function MeetupScreen() {
   if (!m)
     return (
       <Page>
-        <Banners />
+        <Banners quiet />
         {ready && <NotFound title="This meetup isn't available" />}
       </Page>
     );
