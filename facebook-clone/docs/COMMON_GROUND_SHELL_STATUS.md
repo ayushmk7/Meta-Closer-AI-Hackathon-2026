@@ -27,3 +27,7 @@
 - Dependencies: `expo-camera` ~57.0.6 via `npx expo install` (`CameraView` with `onBarcodeScanned` works in Expo Go) and `qrcode-generator` ^2.0.4 (pure JS with no native module, so the QR is drawn as a View grid). Both are on the §11 allowlist (#39).
 - `app.json` plugin: `["expo-camera", { "cameraPermission": "Scan another attendee's code to confirm you met.", "microphonePermission": false, "recordAudioAndroid": false }]`. iOS gets only `NSCameraUsageDescription` and no microphone string (scan only, never records). Android still lists `RECORD_AUDIO`, which doesn't matter because the app only targets iOS.
 - Clone code requests no camera permission. Common Ground requests it when the user opens the scanner.
+
+## Batch 4
+
+- Done: `Sheet` (`src/ui/native.tsx`) slides up from the bottom in 250 ms (ease-out) over the existing backdrop fade, using RN `Animated` and no new dependency. Under reduce motion (`AccessibilityInfo.isReduceMotionEnabled`) it appears instantly. It only slides in: closing still uses the Modal fade, because the Modal unmounts on close and a slide-out would need delayed-unmount state. Reanimated was not used because it doesn't load in the jest preset.

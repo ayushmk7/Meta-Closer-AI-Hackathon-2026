@@ -1,7 +1,10 @@
-import React, { type ComponentProps, type ReactNode } from 'react';
+import React, { useEffect, useRef, type ComponentProps, type ReactNode } from 'react';
 import {
+  AccessibilityInfo,
   ActivityIndicator,
   Alert,
+  Animated,
+  Easing,
   Image,
   KeyboardAvoidingView,
   Modal,
@@ -346,6 +349,7 @@ export function Chips({
     </ScrollView>
   );
 }
+const AnimatedSafeArea = Animated.createAnimatedComponent(SafeAreaView);
 export function Sheet({
   visible,
   title,
@@ -359,7 +363,24 @@ export function Sheet({
 }) {
   const c = useColors();
   // Facebook pattern: a centred dialog on wide screens, a full-width bottom sheet below 600px.
-  const dialog = useWindowDimensions().width >= 600;
+  const { width, height } = useWindowDimensions();
+  const dialog = width >= 600;
+  const slide = useRef(new Animated.Value(1)).current;
+  useEffect(() => {
+    if (!visible) return;
+    slide.setValue(1);
+    // ponytail: slide-in only; the Modal unmounts on close, so a slide-out would need delayed-unmount state.
+    void AccessibilityInfo.isReduceMotionEnabled().then((reduce) =>
+      reduce
+        ? slide.setValue(0)
+        : Animated.timing(slide, {
+            toValue: 0,
+            duration: 250,
+            easing: Easing.out(Easing.cubic),
+            useNativeDriver: Platform.OS !== 'web',
+          }).start(),
+    );
+  }, [visible, slide]);
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <KeyboardAvoidingView
@@ -377,9 +398,10 @@ export function Sheet({
           onPress={onClose}
           style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.4)' }]}
         />
-        <SafeAreaView
+        <AnimatedSafeArea
           edges={dialog ? [] : ['bottom']}
           style={{
+            transform: [{ translateY: Animated.multiply(slide, height) }],
             width: '100%',
             maxWidth: dialog ? 500 : undefined,
             maxHeight: '100%',
@@ -414,7 +436,7 @@ export function Sheet({
             </Label>
           </View>
           {children}
-        </SafeAreaView>
+        </AnimatedSafeArea>
       </KeyboardAvoidingView>
     </Modal>
   );
