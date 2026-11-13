@@ -1,6 +1,6 @@
 // Settings (PRD-1 §8.6) plus the preference pieces the setup flow reuses.
 import { useEffect } from 'react';
-import { Alert, Switch, View } from 'react-native';
+import { Alert, Platform, Switch, View } from 'react-native';
 import { router } from 'expo-router';
 import { Button, Icon, Label, Muted, Page, Title, useColors } from '../../ui/native';
 import { api } from './api';
@@ -246,7 +246,8 @@ export default function SettingsScreen() {
   return (
     <Page style={{ paddingHorizontal: 0 }}>
       <Banners />
-      <Title>Settings</Title>
+      {/* Web: the Shell's back row already shows the screen title. */}
+      {Platform.OS !== 'web' && <Title>Settings</Title>}
       {available.length > 1 && (
         <Section title="Mode">
           <PillRow
