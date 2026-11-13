@@ -39,6 +39,7 @@ def test_full_setup_loop(api):
     sigs = api("listSignals").json()["items"]
     freq = [s for s in sigs if s["kind"] == "frequent_place"]
     assert freq and freq[0]["venue"]["venueId"] == "vn_lands_end"
+    assert freq[0]["label"] == "You've been to Lands End Trail 4 times this month"  # R12 voice
     assert {e["type"] for e in realtime.sent if e["userId"] == "u_maya"} >= {"signals.updated", "me.updated"}
 
     sid = freq[0]["signalId"]

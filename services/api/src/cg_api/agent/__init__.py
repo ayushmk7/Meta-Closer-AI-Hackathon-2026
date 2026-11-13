@@ -294,14 +294,14 @@ class ScriptedRun:
             slot = min((x for x in slots if fits(x)), key=lambda x: abs(x - new), default=None)
             far = abs(new - old) > timedelta(minutes=w) or local(new_start).date() != local(p["startsAt"]).date()
             lead = (
-                f"{clock(new_start)} is too far for me to move it on my own."
+                f"{clock(new_start, True)} is too far for me to move it on my own."
                 if far
                 else (
-                    f"{clock(new_start)} doesn't work for everyone."  # never who is busy (P6)
+                    f"{clock(new_start, True)} doesn't work for everyone."  # never who is busy (P6)
                 )
             )
             tail = (
-                f" {clock(_iso(slot))} works for everyone; want that?"
+                f" {clock(_iso(slot), True)} works for everyone. Ask me for {clock(_iso(slot), True)} and I'll move it."
                 if slot
                 else (" I couldn't find another time today that works for everyone.")
             )

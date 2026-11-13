@@ -158,6 +158,7 @@ def test_parse_time_change():
         "Muse, is 4 ok?": None,
         "Muse move it to 1pm": "2026-11-14T21:00:00Z",
         "Muse 11 o'clock?": "2026-11-14T19:00:00Z",
+        "Muse, 12 PM": "2026-11-14T20:00:00Z",  # the follow-up Muse suggests parses
     }
     for text, want in cases.items():
         assert parse_time_change(text, start) == want, text
@@ -204,8 +205,10 @@ def test_reschedule_out_of_bounds_changes_nothing_and_offers_a_slot():
     n = len(r.steps)
     events, reply, ids = r.reschedule_to("2026-11-14T19:00:00Z", busy)
     assert (events, ids, len(r.steps)) == ([], [], n)
-    assert reply == "11 doesn't work for everyone. 12 works for everyone; want that?"
+    assert reply == "11 AM doesn't work for everyone. 12 PM works for everyone. Ask me for 12 PM and I'll move it."
     assert "u_0125" not in reply and "Rosa" not in reply  # never who is busy (P6)
     events, reply, _ = r.reschedule_to("2026-11-14T23:00:00Z", {})
-    assert events == [] and reply == "3 is too far for me to move it on my own. 12 works for everyone; want that?"
+    assert events == [] and reply == (
+        "3 PM is too far for me to move it on my own. 12 PM works for everyone. Ask me for 12 PM and I'll move it."
+    )
     assert r.plan["startsAt"] == HERO["startsAt"]
