@@ -37,7 +37,7 @@ def list_connections(w: World, viewer: str) -> list[dict]:
 
 def get_person(w: World, viewer: str, user_id: str) -> dict:
     if user_id not in w.users or w.blocked(viewer, user_id):
-        raise not_found()
+        raise not_found("profile")
     c = w.connections.get(frozenset((viewer, user_id)))
     if not c or user_id == viewer or w.users[user_id].get("profileVisibility") == "private":
         raise Fail(403, "not_allowed", "This profile is private.")
@@ -53,13 +53,13 @@ def get_person(w: World, viewer: str, user_id: str) -> dict:
 
 def block(w: World, viewer: str, user_id: str) -> None:
     if user_id == viewer or user_id not in w.users:
-        raise Fail(400, "validation_failed", "You can't block that.")
+        raise Fail(400, "validation_failed", "Couldn't block that person. Try again from their profile.")
     w.blocks.add(frozenset((viewer, user_id)))  # idempotent; P9 filters key off this set
 
 
 def report(w: World, viewer: str, body: dict) -> dict:
     if body.get("userId") not in w.users or body.get("userId") == viewer or body.get("reason") not in REPORT_REASONS:
-        raise Fail(400, "validation_failed", "That report is missing something.")
+        raise Fail(400, "validation_failed", "Couldn't send that report. Pick a reason and try again.")
     rid = w.next_id("rp_")
     # ponytail: stored only; Laya severity + account pause are M2.
     w.reports.append(

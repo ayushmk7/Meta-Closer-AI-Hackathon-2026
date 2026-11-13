@@ -90,7 +90,7 @@ async def create(w: World, viewer: str, text, invite_ids=None) -> dict:
     if not w.params["features"]["userPlans"]:
         raise Fail(403, "not_allowed", "Creating plans isn't available yet.")
     if not isinstance(text, str) or not text.strip() or len(text) > w.params["muse"]["askMaxChars"]:
-        raise Fail(400, "validation_failed", "Tell me what you'd like to do, in a sentence or two.")
+        raise Fail(400, "validation_failed", "Tell Muse what you'd like to do, in a sentence or two.")
     if not can_create(w, viewer):
         raise Fail(403, "not_allowed", "You can create plans after your first meetup.")
     invite_ids = list(dict.fromkeys(invite_ids or []))
@@ -111,13 +111,13 @@ async def create(w: World, viewer: str, text, invite_ids=None) -> dict:
         raise Fail(429, "rate_limited", "You're in a lot of plans already. Wait for one to fill first.")
     text = text.strip()
     if screen.blocked(text):
-        raise Fail(422, "screened", "I can't set that one up. Try a different idea for a group.")
+        raise Fail(422, "screened", "Muse can't set that one up. Try a different idea for a group.")
     if get_settings().laya_fake:
         log.info("createPlan: LAYA_FAKE, plan_ok screen skipped for %s", viewer)
     else:
         p, decisive = await ports.ports.laya.ask("plan_ok", {"text": text})
         if decisive and p < 0.5:
-            raise Fail(422, "screened", "I can't set that one up. Try a different idea for a group.")
+            raise Fail(422, "screened", "Muse can't set that one up. Try a different idea for a group.")
 
     from cg_api.muse import bar  # D's Muse bar parser: Muse, else keywords
 
@@ -126,7 +126,7 @@ async def create(w: World, viewer: str, text, invite_ids=None) -> dict:
     pool = u.get("poolId") or w.demo.get("poolId")
     venue = _venue(w, viewer, text, pool, f["activityTypes"], f.get("link"))
     if venue is None:
-        raise Fail(400, "validation_failed", "I couldn't turn that into a plan. Try naming an activity or a place.")
+        raise Fail(400, "validation_failed", "Muse couldn't turn that into a plan. Try naming an activity or a place.")
     activity = next((a for a in f["activityTypes"] if a in venue["activityTypes"]), venue["activityTypes"][0])
     start = _start(w, text, f)
     try:
