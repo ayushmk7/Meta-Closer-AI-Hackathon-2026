@@ -42,15 +42,10 @@ export default function Connectors() {
           >
             <Icon name={ICONS[x.provider] ?? 'apps-outline'} size={25} />
             <View style={{ flex: 1, gap: 2 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <Label style={{ fontWeight: '600' }}>{x.label}</Label>
-                {x.simulated && (
-                  <View style={{ backgroundColor: c.input, borderRadius: 6, paddingHorizontal: 6 }}>
-                    <Muted style={{ fontSize: 12, fontWeight: '600' }}>Demo data</Muted>
-                  </View>
-                )}
-              </View>
-              <Muted>{soon ? 'Coming soon' : x.reads}</Muted>
+              <Label style={{ fontWeight: '600' }}>{x.label}</Label>
+              <Muted>
+                {soon ? 'Coming soon' : x.simulated ? `${x.reads} · Demo data` : x.reads}
+              </Muted>
             </View>
             <Switch
               accessibilityLabel={`${x.label}, ${on ? 'connected' : 'not connected'}`}
@@ -64,6 +59,7 @@ export default function Connectors() {
           </View>
         );
       })}
+      {connectors.some((x) => x.simulated) && <Muted>Demo: connected apps use sample data.</Muted>}
     </View>
   );
 }

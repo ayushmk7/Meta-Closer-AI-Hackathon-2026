@@ -101,3 +101,9 @@ test('noteVerifies ticks once per newly verified meetup and survives rollover', 
   assert.equal(noteVerifies(b, ['mt_1']).talked, false, 'old verify does not tick a new day');
   assert.equal(noteVerifies(b, ['mt_1', 'mt_2']).talked, true);
 });
+
+test('quests count anything on or after the quest day (demo freezes the day)', () => {
+  const joins = [{ createdAt: '2026-11-14T23:00:00Z' }];
+  assert.equal(quests(emptyLog('2026-11-12'), joins, {}, 'u', '2026-11-12')[0].done, true);
+  assert.equal(quests(emptyLog('2026-11-15'), joins, {}, 'u', '2026-11-15')[0].done, false);
+});

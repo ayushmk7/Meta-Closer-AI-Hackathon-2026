@@ -1,7 +1,6 @@
 // Shared Common Ground pieces, built only from the clone's tokens and primitives.
 import { useCallback, useEffect, useRef, type ReactNode } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
-import { BlurView } from 'expo-blur';
+import { Pressable, View } from 'react-native';
 import { Image } from 'expo-image';
 import { router, useFocusEffect } from 'expo-router';
 import { imageSource } from '../../data/media';
@@ -121,17 +120,33 @@ export function PersonAvatar({ person, size = 40 }: { person: PersonCard; size?:
         style={box}
       />
     );
+  const lock = Math.max(14, Math.round(size * 0.38));
   return (
     <View
       accessible
       accessibilityLabel={personName(person)}
-      style={[box, { alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }]}
+      style={[box, { alignItems: 'center', justifyContent: 'center' }]}
     >
       <Label style={{ fontWeight: '700', fontSize: Math.round(size * 0.36) }}>
         {person.initials}
       </Label>
       {person.profileVisibility === 'private' && (
-        <BlurView intensity={12} tint="default" style={StyleSheet.absoluteFill} />
+        // Private profile: initials on the usual circle plus a small lock badge.
+        <View
+          style={{
+            position: 'absolute',
+            right: -2,
+            bottom: -2,
+            width: lock,
+            height: lock,
+            borderRadius: lock / 2,
+            backgroundColor: c.card,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Icon name="lock-closed" size={Math.round(lock * 0.62)} color={c.secondary} />
+        </View>
       )}
     </View>
   );

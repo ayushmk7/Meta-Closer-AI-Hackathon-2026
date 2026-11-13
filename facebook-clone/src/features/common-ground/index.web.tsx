@@ -67,10 +67,11 @@ const named =
   () =>
     name;
 export const PlansScreen = page(Plans, null);
-export const PlanScreen = page(Plan, (s, p) => s.plans[p.planId ?? '']?.title);
+// Plan and meetup show their title as a hero, so the row says Plans (no doubled title).
+export const PlanScreen = page(Plan, named('Plans'));
 export const SetupScreen = page(Setup, named('Plans'));
-export const MeetupScreen = page(Meetup, (s, p) => s.meetups[p.meetupId ?? '']?.title);
-// Chat draws its own Messenger header (back, avatars, title, See plan).
+export const MeetupScreen = page(Meetup, named('Plans'));
+// Chat draws its own Messenger header (back, avatars, title, See plan): no BackRow here.
 export const ChatScreen = page(Chat, null);
 export const PersonScreen = page(Person, named('Profile'));
 export const SettingsScreen = page(Settings, named('Settings'));

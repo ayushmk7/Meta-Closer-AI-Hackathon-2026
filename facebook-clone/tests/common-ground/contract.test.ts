@@ -112,6 +112,11 @@ test('the mock answers every operation with a body that carries every required k
   assert.ok(feed.plans.every((p: Json) => p.venue.photoUrl?.startsWith('asset:')));
   const shares = (await call('GET', '/v1/shares')) as Json;
   assert.ok(shares.items.some((x: Json) => x.photoUrl === 'asset:pottery'));
+  const photos = shares.items.map((x: Json) => x.photoUrl);
+  assert.ok(
+    photos.every((u: string, i: number) => u && u !== photos[i - 1]),
+    'no photo twice in a row',
+  );
   const meetup = (await call('GET', '/v1/meetups')) as Json;
   assert.equal(meetup.items.length, 1);
   const ids: Record<string, string> = {

@@ -47,7 +47,7 @@ export function NudgeCard({ nudge }: { nudge: Nudge }) {
       {/* Skip the Because line when the body already says it. */}
       {because && !nudge.text.includes(because.label) && <Muted>Because: {because.label}</Muted>}
       <View style={{ flexDirection: 'row', gap: 8 }}>
-        <Button title="Open plan" onPress={() => openPlan(nudge)} style={{ flex: 1 }} />
+        <Button title="See plan" onPress={() => openPlan(nudge)} style={{ flex: 1 }} />
         <Button
           title="Not now"
           secondary

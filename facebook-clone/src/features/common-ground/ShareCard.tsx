@@ -135,9 +135,19 @@ export default function ShareCard({
             backgroundColor: c.blue,
             alignItems: 'center',
             justifyContent: 'center',
+            overflow: 'hidden',
           }}
         >
           <Icon name={activityIcon(share.activityType)} size={21} color="#fff" />
+          {/* The venue photo is the page avatar, like a Facebook Page post; the icon is the fallback. */}
+          {share.photoUrl && (
+            <Image
+              source={photoSource(share.photoUrl)}
+              cachePolicy="memory"
+              accessibilityIgnoresInvertColors
+              style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+            />
+          )}
         </View>
         <View style={{ flex: 1 }}>
           <Label style={{ fontWeight: '700' }} numberOfLines={1}>
