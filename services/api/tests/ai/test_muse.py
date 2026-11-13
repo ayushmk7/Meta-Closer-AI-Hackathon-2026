@@ -72,7 +72,7 @@ def test_fake_copy_is_templated_and_bounded():
 
 
 def _extractor(muse=FAKE):
-    return Extractor(muse, LayaClient(CONTRACTS, fake=True), CONTRACTS, venue=VENUES.get)
+    return Extractor(muse, LayaClient(CONTRACTS, fake=True), CONTRACTS, venue=VENUES.get, inline_muse=True)
 
 
 def test_fallback_extraction_and_signal_gate():
