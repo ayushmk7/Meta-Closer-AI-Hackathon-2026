@@ -2,6 +2,7 @@
 
 from fastapi import APIRouter, Body
 
+from cg_api import live_calendar
 from cg_api.deps import User
 from cg_api.domain import create_plan as create_plan_mod
 from cg_api.domain import plans, public
@@ -17,6 +18,7 @@ def _detail(w, user: str, plan_id: str) -> dict:
 
 @router.get("/v1/plans/{planId}", operation_id="getPlan")
 async def get_plan(planId: str, user: User):
+    await live_calendar.refresh(user)  # throttled; no-op unless a linked Google Calendar is connected
     await warm(user, [planId])
     return call("getPlan", _detail, user, planId)
 

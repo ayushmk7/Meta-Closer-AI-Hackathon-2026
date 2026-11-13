@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Response
 
-from cg_api import seed
+from cg_api import live_calendar, seed
 from cg_api.deps import Base, User
 from cg_api.errors import ApiError
 from cg_api.routes.me import VisibilityBody
@@ -43,6 +43,8 @@ async def connect_connector(provider: str, uid: User):
         u["connectors"][provider] = {"connectedAt": at, "lastSyncAt": at}
         await seed.derive(uid)  # activates this provider's seeded records (device_calendar: busy via syncCalendar)
         _changed(uid)
+        if provider == live_calendar.PROVIDER:
+            await live_calendar.refresh(uid, force=True)  # a linked real account replaces the seeded busy blocks
     return connector_view(uid, provider)
 
 

@@ -2,6 +2,7 @@
 
 from fastapi import APIRouter
 
+from cg_api import live_calendar
 from cg_api.deps import User
 from cg_api.domain import plans, world
 from cg_api.domain.http import REQUEST_BASE, call, warm
@@ -11,6 +12,7 @@ router = APIRouter(dependencies=REQUEST_BASE)
 
 @router.get("/v1/feed", operation_id="getFeed")
 async def get_feed(user: User):
+    await live_calendar.refresh(user)  # throttled; no-op unless a linked Google Calendar is connected
     await warm(user, lambda w: plans.ordered_ids(w, user, w.params["feed"]["size"]))
     return call("getFeed", plans.feed, user)
 

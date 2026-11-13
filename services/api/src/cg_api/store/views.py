@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
+from cg_api import live_calendar
 from cg_api.contracts import interest_ref
 from cg_api.errors import ApiError
 from cg_api.settings import get_settings
@@ -156,7 +157,7 @@ def connector_view(uid: str, provider: str) -> dict:
         "label": spec["label"],
         "reads": spec["reads"],
         "status": status,
-        "simulated": spec["simulated"],
+        "simulated": spec["simulated"] and not (provider == "google_calendar" and live_calendar.linked(uid)),
         "connectedAt": c["connectedAt"] if c else None,
         "lastSyncAt": c["lastSyncAt"] if c else None,
         "signalCount": sum(s["provider"] == provider for s in store.users[uid]["signals"].values()),
