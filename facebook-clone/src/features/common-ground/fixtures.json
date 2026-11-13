@@ -910,12 +910,12 @@
         "kind": "payment",
         "status": "pending",
         "title": "OK $35 for your wheel?",
-        "detail": "Muse pays $35 to Hayes Clay Studio for your wheel on Saturday, 10 AM to 12 PM.",
+        "detail": "Muse pays $35 to Hayes Clay Studio for your wheel on Sat, Nov 14 · 10 AM–12 PM.",
         "amountCents": 3500,
         "currency": "USD",
         "payee": "Hayes Clay Studio",
         "simulated": true,
-        "fallback": "If you'd rather not, Muse asks the studio to hold your wheel and you pay there.",
+        "fallback": "If you'd rather not, Muse asks Hayes Clay Studio to hold your wheel and you pay there.",
         "expiresAt": "2026-11-13T18:00:00Z"
       }
     ],
@@ -1043,12 +1043,12 @@
     "kind": "payment",
     "status": "approved",
     "title": "OK $35 for your wheel?",
-    "detail": "Muse pays $35 to Hayes Clay Studio for your wheel on Saturday, 10 AM to 12 PM.",
+    "detail": "Muse pays $35 to Hayes Clay Studio for your wheel on Sat, Nov 14 · 10 AM–12 PM.",
     "amountCents": 3500,
     "currency": "USD",
     "payee": "Hayes Clay Studio",
     "simulated": true,
-    "fallback": "If you'd rather not, Muse asks the studio to hold your wheel and you pay there.",
+    "fallback": "If you'd rather not, Muse asks Hayes Clay Studio to hold your wheel and you pay there.",
     "expiresAt": "2026-11-13T18:00:00Z"
   },
   "listConnections": {
