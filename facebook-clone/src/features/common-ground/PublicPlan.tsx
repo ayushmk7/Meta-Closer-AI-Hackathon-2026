@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { Modal, ScrollView, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { router, useLocalSearchParams } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { Button, Card, Empty, Label, Muted, useColors } from '../../ui/native';
 import { api } from './api';
 import { PlanPhoto } from './PlanCard';
@@ -99,65 +99,70 @@ export default function PublicPlanScreen() {
   const open = shown?.status === 'open';
   return (
     <Modal visible animationType="none" presentationStyle="fullScreen" onRequestClose={welcome}>
-      <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: c.canvas }}>
-        <TopBar />
-        {shown === null ? (
-          <Card style={{ margin: 16 }}>
-            <Empty
-              title="This meetup isn't available"
-              message="See what people are doing instead."
-            />
-            <View style={{ padding: 16 }}>
-              <Button title="See meetups" onPress={welcome} />
-            </View>
-          </Card>
-        ) : (
-          <>
-            <ScrollView contentContainerStyle={{ gap: 8, paddingVertical: 8, paddingBottom: 170 }}>
-              {shown ? <Body plan={shown} /> : <Loading />}
-              <Gallery max={3} />
-            </ScrollView>
-            {shown && (
-              <View
-                style={{
-                  position: 'absolute',
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  padding: 16,
-                  paddingBottom: 28,
-                  gap: 8,
-                  backgroundColor: c.card,
-                  borderTopWidth: 1,
-                  borderTopColor: c.divider,
-                }}
-              >
-                {!open && (
-                  <Muted style={{ textAlign: 'center' }}>
-                    {shown.status === 'full' ? 'This meetup is full.' : 'This meetup has closed.'}
-                  </Muted>
-                )}
-                {open ? (
-                  <Button
-                    title="Log in to join"
-                    onPress={() => router.replace(`/common-ground/plan/${shown.planId}`)}
-                  />
-                ) : (
-                  <Button title="See more meetups" onPress={welcome} />
-                )}
-                {sharing && (
-                  <Button
-                    title="Share"
-                    icon="share-outline"
-                    secondary
-                    onPress={() => void shareOut(planMessage(shown))}
-                  />
-                )}
+      {/* A Modal is its own native root: without a provider here the insets are 0 on iOS. */}
+      <SafeAreaProvider>
+        <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: c.canvas }}>
+          <TopBar />
+          {shown === null ? (
+            <Card style={{ margin: 16 }}>
+              <Empty
+                title="This meetup isn't available"
+                message="See what people are doing instead."
+              />
+              <View style={{ padding: 16 }}>
+                <Button title="See meetups" onPress={welcome} />
               </View>
-            )}
-          </>
-        )}
-      </SafeAreaView>
+            </Card>
+          ) : (
+            <>
+              <ScrollView
+                contentContainerStyle={{ gap: 8, paddingVertical: 8, paddingBottom: 170 }}
+              >
+                {shown ? <Body plan={shown} /> : <Loading />}
+                <Gallery max={3} />
+              </ScrollView>
+              {shown && (
+                <View
+                  style={{
+                    position: 'absolute',
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    padding: 16,
+                    paddingBottom: 28,
+                    gap: 8,
+                    backgroundColor: c.card,
+                    borderTopWidth: 1,
+                    borderTopColor: c.divider,
+                  }}
+                >
+                  {!open && (
+                    <Muted style={{ textAlign: 'center' }}>
+                      {shown.status === 'full' ? 'This meetup is full.' : 'This meetup has closed.'}
+                    </Muted>
+                  )}
+                  {open ? (
+                    <Button
+                      title="Log in to join"
+                      onPress={() => router.replace(`/common-ground/plan/${shown.planId}`)}
+                    />
+                  ) : (
+                    <Button title="See more meetups" onPress={welcome} />
+                  )}
+                  {sharing && (
+                    <Button
+                      title="Share"
+                      icon="share-outline"
+                      secondary
+                      onPress={() => void shareOut(planMessage(shown))}
+                    />
+                  )}
+                </View>
+              )}
+            </>
+          )}
+        </SafeAreaView>
+      </SafeAreaProvider>
     </Modal>
   );
 }

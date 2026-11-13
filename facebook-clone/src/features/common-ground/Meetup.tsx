@@ -267,9 +267,10 @@ export default function MeetupScreen() {
     live &&
     !me?.checkedIn &&
     (windowOpen || (!!config.demo.relaxCheckin && m.status === 'confirmed'));
+  // Muse's work is over once confirmed; a completed meetup must not read "setting this up".
+  const settled = m.status === 'confirmed' || m.status === 'completed';
   // A step waiting on me keeps the timeline open, or its linked approval would show nowhere.
-  const showSteps =
-    m.status !== 'confirmed' || stepsOpen || m.museSteps.some((s) => s.status === 'needs_you');
+  const showSteps = !settled || stepsOpen || m.museSteps.some((s) => s.status === 'needs_you');
   const address = m.venue.address ?? null;
   const pendingApproval = m.approvals.some((a) => a.status === 'pending');
   const linked = new Set(m.museSteps.map((s) => s.approvalId).filter(Boolean));
@@ -372,7 +373,7 @@ export default function MeetupScreen() {
         </View>
       </Card>
 
-      <Section title={m.status === 'confirmed' ? 'Muse set this up' : 'Muse is setting this up'}>
+      <Section title={settled ? 'Muse set this up' : 'Muse is setting this up'}>
         {!showSteps && (
           <View
             accessible
@@ -383,7 +384,7 @@ export default function MeetupScreen() {
             <Label style={{ flex: 1 }}>{summary(m)}</Label>
           </View>
         )}
-        {m.status === 'confirmed' && (
+        {settled && (
           <Link
             title={stepsOpen ? 'Hide steps' : `See all ${m.museSteps.length} steps`}
             onPress={() => setStepsOpen((x) => !x)}
