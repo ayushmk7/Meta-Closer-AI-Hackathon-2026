@@ -21,3 +21,9 @@
 - e2e stories swipe now measures the `.stories` box, because Home sections (the Common Ground card) push the strip down.
 - Note for ios: `tests/common-ground/contract.test.ts` fails on two tests (getMeetup example, getMe `setupComplete`) against the v2 openapi. That test is in ios paths and is expected to be rewritten in A1. It is not a shell regression.
 - `src/css.d.ts` (`declare module '*.css'`) lets `npm run typecheck` pass on a clean checkout or in CI without the gitignored `expo-env.d.ts`.
+
+## Batch 2
+
+- Dependencies: `expo-camera` ~57.0.6 via `npx expo install` (`CameraView` with `onBarcodeScanned` works in Expo Go) and `qrcode-generator` ^2.0.4 (pure JS with no native module, so the QR is drawn as a View grid). Both are on the §11 allowlist (#39).
+- `app.json` plugin: `["expo-camera", { "cameraPermission": "Scan another attendee's code to confirm you met.", "microphonePermission": false, "recordAudioAndroid": false }]`. iOS gets only `NSCameraUsageDescription` and no microphone string (scan only, never records). Android still lists `RECORD_AUDIO`, which doesn't matter because the app only targets iOS.
+- Clone code requests no camera permission. Common Ground requests it when the user opens the scanner.

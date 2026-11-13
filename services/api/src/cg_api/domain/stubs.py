@@ -68,8 +68,15 @@ def rank(w: World, uid: str) -> list[str]:
     """Plan IDs best first: target-interest fit, then soonest. ponytail: no Laya, no fill model."""
     mine = _usable(w, uid)
 
+    from cg_api.domain import prefs  # cycle: prefs -> world -> matching -> stubs
+
+    mine_prefs = w.prefs.get(uid, {})
+    boost = w.params["matching"]["prefBoost"]
+
     def fit(p: dict) -> float:
-        return sum(mine.get(t, 0.0) for t in p["targetInterestIds"])
+        base = sum(mine.get(t, 0.0) for t in p["targetInterestIds"]) or 0.01
+        ws = [mine_prefs[k] for k in prefs.plan_keys(w, p) if k in mine_prefs]
+        return base * (1 + boost * sum(ws) / len(ws)) if ws else base  # same multiplier as rank_plans
 
     plans = [p for p in w.plans.values() if p["status"] == "open"]
     return [p["planId"] for p in sorted(plans, key=lambda p: (-fit(p), p["startsAt"], p["planId"]))]

@@ -3,6 +3,7 @@ import { useRef, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { Icon, Label, Muted, go, useColors } from '../../ui/native';
+import { noteSurprise } from './Quests';
 import { getState, load } from './store';
 import type { Join, PlanCard } from './types';
 
@@ -37,8 +38,10 @@ export default function SurpriseButton() {
     if (!getState().feed) await load.feed(); // never throws; on failure feed stays null and the banner explains
     const s = getState();
     const p = s.feed && pickSurprise(s.feed.plans, s.joins);
-    if (p) go(`/common-ground/plan/${p.planId}`);
-    else if (s.feed) setNote(true);
+    if (p) {
+      go(`/common-ground/plan/${p.planId}`);
+      void noteSurprise(); // Quests: "Try Surprise me"
+    } else if (s.feed) setNote(true);
     // ponytail: after a push, hold the guard 600ms while the route animates in; a focus listener if that misfires.
     setTimeout(() => (busy.current = false), p ? 600 : 0);
   };

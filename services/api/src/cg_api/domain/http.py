@@ -53,6 +53,17 @@ def call(operation_id: str, fn: Callable[..., Any], *args: Any) -> Any:
         raise ApiError(e.status, e.code, e.message, retryable=e.status >= 500) from e
 
 
+async def acall(operation_id: str, fn: Callable[..., Any], *args: Any) -> Any:
+    """`call` for async domain functions (those that await Muse or Laya)."""
+    w = world.current
+    if w is None:
+        return contracts.example(contracts.op_by_id(operation_id))
+    try:
+        return await fn(w, *args)
+    except world.Fail as e:
+        raise ApiError(e.status, e.code, e.message, retryable=e.status >= 500) from e
+
+
 def items(fn: Callable[..., list]) -> Callable[..., dict]:
     return lambda w, *a: {"items": fn(w, *a)}
 

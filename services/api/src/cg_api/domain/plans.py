@@ -134,6 +134,10 @@ def because(w: World, viewer: str, plan: dict) -> list[dict]:
                     "signalId": s.get("signalId"),
                 }
             )
+    from cg_api.domain import prefs  # cycle: prefs -> world
+
+    if label := prefs.liked_label(w, viewer, plan):  # learned from my own feedback and likes (owner-only)
+        out.append({"source": "muse", "label": label, "signalId": None})
     return out
 
 

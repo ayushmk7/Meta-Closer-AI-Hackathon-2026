@@ -270,7 +270,6 @@ export default function PlansScreen() {
           onEndInvite={endInvite}
         />
         {!invite && <SurpriseButton />}
-        {!invite && <Quests />}
         {nudge && <NudgeCard nudge={nudge} />}
         {!replying && feed.length > 0 && (
           <>
@@ -295,6 +294,7 @@ export default function PlansScreen() {
             </View>
           </>
         )}
+        {!invite && <Quests />}
         <IdeasRow />
         <Rewards style={{ marginHorizontal: 16 }} />
         <Button
