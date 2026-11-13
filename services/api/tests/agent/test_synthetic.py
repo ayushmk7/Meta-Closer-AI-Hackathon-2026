@@ -37,3 +37,19 @@ def test_live_phone_answers_for_itself(hooked):
     mt = joins.join(w, "u_maya", "pl_hero")["meetupId"]
     pending = {a["userId"] for a in w.approvals.values() if a["status"] == "pending"}
     assert pending == {"u_maya", "u_dan"} and w.meetups[mt]["status"] == "setting_up"
+
+
+def test_counterpart_answers_in_chat(hooked):
+    from cg_api.domain import chat
+
+    w, state = hooked
+    w.on_message = synthetic.on_message
+    tid = w.meetups[joins.join(w, "u_maya", "pl_hero")["meetupId"]]["threadId"]
+    n = len(w.threads[tid]["messages"])
+    chat.send(w, "u_maya", tid, "Excited to meet you all!", "c1")
+    [r] = w.threads[tid]["messages"][n + 1 :]  # exactly one reply
+    assert r["sender"]["userId"] in {"u_dan", "u_rosa"} and r["text"] in synthetic.CHAT_LINES
+    state["counterpart"], state["liveUserId"] = "live", r["sender"]["userId"]
+    chat.send(w, "u_maya", tid, "Muse, what's the address?", "c2")  # toMuse goes to Muse, not the counterparts
+    chat.send(w, "u_maya", tid, "See you soon", "c3")
+    assert all(m["sender"]["userId"] != state["liveUserId"] for m in w.threads[tid]["messages"][n + 2 :])

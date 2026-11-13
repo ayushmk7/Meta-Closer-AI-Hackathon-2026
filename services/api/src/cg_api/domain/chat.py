@@ -151,6 +151,8 @@ def send(
     t["readUpTo"][viewer] = len(t["messages"])
     if msg["toMuse"]:
         w.on_to_muse(w, msg)
+    else:
+        w.on_message(w, msg)
     return message_view(viewer, msg)
 
 

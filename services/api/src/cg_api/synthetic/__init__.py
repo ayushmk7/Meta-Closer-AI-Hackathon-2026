@@ -1,4 +1,4 @@
-"""Synthetic counterparts (PRD-2 §3.9): seeded people answer Muse's approvals so the demo plan reaches confirmed.
+"""Synthetic counterparts (PRD-2 §3.9): seeded people answer Muse's approvals and reply in the group chat.
 
 `on_approval(w, a)` is the World hook for every new approval. It answers for synthetic users (not the live second
 phone in `live` mode) after `demo.syntheticDelayS`, through the same `approvals.decide` a person would use, so P11
@@ -58,3 +58,42 @@ def on_approval(w, a: dict) -> None:
         asyncio.get_running_loop().create_task(answer(w, a["approvalId"], delay))
     except RuntimeError:  # no loop (pure tests): answer now
         asyncio.run(answer(w, a["approvalId"], 0.0))
+
+
+# Templated on purpose: real Muse refuses to speak as a person ("I'm Muse Spark, an AI...") and takes 8-20 s.
+CHAT_LINES = (
+    "Sounds great, see you there!",
+    "Can't wait!",
+    "Looking forward to it 🙂",
+    "Nice, I'm in!",
+    "Same here, should be fun!",
+    "See you all soon 👋",
+)
+
+
+async def reply(w, msg: dict, uid: str, delay_s: float) -> None:
+    from cg_api.domain import chat
+
+    await asyncio.sleep(delay_s)
+    if not acts_for(w, uid, _demo_state()):
+        return
+    line = CHAT_LINES[int(hashlib.sha256(msg["messageId"].encode()).hexdigest()[:8], 16) % len(CHAT_LINES)]
+    chat.post(w, msg["threadId"], "user", uid, line)
+    log.info("synthetic %s replied in %s", uid, msg["threadId"])
+
+
+def on_message(w, msg: dict) -> None:
+    """A person posted in a group thread: one synthetic member answers after demo.syntheticDelayS (PRD-2 §3.9)."""
+    t = w.threads.get(msg["threadId"]) or {}
+    sender = msg["sender"].get("userId")
+    left = t.get("cutoff", {})
+    who = sorted(u for u in t.get("members", []) if u != sender and u not in left and acts_for(w, u, _demo_state()))
+    if not who:
+        return
+    uid = who[int(hashlib.sha256(msg["messageId"].encode()).hexdigest()[:8], 16) % len(who)]
+    lo, hi = w.params["demo"]["syntheticDelayS"]
+    delay = random.uniform(lo, hi) if w.demo_mode else 0.0
+    try:
+        asyncio.get_running_loop().create_task(reply(w, msg, uid, delay))
+    except RuntimeError:  # no loop (pure tests): answer now
+        asyncio.run(reply(w, msg, uid, 0.0))

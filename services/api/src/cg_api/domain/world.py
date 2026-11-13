@@ -132,6 +132,7 @@ class World:
     on_decided: Callable[[World, dict], None] = lambda w, a: _runner().decided(w, a)
     on_to_muse: Callable[[World, dict], None] = lambda w, m: _runner().to_muse(w, m)
     on_approval: Callable[[World, dict], None] = lambda w, a: _synthetic().on_approval(w, a)  # D: counterparts
+    on_message: Callable[[World, dict], None] = lambda w, m: _synthetic().on_message(w, m)  # counterparts chat
     on_left: Callable[[World, str, str], None] = lambda w, mt, uid: None  # M2: backfill, continue or cancel
 
     users: dict[str, dict] = field(default_factory=dict)
