@@ -363,3 +363,29 @@ def test_laya_fake_never_refuses_ordinary_captions(world):
     with pytest.raises(Fail) as e:
         share(world, "u_maya", mt, "Fun with Daniel at the studio")
     assert (e.value.status, e.value.code) == (422, "screened")
+
+
+def test_export_indexes_pairs_and_subsets_users():
+    from cg_api.domain import matching
+    from domain.fixture_world import make_world
+
+    w = make_world(matching)
+    for u in w.users.values():
+        u["optedIn"] = True
+    ids = sorted(w.users)
+    w.connections[frozenset(ids[:2])] = {"status": "met"}
+    w.connections[frozenset(ids[1:3])] = {"status": "new"}
+    w.blocks.add(frozenset((ids[0], ids[2])))
+    full = {u["userId"]: u for u in matching.export(w)["users"]}
+    for uid, u in full.items():  # same as the per-user scan it replaced
+        assert u["connectionIds"] == sorted(o for k in w.connections if uid in k for o in k - {uid})
+        assert u["metIds"] == sorted(
+            o for k, c in w.connections.items() if c["status"] == "met" and uid in k for o in k - {uid}
+        )
+        assert u["blockedIds"] == sorted(o for k in w.blocks if uid in k for o in k - {uid})
+    sub = matching.export(w, {ids[0], ids[1], "u_nobody"})
+    assert [u["userId"] for u in sub["users"]] == ids[:2] and sub["users"] == [full[i] for i in ids[:2]]
+    assert sub["plans"] == [
+        {"planId": pid, "status": p["status"], "interestedIds": [j["userId"] for j in w.active_joins(pid)]}
+        for pid, p in w.plans.items()
+    ]
