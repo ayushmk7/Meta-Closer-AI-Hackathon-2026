@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import fixtures from '../../src/features/common-ground/fixtures.json';
-import { stamps } from '../../src/features/common-ground/stamps';
+import { shareText, stamps } from '../../src/features/common-ground/stamps';
 import {
   credit,
   emptyLog,
@@ -91,6 +91,24 @@ test('passport: stamps from meetups I checked in to or was verified at, before c
     'feed shows locked',
   );
   assert.equal(all[0].earned, true, 'earned first');
+  assert.match(all[0].earnedOn ?? '', /^[A-Z][a-z]{2} \d{1,2}$/, '"Nov 14"');
+  assert.ok(
+    all.every((s) => s.earned || !s.earnedOn),
+    'locked has no date',
+  );
+  const acts = ['a', 'b', 'c', 'd', 'e'].map((k) => ({
+    kind: 'activity' as const,
+    key: k,
+    label: k.toUpperCase(),
+    earned: true,
+  }));
+  const msg = shareText([...acts, ...all], 'L');
+  assert.match(msg, /^My Plans passport: 8 stamps\.\nA, B, C and \d+ more\n/);
+  assert.ok(
+    !msg.includes(base.venue.name) && !msg.includes('Board game night'),
+    'no venue, no locked',
+  );
+  assert.ok(msg.endsWith('Facebook Plans: L'));
 });
 
 test('noteVerifies ticks once per newly verified meetup and survives rollover', () => {

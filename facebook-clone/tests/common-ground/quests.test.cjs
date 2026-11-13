@@ -13,6 +13,7 @@ jest.mock('expo-router', () => ({
   useFocusEffect: (cb) => require('react').useEffect(cb, [cb]),
 }));
 jest.mock('@expo/vector-icons/Ionicons', () => 'Icon');
+jest.mock('expo-linking', () => ({ createURL: (p) => `app://${p}` }));
 jest.mock('react-native-reanimated', () => require('./reanimated.cjs'));
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: require('react-native').View }));
 jest.mock('expo-image', () => ({ Image: 'Image' }));
@@ -147,9 +148,21 @@ test('Passport shows collected and locked stamps', async () => {
     store.setState({ meetups: { [m.meetupId]: done }, feed: fixtures.getFeed }),
   );
   const { tree, labels } = await render(React.createElement(Passport));
-  expect(labels()).toContain(`${m.venue.name}, collected`);
-  expect(labels()).toContain('Board game night, locked');
-  expect(labels()).toMatch(/3 of \d+ stamps/);
+  expect(labels()).toMatch(new RegExp(`${m.venue.name}, collected [A-Z][a-z]{2} \\d+`));
+  expect(labels()).toContain('Board game night, not collected yet');
+  expect(labels()).toMatch(/Passport\. 3 of \d+ stamps collected\./);
+  // Share: own earned stamps only, no venue name, no locked stamp.
+  const { Share } = require('react-native');
+  const spy = jest.spyOn(Share, 'share').mockResolvedValue({ action: 'sharedAction' });
+  const btn = tree.root.find(
+    (n) => n.props.accessibilityLabel === 'Share your passport' && n.props.onPress,
+  );
+  await renderer.act(async () => btn.props.onPress());
+  const { message } = spy.mock.calls[0][0];
+  expect(message).toMatch(/^My Plans passport: 3 stamps\./);
+  expect(message).toContain('app:///common-ground/welcome');
+  expect(message).not.toContain(m.venue.name);
+  expect(message).not.toContain('Board game night');
   await renderer.act(async () => tree.unmount());
 });
 
