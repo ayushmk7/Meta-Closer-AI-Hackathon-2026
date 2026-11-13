@@ -471,8 +471,36 @@ test('shares and verify: optimistic like, share needs a finished meetup, verify,
   assert.equal(getState().shares.length, 8);
   assert.ok(getState().shares.every((x) => !('person' in x) && !('userId' in x)));
   await load.shares({ neighborhood: 'Mission' });
-  assert.ok(getState().shares.every((x) => x.venue.neighborhood === 'Mission'));
-  await load.shares();
+  assert.equal(getState().shares.length, 8, 'a filtered load never clobbers the gallery');
+  const mission = getState().sharesBy['neighborhood=Mission']!;
+  assert.ok(mission.length && mission.every((x) => x.venue.neighborhood === 'Mission'));
+  await likeShare(mission[0]!.shareId, true);
+  assert.equal(
+    getState().shares.find((x) => x.shareId === mission[0]!.shareId)!.likedByMe,
+    true,
+    'a like patches every list',
+  );
+  await likeShare(mission[0]!.shareId, false);
+  const anon = await api.listShares({}, { anonymous: true });
+  await likeShare('sh_0002', true);
+  assert.ok((await api.listShares({}, { anonymous: true })).every((x) => !x.likedByMe && !x.mine));
+  assert.equal(anon.length, 8);
+  await likeShare('sh_0002', false);
+
+  // Out-of-order like responses: only the latest tap writes.
+  const realLike = api.likeShare;
+  let releaseFirst!: () => void;
+  api.likeShare = async (id, liked) => {
+    const res = await realLike(id, liked); // the server applies in send order...
+    if (liked) await new Promise<void>((r) => (releaseFirst = r)); // ...the like's answer arrives last
+    return res;
+  };
+  const first = likeShare('sh_0002', true);
+  await likeShare('sh_0002', false);
+  releaseFirst();
+  await first;
+  api.likeShare = realLike;
+  assert.equal(getState().shares.find((x) => x.shareId === 'sh_0002')!.likedByMe, false);
 
   const liking = likeShare('sh_0001', true);
   assert.equal(getState().shares[0]!.likes, 13, 'optimistic');
@@ -484,7 +512,12 @@ test('shares and verify: optimistic like, share needs a finished meetup, verify,
   await load.meetup('mt_0001');
   assert.equal(getState().meetups.mt_0001!.verifyCode, 'MAYA42');
   assert.equal(await shareMeetup('mt_0001', 'Bowls!'), undefined, 'not over yet');
+  assert.equal(getState().error?.retry, undefined, 'shareMeetup is never auto-retried');
   setState({ error: null });
+  assert.equal((await verifyAttendee('mt_0001', 'DANI42'))?.reason, 'outside_window');
+  await decideApproval('ap_0001', 'approve');
+  t.mock.timers.tick(10_000);
+  assert.equal((await verifyAttendee('mt_0001', 'https://x/y'))?.reason, 'invalid_code');
   assert.equal((await verifyAttendee('mt_0001', 'maya42'))?.reason, 'self');
   const v = await verifyAttendee('mt_0001', 'DANI42');
   assert.equal(v?.accepted, true);
@@ -497,9 +530,18 @@ test('shares and verify: optimistic like, share needs a finished meetup, verify,
   assert.equal(getState().meetups.mt_0001!.status, 'completed');
   const mine = await shareMeetup('mt_0001', 'Bowls!');
   assert.equal(mine?.mine, true);
+  assert.equal(mine?.happenedOn, '2026-11-14', 'LA local date');
   assert.equal(getState().shares[0]!.shareId, mine!.shareId);
 
   // Maya cannot create plans in the fixture, so it goes through the Muse bar.
+  const me = getState().me!;
+  setState({
+    me: { ...me, capabilities: { ...me.capabilities, canCreatePlans: true } },
+    config: {
+      ...getState().config!,
+      features: { ...getState().config!.features, userPlans: false },
+    },
+  });
   const r = await planLikeThis(getState().shares.find((x) => x.shareId === 'sh_0002')!);
   assert.ok(r && 'conversationId' in r);
   assert.equal(getState().shares.find((x) => x.shareId === 'sh_0002')!.likedByMe, true);

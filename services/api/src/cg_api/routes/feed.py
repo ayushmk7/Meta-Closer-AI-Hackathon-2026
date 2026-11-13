@@ -4,9 +4,9 @@ from fastapi import APIRouter
 
 from cg_api.deps import User
 from cg_api.domain import plans, world
-from cg_api.domain.http import call, warm
+from cg_api.domain.http import REQUEST_BASE, call, warm
 
-router = APIRouter()
+router = APIRouter(dependencies=REQUEST_BASE)
 
 
 @router.get("/v1/feed", operation_id="getFeed")

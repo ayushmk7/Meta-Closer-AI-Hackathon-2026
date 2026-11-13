@@ -14,6 +14,11 @@ log = logging.getLogger("cg_api.domain.plans")
 TZ = ZoneInfo("America/Los_Angeles")  # ponytail: one city; per-pool tz when a second pool lands
 
 
+def with_venue(title: str, venue: str) -> str:
+    """Name the venue once: 'Board games at Meeple Harbor', never '... at Meeple Harbor at Meeple Harbor'."""
+    return title if venue in title else f"{title} at {venue}"
+
+
 def money(cents: int) -> str:
     return f"${cents // 100}" if cents % 100 == 0 else f"${cents / 100:.2f}"
 
@@ -31,7 +36,7 @@ def cost_view(cost: dict) -> dict:
 def venue_view(w: World, v: dict) -> dict:
     out = {k: v[k] for k in ("venueId", "name", "neighborhood", "address", "location", "kind") if k in v}
     photo = v.get("photo")
-    out["photoUrl"] = f"{w.base_url}/static/venues/{photo.rsplit('/', 1)[-1]}" if photo else None
+    out["photoUrl"] = f"{w.base()}/static/venues/{photo.rsplit('/', 1)[-1]}" if photo else None
     return out
 
 

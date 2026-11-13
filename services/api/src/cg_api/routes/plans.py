@@ -4,9 +4,9 @@ from fastapi import APIRouter
 
 from cg_api.deps import User
 from cg_api.domain import plans
-from cg_api.domain.http import call, warm
+from cg_api.domain.http import REQUEST_BASE, call, warm
 
-router = APIRouter()
+router = APIRouter(dependencies=REQUEST_BASE)
 
 
 def _detail(w, user: str, plan_id: str) -> dict:

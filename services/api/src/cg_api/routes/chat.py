@@ -4,9 +4,9 @@ from fastapi import APIRouter, Body, Response
 
 from cg_api.deps import User
 from cg_api.domain import chat
-from cg_api.domain.http import call, items
+from cg_api.domain.http import REQUEST_BASE, call, items
 
-router = APIRouter()
+router = APIRouter(dependencies=REQUEST_BASE)
 
 
 @router.get("/v1/threads", operation_id="listThreads")
