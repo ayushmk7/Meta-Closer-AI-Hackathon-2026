@@ -16,6 +16,7 @@ jest.mock('@expo/vector-icons/Ionicons', () => 'Icon');
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: require('react-native').View }));
 jest.mock('expo-image', () => ({ Image: 'Image' }));
 jest.mock('expo-blur', () => ({ BlurView: 'BlurView' }));
+jest.mock('expo-haptics', () => ({ impactAsync: async () => {}, ImpactFeedbackStyle: {} }));
 const mockSaved = {};
 jest.mock('../../src/platform/scopedStorage', () => ({
   createScopedStorage: (key) => ({
@@ -27,7 +28,7 @@ jest.mock('../../src/platform/scopedStorage', () => ({
 
 const fixtures = require('../../src/features/common-ground/fixtures.json');
 const store = require('../../src/features/common-ground/store');
-const { default: Quests, noteSurprise } = require('../../src/features/common-ground/Quests');
+const { default: Quests } = require('../../src/features/common-ground/Quests');
 const Passport = require('../../src/features/common-ground/Passport').default;
 
 async function render(el) {
@@ -64,7 +65,15 @@ test('Talk to a person ticks, saves and starts the streak; Surprise me ticks fro
   expect(labels()).toContain('1-day streak');
   const saved = JSON.parse(mockSaved['common-ground-quests:v1']);
   expect(saved).toMatchObject({ talked: true, streak: 1 });
-  await renderer.act(async () => noteSurprise());
+  await renderer.act(async () => store.setState({ feed: fixtures.getFeed }));
+  const SurpriseButton = require('../../src/features/common-ground/SurpriseButton').default;
+  const surprise = await render(React.createElement(SurpriseButton));
+  const btn = surprise.tree.root.find(
+    (n) => n.props.accessibilityLabel === 'Surprise me' && n.props.onPress,
+  );
+  await renderer.act(async () => btn.props.onPress());
+  await renderer.act(async () => {}); // noteSurprise's storage read
+  expect(require('expo-router').router.push).toHaveBeenCalled();
   expect(labels()).toContain('Try Surprise me, done');
   expect(labels()).toContain('2 of 4 done');
   await renderer.act(async () => tree.unmount());
