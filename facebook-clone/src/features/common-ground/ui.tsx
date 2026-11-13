@@ -77,10 +77,10 @@ export function Pill({
   const color = selected || outlined ? c.blue : c.text;
   return (
     <Pressable
-      accessibilityRole="button"
+      // A display chip (no onPress) reads as text, not a dimmed button.
+      accessibilityRole={onPress ? 'button' : 'text'}
       accessibilityLabel={accessibilityLabel ?? label}
-      accessibilityState={{ selected }}
-      disabled={!onPress}
+      accessibilityState={onPress ? { selected } : undefined}
       onPress={onPress}
       style={{
         minHeight: 44,
