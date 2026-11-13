@@ -18,6 +18,7 @@
   schema-valid pool_export), filtered to venue type + opening hours + horizon; targets are level-2 only.
   Hero, nudge and one more featured plan are curated, then up to 2 proposals passing Maya's filters.
 - Titles/descriptions: templates (`--fake-muse`), titles <= 60 chars.
+- Venue photos (2026-11-13, ux-fable N-P0-3): every non-sensitive venue has one. Featured-plan venues get their own pick (`venues.PHOTOS`), the rest one by kind (`venues.KIND_PHOTOS`); Facebook clone Unsplash stand-ins, stored once per image per pool (`venue_photos/<image>.jpg`, +6.4 MB), provenance in `venue_photos/PROVENANCE.md`.
 
 ## Resolved by CONTRACTS.md "Decisions" (2026-11-12)
 - Timezone America/Los_Angeles; plan startsAt >= 2026-11-13T12:00:00-08:00; titles <= 60; nudge origin `signal`.
