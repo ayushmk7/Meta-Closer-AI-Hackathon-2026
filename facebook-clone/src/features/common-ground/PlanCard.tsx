@@ -5,26 +5,25 @@ import { Image } from 'expo-image';
 import type Ionicons from '@expo/vector-icons/Ionicons';
 import { imageSource } from '../../data/media';
 import { Icon, Label, Muted, useColors } from '../../ui/native';
+import { TZ } from './types';
 import type { Crowd, PlanCard as Plan, PlanCheck } from './types';
 
-// "Sat 10 AM" / "Sat 9:30 AM" in local time.
+// "Sat 10 AM" / "Sat 9:30 AM", always in TZ (Pacific), never the device zone.
 export const dayTime = (iso: string): string => {
   const d = new Date(iso);
-  const day = d.toLocaleDateString('en-US', { weekday: 'short' });
-  const time = d.toLocaleTimeString('en-US', {
-    hour: 'numeric',
-    minute: d.getMinutes() ? '2-digit' : undefined,
-  });
-  return `${day} ${time}`;
+  const day = d.toLocaleDateString('en-US', { weekday: 'short', timeZone: TZ });
+  const time = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: TZ });
+  return `${day} ${time.replace(':00', '')}`;
 };
+// "45 min", "2 hr", "2 hr 30 min"
 export const duration = (min: number): string =>
-  min % 60 ? `${min} min` : `${min / 60} hr${min === 60 ? '' : 's'}`;
+  min < 60 ? `${min} min` : `${Math.floor(min / 60)} hr${min % 60 ? ` ${min % 60} min` : ''}`;
 const spots = (n: number) => `${n} spot${n === 1 ? '' : 's'} left`;
 // C5: the crowd is counts only; there is no field that could carry a name.
 export const crowdLine = (c: Crowd): string => `${c.interestedCount} in · ${spots(c.spotsLeft)}`;
 export const whosIn = (c: Crowd): string =>
   [
-    `${c.interestedCount} ${c.interestedCount === 1 ? 'person' : 'people'} in`,
+    `${c.interestedCount} in`,
     ...c.sharedWithYou.map((s) => `${s.count} also into ${s.interest.label.toLowerCase()}`),
     spots(c.spotsLeft),
   ].join(' · ');
@@ -77,7 +76,7 @@ export function Badge({ text }: { text: string }) {
       style={{
         alignSelf: 'flex-start',
         backgroundColor: c.blue,
-        borderRadius: 10,
+        borderRadius: 9,
         paddingHorizontal: 8,
         paddingVertical: 2,
       }}
@@ -119,7 +118,7 @@ export default function PlanCard({
       onPress={onPress}
       style={({ pressed }) => ({
         width,
-        borderRadius: 10,
+        borderRadius: 8,
         overflow: 'hidden',
         backgroundColor: c.card,
         borderWidth: 1,

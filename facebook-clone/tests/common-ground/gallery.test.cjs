@@ -187,7 +187,7 @@ test('Welcome: read-only gallery, Log in and Create new account enter Plans', as
 test('ShareMeetup: only after a completed meetup I went to; sends the trimmed caption', async () => {
   const m = fixtures.getMeetup;
   const r1 = await render(React.createElement(ShareMeetup, { m: { ...m, status: 'confirmed' } }));
-  expect(r1.text()).not.toContain('Share this plan');
+  expect(r1.text()).not.toContain('Never names or faces');
   const send = jest
     .spyOn(api, 'shareMeetup')
     .mockResolvedValue({ ...share(), shareId: 'sh_new', mine: true });

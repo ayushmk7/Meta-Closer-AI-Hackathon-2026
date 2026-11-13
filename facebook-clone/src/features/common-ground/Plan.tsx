@@ -1,6 +1,6 @@
 // Plan pop-up (PRD-1 §8.2). Who's in is counts only (C5).
 import { useEffect, useState } from 'react';
-import { Alert, Linking, Pressable, Switch, View } from 'react-native';
+import { ActivityIndicator, Alert, Linking, Pressable, Switch, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Button, Card, Icon, Label, Muted, Page, Sheet, go, useColors } from '../../ui/native';
@@ -69,7 +69,7 @@ export function BottomBar({ plan }: { plan: PlanDetail }) {
     const meetupId = joinRow?.meetupId;
     return (
       <Button
-        title="Open your plan"
+        title="Open plan"
         disabled={!meetupId}
         onPress={() => meetupId && go(`/common-ground/meetup/${meetupId}`)}
       />
@@ -80,13 +80,13 @@ export function BottomBar({ plan }: { plan: PlanDetail }) {
     return (
       <View style={{ gap: 8 }}>
         <Label accessibilityLiveRegion="polite" style={{ textAlign: 'center' }}>
-          You&apos;re in · Muse is gathering people{p ? ` (${p.joined} of ${p.needed})` : ''}
+          {`You're in · Muse is gathering people${p ? ` · ${p.joined} of ${p.needed}` : ''}`}
         </Label>
         <Button
           title="Can't make it"
           secondary
           onPress={() =>
-            Alert.alert("Can't make it?", 'Muse will take you off this plan.', [
+            Alert.alert("Can't make it?", 'Muse will free your spot.', [
               { text: 'Keep me in', style: 'cancel' },
               {
                 text: "Can't make it",
@@ -102,7 +102,7 @@ export function BottomBar({ plan }: { plan: PlanDetail }) {
   if (myJoin?.status === 'not_filled')
     return <Muted style={{ textAlign: 'center' }}>This one didn&apos;t fill</Muted>;
   if (plan.status !== 'open')
-    return <Button title={`This plan is ${plan.status}`} disabled onPress={() => {}} />;
+    return <Muted style={{ textAlign: 'center' }}>{`This plan is ${plan.status}`}</Muted>;
 
   const current = size ?? clamp(plan.size, bounds);
   return (
@@ -132,7 +132,13 @@ export function BottomBar({ plan }: { plan: PlanDetail }) {
         {plusOneOn && (
           <>
             <Label>+1 a friend</Label>
-            <Switch accessibilityLabel="+1 a friend" value={plusOne} onValueChange={setPlusOne} />
+            <Switch
+              accessibilityLabel="+1 a friend"
+              value={plusOne}
+              onValueChange={setPlusOne}
+              trackColor={{ false: c.divider, true: c.blue }}
+              thumbColor="#fff"
+            />
           </>
         )}
       </View>
@@ -171,7 +177,11 @@ export default function PlanScreen() {
     return (
       <Page>
         <Banners />
-        {ready && error && <NotFound title="Plan not found" />}
+        {ready && error ? (
+          <NotFound title="This plan isn't available" />
+        ) : (
+          <ActivityIndicator color={c.blue} style={{ marginTop: 40 }} />
+        )}
       </Page>
     );
   const labels = Object.fromEntries(connectors.map((x) => [x.provider, x.label]));
@@ -183,7 +193,10 @@ export default function PlanScreen() {
         <PlanPhoto plan={plan} height={200} />
         <View style={{ padding: 16, gap: 16 }}>
           <View style={{ gap: 4 }}>
-            <Label accessibilityRole="header" style={{ fontSize: 22, fontWeight: '800' }}>
+            <Label
+              accessibilityRole="header"
+              style={{ fontSize: 24, lineHeight: 30, fontWeight: '800' }}
+            >
               {plan.title}
             </Label>
             <Label>{plan.venue.name}</Label>
@@ -225,7 +238,7 @@ export default function PlanScreen() {
               </View>
               {plan.museWillHandle.map((t) => (
                 <View key={t} style={{ flexDirection: 'row', gap: 8 }}>
-                  <Icon name="checkmark-circle" size={18} color={c.blue} />
+                  <Icon name="checkmark" size={18} color={c.secondary} />
                   <Label style={{ flex: 1 }}>{t}</Label>
                 </View>
               ))}

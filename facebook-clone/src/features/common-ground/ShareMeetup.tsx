@@ -31,12 +31,12 @@ export default function ShareMeetup({ m }: { m: Meetup }) {
   return (
     <Card style={{ padding: 16, gap: 8 }}>
       <Label accessibilityRole="header" style={{ fontSize: 17, fontWeight: '700' }}>
-        Share this plan
+        Share to Explore
       </Label>
       <Muted>Others see the place, the activity and your caption. Never names or faces.</Muted>
       <Input
         accessibilityLabel="Caption"
-        placeholder="How was it?"
+        placeholder="Add a caption"
         value={caption}
         onChangeText={setCaption}
         maxLength={MAX}

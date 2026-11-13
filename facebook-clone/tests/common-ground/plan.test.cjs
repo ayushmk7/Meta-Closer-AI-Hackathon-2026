@@ -127,7 +127,7 @@ test('interested: progress line and Can not make it withdraws after confirm', as
   const { text, press } = await render(
     bar({ myJoin: { joinId: 'jn_0001', status: 'interested' } }),
   );
-  expect(text()).toContain('(3 of 4)');
+  expect(text()).toContain('Muse is gathering people · 3 of 4');
   confirmWith('Keep me in');
   await press("Can't make it");
   expect(withdraw).not.toHaveBeenCalled();
@@ -136,15 +136,15 @@ test('interested: progress line and Can not make it withdraws after confirm', as
   expect(withdraw).toHaveBeenCalledWith('pl_0001');
 });
 
-test('matched: Open your plan goes to the meetup', async () => {
+test('matched: Open plan goes to the meetup', async () => {
   const { router } = require('expo-router');
   store.setState({ joins: [{ ...fixtures.joinPlan, status: 'matched', meetupId: 'mt_x' }] });
   const { press } = await render(bar({ myJoin: { joinId: 'jn_0001', status: 'matched' } }));
-  await press('Open your plan');
+  await press('Open plan');
   expect(router.push).toHaveBeenCalledWith('/common-ground/meetup/mt_x');
 });
 
-test('full and not joined: disabled with the server status', async () => {
+test('full and not joined: status as muted text', async () => {
   const { text, has } = await render(bar({ myJoin: null, status: 'full' }));
   expect(text()).toContain('This plan is full');
   expect(has("I'm in")).toBe(false);
@@ -153,6 +153,13 @@ test('full and not joined: disabled with the server status', async () => {
 test("C5: who's in is counts only", () => {
   const { whosIn } = require('../../src/features/common-ground/PlanCard');
   const line = whosIn(detail.crowd);
-  expect(line).toBe('3 people in · 2 also into ceramics · 2 spots left');
+  expect(line).toBe('3 in · 2 also into ceramics · 2 spots left');
   for (const n of names) expect(line).not.toContain(n);
+});
+
+test('dayTime is Pacific and drops :00; duration uses hr/min', () => {
+  const { dayTime, duration } = require('../../src/features/common-ground/PlanCard');
+  expect(dayTime('2026-11-14T18:00:00Z')).toBe('Sat 10 AM');
+  expect(dayTime('2026-11-14T17:30:00Z')).toBe('Sat 9:30 AM');
+  expect([45, 60, 120, 150].map(duration)).toEqual(['45 min', '1 hr', '2 hr', '2 hr 30 min']);
 });

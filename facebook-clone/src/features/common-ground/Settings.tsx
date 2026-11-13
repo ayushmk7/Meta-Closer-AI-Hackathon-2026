@@ -2,7 +2,7 @@
 import { useEffect } from 'react';
 import { Alert, Pressable, Switch, View } from 'react-native';
 import { router } from 'expo-router';
-import { Button, Card, Chips, Icon, Label, Muted, Page, useColors } from '../../ui/native';
+import { Button, Card, Chips, Icon, Label, Muted, Page, Title, useColors } from '../../ui/native';
 import { api } from './api';
 import Connectors from './Connectors';
 import Rewards from './Rewards';
@@ -62,10 +62,17 @@ export function Toggle({
   value: boolean;
   onChange(v: boolean): void;
 }) {
+  const c = useColors();
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', minHeight: 44, gap: 12 }}>
       <Label style={{ flex: 1 }}>{label}</Label>
-      <Switch accessibilityLabel={label} value={value} onValueChange={onChange} />
+      <Switch
+        accessibilityLabel={label}
+        value={value}
+        onValueChange={onChange}
+        trackColor={{ false: c.divider, true: c.blue }}
+        thumbColor="#fff"
+      />
     </View>
   );
 }
@@ -203,7 +210,7 @@ export function SignalRow({ signal, onDelete }: { signal: Signal; onDelete?: () 
       {signal.sensitive && <Icon name="lock-closed" size={16} color={c.secondary} />}
       <View style={{ flex: 1 }}>
         <Label style={{ color: shown ? c.text : c.secondary }}>{signal.label}</Label>
-        <Muted>{signal.sensitive ? 'Only you can see this' : source}</Muted>
+        <Muted>{signal.sensitive ? 'Only you can see this.' : source}</Muted>
       </View>
       <Button
         title={shown ? 'Hide' : 'Show'}
@@ -249,6 +256,7 @@ export default function SettingsScreen() {
   return (
     <Page style={{ paddingHorizontal: 0 }}>
       <Banners />
+      <Title>Settings</Title>
       {available.length > 1 && (
         <Section title="Mode">
           <View style={flush}>
@@ -323,11 +331,7 @@ export default function SettingsScreen() {
       </Section>
       <Rewards />
       <Section title="Common Ground">
-        <Button
-          title="Revisit setup"
-          secondary
-          onPress={() => router.push('/common-ground/setup')}
-        />
+        <Button title="Edit setup" secondary onPress={() => router.push('/common-ground/setup')} />
         <Button
           title="Leave Common Ground"
           secondary

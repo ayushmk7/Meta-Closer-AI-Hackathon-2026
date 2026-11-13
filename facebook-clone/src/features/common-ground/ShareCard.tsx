@@ -146,7 +146,7 @@ export default function ShareCard({
         </View>
       </View>
       {!!share.caption && (
-        <Label style={{ paddingHorizontal: 12, paddingBottom: 10, fontSize: 16, lineHeight: 22 }}>
+        <Label style={{ paddingHorizontal: 12, paddingBottom: 10, fontSize: 15, lineHeight: 21 }}>
           {share.caption}
         </Label>
       )}

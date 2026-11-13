@@ -1,6 +1,13 @@
 // Plans home, the tab root (PRD-1 §8.1). Not set up -> the setup flow.
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, RefreshControl, ScrollView, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  View,
+} from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import {
   Button,
@@ -14,7 +21,7 @@ import {
   useColors,
 } from '../../ui/native';
 import MuseBar from './MuseBar';
-import PlanCard, { PlanCarousel, dayTime } from './PlanCard';
+import PlanCard, { Badge, PlanCarousel, dayTime } from './PlanCard';
 import Rewards from './Rewards';
 import SetupScreen from './Setup';
 import SurpriseButton from './SurpriseButton';
@@ -30,6 +37,7 @@ const firstName = (c: Connection) => c.person.displayName?.split(' ')[0] ?? c.pe
 const openPlan = (p: { planId: string }) => go(`/common-ground/plan/${p.planId}`);
 
 export function NudgeCard({ nudge }: { nudge: Nudge }) {
+  const c = useColors();
   const because = nudge.because[0];
   return (
     <Card style={{ marginHorizontal: 16, padding: 16, gap: 8 }}>
@@ -48,11 +56,13 @@ export function NudgeCard({ nudge }: { nudge: Nudge }) {
         />
       </View>
       {because?.signalId && (
-        <Button
-          title="Not interested in this place"
-          secondary
+        <Pressable
+          accessibilityRole="button"
           onPress={() => void dismissNudge(nudge.nudgeId, 'signal')}
-        />
+          style={{ minHeight: 44, justifyContent: 'center' }}
+        >
+          <Label style={{ color: c.blue, fontWeight: '600' }}>Not interested in this place</Label>
+        </Pressable>
       )}
     </Card>
   );
@@ -78,17 +88,21 @@ function Row({
       accessibilityLabel={[title, badge, ...lines].filter(Boolean).join(', ')}
       onPress={onPress}
       disabled={!onPress}
-      style={{ padding: 12, gap: 4, minHeight: 44, borderRadius: 8, backgroundColor: c.input }}
+      // List row (UX 2.5): hairline on top; the Card's overflow hides the first one.
+      style={{
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        gap: 4,
+        minHeight: 44,
+        borderTopWidth: StyleSheet.hairlineWidth,
+        borderTopColor: c.divider,
+      }}
     >
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
         <Label style={{ fontWeight: '700', flex: 1 }} numberOfLines={1}>
           {title}
         </Label>
-        {badge && (
-          <View style={{ backgroundColor: c.badge, borderRadius: 10, paddingHorizontal: 8 }}>
-            <Label style={{ color: '#fff', fontSize: 12, fontWeight: '700' }}>{badge}</Label>
-          </View>
-        )}
+        {badge && <Badge text={badge} />}
       </View>
       {lines.map((l) => (
         <Muted key={l}>{l}</Muted>
@@ -140,7 +154,7 @@ function YourPlanRow({ join, meetup }: { join?: Join; meetup?: Meetup }) {
           ))}
           <View style={{ flex: 1 }} />
           <Button
-            title="Open chat"
+            title="Open group chat"
             secondary
             onPress={() => go(`/common-ground/chat/${meetup.threadId}`)}
           />
@@ -280,18 +294,20 @@ export default function PlansScreen() {
         {(sorted.length > 0 || orphans.length > 0) && (
           <>
             <Section title="Your plans" />
-            <View style={{ paddingHorizontal: 16, gap: 8 }}>
-              {sorted.map((j) => (
-                <YourPlanRow
-                  key={j.joinId}
-                  join={j}
-                  meetup={j.meetupId ? meetups[j.meetupId] : undefined}
-                />
-              ))}
-              {orphans.map((m) => (
-                <YourPlanRow key={m.meetupId} meetup={m} />
-              ))}
-            </View>
+            <Card style={{ marginHorizontal: 16 }}>
+              <View style={{ marginTop: -StyleSheet.hairlineWidth }}>
+                {sorted.map((j) => (
+                  <YourPlanRow
+                    key={j.joinId}
+                    join={j}
+                    meetup={j.meetupId ? meetups[j.meetupId] : undefined}
+                  />
+                ))}
+                {orphans.map((m) => (
+                  <YourPlanRow key={m.meetupId} meetup={m} />
+                ))}
+              </View>
+            </Card>
           </>
         )}
         {!invite && <Quests />}

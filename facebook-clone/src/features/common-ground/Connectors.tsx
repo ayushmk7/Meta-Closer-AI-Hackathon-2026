@@ -46,7 +46,7 @@ export default function Connectors() {
                 <Label style={{ fontWeight: '600' }}>{x.label}</Label>
                 {x.simulated && (
                   <View style={{ backgroundColor: c.input, borderRadius: 6, paddingHorizontal: 6 }}>
-                    <Muted style={{ fontSize: 11 }}>Demo data</Muted>
+                    <Muted style={{ fontSize: 12, fontWeight: '600' }}>Demo data</Muted>
                   </View>
                 )}
               </View>
@@ -57,6 +57,8 @@ export default function Connectors() {
               value={on}
               disabled={soon}
               onValueChange={(v) => void (v ? turnOn(x.provider) : disconnect(x.provider))}
+              trackColor={{ false: c.divider, true: c.blue }}
+              thumbColor="#fff"
             />
           </View>
         );

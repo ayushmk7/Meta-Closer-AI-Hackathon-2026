@@ -17,7 +17,7 @@ export default function IdeasRow() {
       <View
         style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, minHeight: 44 }}
       >
-        <Label accessibilityRole="header" style={{ fontSize: 18, fontWeight: '700', flex: 1 }}>
+        <Label accessibilityRole="header" style={{ fontSize: 17, fontWeight: '700', flex: 1 }}>
           Ideas from people nearby
         </Label>
         <Pressable
@@ -42,7 +42,7 @@ export default function IdeasRow() {
             onPress={() => void planFromShare(s)}
             style={({ pressed }) => ({
               width: 200,
-              borderRadius: 10,
+              borderRadius: 8,
               overflow: 'hidden',
               backgroundColor: c.card,
               borderWidth: 1,

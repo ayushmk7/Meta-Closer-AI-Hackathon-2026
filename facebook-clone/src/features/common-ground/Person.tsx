@@ -20,7 +20,7 @@ export default function PersonScreen() {
     return (
       <Page>
         <Banners />
-        {loaded && <NotFound title="Profile not available" />}
+        {loaded && <NotFound title="This profile isn't available" />}
       </Page>
     );
   const name = personName(profile.person);
@@ -51,7 +51,10 @@ export default function PersonScreen() {
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
           <PersonAvatar person={profile.person} size={72} />
           <View style={{ flex: 1 }}>
-            <Label accessibilityRole="header" style={{ fontSize: 22, fontWeight: '800' }}>
+            <Label
+              accessibilityRole="header"
+              style={{ fontSize: 24, lineHeight: 30, fontWeight: '800' }}
+            >
               {name}
             </Label>
             {!!profile.neighborhood && <Muted>{profile.neighborhood}</Muted>}
