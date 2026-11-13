@@ -27,7 +27,7 @@
       [
         "expo-calendar",
         {
-          "calendarPermission": "Common Ground reads when you're busy (never what your events are) and adds plans you join to a Common Ground calendar."
+          "calendarPermission": "Common Ground reads when you're busy (never what your events are) and adds meetups you join to a Common Ground calendar."
         }
       ],
       [

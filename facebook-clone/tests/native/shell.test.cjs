@@ -20,12 +20,12 @@ jest.mock('../../src/extensions/registry', () => ({
   tabs: [
     {
       href: '/common-ground',
-      label: 'Plans',
+      label: 'Meetups',
       icon: 'a',
       activeIcon: 'b',
       after: '/friends',
       useBadge: mockBadge,
-      headerAction: { icon: 'settings-outline', label: 'Plans settings', href: '/x' },
+      headerAction: { icon: 'settings-outline', label: 'Meetups settings', href: '/x' },
     },
   ],
 }));
@@ -59,12 +59,12 @@ test('a contributed tab root titles the top bar and shows its header action; Hom
   const has = (label) => tree.root.findAll((n) => n.props.accessibilityLabel === label).length > 0;
   const header = () =>
     tree.root.findAll(
-      (n) => n.props.accessibilityRole === 'header' && n.props.children === 'Plans',
+      (n) => n.props.accessibilityRole === 'header' && n.props.children === 'Meetups',
     );
   expect(header().length).toBeGreaterThan(0);
-  expect(has('Plans settings')).toBe(true);
+  expect(has('Meetups settings')).toBe(true);
   mockPath = '/';
   renderer.act(() => tree.update(React.createElement(Shell, null, 'home')));
-  expect(has('Plans settings')).toBe(false);
+  expect(has('Meetups settings')).toBe(false);
   expect(header()).toHaveLength(0);
 });
