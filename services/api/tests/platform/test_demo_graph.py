@@ -97,3 +97,19 @@ def test_advance_keeps_title_day_and_time_of_day_true(api):
     )
     api("advanceMeetup", "/internal/v1/demo/meetups/mt_t/advance", json={"to": "leave_by"})
     assert m["title"].startswith(datetime.fromisoformat(m["startsAt"]).astimezone(TZ).strftime("%A"))
+
+
+def test_advance_moves_the_plan_with_its_meetup(api):
+    """ux-fable Pass 7: after an advance the plan (pop-up, join) and its meetup show the same day and title."""
+    from cg_api.domain.plans import TZ
+
+    p = store.plans["pl_sf_little_fern_table"]
+    p["status"] = "closed"  # formed
+    store.meetups["mt_t"] = {"meetupId": "mt_t", "planId": p["planId"], "venueId": p["venueId"], "title": p["title"],
+                             "status": "confirmed", "startsAt": p["startsAt"], "endsAt": p["endsAt"],
+                             "members": {"u_maya": {"rsvp": "going"}}, "steps": []}  # fmt: skip
+    for to in ("leave_by", "completed"):
+        api("advanceMeetup", "/internal/v1/demo/meetups/mt_t/advance", json={"to": to})
+        m = store.meetups["mt_t"]
+        assert (p["startsAt"], p["endsAt"], p["title"]) == (m["startsAt"], m["endsAt"], m["title"])
+        assert p["title"].startswith(datetime.fromisoformat(p["startsAt"]).astimezone(TZ).strftime("%A"))
