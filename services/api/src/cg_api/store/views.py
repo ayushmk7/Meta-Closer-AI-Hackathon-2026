@@ -77,7 +77,7 @@ def capabilities(uid: str) -> dict:
     earned = {x["unlockId"] for x in earned_unlocks(uid)}
     bigger = "bigger_groups" in earned
     return {
-        "canCreatePlans": "create_plans" in earned,
+        "canCreatePlans": True,  # anyone opted in can create; no first-meetup gate
         "maxGroupSize": p["groups"]["sizeMax"] if bigger else p["plans"]["defaultSize"]["max"],
         "groupOnly": True,
         "openJoinsMax": p["plans"]["openJoinsMax"] + (2 if bigger else 0),  # params.unlocks label: "2 more open meetups"

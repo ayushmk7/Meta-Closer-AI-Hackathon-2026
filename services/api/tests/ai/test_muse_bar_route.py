@@ -62,3 +62,24 @@ def test_gallery_prompt_text_end_to_end(public):
     assert body["reply"]["text"]
     assert not any(p["planId"].startswith("pl_000") for p in body["plans"])  # live cards, never spec examples
     assert body["plans"][0]["venue"]["venueId"] == share["venue"]["venueId"]
+
+
+def test_nothing_fits_creates_a_meetup(public):
+    """Chess maps to board games; with no exact fit, Muse makes a new meetup (createdPlanId), no unlock needed."""
+    ask = "chess meetup at 3am on wednesday for 2 people under $1"  # nothing seeded fits exactly
+    r = public.post("/v1/muse/ask", json={"text": ask})
+    contracts.validate(contracts.op_by_id("askMuse"), 200, r.json())
+    body = r.json()
+    assert body["createdPlanId"] and body["plans"][0]["planId"] == body["createdPlanId"]
+    assert body["plans"][0]["activityType"] == "board_game_night"
+    assert "set one up" in body["reply"]["text"]
+
+
+def test_surprise_me_mixes_a_new_meetup_with_picks(public):
+    body = public.post("/v1/muse/ask", json={"text": "Surprise me!"}).json()
+    contracts.validate(contracts.op_by_id("askMuse"), 200, body)
+    assert body["reply"]["text"].startswith(("Here's something new:", "Try this one:"))
+    assert 1 <= len(body["plans"]) <= 4 and len({p["planId"] for p in body["plans"]}) == len(body["plans"])
+    if body["createdPlanId"]:
+        assert body["plans"][0]["planId"] == body["createdPlanId"]
+    assert "Surprise me" not in body["prompts"] and len(body["prompts"]) == 3

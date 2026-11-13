@@ -143,7 +143,7 @@ def test_create_plan_route(live, public, monkeypatch):
 
     monkeypatch.setattr(ports.ports, "muse", ports.StubMuse())
     r = public.post("/v1/plans", headers=MAYA, json={"text": "pottery saturday"})
-    assert r.status_code == 403 and r.json()["error"]["code"] == "not_allowed"  # no counted meetup yet
+    assert r.status_code == 200  # no first-meetup gate
     if joins.join(live, "u_maya", "pl_hero")["status"] == "interested":
         joins.form(live, "pl_hero")
     next(iter(live.meetups.values()))["members"]["u_maya"]["counted"] = True

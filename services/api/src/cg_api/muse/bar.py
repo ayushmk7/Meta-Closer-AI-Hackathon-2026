@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import math
+import random
 import re
 from datetime import timedelta
 from pathlib import Path
@@ -28,6 +29,7 @@ TYPE_WORDS = {
     "ceramic": "ceramics_studio",
     "wheel": "ceramics_studio",
     "board game": "board_game_night",
+    "chess": "board_game_night",
     "game night": "board_game_night",
     "video game": "video_game_session",
     "movie": "film_screening",
@@ -63,6 +65,37 @@ FOLLOW_UPS = [
     "A coastal walk",
     "Climb this weekend",
     "Coffee tomorrow morning",
+    "Chess in the park",
+    "Karaoke Friday night",
+    "Pottery this weekend",
+    "Trivia night this week",
+    "Brunch Sunday",
+    "A sunset picnic",
+    "Dance class this week",
+    "Free things this weekend",
+]
+# "Surprise me" makes one new meetup from these (each names an activity a seeded venue hosts)
+IDEAS = [
+    "chess and coffee",
+    "karaoke night",
+    "sunset picnic",
+    "pottery class",
+    "trivia night",
+    "bouldering",
+    "comedy show",
+    "farmers market morning",
+    "bike ride",
+    "dance class",
+    "museum visit",
+    "cooking together",
+    "photo walk",
+    "board game night",
+    "brunch",
+    "language exchange",
+    "beach day",
+    "volunteering",
+    "film screening",
+    "book club",
 ]
 _SCHEMA = {
     "type": "object",
@@ -259,7 +292,9 @@ def reply(plans: list[dict], f: dict, relaxed: bool = False) -> str:
 
 
 def follow_ups(text: str) -> list[str]:
-    return [p for p in FOLLOW_UPS if p.lower() not in text.lower()][:3]
+    """3 random suggestions, so the chips change each time (the app's own Surprise me chip leads the row)."""
+    rest = [p for p in FOLLOW_UPS if p.lower() not in text.lower()]
+    return random.sample(rest, min(3, len(rest)))
 
 
 async def understand(
