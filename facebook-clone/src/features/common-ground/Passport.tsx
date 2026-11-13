@@ -1,8 +1,9 @@
 // Passport: a stamp per distinct activity, neighborhood and place I've met at. Private to the user.
 import { useEffect, useMemo, type ComponentProps } from 'react';
-import { View } from 'react-native';
-import { Card, Empty, Icon, Label, Muted, Page, Title, useColors } from '../../ui/native';
-import { stamps, type Stamp, type StampKind } from './stamps';
+import { Pressable, View } from 'react-native';
+import { Card, Empty, Icon, Label, Muted, Page, Title, go, useColors } from '../../ui/native';
+import { noteVerified } from './Quests';
+import { human, stamps, type Stamp, type StampKind } from './stamps';
 import { getState, load, useCg } from './store';
 import { Banners } from './ui';
 
@@ -50,6 +51,28 @@ function StampTile({ stamp, icon }: { stamp: Stamp; icon: IconName }) {
       >
         {stamp.label}
       </Label>
+    </View>
+  );
+}
+
+// After a successful verify (Scan): the stamp it earned, and the "Verify in person" quest ticks.
+export function StampEarned({ meetupId }: { meetupId: string }) {
+  const c = useColors();
+  const activity = useCg((s) => s.meetups[meetupId]?.activityType);
+  useEffect(() => void noteVerified(), []);
+  if (!activity) return null;
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+      <Icon name="ribbon" size={22} color={c.blue} />
+      <Label style={{ flex: 1, fontWeight: '600' }}>{`Stamp earned: ${human(activity)}`}</Label>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="See passport"
+        onPress={() => go('/common-ground/passport')}
+        style={{ minHeight: 44, justifyContent: 'center' }}
+      >
+        <Label style={{ color: c.blue, fontWeight: '600' }}>See passport</Label>
+      </Pressable>
     </View>
   );
 }

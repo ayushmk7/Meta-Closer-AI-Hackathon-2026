@@ -54,7 +54,7 @@ export function quests(
     { id: 'join', label: 'Join a plan', done: joins.some((j) => laDay(j.createdAt) === today) },
     { id: 'message', label: 'Say hi in a group chat', done: mine },
     { id: 'surprise', label: 'Try Surprise me', done: log.surprise },
-    { id: 'talk', label: 'Talk to a person', done: log.talked },
+    { id: 'talk', label: 'Verify in person', done: log.talked },
   ];
 }
 
