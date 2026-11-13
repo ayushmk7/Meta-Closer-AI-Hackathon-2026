@@ -6,6 +6,7 @@ import Animated, {
   useAnimatedStyle,
   useReducedMotion,
   useSharedValue,
+  withDelay,
   withRepeat,
   withTiming,
 } from 'react-native-reanimated';
@@ -26,7 +27,17 @@ import { StatusMark, stepLabel } from './StepTimeline';
 import { api, getUser } from './api';
 import { act, getState, load, sendMessage, setState, useCg } from './store';
 import type { Message, MessageAttachment, Thread } from './types';
-import { Banners, enter, NotFound, PersonAvatar, personName, Pill, usePoll, when } from './ui';
+import {
+  Banners,
+  enter,
+  NotFound,
+  PersonAvatar,
+  personName,
+  Pill,
+  PopOn,
+  usePoll,
+  when,
+} from './ui';
 
 const NONE: Message[] = []; // stable selector default (fresh [] loops useSyncExternalStore)
 
@@ -48,17 +59,27 @@ function MuseAvatar({ size = 32 }: { size?: number }) {
   );
 }
 
-// Messenger typing bubble while Muse works; the dots pulse (static under reduce motion).
-function MuseTyping() {
+// One typing dot; pulses after `i * 160` ms (solid under reduce motion).
+function TypingDot({ i }: { i: number }) {
   const c = useColors();
   const reduce = useReducedMotion();
-  const opacity = useSharedValue(1);
+  const opacity = useSharedValue(reduce ? 1 : 0.35);
   useEffect(() => {
     if (reduce) return;
-    opacity.value = withRepeat(withTiming(0.35, { duration: 600 }), -1, true);
+    opacity.value = withDelay(i * 160, withRepeat(withTiming(1, { duration: 420 }), -1, true));
     return () => cancelAnimation(opacity);
-  }, [reduce, opacity]);
+  }, [reduce, opacity, i]);
   const anim = useAnimatedStyle(() => ({ opacity: opacity.value }));
+  return (
+    <Animated.View
+      style={[{ width: 8, height: 8, borderRadius: 4, backgroundColor: c.secondary }, anim]}
+    />
+  );
+}
+
+// Messenger typing bubble while Muse works: solid bubble, dots pulse in sequence.
+function MuseTyping() {
+  const c = useColors();
   return (
     <View
       accessible
@@ -67,26 +88,20 @@ function MuseTyping() {
       style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 8 }}
     >
       <MuseAvatar />
-      <Animated.View
-        style={[
-          {
-            flexDirection: 'row',
-            gap: 4,
-            borderRadius: 18,
-            paddingHorizontal: 14,
-            paddingVertical: 14,
-            backgroundColor: c.input,
-          },
-          anim,
-        ]}
+      <View
+        style={{
+          flexDirection: 'row',
+          gap: 4,
+          borderRadius: 18,
+          paddingHorizontal: 14,
+          paddingVertical: 14,
+          backgroundColor: c.input,
+        }}
       >
         {[0, 1, 2].map((i) => (
-          <View
-            key={i}
-            style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: c.secondary }}
-          />
+          <TypingDot key={i} i={i} />
         ))}
-      </Animated.View>
+      </View>
     </View>
   );
 }
@@ -136,7 +151,9 @@ function StepsAttachment({ meetupId, stepIds }: { meetupId: string; stepIds: str
           accessibilityLabel={stepLabel(s)}
           style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}
         >
-          <StatusMark status={s.status} />
+          <PopOn on={s.status === 'done'} quiet>
+            <StatusMark status={s.status} />
+          </PopOn>
           <Label style={{ flex: 1, fontSize: 14 }}>{s.label}</Label>
         </View>
       ))}

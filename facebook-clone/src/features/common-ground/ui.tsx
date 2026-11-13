@@ -20,6 +20,7 @@ import Animated, {
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
 import { router, useFocusEffect } from 'expo-router';
 import { imageSource } from '../../data/media';
@@ -203,6 +204,30 @@ export function Pop({ children, style }: { children: ReactNode; style?: StylePro
   }, [scale]);
   const anim = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
   return <Animated.View style={[style, anim]}>{children}</Animated.View>;
+}
+
+// Pops its child (plus one success haptic unless `quiet`) when `on` turns truthy or changes
+// after mount; items already done on load stay still.
+export function PopOn({
+  on,
+  quiet,
+  children,
+}: {
+  on: unknown;
+  quiet?: boolean;
+  children: ReactNode;
+}) {
+  const prev = useRef(on);
+  const [n, setN] = useState(0);
+  useEffect(() => {
+    if (on && on !== prev.current) {
+      setN((k) => k + 1);
+      if (!quiet)
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+    }
+    prev.current = on;
+  }, [on]);
+  return n ? <Pop key={n}>{children}</Pop> : children;
 }
 
 // Line i shows at 0, 1.2, 3 s, then every 1.8 s.
@@ -543,7 +568,7 @@ export function Banners() {
             gap: 8,
           }}
         >
-          <Muted style={{ flex: 1 }}>Demo · signed in as {name?.split(' ')[0] ?? override}</Muted>
+          <Muted style={{ flex: 1 }}>Signed in as {name?.split(' ')[0] ?? override}</Muted>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Back to Maya"

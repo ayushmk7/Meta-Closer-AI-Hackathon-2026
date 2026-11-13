@@ -6,7 +6,7 @@ import type Ionicons from '@expo/vector-icons/Ionicons';
 import { Icon, Label, Muted, useColors } from '../../ui/native';
 import ApprovalSheet from './ApprovalSheet';
 import { useCg } from './store';
-import { enter, Pop, WARN } from './ui';
+import { enter, PopOn, WARN } from './ui';
 import type { Approval, MuseStep } from './types';
 
 const NONE: Approval[] = []; // stable default: a fresh [] in a useCg selector loops useSyncExternalStore
@@ -44,12 +44,8 @@ export function StatusMark({ status }: { status: string }) {
     case 'running':
       return <ActivityIndicator size="small" color={c.blue} />;
     case 'done':
-      // Mounts when a step flips to done, so the check pops then.
-      return (
-        <Pop>
-          <Icon name="checkmark-circle" size={22} color={c.online} />
-        </Pop>
-      );
+      // Callers wrap in PopOn so only a live flip to done pops.
+      return <Icon name="checkmark-circle" size={22} color={c.online} />;
     case 'needs_you':
       return <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: c.blue }} />;
     case 'failed':
@@ -93,7 +89,9 @@ export default function StepTimeline({ meetupId, steps }: { meetupId: string; st
                 )}
               </View>
               <View style={{ width: 24, alignItems: 'center' }}>
-                <StatusMark status={s.status} />
+                <PopOn on={s.status === 'done'} quiet>
+                  <StatusMark status={s.status} />
+                </PopOn>
               </View>
             </View>
             {approval && <ApprovalSheet approval={approval} />}

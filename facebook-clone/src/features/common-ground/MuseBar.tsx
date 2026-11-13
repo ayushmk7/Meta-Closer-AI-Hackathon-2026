@@ -78,12 +78,13 @@ export default function MuseBar({
   const c = useColors();
   const [text, setText] = useState(prefill ?? '');
   const [creating, setCreating] = useState(false);
+  const [holding, setHolding] = useState(false); // 900 ms floor so a fast reply doesn't flash
   const max = useCg((s) => s.config?.limits.museAskMaxChars);
   const muse = useCg((s) => s.muse);
   const feedPrompts = useCg((s) => s.feed?.prompts) ?? NONE;
   const status = useCg((s) => s.feed?.museStatus);
   const working = useCg((s) => Object.values(s.meetups).some((m) => m.status === 'setting_up'));
-  const busy = muse.asking || creating;
+  const busy = muse.asking || creating || holding;
 
   const send = async (value: string) => {
     const q = value.trim();
@@ -98,7 +99,10 @@ export default function MuseBar({
       go(`/common-ground/plan/${p.planId}`);
       return;
     }
-    await askMuse(q);
+    // ponytail: timer lives here, not in store.ts, so the Node tests stay timer-free.
+    setHolding(true);
+    await Promise.all([askMuse(q), new Promise((r) => setTimeout(r, 900))]);
+    setHolding(false);
   };
   const onChange = (v: string) => {
     setText(v);

@@ -18,5 +18,6 @@ module.exports = {
   withTiming: same,
   withSpring: same,
   withRepeat: same,
+  withDelay: (_ms, v) => v,
   cancelAnimation: () => {},
 };
