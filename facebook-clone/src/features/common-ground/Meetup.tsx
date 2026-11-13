@@ -318,13 +318,16 @@ export default function MeetupScreen() {
           </Label>
           <Muted>{[m.venue.name, m.venue.neighborhood].filter(Boolean).join(' · ')}</Muted>
           {!!address &&
-            (!web && m.travel ? (
+            (m.travel ? (
               // The address is the Directions link (C4: opens the server URL on tap only).
               <Pressable
                 accessibilityRole="link"
                 accessibilityLabel="Directions"
                 accessibilityHint={address}
-                onPress={() => openDirections(m)}
+                // Web has no action sheet (RN-web Alert is a no-op): open Google Maps directly.
+                onPress={() =>
+                  web ? void Linking.openURL(m.travel!.directions.google) : openDirections(m)
+                }
                 style={{ minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 6 }}
               >
                 <Icon name="navigate-outline" size={16} color={c.blue} />
