@@ -24,7 +24,6 @@ import MuseBar from './MuseBar';
 import PlanCard, { Badge, PlanCarousel, dayTime } from './PlanCard';
 import Rewards from './Rewards';
 import SetupScreen from './Setup';
-import SurpriseButton from './SurpriseButton';
 import Quests from './Quests';
 import IdeasRow from './IdeasRow';
 import { dismissNudge, nudgesFor, pendingApprovals, refreshAll, useCg } from './store';
@@ -45,7 +44,8 @@ export function NudgeCard({ nudge }: { nudge: Nudge }) {
         {nudge.title}
       </Label>
       <Label>{nudge.text}</Label>
-      {because && <Muted>Because: {because.label}</Muted>}
+      {/* Skip the Because line when the body already says it. */}
+      {because && !nudge.text.includes(because.label) && <Muted>Because: {because.label}</Muted>}
       <View style={{ flexDirection: 'row', gap: 8 }}>
         <Button title="Open plan" onPress={() => openPlan(nudge)} style={{ flex: 1 }} />
         <Button
@@ -257,7 +257,7 @@ export default function PlansScreen() {
           aside={
             <IconButton
               name="settings-outline"
-              label="Common Ground settings"
+              label="Plans settings"
               onPress={() => go('/common-ground/settings')}
             />
           }
@@ -270,7 +270,6 @@ export default function PlansScreen() {
           inviteUserIds={invite ? [invite.person.userId] : undefined}
           onEndInvite={endInvite}
         />
-        {!invite && <SurpriseButton />}
         {nudge && <NudgeCard nudge={nudge} />}
         {!replying && feed.length > 0 && (
           <>

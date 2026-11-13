@@ -102,7 +102,7 @@ test('intro -> optIn -> connect apps -> picked up (locked sensitive) -> done', a
   await press('Continue');
   expect(text()).toContain('Group size');
   expect(text()).not.toContain("When you're usually free"); // calendar is connected
-  await press('Done');
+  await press('Find plans');
   expect(complete).toHaveBeenCalledWith(
     expect.objectContaining({
       acceptedInterestIds: ['outdoors.hiking.coastal_hikes'],

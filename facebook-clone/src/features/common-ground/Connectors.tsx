@@ -59,6 +59,7 @@ export default function Connectors() {
               onValueChange={(v) => void (v ? turnOn(x.provider) : disconnect(x.provider))}
               trackColor={{ false: c.secondary, true: c.blue }}
               thumbColor="#fff"
+              {...{ activeThumbColor: '#fff' }} // RN-web ignores thumbColor when on (default teal)
             />
           </View>
         );

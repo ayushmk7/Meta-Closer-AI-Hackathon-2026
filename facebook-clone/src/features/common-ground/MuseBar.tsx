@@ -4,6 +4,7 @@ import { ActivityIndicator, Pressable, ScrollView, View } from 'react-native';
 import { Card, Icon, IconButton, Input, Label, Muted, go, useColors } from '../../ui/native';
 import { PlanCarousel } from './PlanCard';
 import { askMuse, clearMuse, createPlan, useCg } from './store';
+import SurpriseButton from './SurpriseButton';
 import { Pill } from './ui';
 
 const NONE: string[] = []; // stable fallback outside useCg (useSyncExternalStore)
@@ -28,14 +29,23 @@ export function MuseAvatar({ size = 36 }: { size?: number }) {
   );
 }
 
-export function PromptChips({ prompts, onPick }: { prompts: string[]; onPick(p: string): void }) {
-  if (!prompts.length) return null;
+export function PromptChips({
+  prompts,
+  onPick,
+  lead,
+}: {
+  prompts: string[];
+  onPick(p: string): void;
+  lead?: React.ReactNode; // first chip (Surprise me)
+}) {
+  if (!prompts.length && !lead) return null;
   return (
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}
     >
+      {lead}
       {prompts.map((p) => (
         <Pill key={p} label={p} accessibilityLabel={`Ask Muse: ${p}`} onPress={() => onPick(p)} />
       ))}
@@ -120,7 +130,11 @@ export default function MuseBar({
           </Pressable>
         </View>
       )}
-      <PromptChips prompts={reply?.prompts ?? feedPrompts} onPick={(p) => void send(p)} />
+      <PromptChips
+        prompts={reply?.prompts ?? feedPrompts}
+        onPick={(p) => void send(p)}
+        lead={!inviteUserIds?.length && <SurpriseButton />}
+      />
       {!!status && (
         <View
           accessibilityLiveRegion="polite"

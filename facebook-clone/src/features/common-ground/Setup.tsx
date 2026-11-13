@@ -45,7 +45,7 @@ function Intro({ onNext }: { onNext(): void }) {
     modes.find((m) => m.mode === (picked ?? lastMode) && m.available) ??
     modes.find((m) => m.available);
   return (
-    <Section title="Plans with Muse">
+    <Section title="How it works">
       <View style={{ flexDirection: 'row', gap: 10, alignItems: 'flex-start' }}>
         <MuseAvatar />
         <View
@@ -222,6 +222,7 @@ function Preferences({ edits, onDone }: { edits: Edits; onDone(): void }) {
           value={v === 'public' ? 'Public' : 'Private'}
           onChange={(x) => setVisibility(x === 'Public' ? 'public' : 'private')}
         />
+        <Muted>Public shows your name and photo to your group.</Muted>
       </Section>
       <Section title="Group size">
         <GroupSizeSetting value={g} onChange={setSize} />
@@ -236,7 +237,7 @@ function Preferences({ edits, onDone }: { edits: Edits; onDone(): void }) {
       )}
       <MusePermissions />
       <View style={{ paddingHorizontal: 16 }}>
-        <Button title="Done" disabled={saving} onPress={() => void done()} />
+        <Button title="Find plans" disabled={saving} onPress={() => void done()} />
       </View>
     </>
   );
@@ -267,6 +268,9 @@ export default function SetupScreen() {
   return (
     <Page style={{ paddingTop: 8 }}>
       <Banners />
+      <Muted style={{ paddingHorizontal: 16 }}>
+        Step {connectorsOn || p < 2 ? p + 1 : p} of {connectorsOn ? 4 : 3}
+      </Muted>
       {p === 0 && <Intro onNext={next} />}
       {p === 1 && (
         <Section title="Connect your apps">

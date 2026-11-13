@@ -1,6 +1,6 @@
 // Settings (PRD-1 §8.6) plus the preference pieces the setup flow reuses.
 import { useEffect } from 'react';
-import { Alert, Switch, View } from 'react-native';
+import { Alert, Platform, Switch, View } from 'react-native';
 import { router } from 'expo-router';
 import { Button, Icon, Label, Muted, Page, Title, useColors } from '../../ui/native';
 import { api } from './api';
@@ -61,6 +61,7 @@ export function Toggle({
         onValueChange={onChange}
         trackColor={{ false: c.secondary, true: c.blue }}
         thumbColor="#fff"
+        {...{ activeThumbColor: '#fff' }} // RN-web ignores thumbColor when on (default teal)
       />
     </View>
   );
@@ -245,7 +246,8 @@ export default function SettingsScreen() {
   return (
     <Page style={{ paddingHorizontal: 0 }}>
       <Banners />
-      <Title>Settings</Title>
+      {/* Web: the Shell's back row already shows the screen title. */}
+      {Platform.OS !== 'web' && <Title>Settings</Title>}
       {available.length > 1 && (
         <Section title="Mode">
           <PillRow
@@ -315,14 +317,14 @@ export default function SettingsScreen() {
         />
       </Section>
       <Rewards />
-      <Section title="Common Ground">
+      <Section title="Plans">
         <Button title="Edit setup" secondary onPress={() => router.push('/common-ground/setup')} />
         <Button
-          title="Leave Common Ground"
+          title="Leave Plans"
           secondary
           onPress={() =>
             Alert.alert(
-              'Leave Common Ground?',
+              'Leave Plans?',
               'Muse stops finding plans for you. You can come back any time.',
               [
                 { text: 'Cancel', style: 'cancel' },

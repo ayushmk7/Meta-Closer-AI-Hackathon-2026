@@ -80,7 +80,7 @@ function Desktop() {
         >
           <View style={{ alignItems: 'center', gap: 8, paddingVertical: 8 }}>
             <MuseAvatar size={48} />
-            <Label style={{ fontSize: 17, fontWeight: '700' }}>Plans with Muse</Label>
+            <Label style={{ fontSize: 17, fontWeight: '700' }}>Plans</Label>
           </View>
           <Button title="Log in" onPress={enter} style={{ minHeight: 48 }} />
           <Divider />

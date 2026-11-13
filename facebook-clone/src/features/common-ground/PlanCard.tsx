@@ -99,7 +99,8 @@ export default function PlanCard({
   width?: number;
 }) {
   const c = useColors();
-  const checks = plan.checks.slice(0, 3);
+  // Spots are already in the crowd line below; don't repeat them as a check.
+  const checks = plan.checks.filter((k) => k.kind !== 'spots').slice(0, 3);
   const meta = [dayTime(plan.startsAt), duration(plan.durationMin), plan.cost.label].join(' · ');
   const joined = !!plan.myJoin && plan.myJoin.status !== 'withdrawn';
   return (

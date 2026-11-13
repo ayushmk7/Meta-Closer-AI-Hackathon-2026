@@ -127,7 +127,7 @@ test('interested: progress line and Can not make it withdraws after confirm', as
   const { text, press } = await render(
     bar({ myJoin: { joinId: 'jn_0001', status: 'interested' } }),
   );
-  expect(text()).toContain('Muse is gathering people · 3 of 4');
+  expect(text()).toContain("You're in. Muse needs 1 more.");
   confirmWith('Keep me in');
   await press("Can't make it");
   expect(withdraw).not.toHaveBeenCalled();
@@ -136,12 +136,37 @@ test('interested: progress line and Can not make it withdraws after confirm', as
   expect(withdraw).toHaveBeenCalledWith('pl_0001');
 });
 
+test('interested and full count: Muse is forming the group', async () => {
+  store.setState({
+    joins: [{ ...fixtures.joinPlan, planId: 'pl_0001', progress: { joined: 3, needed: 3 } }],
+  });
+  const { text } = await render(bar({ myJoin: { joinId: 'jn_0001', status: 'interested' } }));
+  expect(text()).toContain("You're in. Muse is forming your group.");
+});
+
 test('matched: Open plan goes to the meetup', async () => {
   const { router } = require('expo-router');
-  store.setState({ joins: [{ ...fixtures.joinPlan, status: 'matched', meetupId: 'mt_x' }] });
-  const { press } = await render(bar({ myJoin: { joinId: 'jn_0001', status: 'matched' } }));
+  const m = fixtures.getMeetup;
+  const going = m.attendees.filter((a) => a.rsvp === 'going').length;
+  store.setState({
+    joins: [{ ...fixtures.joinPlan, status: 'matched', meetupId: 'mt_x' }],
+    meetups: { mt_x: { ...m, meetupId: 'mt_x' } },
+  });
+  const { text, press } = await render(bar({ myJoin: { joinId: 'jn_0001', status: 'matched' } }));
+  expect(text()).toContain(`Your group is set · ${going} going`);
   await press('Open plan');
   expect(router.push).toHaveBeenCalledWith('/common-ground/meetup/mt_x');
+});
+
+test('Surprise me plan: Try another replaces with a different pick', async () => {
+  const { router } = require('expo-router');
+  const other = { ...detail, planId: 'pl_other', myJoin: null, status: 'open' };
+  store.setState({ feed: { plans: [detail, other], prompts: [] }, joins: [] });
+  const { press } = await render(
+    React.createElement(BottomBar, { plan: { ...detail, myJoin: null }, surprise: true }),
+  );
+  await press('Try another');
+  expect(router.replace).toHaveBeenCalledWith('/common-ground/plan/pl_other?surprise=1');
 });
 
 test('full and not joined: status as muted text', async () => {
