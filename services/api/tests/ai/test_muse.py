@@ -253,3 +253,22 @@ def test_labels_fail_closed_without_flags():
     unknown = {"label": "Hiking", "visibility": "shown"}  # no sensitive flag: don't speak
     said = asyncio.run(copy.setup_review("u_x", [ok("Ceramics"), "Running", flagged, unknown]))
     assert said == "I noticed you're into ceramics. I'll look for small plans around those."
+
+
+def test_bar_price_size_next_weekend_and_relaxing():
+    thu, sun = "2026-11-12T18:00:00Z", "2026-11-15T18:00:00Z"
+    f = bar.keyword_filter("something free for a small group", thu, CONTRACTS)
+    assert f["maxCents"] == 0 and f["groupSize"] == 4
+    f = bar.keyword_filter("pottery under $40 with 2 friends", thu, CONTRACTS)
+    assert f["maxCents"] == 4000 and f["groupSize"] == 3 and f["activityTypes"] == ["ceramics_studio"]
+    assert bar.keyword_filter("walk for 30 minutes", thu, CONTRACTS)["groupSize"] is None
+    assert bar.keyword_filter("hike next weekend", sun, CONTRACTS)["days"] == ["2026-11-21", "2026-11-22"]
+    card = {**PLAN, "size": {"min": 3, "max": 5}, "crowd": {"interestedCount": 3}}
+    assert bar.best([card], bar.keyword_filter("pottery free", thu, CONTRACTS), None) == ([card], True)
+    assert bar.best([card], bar.keyword_filter("pottery under $40", thu, CONTRACTS), None) == ([card], False)
+    assert bar.best([card], bar.keyword_filter("karaoke", thu, CONTRACTS), None) == ([], False)  # activity stays
+    assert bar.reply([card], {}, relaxed=True) == "I couldn't find exactly that, so here is the closest plan."
+    v = bar.venue_in_text(
+        "Wheel-throwing drop-in at Clay Hour Studio this weekend", [PLAN["venue"], VENUES["vn_lands_end"]]
+    )
+    assert v["venueId"] == "vn_clay_hour"
