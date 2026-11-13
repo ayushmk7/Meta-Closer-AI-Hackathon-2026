@@ -261,6 +261,7 @@ export default function MeetupScreen() {
   // A step waiting on me keeps the timeline open, or its linked approval would show nowhere.
   const showSteps =
     m.status !== 'confirmed' || stepsOpen || m.museSteps.some((s) => s.status === 'needs_you');
+  const pendingApproval = m.approvals.some((a) => a.status === 'pending');
   const linked = new Set(m.museSteps.map((s) => s.approvalId).filter(Boolean));
   const loose = m.approvals.filter((a) => a.status === 'pending' && !linked.has(a.approvalId));
   const web = Platform.OS === 'web'; // no calendar, maps or directions on web (D5)
@@ -329,7 +330,7 @@ export default function MeetupScreen() {
           <Button
             title="Open group chat"
             icon="chatbubbles-outline"
-            secondary={canCheckIn} // one primary: Check in on the day, the chat otherwise
+            secondary={canCheckIn || pendingApproval} // one primary: Check in / Review payment first
             onPress={() => go(`/common-ground/chat/${m.threadId}`)}
             style={{ marginTop: 8 }}
           />

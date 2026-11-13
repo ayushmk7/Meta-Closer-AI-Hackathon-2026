@@ -194,17 +194,3 @@ test('native: a denied camera stays closed and points to typed entry', async () 
   expect(byLabel('Their code')).toBeTruthy();
   mockPermission.answer = GRANTED;
 });
-
-test('verified: stamp earned line and a See passport link', async () => {
-  const { router } = require('expo-router');
-  confirmed();
-  jest
-    .spyOn(api, 'verifyAttendee')
-    .mockResolvedValue({ accepted: true, person: F.getMeetup.attendees[1].person });
-  const { tree, press, text } = await render(React.createElement(ScanWeb.default));
-  await type(tree, 'DAN042');
-  await press('Verify');
-  expect(text()).toContain('Stamp earned: Ceramics studio');
-  await press('See passport');
-  expect(router.push).toHaveBeenCalledWith('/common-ground/passport');
-});

@@ -291,3 +291,11 @@ test('confirmed: a summary row replaces the collapsed steps; chat sits under the
   expect(byLabel('Open group chat').props.accessibilityState.disabled).toBe(false);
   await renderer.act(async () => store.setState({ config }));
 });
+
+test('a pending approval keeps Open group chat secondary (Review payment is the primary)', async () => {
+  const { tree } = await show(clone(F.getMeetup));
+  const chat = tree.root.find(
+    (n) => n.props.accessibilityLabel === 'Open group chat' && typeof n.type === 'string',
+  );
+  expect(JSON.stringify(chat.props.style)).toContain('#F0F2F5'); // c.input = secondary fill
+});
