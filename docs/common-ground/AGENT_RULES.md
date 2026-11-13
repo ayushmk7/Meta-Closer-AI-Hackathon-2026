@@ -132,13 +132,13 @@ Milestone: M1 (in progress)
 | --- | --- |
 | Common Ground (the feature), Muse (the AI) | Ditto, the algorithm, the bot |
 | people, someone, new friends, people you've met | matches, swipes, candidates, users |
-| plan, I'm in, Can't make it | RSVP, apply, join request, Like |
-| For you, Your plans | feed, drop, queue (internal words only) |
+| meetup, I'm in, Can't make it | plan (as a noun), RSVP, apply, join request, Like |
+| For you, Your meetups | feed, drop, queue (internal words only) |
 | Muse is gathering people, Muse is setting it up, Muse booked it | the system, processing, pending |
 | OK $35?, Muse will ask before paying | charge, authorize, transaction |
 | This one didn't fill | rejected, not selected, unmatched |
 | shared interests, you both like, 2 also do ceramics | compatibility score, percentages |
-| Plans (tab label), What do you want to do? (Muse bar) | Map, Friend finder, Discover |
+| Meetups (tab label), What do you want to do? (Muse bar) | Map, Friend finder, Discover |
 | Muse noticed, Because you've been to … | tracking, we detected, your data shows |
 
 Copy is warm, short and plain. No percentages or scores shown to users. No emoji in UI chrome. Muse speaks in first person, briefly, and never pretends to be a person. Muse says what it did ("I booked 3 wheels"), not what the system did. Nudges are about the activity, never about loneliness.

@@ -66,8 +66,8 @@ paths:
                 features: { eventMode: true, connectors: true, nudges: true, userPlans: true, payments: true, autonomySettings: false, plusOne: false, checkin: true, realtime: true, sharing: true }
                 limits: { feedMax: 8, sharedCoarseMax: 3, sharedFullMax: 8, messageMaxChars: 2000, museAskMaxChars: 500, groupSizeMin: 3, groupSizeMax: 8, openJoinsMax: 5, pollIntervalS: 5, feedRefreshS: 60, calendarSyncMinIntervalS: 300, calendarHorizonDays: 14, meetupStatusBeforeMin: 60 }
                 modes:
-                  - { mode: city, label: "San Francisco", poolId: pool_sf_city, available: true, description: "Plans near you in San Francisco", center: { lat: 37.7749, lng: -122.4194 }, radiusKm: 10 }
-                  - { mode: event, label: "Closer Together AI Hackathon", poolId: pool_evt_closer_together, available: true, description: "Plans with people at this event, Nov 11 to 13", center: { lat: 37.4848, lng: -122.1484 }, radiusKm: 2 }
+                  - { mode: city, label: "San Francisco", poolId: pool_sf_city, available: true, description: "Meetups near you in San Francisco", center: { lat: 37.7749, lng: -122.4194 }, radiusKm: 10 }
+                  - { mode: event, label: "Closer Together AI Hackathon", poolId: pool_evt_closer_together, available: true, description: "Meetups with people at this event, Nov 11 to 13", center: { lat: 37.4848, lng: -122.1484 }, radiusKm: 2 }
                   - { mode: campus, label: "Campus", poolId: pool_campus_placeholder, available: false, description: "Coming soon" }
                 demo: { enabled: true, counterpart: synthetic, fakeLocation: { lat: 37.7639, lng: -122.4689 }, relaxCheckin: true, simulatedPayments: true, stepDelayS: [1, 2] }
 
@@ -345,7 +345,7 @@ paths:
                 acceptedBusy: 6
                 directives:
                   - { key: mt_0001, desired: event, title: "Wheel-throwing drop-in at Hayes Clay Studio", startsAt: "2026-11-14T18:00:00Z", endsAt: "2026-11-14T20:00:00Z", location: "Hayes Clay Studio, Hayes St, San Francisco", notes: "Planned with Muse in Common Ground. Directions: https://maps.apple.com/?daddr=37.7765,-122.4241&dirflg=r" }
-                  - { key: jn_0002, desired: hold, title: "Hold: Strategy game night at Long Table Games", startsAt: "2026-11-19T03:00:00Z", endsAt: "2026-11-19T05:30:00Z", location: "Long Table Games, Mission, San Francisco", notes: "Muse is gathering people. This hold disappears if the plan doesn't fill." }
+                  - { key: jn_0002, desired: hold, title: "Hold: Strategy game night at Long Table Games", startsAt: "2026-11-19T03:00:00Z", endsAt: "2026-11-19T05:30:00Z", location: "Long Table Games, Mission, San Francisco", notes: "Muse is gathering people. This hold disappears if the meetup doesn't fill." }
         default: { $ref: "#/components/responses/Error" }
 
   /v1/muse/ask:
@@ -373,7 +373,7 @@ paths:
               schema: { $ref: "#/components/schemas/MuseReply" }
               example:
                 conversationId: mc_0001
-                reply: { messageId: mm_0002, text: "I found two ceramics plans that fit your weekend. Saturday's wheel-throwing drop-in already has 3 people in.", createdAt: "2026-11-12T18:10:03Z" }
+                reply: { messageId: mm_0002, text: "I found two ceramics meetups that fit your weekend. Saturday's wheel-throwing drop-in already has 3 people in.", createdAt: "2026-11-12T18:10:03Z" }
                 plans:
                   - planId: pl_0001
                     title: Wheel-throwing drop-in
@@ -414,7 +414,7 @@ paths:
               example:
                 generatedAt: "2026-11-12T18:02:00Z"
                 nextRefreshAt: "2026-11-13T18:02:00Z"
-                museStatus: "Muse is setting up 1 plan for you"
+                museStatus: "Muse is setting up 1 meetup for you"
                 prompts: ["Climb this weekend", "Pottery", "A coastal walk", "Board games"]
                 plans:
                   - planId: pl_0003
@@ -464,7 +464,7 @@ paths:
       operationId: createPlan
       summary: |
         Propose a plan in my own words ("anyone want to try the new ramen place Friday?"), or invite people I've met
-        ("Plan something again"). Muse turns it into a plan; Laya then Muse screen it. Needs features.userPlans and
+        ("Meet up again"). Muse turns it into a plan; Laya then Muse screen it. Needs features.userPlans and
         Me.capabilities.canCreatePlans. A screened-out plan returns 422 `screened` with a safe message. The creator is joined automatically.
       requestBody:
         required: true
@@ -524,7 +524,7 @@ paths:
                 myJoin: null
                 description: "A two-hour open wheel session for beginners and regulars. Clay, tools and firing included."
                 museWillHandle: ["Book wheels for the group", "Ask you before paying $35", "Add it to your calendar", "Open a group chat with an intro", "Remind you when to leave"]
-                safety: ["Public studio", "Groups of 3 or more", "Share your plan with a friend in one tap"]
+                safety: ["Public studio", "Groups of 3 or more", "Share your meetup with a friend in one tap"]
                 formsAt: "2026-11-13T18:00:00Z"
                 alternatives:
                   - { planId: pl_0004, title: Wheel-throwing drop-in, startsAt: "2026-11-15T22:00:00Z" }
@@ -595,7 +595,7 @@ paths:
                 formsAt: "2026-11-13T18:00:00Z"
                 createdAt: "2026-11-12T18:11:00Z"
                 alternatives: []
-                calendar: { key: jn_0001, desired: hold, title: "Hold: Wheel-throwing drop-in at Hayes Clay Studio", startsAt: "2026-11-14T18:00:00Z", endsAt: "2026-11-14T20:00:00Z", location: "Hayes Clay Studio, Hayes St, San Francisco", notes: "Muse is gathering people. This hold disappears if the plan doesn't fill." }
+                calendar: { key: jn_0001, desired: hold, title: "Hold: Wheel-throwing drop-in at Hayes Clay Studio", startsAt: "2026-11-14T18:00:00Z", endsAt: "2026-11-14T20:00:00Z", location: "Hayes Clay Studio, Hayes St, San Francisco", notes: "Muse is gathering people. This hold disappears if the meetup doesn't fill." }
         default: { $ref: "#/components/responses/Error" }
     delete:
       tags: [plans]
@@ -1281,7 +1281,7 @@ components:
       content:
         application/json:
           schema: { $ref: "#/components/schemas/Error" }
-          example: { error: { code: not_found, message: "That plan is no longer available.", retryable: false } }
+          example: { error: { code: not_found, message: "That meetup is no longer available.", retryable: false } }
 
   schemas:
     Error:
@@ -1810,7 +1810,7 @@ components:
       properties:
         generatedAt: { type: string, format: date-time }
         nextRefreshAt: { type: string, format: date-time }
-        museStatus: { type: [string, "null"], description: "Muse's live status line, e.g. 'Muse is setting up 1 plan for you'." }
+        museStatus: { type: [string, "null"], description: "Muse's live status line, e.g. 'Muse is setting up 1 meetup for you'." }
         prompts: { type: array, items: { type: string } }
         plans: { type: array, items: { $ref: "#/components/schemas/PlanCard" } }
 

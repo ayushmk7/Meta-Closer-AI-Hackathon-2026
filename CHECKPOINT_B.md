@@ -5,7 +5,7 @@ Nobody has run the live backend inside the real app yet, so expect a few native-
 - [ ] Phone 1 as `u_maya`, phone 2 as a second attendee (Settings › demo identity / second-phone mode).
 - [ ] Logged-out Welcome page looks like Facebook's; "Log in" enters the app.
 - [ ] Setup: connect Google Maps, interests appear, sensitive ones hidden.
-- [ ] Plans home: hero plan first, Little Fern Kitchen nudge on Home, Rewards card, Quests, Surprise me opens a plan.
+- [ ] Meetups home: hero meetup first, Little Fern Kitchen nudge on Home, Rewards card, Quests, Surprise me opens a meetup.
 - [ ] Join hero → brief "gathering" → group forms → steps tick → approve $35 → confirmed.
 - [ ] Event appears in the iPhone Calendar app; leave-by notification fires (dashboard "advance to leave_by").
 - [ ] Chat: Muse intro; send "Muse, can we do 11 instead?" → Muse reschedules.
