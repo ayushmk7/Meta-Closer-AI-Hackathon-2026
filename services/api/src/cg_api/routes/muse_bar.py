@@ -1,6 +1,6 @@
 """askMuse (PRD-2 §3.4): the Muse bar. Muse or the keyword fallback turns text into a filter over the viewer's
-ranked PlanCards. Slice C plugs in `plan_source` (ranked cards for a viewer) and `gate` (optIn check); until then
-the spec's example cards are used so the bar is demo-able.
+ranked PlanCards. Slice C plugs in `plan_source` (ranked cards for a viewer) and `gate` (optIn check).
+A share's promptText ("Plan something like this") is just text: its venue name and activity become filters.
 """
 
 from __future__ import annotations
@@ -14,7 +14,6 @@ from datetime import UTC, datetime
 from fastapi import APIRouter
 from pydantic import BaseModel
 
-from cg_api import contracts
 from cg_api.deps import User
 from cg_api.errors import ApiError
 from cg_api.muse import bar
@@ -24,16 +23,15 @@ from cg_api.settings import get_settings
 router = APIRouter()
 
 
-async def _example_cards(user_id: str) -> list[dict]:
-    ex = [contracts.example(contracts.op_by_id(o)) for o in ("getFeed", "askMuse")]
-    return list({c["planId"]: c for e in ex for c in e["plans"]}.values())
+async def _no_cards(user_id: str) -> list[dict]:
+    return []  # no world loaded: Muse finds nothing rather than inventing example plans
 
 
 async def _no_gate(user_id: str) -> None:
     return None
 
 
-plan_source: Callable[[str], Awaitable[list[dict]]] = _example_cards  # slice C: ranked PlanCards for the viewer
+plan_source: Callable[[str], Awaitable[list[dict]]] = _no_cards  # slice C: ranked PlanCards for the viewer
 gate: Callable[[str], Awaitable[None]] = _no_gate  # slice C/A: raise ApiError(403, "not_opted_in", ...)
 
 # ponytail: in-process conversations and rate limits; reset with the process (demo reset clears them via clear())
@@ -52,7 +50,13 @@ class AskBody(BaseModel):
 
 
 def _now() -> str:
-    return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    try:  # the demo world's clock when one is loaded, so "this weekend" matches the plans' calendar
+        from cg_api.domain import world
+
+        now = world.current.now() if world.current is not None else datetime.now(UTC)
+    except ImportError:
+        now = datetime.now(UTC)
+    return now.astimezone(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 @router.post("/v1/muse/ask", operation_id="askMuse")
@@ -77,10 +81,12 @@ async def ask_muse(body: AskBody, user: User):
     history = _conversations.setdefault((user, cid), [])
     f, said = await bar.understand(ports.muse, text, history, _now(), s.contracts_dir)
     cards = await plan_source(user)
-    venue = bar.nearest_venue(f["link"], [c["venue"] for c in cards]) if f["link"] else None
-    plans = bar.apply(cards, f, venue["venueId"] if venue else None)[: s.params["feed"]["size"]]
+    venues = list({c["venue"]["venueId"]: c["venue"] for c in cards}.values())
+    venue = bar.nearest_venue(f["link"], venues) if f["link"] else bar.venue_in_text(text, venues)
+    found, relaxed = bar.best(cards, f, venue["venueId"] if venue else None)
+    plans = found[: s.params["feed"]["size"]]
     # ponytail: creating a plan when nothing fits (createdPlanId) lands with slice C's createPlan pipeline
-    answer = said if said and plans else bar.reply(plans, f)
+    answer = said if said and plans and not relaxed else bar.reply(plans, f, relaxed)
     history += [{"role": "user", "content": text}, {"role": "assistant", "content": answer}]
     return {
         "conversationId": cid,
