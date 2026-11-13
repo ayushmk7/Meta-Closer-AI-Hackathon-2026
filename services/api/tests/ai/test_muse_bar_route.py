@@ -82,4 +82,4 @@ def test_surprise_me_mixes_a_new_meetup_with_picks(public):
     assert 1 <= len(body["plans"]) <= 4 and len({p["planId"] for p in body["plans"]}) == len(body["plans"])
     if body["createdPlanId"]:
         assert body["plans"][0]["planId"] == body["createdPlanId"]
-    assert body["prompts"][0] == "Surprise me" and len(body["prompts"]) == 3
+    assert "Surprise me" not in body["prompts"] and len(body["prompts"]) == 3

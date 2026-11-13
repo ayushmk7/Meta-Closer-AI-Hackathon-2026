@@ -292,9 +292,9 @@ def reply(plans: list[dict], f: dict, relaxed: bool = False) -> str:
 
 
 def follow_ups(text: str) -> list[str]:
-    """"Surprise me" first, then 2 random others, so the chips change each time."""
+    """3 random suggestions, so the chips change each time (the app's own Surprise me chip leads the row)."""
     rest = [p for p in FOLLOW_UPS if p.lower() not in text.lower()]
-    return ["Surprise me", *random.sample(rest, min(2, len(rest)))]
+    return random.sample(rest, min(3, len(rest)))
 
 
 async def understand(
