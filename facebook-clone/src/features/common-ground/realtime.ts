@@ -15,7 +15,10 @@ export const hooks = { calendarChanged: (): unknown => undefined, url: wsUrl };
 
 const HANDLERS: Record<string, (d: Data) => unknown> = {
   'feed.updated': () => load.feed(),
-  'join.updated': () => Promise.all([load.joins(), load.feed()]),
+  'join.updated': (d) => {
+    const id = str(d, 'planId'); // an open plan page shows myJoin from its own copy
+    return Promise.all([load.joins(), load.feed(), id && getState().plans[id] ? load.plan(id) : 0]);
+  },
   'meetup.updated': (d) => Promise.all([meetup(d), load.meetups()]),
   'meetup.step': (d) => {
     const id = str(d, 'meetupId');
