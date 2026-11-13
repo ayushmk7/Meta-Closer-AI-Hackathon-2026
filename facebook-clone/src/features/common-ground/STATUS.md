@@ -13,6 +13,7 @@ Milestone: v2 M2 device layer (A2, `cg/ios/v2-m2-device`)
 - 2026-11-12 batch4 header (`cg/ios/b4-tab-header`): Plans tab registers `headerAction` (gear -> settings); native drops the in-screen "Plans" + gear row since the shell top bar now shows both, so the Muse bar sits under the top bar. Web keeps the row (web shell draws no tab title).
 - 2026-11-13 Batch 5 Story prompt: after a completed meetup I went to, `StoryPrompt` (above Share to Explore) offers "Add to your story" with the venue photo and plan title only; one tap posts via shell `usePostStory` (`@/extensions/story`, CONTRACTS v2.1.3). Not now / posted is remembered per meetup in own prefs (`storyPrompt`). Test: `tests/common-ground/story.test.cjs`.
 - 2026-11-13 Shared meetup page hero shows the venue photo: `PublicPlan` carries `photoUrl` at the top level, while `PlanPhoto` reads `venue.photoUrl` (ux-fable N-P0-3.2). Test in `tests/common-ground/share.test.cjs`.
+- 2026-11-13 Realtime: while the app thinks the user isn't opted in, the poll tick reloads `me`, so an opt-in made outside the app (API, dashboard, the other phone) is picked up within `pollIntervalS` and the socket connects. It used to stay with no socket and no polls (e2e-run F9, e2e-fable #20). Test in `tests/common-ground/store.test.ts`.
 
 ## Decisions
 - 2026-11-13 Meetup writes carry a per-meetup request stamp; a fetch that left before a newer write (step event, later fetch, approval decision, leave) is dropped. Why: out-of-order responses dropped Muse steps (rule 10) and flipped decided approvals back to pending.

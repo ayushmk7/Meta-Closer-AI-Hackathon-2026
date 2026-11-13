@@ -124,7 +124,9 @@ export function startRealtime(): void {
   const every = (ms: number, fn: () => Promise<unknown>) => {
     let busy = false; // skip a tick while the last poll is out, so responses can't land out of order
     const t = setInterval(() => {
-      if (!getState().me?.optedIn) return;
+      // Opted in elsewhere (API, dashboard, the other phone)? Without this the app never learns it:
+      // no socket, no polls (e2e-run F9, e2e-fable #20).
+      if (!getState().me?.optedIn) return void load.me();
       connect(); // (re)connects after opt-in or foreground; no-op while connected
       if (open || busy) return;
       busy = true;

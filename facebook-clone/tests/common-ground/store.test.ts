@@ -447,6 +447,45 @@ test('realtime: a socket that opens then drops backs off, refetches at most once
   assert.equal(maxInFlight, 1);
 });
 
+test('realtime: an opt-in made outside the app is picked up and the socket connects', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout', 'setInterval', 'Date'], now: 0 });
+  let sockets = 0;
+  const RealWs = globalThis.WebSocket;
+  globalThis.WebSocket = class {
+    constructor() {
+      sockets++;
+    }
+    close() {}
+  } as never;
+  const realUrl = hooks.url;
+  hooks.url = () => 'ws://test/v1/ws?user=u_maya';
+  const real = { ...load };
+  let mes = 0;
+  (load as Record<string, unknown>).me = async () => {
+    mes++;
+    setState({ me: { optedIn: true } as never }); // the server says opted in (done via the API)
+  };
+  setState({
+    me: { optedIn: false } as never,
+    config: {
+      features: { realtime: true },
+      limits: { pollIntervalS: 5, feedRefreshS: 60 },
+    } as never,
+    meetups: {},
+  });
+  startRealtime();
+  assert.equal(sockets, 0);
+  t.mock.timers.tick(5000); // first fast tick: reload me
+  await Promise.resolve();
+  t.mock.timers.tick(5000); // next tick: connect
+  stopRealtime();
+  globalThis.WebSocket = RealWs;
+  hooks.url = realUrl;
+  Object.assign(load, real);
+  assert.equal(mes, 1);
+  assert.equal(sockets, 1);
+});
+
 test('mock: other plans get their own detail; no steps before formation; fast poll shows the group forming', async (t) => {
   t.mock.timers.enable({ apis: ['Date'], now: Date.parse('2026-11-12T18:00:00Z') });
   await reset();
