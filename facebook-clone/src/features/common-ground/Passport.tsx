@@ -127,7 +127,7 @@ function StampTile({ stamp, i, fresh }: { stamp: Stamp; i: number; fresh: boolea
         numberOfLines={2}
         style={{
           fontSize: 13,
-          lineHeight: 17,
+          lineHeight: 18,
           textAlign: 'center',
           fontWeight: on ? '600' : '400',
           color: on ? c.text : c.secondary,
@@ -135,7 +135,7 @@ function StampTile({ stamp, i, fresh }: { stamp: Stamp; i: number; fresh: boolea
       >
         {stamp.label}
       </Label>
-      {on && !!stamp.earnedOn && <Muted style={{ fontSize: 12 }}>{stamp.earnedOn}</Muted>}
+      {on && !!stamp.earnedOn && <Muted style={{ fontSize: 12, lineHeight: 16 }}>{stamp.earnedOn}</Muted>}
     </Animated.View>
   );
 }
@@ -196,7 +196,7 @@ export default function PassportScreen() {
           marginHorizontal: 16,
           padding: 16,
           gap: 12,
-          backgroundColor: c.blue,
+          backgroundColor: c.brand,
         }}
       >
         <View
@@ -236,7 +236,7 @@ export default function PassportScreen() {
               }}
             />
           </View>
-          <Label style={{ fontSize: 13, lineHeight: 17, color: '#fff', opacity: 0.9 }}>
+          <Label style={{ fontSize: 13, lineHeight: 18, color: '#fff', opacity: 0.9 }}>
             {earned
               ? 'Check in at a meetup to collect more.'
               : 'Check in at a meetup to get your first stamp.'}

@@ -53,7 +53,7 @@ export default function PersonScreen() {
           <View style={{ flex: 1 }}>
             <Label
               accessibilityRole="header"
-              style={{ fontSize: 24, lineHeight: 30, fontWeight: '800' }}
+              style={{ fontSize: 25, lineHeight: 31, fontWeight: '800' }}
             >
               {name}
             </Label>

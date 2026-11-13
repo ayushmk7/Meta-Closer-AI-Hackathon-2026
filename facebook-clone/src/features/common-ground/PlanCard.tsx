@@ -110,15 +110,15 @@ export function Badge({ text }: { text: string }) {
     <View
       style={{
         alignSelf: 'flex-start',
-        backgroundColor: c.blue,
-        borderRadius: 9,
+        backgroundColor: c.brand,
+        borderRadius: 10,
         paddingHorizontal: 8,
         paddingVertical: 2,
       }}
     >
       <Label
         maxFontSizeMultiplier={MAX_FONT}
-        style={{ color: '#fff', fontSize: 12, fontWeight: '700' }}
+        style={{ color: '#fff', fontSize: 12, lineHeight: 16, fontWeight: '700' }}
       >
         {text}
       </Label>

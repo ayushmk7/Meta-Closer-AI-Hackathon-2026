@@ -154,7 +154,7 @@ function StepsAttachment({ meetupId, stepIds }: { meetupId: string; stepIds: str
           <PopOn on={s.status === 'done'} quiet>
             <StatusMark status={s.status} />
           </PopOn>
-          <Label style={{ flex: 1, fontSize: 14 }}>{s.label}</Label>
+          <Label style={{ flex: 1, fontSize: 14, lineHeight: 18 }}>{s.label}</Label>
         </View>
       ))}
     </Pressable>
@@ -270,12 +270,12 @@ function Bubble({
             borderRadius: 18,
             paddingHorizontal: 14,
             paddingVertical: 10,
-            backgroundColor: own ? c.blue : c.input,
+            backgroundColor: own ? c.brand : c.input,
             opacity: pending ? 0.7 : 1,
           }}
         >
           {m.toMuse && (
-            <Label style={{ color: own ? '#fff' : c.blue, fontSize: 12, fontWeight: '700' }}>
+            <Label style={{ color: own ? '#fff' : c.blue, fontSize: 12, lineHeight: 16, fontWeight: '700' }}>
               To Muse
             </Label>
           )}

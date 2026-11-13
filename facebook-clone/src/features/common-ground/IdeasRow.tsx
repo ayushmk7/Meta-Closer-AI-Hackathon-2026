@@ -56,10 +56,10 @@ export default function IdeasRow() {
                 {activityLabel(s.activityType)}
               </Label>
               <Muted numberOfLines={1}>{s.venue.name}</Muted>
-              <Label style={{ fontSize: 14 }} numberOfLines={2}>
+              <Label style={{ fontSize: 14, lineHeight: 18 }} numberOfLines={2}>
                 {s.caption}
               </Label>
-              <Label style={{ color: c.blue, fontWeight: '600', fontSize: 13, marginTop: 4 }}>
+              <Label style={{ color: c.blue, fontWeight: '600', fontSize: 13, lineHeight: 18, marginTop: 4 }}>
                 Plan something like this
               </Label>
             </View>

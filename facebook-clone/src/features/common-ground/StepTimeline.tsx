@@ -11,6 +11,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import type Ionicons from '@expo/vector-icons/Ionicons';
 import { Icon, Label, Muted, useColors } from '../../ui/native';
+import { themes } from '../../ui/tokens';
 import ApprovalSheet from './ApprovalSheet';
 import { calledMeetups, useCg } from './store';
 import { clock } from './time';
@@ -58,7 +59,7 @@ export function StatusMark({ status }: { status: string }) {
       return <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: c.blue }} />;
     case 'failed':
       // WARN fg on light; on dark that brown is too dark on c.card, so the alert red (guide 2.1).
-      return <Icon name="warning" size={22} color={c.canvas === '#18191A' ? c.badge : WARN.fg} />;
+      return <Icon name="warning" size={22} color={c === themes.dark ? c.badge : WARN.fg} />;
     case 'skipped':
       return <Icon name="remove" size={22} color={c.secondary} />;
     default: // queued and unknown statuses
@@ -120,7 +121,7 @@ function CallCard({ step, meetup }: { step: MuseStep; meetup?: Meetup }) {
   }, [ringing, pulse]);
   const ring = useAnimatedStyle(() => ({ opacity: pulse.value }));
   return (
-    <View style={{ gap: 8, backgroundColor: c.canvas, borderRadius: 12, padding: 12 }}>
+    <View style={{ gap: 8, backgroundColor: c.canvas, borderRadius: 8, padding: 12 }}>
       <View
         accessible
         accessibilityLiveRegion="polite"
@@ -154,7 +155,7 @@ function CallCard({ step, meetup }: { step: MuseStep; meetup?: Meetup }) {
               borderRadius: 18,
               paddingHorizontal: 14,
               paddingVertical: 10,
-              backgroundColor: l.muse ? c.blue : c.input,
+              backgroundColor: l.muse ? c.brand : c.input,
             }}
           >
             <Label style={{ color: l.muse ? '#fff' : c.text }}>{l.text}</Label>
@@ -220,7 +221,7 @@ export default function StepTimeline({ meetupId, steps }: { meetupId: string; st
                 <Label style={{ color: muted ? c.secondary : c.text }}>{s.label}</Label>
                 {!!s.detail && <Muted>{s.detail}</Muted>}
                 {s.status === 'needs_you' && (
-                  <Label style={{ color: c.blue, fontWeight: '600', fontSize: 13 }}>
+                  <Label style={{ color: c.blue, fontWeight: '600', fontSize: 13, lineHeight: 18 }}>
                     Needs you
                   </Label>
                 )}
