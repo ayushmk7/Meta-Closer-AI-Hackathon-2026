@@ -11,4 +11,6 @@ Nobody has run the live backend inside the real app yet, so expect a few native-
 - [ ] Chat: Muse intro; send "Muse, can we do 11 instead?" → Muse reschedules.
 - [ ] Phones scan each other's QR (Meetup › Show my code · scan theirs) → both verified; Passport gets a stamp.
 - [ ] After the meetup (dashboard "advance to completed"): stars + tags feedback, share with a caption → appears in Explore and the logged-out gallery.
+- [ ] Share a plan link: Plan pop-up › Share opens the iOS share sheet with the title, time and a link.
+- [ ] Public page opens: the shared link opens the logged-out plan page (no names, no "I'm in"); "Log in to join" enters the app.
 - [ ] Six tabs fit at phone width; dark mode.

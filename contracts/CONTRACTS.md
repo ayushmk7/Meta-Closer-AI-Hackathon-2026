@@ -89,7 +89,7 @@ The full shapes and examples are in `openapi.yaml`. Every endpoint is required f
 | Me and setup | `getMe`, `updateMe`, `setInterestVisibility`, `removeInterest`, `optIn`, `optOut`, `getSetup`, `completeSetup` | |
 | Connectors | `listConnectors`, `connectConnector`, `disconnectConnector`, `listSignals`, `setSignalVisibility`, `deleteSignal`, `syncCalendar` | `connectors` |
 | Muse bar | `askMuse` | |
-| Plans | `getFeed`, `getPlan`, `createPlan`, `joinPlan`, `withdrawJoin`, `listJoins` | `userPlans` for `createPlan` |
+| Plans | `getFeed`, `getPlan`, `getPublicPlan` (no `X-CG-User` needed), `createPlan`, `joinPlan`, `withdrawJoin`, `listJoins` | `userPlans` for `createPlan`, `sharing` for `getPublicPlan` |
 | Nudges | `listNudges`, `dismissNudge` | `nudges` |
 | Meetups | `listMeetups`, `getMeetup`, `leaveMeetup`, `setMeetupStatus`, `checkIn`, `sendFeedback` | `checkin` for the last two |
 | Approvals | `listApprovals`, `decideApproval` | `payments` for `payment` approvals |
@@ -167,7 +167,7 @@ Envelope: `{ "error": { "code", "message", "retryable", "details"? } }`. `messag
 The backend guarantees these on every response. The app relies on them and does not re-implement them. The backend agent writes one automated test per line.
 
 - **P1 Overlap only.** No public response ever contains another user's interest that is not shared with the viewer, or any of their hidden interests.
-- **P2 Two-stage reveal.** Before a group forms, no response identifies anyone else in a plan: `Crowd` carries only counts and at most `privacy.sharedCoarseMax` level-2 interests that the viewer also has, each with a count, and only when at least `privacy.crowdMinCount` people are in. After a group forms, its members see each other and level-3 shared interests, at most `privacy.sharedFullMax`.
+- **P2 Two-stage reveal.** Before a group forms, no response identifies anyone else in a plan: `Crowd` carries only counts and at most `privacy.sharedCoarseMax` level-2 interests that the viewer also has, each with a count, and only when at least `privacy.crowdMinCount` people are in. After a group forms, its members see each other and level-3 shared interests, at most `privacy.sharedFullMax`. `getPublicPlan` is the only pre-formation plan view without an identity; it carries counts only (gated by `privacy.crowdMinCount`) and nothing viewer-specific.
 - **P3 Private profiles.** For a private user, `displayName` is first name only and `avatarUrl` is null everywhere; `getPerson` returns 403.
 - **P4 Sensitive interests and places.** An interest or signal with `sensitive: true` is never used for overlap with anyone unless both users opted that category in, never drives a nudge, and never appears in another user's response.
 - **P5 No enumeration.** No public endpoint lists users or accepts a free user search. People reach a client only through a formed group (attendees, thread participants, connections).
@@ -348,6 +348,7 @@ Standard commands (each owner provides its own; the root `Makefile` only calls t
 
 ### Changelog
 
+- v2.2.0 (2026-11-13, batch 5): `getPublicPlan` + `PublicPlan` (anonymous), `features.sharing`. Additive.
 - v2.1.3 (2026-11-13, batch 5): `usePostStory` from `@/extensions/story` (§11, R1), so Common Ground can offer to post a completed meetup to the user's own story. Additive.
 - v2.1.2 (2026-11-12, batch 4): optional `TabItem.headerAction` (§11), a top-bar button shown beside search while the tab is open; the shell also titles the top bar with the tab label. Additive.
 - v2.1.1 (2026-11-12, batch 4): demo labels are flagged in data, not rendered (§2, Decisions). No API change.
@@ -380,3 +381,5 @@ Resolved open questions from the v2 build. Additive only; nothing renamed or tig
 - **Isolation params adopted (2026-11-12).** `matching.fillToMax: true`, `reunionBoost: 1.0`, `crowdBoost: 0.5` from sim run 20261113T011854Z_pool_sf_city_grid (#62): selected on seeds 0-9, confirmed on held-out seeds 10-59 in all 25 sweep cells, Common Ground's low-outgoing isolation improves 1.6-5.6 pts vs the previous params with fill -1.9 to -2.3 pts. Still worse than greedy (24/25 cells, 1 unclear). Fake-Laya tables: suggestive, not evidence; the effect is largely mechanical (fuller groups, more repeat pairs). Revisit with real Laya tables.
 - **Demo labels removed (batch 4, human decision).** The app no longer shows "Demo data", "Simulated booking" or "Demo payment" labels; `simulated` flags stay in the data. Disclosure lives in the pitch and README. Venue phone booking by Muse is shown only as a "Coming soon" teaser (UI only, no data, no telephony).
 - **Stories after the event (batch 5).** After a completed meetup I went to, the app may offer, never auto-post, to add it to my own Facebook story: the venue photo and the plan title only, never attendees' names, photos, ids, count or chat. Same rule as shares: sensitive venues are never offered. The client cannot see venue sensitivity, so it shows the offer only when `venue.photoUrl` is set, and producers keep `photoUrl` null for sensitive venues (true in today's seed). Dismissal is a local own-prefs flag (C1).
+- **Share links (batch 5).** Built on the client with `Linking.createURL('/common-ground/shared/<planId>')` (Expo Go `exp://…/--/…`, a build `facebook-demo://…`, web the page origin). The server never mints or stores links; a link grants nothing beyond `getPublicPlan`. Gallery shares link to `/common-ground/welcome?share=<shareId>`. Passport share is client-only text.
+- **Public plan page (batch 5).** `PublicPlan` has no people, no `because`/`reason`/`checks`/`travel`/`myJoin`, no address or coordinates. For `origin: user` plans the title is the server template (`<activity> at <venue>`), not the creator's wording. Invite, cancelled and sensitive-venue plans are 404, same as an unknown id.
