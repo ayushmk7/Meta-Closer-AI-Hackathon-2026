@@ -25,7 +25,7 @@ You write only inside your paths. Reading anything is fine. CI enforces this wit
 
 - Each Python project (`services/api`, `packages/matching`, `services/sim`, `services/dashboard`) has its own `pyproject.toml` and lockfile. There is no shared Python lockfile, so dependency changes never conflict.
 - The app has one `package.json`, owned by shell. ios never edits it; the dependencies ios needs are pre-installed from the allowlist in CONTRACTS §11.
-- Allowed cross-boundary imports, read-only: sim and dashboard import `cg_matching` (path dependency on `packages/matching`). ios imports the clone's public exports (`@/core/store` `useDemo`, `@/ui/native`, `@/ui/tokens`, `@/extensions/types`, `@/platform/scopedStorage`, `@/data/media`) and nothing else from the clone.
+- Allowed cross-boundary imports, read-only: sim and dashboard import `cg_matching` (path dependency on `packages/matching`). ios imports the clone's public exports (`@/core/store` `useDemo`, `@/ui/native`, `@/ui/tokens`, `@/extensions/types`, `@/platform/scopedStorage`, `@/data/media`, `@/extensions/story`) and nothing else from the clone.
 
 ## R2. Branches, worktrees and PRs
 

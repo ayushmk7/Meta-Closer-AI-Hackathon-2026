@@ -278,6 +278,11 @@ export interface ResetHook { id: string; run(): Promise<void>; }
 
 // facebook-clone/src/platform/scopedStorage.ts (+ .web.ts)
 export function createScopedStorage(key: string): StorageAdapter; // key matches /^[a-z0-9-]+:v\d+$/ and is not the core key
+// facebook-clone/src/extensions/story.ts (v2.1.3): post to the viewer's own Facebook story
+export function usePostStory(): (input: { image: string; text?: string }) => Promise<string | null>;
+// image: a clone media key (`@/data/media`) or an http(s) photo URL from EXPO_PUBLIC_CG_API_URL.
+// Native copies a URL into the clone's own photo storage; web accepts keys only.
+// text is trimmed and capped at 500. Resolves to the new story id, or null when nothing was posted.
 ```
 
 Hooks in `useBadge` and `useRows` are called on every render of their host screen, in registry order, so the number of sources never changes at runtime. On web, `inboxSources` and `eventSources` are ignored; `tabs` appear as an extra desktop header destination (human decision 2026-11-12) and Common Ground also contributes a Menu item; its screens run on the in-app mock only.
@@ -343,6 +348,7 @@ Standard commands (each owner provides its own; the root `Makefile` only calls t
 
 ### Changelog
 
+- v2.1.3 (2026-11-13, batch 5): `usePostStory` from `@/extensions/story` (§11, R1), so Common Ground can offer to post a completed meetup to the user's own story. Additive.
 - v2.1.2 (2026-11-12, batch 4): optional `TabItem.headerAction` (§11), a top-bar button shown beside search while the tab is open; the shell also titles the top bar with the tab label. Additive.
 - v2.1.1 (2026-11-12, batch 4): demo labels are flagged in data, not rendered (§2, Decisions). No API change.
 - v2.1.0 (2026-11-12, batch 2): shares (`Share`, `listShares`, `shareMeetup`, `likeShare`, prefix `sh_`), `verifyAttendee` with optional `Meetup.verifyCode` and `Attendee.verified`, optional `Feedback.rating` and `Feedback.tags`, connectors `luma` and `beli`, params `matching.prefBoost`, `matching.prefAlpha`, `shares.galleryMax`, §10 `MatchState.prefs` and `update_prefs`, allowlist `expo-camera` and `qrcode-generator`.
@@ -372,3 +378,4 @@ Resolved open questions from the v2 build. Additive only; nothing renamed or tig
 - **Fill to max (§10).** `matching.fillToMax` (default `false`) lets `cg_matching` keep filling a plan toward `size.max` instead of `size.min`. With `false`, or the key absent, output is byte-identical to before. It changes only through a contracts PR with sim evidence.
 - **Isolation params adopted (2026-11-12).** `matching.fillToMax: true`, `reunionBoost: 1.0`, `crowdBoost: 0.5` from sim run 20261113T011854Z_pool_sf_city_grid (#62): selected on seeds 0-9, confirmed on held-out seeds 10-59 in all 25 sweep cells, Common Ground's low-outgoing isolation improves 1.6-5.6 pts vs the previous params with fill -1.9 to -2.3 pts. Still worse than greedy (24/25 cells, 1 unclear). Fake-Laya tables: suggestive, not evidence; the effect is largely mechanical (fuller groups, more repeat pairs). Revisit with real Laya tables.
 - **Demo labels removed (batch 4, human decision).** The app no longer shows "Demo data", "Simulated booking" or "Demo payment" labels; `simulated` flags stay in the data. Disclosure lives in the pitch and README. Venue phone booking by Muse is shown only as a "Coming soon" teaser (UI only, no data, no telephony).
+- **Stories after the event (batch 5).** After a completed meetup I went to, the app may offer, never auto-post, to add it to my own Facebook story: the venue photo and the plan title only, never attendees' names, photos, ids, count or chat. Same rule as shares: sensitive venues are never offered. The client cannot see venue sensitivity, so it shows the offer only when `venue.photoUrl` is set, and producers keep `photoUrl` null for sensitive venues (true in today's seed). Dismissal is a local own-prefs flag (C1).
