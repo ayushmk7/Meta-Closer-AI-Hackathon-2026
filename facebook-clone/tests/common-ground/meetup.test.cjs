@@ -308,3 +308,19 @@ test('photo hero; the address is the Directions link; approval sheet says Approv
   await press('Review: OK $35 for your wheel?');
   expect(text()).toContain('Approve payment');
 });
+
+test('web: the address is the same Directions link and opens Google Maps directly', async () => {
+  const { Platform } = require('react-native');
+  const os = Platform.OS;
+  Platform.OS = 'web';
+  const open = jest.spyOn(Linking, 'openURL').mockResolvedValue(true);
+  const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+  try {
+    const { press } = await show(clone(F.getMeetup));
+    await press('Directions');
+    expect(alert).not.toHaveBeenCalled();
+    expect(open).toHaveBeenCalledWith(F.getMeetup.travel.directions.google);
+  } finally {
+    Platform.OS = os;
+  }
+});
