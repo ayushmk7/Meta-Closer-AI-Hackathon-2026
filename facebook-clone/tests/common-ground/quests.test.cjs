@@ -28,7 +28,7 @@ jest.mock('../../src/platform/scopedStorage', () => ({
 
 const fixtures = require('../../src/features/common-ground/fixtures.json');
 const store = require('../../src/features/common-ground/store');
-const { default: Quests } = require('../../src/features/common-ground/Quests');
+const { default: Quests, noteSurprise } = require('../../src/features/common-ground/Quests');
 const Passport = require('../../src/features/common-ground/Passport').default;
 
 async function render(el) {
@@ -163,4 +163,38 @@ test('a meetup I am newly verified at ticks Verify in person once', async () => 
   await renderer.act(async () => {});
   expect(talkBox(tree).props.accessibilityState).toEqual({ checked: false });
   await renderer.act(async () => tree.unmount());
+});
+
+test('demo: ticks survive the staged clock jump; earned reward shows under the card', async () => {
+  const day1 = new Date('2026-11-12T20:00:00Z'); // Nov 12 PT
+  jest.useFakeTimers({ now: day1, doNotFake: ['nextTick', 'setImmediate', 'queueMicrotask'] });
+  try {
+    delete mockSaved[KEY];
+    await renderer.act(async () =>
+      store.setState({
+        config: { ...fixtures.getConfig, demo: { ...fixtures.getConfig.demo, enabled: true } },
+        joins: [{ ...fixtures.joinPlan, createdAt: day1.toISOString() }],
+      }),
+    );
+    const { tree, labels } = await render(React.createElement(Quests));
+    await renderer.act(async () => noteSurprise());
+    expect(labels()).toContain('Join a plan, done');
+    expect(labels()).toContain('Try Surprise me, done');
+    expect(labels()).not.toContain('Unlocked');
+    // The meetup flow jumps the clock to Saturday and unlocks plan creation.
+    jest.setSystemTime(new Date('2026-11-14T23:30:00Z'));
+    await renderer.act(async () => {
+      jest.advanceTimersByTime(60_000);
+      const me = store.getState().me;
+      store.setState({ me: { ...me, capabilities: { ...me.capabilities, canCreatePlans: true } } });
+    });
+    await renderer.act(async () => {});
+    expect(labels()).toContain('Join a plan, done');
+    expect(labels()).toContain('Try Surprise me, done');
+    expect(labels()).toContain('Unlocked: Create your own plans');
+    await renderer.act(async () => tree.unmount());
+  } finally {
+    jest.useRealTimers();
+    await renderer.act(async () => store.setState({ config: null }));
+  }
 });

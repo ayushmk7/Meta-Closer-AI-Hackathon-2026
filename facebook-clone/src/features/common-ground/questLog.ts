@@ -48,6 +48,7 @@ export interface Quest {
   label: string;
   done: boolean;
 }
+// `today` is the quest day; anything on or after it counts (the demo freezes the day, see Quests.tsx).
 export function quests(
   log: QuestLog,
   joins: Pick<Join, 'createdAt'>[],
@@ -57,9 +58,9 @@ export function quests(
 ): Quest[] {
   const mine = Object.values(messages)
     .flat()
-    .some((m) => m.sender.userId === myUserId && !!myUserId && laDay(m.createdAt) === today);
+    .some((m) => m.sender.userId === myUserId && !!myUserId && laDay(m.createdAt) >= today);
   return [
-    { id: 'join', label: 'Join a plan', done: joins.some((j) => laDay(j.createdAt) === today) },
+    { id: 'join', label: 'Join a plan', done: joins.some((j) => laDay(j.createdAt) >= today) },
     { id: 'message', label: 'Say hi in a group chat', done: mine },
     { id: 'surprise', label: 'Try Surprise me', done: log.surprise },
     { id: 'talk', label: 'Verify in person', done: log.talked },

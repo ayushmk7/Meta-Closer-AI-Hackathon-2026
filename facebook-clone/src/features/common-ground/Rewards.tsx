@@ -7,6 +7,10 @@ import { TZ, type Meetup } from './types';
 import { when } from './ui';
 
 const s = (n: number) => (n === 1 ? '' : 's');
+const goalText = (next: { unlockId: string; label: string; remaining: number }) =>
+  `${next.remaining} more meetup${s(next.remaining)} to ${
+    next.unlockId === 'create_plans' ? 'create your own plans' : `unlock ${next.label}`
+  }`;
 // ms the TZ wall clock is ahead of UTC at instant t (negative in LA).
 const wall = new Intl.DateTimeFormat('en-US', {
   timeZone: TZ,
@@ -24,17 +28,36 @@ export const nextWeek = (iso: string): string => {
   return new Date(naive + offset(t) - offset(naive)).toISOString();
 };
 
+// Under the Quests card: the latest unlock earned (the goal stays on the Rewards card).
+export function RewardRow() {
+  const c = useColors();
+  const unlocks = useCg((st) => st.me?.unlocks);
+  const canCreate = useCg((st) => !!st.me?.capabilities.canCreatePlans);
+  const latest = unlocks?.length
+    ? [...unlocks].sort((a, b) => a.earnedAt.localeCompare(b.earnedAt)).at(-1)!.label
+    : canCreate // the mock flips this without adding an Unlock
+      ? 'Create your own plans'
+      : null;
+  if (!latest) return null;
+  return (
+    <View
+      accessible
+      accessibilityLabel={`Unlocked: ${latest}`}
+      style={{ flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 44 }}
+    >
+      <Icon name="ribbon" size={22} color={c.blue} />
+      <Label style={{ flex: 1, fontWeight: '600' }}>{`Unlocked: ${latest}`}</Label>
+    </View>
+  );
+}
+
 export default function Rewards({ style }: { style?: StyleProp<ViewStyle> }) {
   const c = useColors();
   const r = useCg((st) => st.me?.rewards);
   const regular = useCg((st) => !!st.me?.unlocks.some((u) => u.unlockId === 'regular'));
   const next = r?.nextUnlock;
   if (!r || (!next && !r.streakWeeks && !regular)) return null;
-  const goal =
-    next &&
-    `${next.remaining} more meetup${s(next.remaining)} to ${
-      next.unlockId === 'create_plans' ? 'create your own plans' : `unlock ${next.label}`
-    }`;
+  const goal = next && goalText(next);
   const total = next ? r.confirmedMeetups + next.remaining : 0;
   return (
     <Card style={[{ padding: 16, gap: 10 }, style]}>
