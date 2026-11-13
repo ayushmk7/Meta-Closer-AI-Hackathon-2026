@@ -74,6 +74,11 @@ test('passport: stamps only from completed meetups I checked in to or verified',
   assert.deepEqual(earned([withMe({ verified: true })]).length, 3);
   assert.deepEqual(earned([withMe({})]), [], 'no check-in, no stamp');
   assert.deepEqual(earned([withMe({ checkedIn: true }, 'confirmed')]), [], 'not completed yet');
+  assert.equal(
+    earned([withMe({ verified: true }, 'confirmed')]).length,
+    3,
+    'verified earns at once',
+  );
   const all = stamps([withMe({ checkedIn: true })], seen);
   assert.equal(new Set(all.map((s) => `${s.kind}:${s.key}`)).size, all.length, 'distinct');
   assert.ok(

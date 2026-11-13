@@ -39,15 +39,16 @@ export default function SurpriseButton() {
     const s = getState();
     const p = s.feed && pickSurprise(s.feed.plans, s.joins);
     if (p) {
-      go(`/common-ground/plan/${p.planId}`);
+      go(`/common-ground/plan/${p.planId}?surprise=1`); // Plan shows "Muse picked this for you"
       void noteSurprise(); // Quests: "Try Surprise me"
     } else if (s.feed) setNote(true);
     // ponytail: after a push, hold the guard 600ms while the route animates in; a focus listener if that misfires.
     setTimeout(() => (busy.current = false), p ? 600 : 0);
   };
   return (
-    <View style={{ paddingHorizontal: 16, gap: 6, alignItems: 'flex-start' }}>
-      <Pill label="Surprise me" icon="dice-outline" onCanvas onPress={() => void onPress()} />
+    // A Muse bar chip (same in-card Pill as the prompts); Plans places it first in that row.
+    <View style={{ gap: 6, alignItems: 'flex-start' }}>
+      <Pill label="Surprise me" icon="dice-outline" onPress={() => void onPress()} />
       {note && <Muted accessibilityLiveRegion="polite">{EMPTY}</Muted>}
     </View>
   );

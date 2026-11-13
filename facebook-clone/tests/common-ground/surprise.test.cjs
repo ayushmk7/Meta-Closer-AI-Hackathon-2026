@@ -94,7 +94,7 @@ test('tap loads a missing feed, then opens a qualifying plan', async () => {
   const pool = store
     .getState()
     .feed.plans.filter((p) => p.status === 'open' && !p.myJoin && p.crowd.spotsLeft > 0);
-  expect(router.push).toHaveBeenCalledWith(`/common-ground/plan/${pool[0].planId}`);
+  expect(router.push).toHaveBeenCalledWith(`/common-ground/plan/${pool[0].planId}?surprise=1`);
   await renderer.act(async () => tree.unmount());
 });
 
