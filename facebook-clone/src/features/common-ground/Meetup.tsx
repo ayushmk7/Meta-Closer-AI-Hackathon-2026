@@ -24,10 +24,18 @@ import VenueMap from './VenueMap';
 import { api } from './api';
 import { act, currentLocation, leaveMeetup, load, setState, getState, useCg } from './store';
 import { TZ, type Attendee, type Feedback, type Meetup } from './types';
-import { Banners, InterestChips, NotFound, PersonAvatar, personName, usePoll, when } from './ui';
+import {
+  Banners,
+  clock,
+  InterestChips,
+  NotFound,
+  PersonAvatar,
+  personName,
+  Section,
+  usePoll,
+  when,
+} from './ui';
 
-const time = (iso: string) =>
-  new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: TZ });
 // Day in the plan's timezone (CONTRACTS Decisions), not the phone's.
 const day = (d: Date | string, opts: Intl.DateTimeFormatOptions = {}) =>
   new Date(d).toLocaleDateString('en-US', { ...opts, timeZone: TZ });
@@ -51,16 +59,6 @@ const put = (m: Meetup) => setState({ meetups: { ...getState().meetups, [m.meetu
 // iOS calshow takes seconds since 2001-01-01.
 const calshow = (iso: string) => `calshow:${Math.round(Date.parse(iso) / 1000 - 978307200)}`;
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <Card style={{ padding: 16, gap: 10 }}>
-      <Label accessibilityRole="header" style={{ fontSize: 17, fontWeight: '700' }}>
-        {title}
-      </Label>
-      {children}
-    </Card>
-  );
-}
 function Row({
   icon,
   children,
@@ -376,7 +374,7 @@ export default function MeetupScreen() {
         {m.travel && (
           <Row icon="navigate-outline">
             <Label>{m.travel.label}</Label>
-            <Muted>Leave by {time(m.travel.leaveBy)}</Muted>
+            <Muted>Leave by {clock(m.travel.leaveBy)}</Muted>
           </Row>
         )}
         <View style={{ flexDirection: 'row', gap: 8 }}>
