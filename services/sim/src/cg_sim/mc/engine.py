@@ -110,6 +110,9 @@ def simulate(w: World, policy: str, seed: int, flake: float = 1.0, join: float =
     learn = policy == "common_ground_learned"
     pref_keys = _pref_keys(w) if learn else None
     alpha = p["matching"]["prefAlpha"]
+    # Sim-only knob (not in params.yaml): "all" = D's rewards incl. no-show; "meet_again" = only the pair
+    # meet-again outcome, which keys (act/vn/int) cannot soak up per person, so it can't self-read p_show.
+    learn_from = p["sim"].get("learnFrom", "all")
     week_frame = {"meetups": [], "metPairs": [], "friendships": []}
     low = w.low
 
@@ -162,7 +165,7 @@ def simulate(w: World, policy: str, seed: int, flake: float = 1.0, join: float =
                     wk_seated += len(g)
                     wk_showed += len(showed)
                     liked = set()
-                    if learn:  # D: a no-show of mine is -0.5
+                    if learn and learn_from == "all":  # D: a no-show of mine is -0.5
                         for i in set(g) - set(showed):
                             _learn(prefs, w.users[i], pref_keys[j], -0.5, alpha)
                     if len(showed) < 2:

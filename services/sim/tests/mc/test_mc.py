@@ -118,3 +118,13 @@ def test_learned_policy_rewards_meetups(toy, monkeypatch):
     assert calls and all(r in (0.5, -0.5) for _, r in calls)
     assert all(any(k.startswith("act:") for k in keys) for keys, _ in calls)
     assert len(m["showRateByWeek"]) == len(m["friendShareByWeek"]) == toy.weeks
+    # learnFrom=meet_again: no no-show penalty, so strictly fewer rewards (only people who showed learn)
+    import copy
+    import dataclasses
+
+    p = copy.deepcopy(toy.params)
+    p["sim"]["learnFrom"] = "meet_again"
+    n_all = len(calls)
+    calls.clear()
+    engine.simulate(dataclasses.replace(toy, params=p), "common_ground_learned", 3)
+    assert 0 < len(calls) < n_all
