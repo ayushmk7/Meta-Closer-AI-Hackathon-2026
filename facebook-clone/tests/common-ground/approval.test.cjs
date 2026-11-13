@@ -86,7 +86,7 @@ const layout = async (tree) => {
   );
   await renderer.act(async () => amount.props.onLayout({ nativeEvent: { layout: {} } }));
 };
-const approveDisabled = (byLabel) => byLabel('Approve').props.accessibilityState.disabled;
+const approveDisabled = (byLabel) => byLabel('Approve $35').props.accessibilityState.disabled;
 
 test('C8: Approve stays disabled until the amount renders; nothing approves without a tap', async () => {
   const decide = jest.spyOn(api, 'decideApproval');
@@ -113,7 +113,7 @@ test('Approve sends approve and buzzes; Pay at the venue sends decline', async (
   const a = await render(React.createElement(ApprovalSheet, { approval: approval() }));
   await a.press('Review: OK $35 for your wheel?');
   await layout(a.tree);
-  await a.press('Approve');
+  await a.press('Approve $35');
   expect(decide).toHaveBeenLastCalledWith('ap_0001', 'approve');
   expect(Haptics.notificationAsync).toHaveBeenCalled();
 

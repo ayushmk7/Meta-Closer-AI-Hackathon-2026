@@ -3,7 +3,6 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, View } from 'react-native';
 import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import {
-  Card,
   Icon,
   IconButton,
   Input,
@@ -118,7 +117,7 @@ function Starters({ items, onPick }: { items: string[]; onPick(text: string): vo
   return (
     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
       {items.map((t) => (
-        <Pill key={t} label={t} outlined onPress={() => onPick(t)} />
+        <Pill key={t} label={t} onPress={() => onPick(t)} />
       ))}
     </View>
   );
@@ -161,14 +160,25 @@ function Bubble({
   ));
   if (m.sender.kind === 'muse')
     return (
-      <Card style={{ borderWidth: 1, borderColor: c.divider, padding: 12, gap: 10 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+      // Messenger-style: gray bubble with the Muse avatar, attachments under it.
+      <View style={{ gap: 4 }}>
+        <Muted style={{ marginLeft: 48 }}>Muse</Muted>
+        <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 8, maxWidth: '85%' }}>
           <MuseAvatar />
-          <Label style={{ fontWeight: '700' }}>Muse</Label>
+          <View
+            style={{
+              flexShrink: 1,
+              borderRadius: 18,
+              paddingHorizontal: 14,
+              paddingVertical: 10,
+              backgroundColor: c.input,
+            }}
+          >
+            <Label>{m.text}</Label>
+          </View>
         </View>
-        <Label>{m.text}</Label>
-        {attachments}
-      </Card>
+        {m.attachments.length > 0 && <View style={{ marginLeft: 40, gap: 8 }}>{attachments}</View>}
+      </View>
     );
   if (m.sender.kind !== 'user')
     return <Muted style={{ textAlign: 'center', marginVertical: 4 }}>{m.text}</Muted>;

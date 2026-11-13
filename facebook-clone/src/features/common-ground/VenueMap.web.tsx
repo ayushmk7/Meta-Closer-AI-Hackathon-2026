@@ -10,7 +10,8 @@ export default function VenueMap({ venue, style }: { venue: Venue; style?: Style
       accessible
       accessibilityLabel={`Map of ${venue.name}`}
       style={[
-        { height: 160, backgroundColor: c.input, alignItems: 'center', justifyContent: 'center' },
+        // c.divider: c.input matches the light canvas, so the tile vanished.
+        { height: 160, backgroundColor: c.divider, alignItems: 'center', justifyContent: 'center' },
         style,
       ]}
     >
