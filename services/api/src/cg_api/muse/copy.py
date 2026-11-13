@@ -209,7 +209,7 @@ FILL_TIMEOUT_S = 30  # background fills; Meta's endpoint takes ~10 s and sheds l
 class MuseCopy:
     """Implements ports.Copy. Never waits on Muse for feed/plan reasons, titles, setup review or nudges: those return
     the template at once and fill a cache in the background (bounded concurrency, retry with backoff); later requests
-    get Muse's text. Only `intro` waits for Muse, up to LIVE_BUDGET_S. Any failure or over-long answer = template."""
+    get Muse's text. Only `intro` and `plan_title` (createPlan) wait for Muse, up to LIVE_BUDGET_S. Any failure or over-long answer = template."""
 
     def __init__(self, muse, contracts_dir=None, *, concurrency: int = 3, retries: int = 3, backoff_s: float = 2.0):
         self.muse = muse
@@ -277,14 +277,19 @@ class MuseCopy:
         finally:
             self._pending.pop(key, None)
 
-    async def _text(self, purpose, task, facts, fallback: str, limit: int) -> str:
-        j = await self._ask(purpose, task, facts)
+    async def _text(self, purpose, task, facts, fallback: str, limit: int, live: bool = False) -> str:
+        j = await self._ask(purpose, task, facts, live=live)
         t = (j or {}).get("text", "").strip()
         return t if 0 < len(t) <= limit else fallback
 
     async def plan_title(self, plan: dict) -> str:
         return await self._text(
-            "copy.title", "Write a plan title, at most 60 characters.", public_plan(plan), plan_title(plan), 60
+            "copy.title",
+            "Write a plan title, at most 60 characters.",
+            public_plan(plan),
+            plan_title(plan),
+            60,
+            live=True,  # set once at createPlan and never swapped later (a public card), so wait for Muse here
         )
 
     async def plan_reason(self, plan: dict, shared_labels: list[CopyInterest]) -> str:
