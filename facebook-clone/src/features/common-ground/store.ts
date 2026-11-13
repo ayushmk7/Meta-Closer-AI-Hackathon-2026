@@ -67,6 +67,7 @@ export interface CgState {
   messages: Record<string, Message[]>;
   muse: MuseBarState;
   error: { message: string; retry?: () => void } | null;
+  nudgeNote: string | null; // one line where a nudge was, after acting on it (the card clears it)
   // own prefs: the only persisted fields (scoped storage 'common-ground:v2', C1)
   userOverride: string | null;
   homeCardDismissed: boolean;
@@ -118,6 +119,7 @@ const initial = (): CgState => ({
   messages: {},
   muse: { conversationId: null, asking: false, lastText: null, reply: null },
   error: null,
+  nudgeNote: null,
   userOverride: null,
   homeCardDismissed: false,
   lastMode: null,
@@ -421,7 +423,15 @@ export async function join(
     return undefined;
   }
   setMyJoin(planId, { joinId: j.joinId, status: j.status });
-  setState({ joins: [j, ...state.joins.filter((x) => x.planId !== planId)] });
+  // A joined plan's nudge is done (the server drops it too); don't wait for the next poll.
+  const nudged = state.nudges.some((n) => n.planId === planId);
+  setState({
+    joins: [j, ...state.joins.filter((x) => x.planId !== planId)],
+    ...(nudged && {
+      nudges: state.nudges.filter((n) => n.planId !== planId),
+      nudgeNote: "You're in. Muse will tell you when the group forms.",
+    }),
+  });
   if (j.meetupId) void load.meetups();
   return j;
 }
@@ -509,14 +519,20 @@ export async function planLikeThis(share: Share): Promise<PlanDetail | MuseReply
 // ---- Nudges ----
 export async function dismissNudge(nudgeId: string, mute: 'none' | 'signal' = 'none') {
   const before = state.nudges;
-  setState({ nudges: before.filter((n) => n.nudgeId !== nudgeId) });
+  setState({
+    nudges: before.filter((n) => n.nudgeId !== nudgeId),
+    nudgeNote:
+      mute === 'signal'
+        ? "Got it. Muse won't suggest this place again."
+        : 'Okay, maybe another time.',
+  });
   if (
     !(await act(
       () => api.dismissNudge(nudgeId, mute).then(() => true),
       () => dismissNudge(nudgeId, mute),
     ))
   )
-    setState({ nudges: before });
+    setState({ nudges: before, nudgeNote: null });
 }
 
 // ---- Meetups and approvals ----

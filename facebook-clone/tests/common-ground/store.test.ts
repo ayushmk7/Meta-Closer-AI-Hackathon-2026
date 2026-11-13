@@ -231,18 +231,18 @@ test('review fixes: retry reruns the action, success clears error, failed start,
   await optIn('city');
   await refreshAll();
 
-  // (1) Retry re-invokes join, so the store records the join.
-  await load.plan('pl_0003');
+  // (1) Retry re-invokes join, so the store records the join (pl_0001: joining the nudged pl_0003 would drop its nudge).
+  await load.plan('pl_0001');
   const realJoin = api.joinPlan;
   api.joinPlan = async () => {
     api.joinPlan = realJoin;
     throw down();
   };
-  await join('pl_0003');
-  assert.equal(getState().plans.pl_0003!.myJoin, null);
+  await join('pl_0001');
+  assert.equal(getState().plans.pl_0001!.myJoin, null);
   getState().error!.retry!();
   await new Promise((r) => setImmediate(r));
-  assert.equal(getState().plans.pl_0003!.myJoin?.status, 'interested');
+  assert.equal(getState().plans.pl_0001!.myJoin?.status, 'interested');
 
   // act: success clears the banner; no store action given -> no Retry (a bare re-call loses the result).
   setState({ error: { message: 'old' } });
@@ -677,8 +677,43 @@ test('mock Muse bar filters plans by the words asked', async () => {
     pottery.plans.map((p: Json) => p.planId),
     ['pl_0001'],
   );
-  const none = await ask('zzz');
-  assert.deepEqual(none.plans, []);
-  assert.equal(none.reply.text, 'Nothing matches that yet. Try another day or activity.');
+  // Some words match: the closest plans, said so.
+  const close = await ask('board games tuesday');
+  assert.ok(close.plans.length > 0 && close.reply.text.startsWith("I couldn't find exactly that"));
+  // Nothing matches: Muse makes one (createdPlanId), like the live backend.
+  const none = await ask('chess');
+  assert.ok(none.plans.length > 0);
+  const made = await ask('zzz');
+  assert.equal(made.plans[0].planId, made.createdPlanId);
+  assert.equal(made.plans[0].title, 'Zzz meetup');
+  const empty = await ask('the');
+  assert.deepEqual(empty.plans, []);
+  assert.equal(empty.reply.text, 'Nothing matches that yet. Try another day or activity.');
+  const surprise = await ask('Surprise me');
+  assert.equal(surprise.plans[0].planId, surprise.createdPlanId);
+  assert.ok(surprise.plans.length >= 2 && surprise.reply.text.startsWith("Here's something new"));
+  assert.ok(!surprise.prompts.includes('Surprise me')); // the bar's own chip covers it
   resetMock();
+});
+
+test('a nudge answers when acted on: dismiss and join drop it and leave a note', async () => {
+  await reset();
+  await start();
+  await optIn('city');
+  await refreshAll();
+  const nudged = () => getState().nudges.filter((n) => n.planId === 'pl_0003').length;
+  assert.equal(nudged(), 1);
+  await join('pl_0003');
+  assert.equal(nudged(), 0);
+  assert.match(getState().nudgeNote ?? '', /You're in/);
+  await load.nudges();
+  assert.equal(nudged(), 0); // the mock drops it too, so a poll doesn't bring it back
+  await reset();
+  await start();
+  await optIn('city');
+  await refreshAll();
+  await dismissNudge(getState().nudges[0]!.nudgeId, 'signal');
+  assert.deepEqual(getState().nudges, []);
+  assert.match(getState().nudgeNote ?? '', /won't suggest this place/);
+  await reset();
 });

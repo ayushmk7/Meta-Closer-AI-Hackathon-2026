@@ -44,7 +44,6 @@ const fixtures = require('../../src/features/common-ground/fixtures.json');
 const store = require('../../src/features/common-ground/store');
 const { pickSurprise } = require('../../src/features/common-ground/SurpriseButton');
 const SurpriseButton = require('../../src/features/common-ground/SurpriseButton').default;
-const { router } = require('expo-router');
 
 const base = fixtures.getFeed.plans[0];
 const card = (planId, over = {}) => ({ ...base, planId, status: 'open', myJoin: null, ...over });
@@ -86,32 +85,8 @@ async function render(el) {
   return { tree, btn };
 }
 
-test('tap loads a missing feed, then opens a qualifying plan', async () => {
-  store.setState({ feed: null, joins: [] });
-  router.push.mockClear();
-  jest.spyOn(Math, 'random').mockReturnValue(0);
-  const { tree, btn } = await render(React.createElement(SurpriseButton));
-  await renderer.act(async () => btn().props.onPress());
-  const pool = store
-    .getState()
-    .feed.plans.filter((p) => p.status === 'open' && !p.myJoin && p.crowd.spotsLeft > 0);
-  expect(router.push).toHaveBeenCalledWith(`/common-ground/plan/${pool[0].planId}?surprise=1`);
-  await renderer.act(async () => tree.unmount());
-});
-
-test('nothing qualifies: inline note, no navigation', async () => {
-  store.setState({ feed: { ...fixtures.getFeed, plans: [card('z', { status: 'full' })] } });
-  router.push.mockClear();
-  const { tree, btn } = await render(React.createElement(SurpriseButton));
-  await renderer.act(async () => btn().props.onPress());
-  expect(router.push).not.toHaveBeenCalled();
-  expect(JSON.stringify(tree.toJSON())).toContain('Nothing new right now. Try the Muse bar.');
-  await renderer.act(async () => tree.unmount());
-});
-
-test('double tap during feed fetch: one pick, one push', async () => {
-  store.setState({ feed: null, joins: [] });
-  router.push.mockClear();
+test('tap asks Muse "Surprise me" once, even on a double tap', async () => {
+  const spy = jest.spyOn(store, 'askMuse');
   const { tree, btn } = await render(React.createElement(SurpriseButton));
   await renderer.act(async () => {
     const press = btn().props.onPress;
@@ -119,32 +94,8 @@ test('double tap during feed fetch: one pick, one push', async () => {
     press();
     await new Promise((r) => setTimeout(r, 50));
   });
-  expect(router.push).toHaveBeenCalledTimes(1);
+  expect(spy).toHaveBeenCalledTimes(1);
+  expect(spy).toHaveBeenCalledWith('Surprise me');
+  expect(store.getState().muse.reply.reply.text).toMatch(/^Here's something new/);
   await renderer.act(async () => tree.unmount());
-});
-
-test('double tap with feed loaded: one push', async () => {
-  await store.load.feed();
-  router.push.mockClear();
-  const { tree, btn } = await render(React.createElement(SurpriseButton));
-  await renderer.act(async () => {
-    const press = btn().props.onPress;
-    press();
-    press();
-  });
-  expect(router.push).toHaveBeenCalledTimes(1);
-  await renderer.act(async () => tree.unmount());
-});
-
-test('feed load fails: no note, no navigation', async () => {
-  const { api } = require('../../src/features/common-ground/api');
-  store.setState({ feed: null });
-  jest.spyOn(api, 'getFeed').mockRejectedValue(new Error('down'));
-  router.push.mockClear();
-  const { tree, btn } = await render(React.createElement(SurpriseButton));
-  await renderer.act(async () => btn().props.onPress());
-  expect(router.push).not.toHaveBeenCalled();
-  expect(JSON.stringify(tree.toJSON())).not.toContain('Nothing new right now');
-  await renderer.act(async () => tree.unmount());
-  store.setState({ error: null });
 });

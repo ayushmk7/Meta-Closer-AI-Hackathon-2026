@@ -1,14 +1,11 @@
-// "Surprise me" (I'm Feeling Lucky): open a random plan from the viewer's own feed. Client-only (CONTRACTS Decisions).
-import { useRef, useState } from 'react';
-import { View } from 'react-native';
+// "Surprise me": asks Muse, which makes a new meetup and adds a few random picks from the feed.
+// pickSurprise stays for the plan page's "Try another" (a random plan from the viewer's feed).
+import { useRef } from 'react';
 import * as Haptics from 'expo-haptics';
-import { Muted, go } from '../../ui/native';
 import { noteSurprise } from './Quests';
-import { getState, load } from './store';
+import { askMuse, getState } from './store';
 import { Pill } from './ui';
 import type { Join, PlanCard } from './types';
-
-const EMPTY = 'Nothing new right now. Try the Muse bar.';
 
 // Uniform pick among open, not-full plans the viewer hasn't joined. rng injectable for tests.
 export function pickSurprise(
@@ -28,28 +25,18 @@ export function pickSurprise(
 }
 
 export default function SurpriseButton() {
-  const [note, setNote] = useState(false);
-  const busy = useRef(false); // one pick, one push per tap burst
+  const busy = useRef(false); // one ask per tap burst
   const onPress = async () => {
-    if (busy.current) return;
+    if (busy.current || getState().muse.asking) return;
     busy.current = true;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-    setNote(false);
-    if (!getState().feed) await load.feed(); // never throws; on failure feed stays null and the banner explains
-    const s = getState();
-    const p = s.feed && pickSurprise(s.feed.plans, s.joins);
-    if (p) {
-      go(`/common-ground/plan/${p.planId}?surprise=1`); // Plan shows "Muse picked this for you"
-      void noteSurprise(); // Quests: "Try Surprise me"
-    } else if (s.feed) setNote(true);
-    // ponytail: after a push, hold the guard 600ms while the route animates in; a focus listener if that misfires.
-    setTimeout(() => (busy.current = false), p ? 600 : 0);
+    void noteSurprise(); // Quests: "Try Surprise me"
+    // Muse answers in the bar: a meetup it makes for you plus a few picks from your feed.
+    await askMuse('Surprise me');
+    busy.current = false;
   };
   return (
     // A Muse bar chip (same in-card Pill as the prompts); Plans places it first in that row.
-    <View style={{ gap: 6, alignItems: 'flex-start' }}>
-      <Pill label="Surprise me" icon="dice-outline" onPress={() => void onPress()} />
-      {note && <Muted accessibilityLiveRegion="polite">{EMPTY}</Muted>}
-    </View>
+    <Pill label="Surprise me" icon="dice-outline" onPress={() => void onPress()} />
   );
 }
