@@ -70,7 +70,7 @@ VIBES = {
     "museum_visit": "Wander the galleries together and trade takes over coffee after.",
     "film_screening": "Settle in for a good movie, then swap opinions on the way out.",
     "cooking_together": "Everyone chops, stirs and tastes, then you eat what you made.",
-    "food_crawl": "Small bites at a few stops. Come hungry and share everything.",
+    "food_crawl": "Shared small plates around one table. Come hungry and order for the group.",
     "brunch": "A slow, sunny table with good food and no rush to leave.",
     "craft_session": "Hands-on making with all supplies set out. Leave with something you made.",
     "ceramics_studio": "Get your hands in the clay at your own pace. Beginners welcome.",
