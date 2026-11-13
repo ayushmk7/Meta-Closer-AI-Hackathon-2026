@@ -104,6 +104,37 @@ test('plan card: checks (failed one muted, no tick), crowd counts, In badge', as
   for (const n of names) expect(text()).not.toContain(n); // C5
 });
 
+test('plan cards (and the skeleton) are all the same size whatever the content', async () => {
+  const { PlanCardSkeleton } = require('../../src/features/common-ground/PlanCard');
+  const { StyleSheet } = require('react-native');
+  const long = {
+    ...plan,
+    title: 'A very long plan title that would wrap onto three or even four lines if allowed',
+    reason: 'A long reason. '.repeat(20),
+    venue: { ...plan.venue, photoUrl: null },
+    checks: [
+      { kind: 'calendar', ok: true, label: 'Fits your Saturday' },
+      { kind: 'cost', ok: false, label: 'Over your budget' },
+      { kind: 'distance', ok: true, label: 'Near you' },
+      { kind: 'interest', ok: true, label: 'You like this' },
+    ],
+    myJoin: { joinId: 'jn_x', status: 'interested' },
+  };
+  const short = { ...plan, title: 'Walk', reason: '', checks: [], myJoin: undefined };
+  const size = async (el) => {
+    const { tree } = await render(el);
+    const host = tree.root.find((n) => typeof n.type === 'string');
+    const { width, height } = StyleSheet.flatten(host.props.style);
+    return { width, height };
+  };
+  const a = await size(React.createElement(PlanCard, { plan: long, badge: 'New' }));
+  const b = await size(React.createElement(PlanCard, { plan: short }));
+  const sk = await size(React.createElement(PlanCardSkeleton));
+  expect(a.height).toBeGreaterThan(0);
+  expect(b).toEqual(a);
+  expect(sk).toEqual(a);
+});
+
 test('plans home renders with a null feed (stable selector fallbacks, no update loop)', async () => {
   store.setState({ feed: null });
   const { text } = await render(React.createElement(PlansScreen));
