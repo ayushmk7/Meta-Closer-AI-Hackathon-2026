@@ -209,3 +209,25 @@ test('IdeasRow: compact cards from the gallery; See all opens Explore', async ()
   await press('See all ideas in Explore');
   expect(router.push).toHaveBeenCalledWith('/common-ground/explore');
 });
+
+test('Plan something like this: a second tap while in flight is dropped', async () => {
+  const { planFromShare } = require('../../src/features/common-ground/ShareCard');
+  let resolve;
+  const ask = jest
+    .spyOn(api, 'askMuse')
+    .mockImplementationOnce(() => new Promise((r) => (resolve = r)));
+  store.setState({
+    me: {
+      ...store.getState().me,
+      capabilities: { ...store.getState().me.capabilities, canCreatePlans: false },
+    },
+  });
+  const s = shares()[3];
+  const first = planFromShare(s);
+  await planFromShare(s);
+  expect(ask).toHaveBeenCalledTimes(1);
+  resolve(fixtures.askMuse);
+  await renderer.act(async () => void (await first));
+  await renderer.act(async () => void (await planFromShare(s).catch(() => {})));
+  expect(ask).toHaveBeenCalledTimes(2); // released after the first finished
+});

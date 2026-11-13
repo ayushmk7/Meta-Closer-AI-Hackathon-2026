@@ -30,10 +30,18 @@ export const shareDate = (day: string): string => {
 };
 
 // "Plan something like this": a new plan opens its pop-up; a Muse answer shows on Plans home.
+// ponytail: one module-wide in-flight flag (ShareCard and IdeasRow share it); a second tap
+// while Muse is working is dropped instead of creating a second plan.
+let planning = false;
 export async function planFromShare(share: Share): Promise<void> {
-  const r = await planLikeThis(share);
-  if (!r) return;
-  go('planId' in r ? `/common-ground/plan/${r.planId}` : '/common-ground');
+  if (planning) return;
+  planning = true;
+  try {
+    const r = await planLikeThis(share);
+    if (r) go('planId' in r ? `/common-ground/plan/${r.planId}` : '/common-ground');
+  } finally {
+    planning = false;
+  }
 }
 
 function Action({
