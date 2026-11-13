@@ -247,6 +247,10 @@ def _():
 
     m = wait_for("meetup confirmed", confirmed)
     kinds = [s["kind"] for s in m["museSteps"]]
+    # the app plays its faux venue call off this exact prefix (StepTimeline.isTableStep)
+    assert any(s["label"].startswith("Reserved a table") for s in m["museSteps"]), [
+        s["label"] for s in m["museSteps"]
+    ]
     assert m["booking"] and m["booking"].get("status") in (
         "booked",
         "pay_at_venue",
