@@ -133,6 +133,19 @@ def test_static_is_confined(public):
     assert public.get("/static/secrets/x.png").status_code == 404
 
 
+def test_p3_private_avatar_not_served(public, api, tmp_path, monkeypatch):
+    (tmp_path / "avatars").mkdir()
+    for uid in ("u_0125", "u_0144"):
+        (tmp_path / "avatars" / f"{uid}.png").write_bytes(b"png")
+        store.users[uid]["persona"]["avatar"] = f"avatars/{uid}.png"
+    monkeypatch.setattr(store, "seed_dirs", {"pool_sf_city": str(tmp_path)})
+    assert store.users["u_0125"]["profileVisibility"] == "private"  # demo privateCounterpartId
+    assert public.get("/static/avatars/u_0125.png").status_code == 404  # guessable from the userId
+    assert public.get("/static/avatars/u_0144.png").status_code == 200
+    api("updateMe", json={"profileVisibility": "private"}, headers={"X-CG-User": "u_0144"})
+    assert public.get("/static/avatars/u_0144.png").status_code == 404
+
+
 def test_config_demo_from_seed(api):
     assert api("getConfig").json()["demo"]["fakeLocation"] == {"lat": 37.7594, "lng": -122.4676}
 

@@ -89,10 +89,18 @@ _STATIC = {"avatars": "avatars", "venues": "venue_photos"}
 _NAME = re.compile(r"^[a-z0-9_]+\.(png|jpe?g)$")
 
 
+def _public_avatar(name: str) -> bool:
+    """P3: a private user's photo is not served even to someone who guesses /static/avatars/<userId>.png."""
+    return any(
+        u["profileVisibility"] != "private" and (u["persona"].get("avatar") or "").rsplit("/", 1)[-1] == name
+        for u in store.users.values()
+    )
+
+
 @router.get("/static/{kind}/{name}", name="static")
 def static(kind: str, name: str):
     """Seed avatars and venue photos of the loaded pool. Names are checked, so no path escapes the seed folder."""
-    if kind not in _STATIC or not _NAME.match(name):
+    if kind not in _STATIC or not _NAME.match(name) or (kind == "avatars" and not _public_avatar(name)):
         raise ApiError(404, "not_found", "That isn't here anymore.")
     path = next((p for d in store.seed_dirs.values() if (p := Path(d) / _STATIC[kind] / name).is_file()), None)
     if path is None:
