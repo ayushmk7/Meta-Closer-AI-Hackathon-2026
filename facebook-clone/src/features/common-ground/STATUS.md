@@ -41,5 +41,6 @@ Milestone: v2 M2 device layer (A2, `cg/ios/v2-m2-device`)
 - Plan pop-up is a plain stack push; formSheet `_layout.tsx` comes in A2 if wanted.
 - Calendar writes and leave-by notifications are untested on a device: need a human with an iPhone in Expo Go (calshow, notification tap).
 - The WebSocket path is untested against a live backend.
+- askMuse and sendMessage drop results that land after setIdentity/reset (gen check). Other actions (join, optIn, dismissNudge rollback, likeShare) do not yet; their windows are short.
 - 2026-11-13 batch5 passport (`cg/ios/b5-passport`): Passport redesign per b5 spec: blue cover card with count + progress bar, tilted postmark stamps (activity/place Ionicons, neighborhood monogram), earned date line, per-section counts, staggered enter, "See plans" on empty. Share IconButton (native Title aside, earned >= 1) sends own earned count, up to 3 activities and neighborhoods and a welcome link via RN `Share`; never venue names, dates, people or locked stamps. Cut per spec order: seen-stamp persistence (pop stays on earned transition). Native only: no web share entry.
 - 2026-11-13 Faux call (UI only): a "Reserved a table…" book step plays a CallCard once per meetup per session (ringing, 4-line Muse/venue transcript, "Reserved · table for N · time"); reduce motion shows the final state; old "Coming soon" call teaser removed.
