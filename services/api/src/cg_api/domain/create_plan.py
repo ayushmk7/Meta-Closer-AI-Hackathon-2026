@@ -11,13 +11,13 @@ import re
 from datetime import datetime, timedelta
 
 from cg_api import ports
-from cg_api.domain import joins, plans
+from cg_api.domain import joins, plans, screen
 from cg_api.domain.world import Fail, World, iso, parse
 from cg_api.settings import get_settings
 
 log = logging.getLogger("cg_api.domain.create_plan")
 HOURS = {"morning": 10, "afternoon": 14, "evening": 18}
-WHEN = re.compile(r"\s+(this|next) weekend\.?$", re.I)
+DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
 
 
 def counted_meetups(w: World, uid: str) -> int:
@@ -59,16 +59,26 @@ def _in_pool(w: World, v: dict, pool: str) -> bool:
     return any(p["venueId"] == v["venueId"] and p.get("poolId") == pool for p in w.plans.values())
 
 
-def _start(w: World, f: dict) -> datetime:
-    """The asked day/part if it is far enough ahead, else the next weekend morning (local time)."""
+def _days(text: str, f: dict, today) -> list:
+    """A weekday the text names beats "weekend" (the keyword parser's elif chain lets weekend win)."""
+    named = [i for i, d in enumerate(DAYS) if re.search(rf"\b{d}\b", text, re.I)]
+    if named:
+        return [today + timedelta((i - today.weekday()) % 7) for i in named]
+    return [datetime.fromisoformat(d).date() for d in f.get("days") or []]
+
+
+def _start(w: World, text: str, f: dict) -> datetime:
+    """The asked day/part if far enough ahead; if too soon, the next days at the same part (tonight -> tomorrow
+    evening), never silently a week out; nothing asked -> the next weekend morning (local time)."""
     lead = w.now() + timedelta(hours=w.params["plans"]["minLeadHours"])
     hour = HOURS.get(f.get("part") or "", None)
-    days = [datetime.fromisoformat(d).date() for d in f.get("days") or []]
     today = w.now().astimezone(plans.TZ).date()
-    if not days:
+    asked = _days(text, f, today)
+    if not asked:
         sat = today + timedelta((5 - today.weekday()) % 7)
-        days = [sat, sat + timedelta(1), sat + timedelta(7)]
-    for d in days + [d + timedelta(7) for d in days]:
+        asked = [sat, sat + timedelta(1)]
+    days = asked + [asked[0] + timedelta(k) for k in range(1, 8)]
+    for d in days:
         start = datetime(d.year, d.month, d.day, hour or (10 if d.weekday() >= 5 else 18), tzinfo=plans.TZ)
         if start >= lead:
             return start
@@ -100,6 +110,8 @@ async def create(w: World, viewer: str, text, invite_ids=None) -> dict:
     if open_n >= w.params["plans"]["openJoinsMax"]:
         raise Fail(429, "rate_limited", "You're in a lot of plans already. Wait for one to fill first.")
     text = text.strip()
+    if screen.blocked(text):
+        raise Fail(422, "screened", "I can't set that one up. Try a different idea for a group.")
     if get_settings().laya_fake:
         log.info("createPlan: LAYA_FAKE, plan_ok screen skipped for %s", viewer)
     else:
@@ -116,7 +128,7 @@ async def create(w: World, viewer: str, text, invite_ids=None) -> dict:
     if venue is None:
         raise Fail(400, "validation_failed", "I couldn't turn that into a plan. Try naming an activity or a place.")
     activity = next((a for a in f["activityTypes"] if a in venue["activityTypes"]), venue["activityTypes"][0])
-    start = _start(w, f)
+    start = _start(w, text, f)
     try:
         cgm_map = ports.matching().ACTIVITY_INTERESTS  # the activity -> interest mapping lives in cg_matching
     except ports.Unavailable:
@@ -126,8 +138,8 @@ async def create(w: World, viewer: str, text, invite_ids=None) -> dict:
         for t in [*cgm_map.get(activity, []), *[i for i in f["interestIds"] if i.count(".") == 1]]
         if t in w.taxonomy and not w.taxonomy[t]["sensitive"]
     ] or ["travel.local_exploring"]
-    title = WHEN.sub("", text) if venue["name"].lower() in text.lower() and len(text) <= 60 else ""
-    title = title or plans.with_venue(activity.replace("_", " ").capitalize(), venue["name"])
+    # never the creator's raw words: others see this title, and it lands in their calendar holds (P7)
+    title = plans.with_venue(plans.activity_noun(activity), venue["name"])
     try:
         title = (
             await ports.ports.copy.plan_title({"title": title, "activityType": activity, "venueName": venue["name"]})
@@ -143,7 +155,7 @@ async def create(w: World, viewer: str, text, invite_ids=None) -> dict:
         "planId": w.next_id("pl_u"),
         "poolId": pool,
         "title": title[:60],
-        "description": f"{activity.replace('_', ' ').capitalize()} at {venue['name']} on {day}. Muse is gathering people.",
+        "description": f"{plans.activity_noun(activity)} at {venue['name']} on {day}. Muse is gathering people.",
         "activityType": activity,
         "venueId": venue["venueId"],
         "startsAt": iso(start),
@@ -160,4 +172,5 @@ async def create(w: World, viewer: str, text, invite_ids=None) -> dict:
     joins.join(w, viewer, plan["planId"])
     for uid in invite_ids:
         w.emit(uid, "feed.updated")
+    await plans.warm_reasons(w, viewer, [plan["planId"]])  # the pop-up opens on this plan: give it Muse's line
     return plans.detail(w, viewer, plan)

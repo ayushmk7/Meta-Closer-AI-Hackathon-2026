@@ -272,6 +272,9 @@ def test_caption_naming_a_coattendee_is_refused(world):
             share(world, "u_maya", mt, cap)
         assert (e.value.status, e.value.code) == (422, "screened") and "names" in e.value.message
     assert share(world, "u_maya", mt, "Rosary beads? No, bowls.")["mine"]  # word match, not substring
+    with pytest.raises(Fail) as e:  # the local screen runs even under LAYA_FAKE
+        share(world, "u_maya", mt, "We should kill it next time")
+    assert (e.value.status, e.value.code) == (422, "screened")
 
 
 def test_verify_guessing_is_capped(world):

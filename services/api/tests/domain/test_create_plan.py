@@ -8,7 +8,6 @@ import pytest
 from cg_api import contracts, ports
 from cg_api.domain import create_plan, joins, meetups, plans
 from cg_api.domain.world import Fail, parse
-from domain.fixture_world import NOW
 
 
 @pytest.fixture(autouse=True)
@@ -44,16 +43,11 @@ def test_plan_something_like_this_from_a_share_prompt(world):
     unlocked(world, "u_maya")
     d = create(world, "u_maya", "Sunday coastal walk at Lands End Trail this weekend")
     contracts.validate(contracts.op_by_id("createPlan"), 200, d)
-    assert (d["venue"]["venueId"], d["activityType"], d["title"]) == (
-        "vn_trail",
-        "walk",
-        "Sunday coastal walk at Lands End Trail",
-    )
+    assert (d["venue"]["venueId"], d["activityType"], d["title"]) == ("vn_trail", "walk", "Walk at Lands End Trail")
     assert d["origin"] == "user" and d["myJoin"]["status"] == "interested"
     start = parse(d["startsAt"]).astimezone(plans.TZ)
-    assert (
-        start.weekday() >= 5 and parse(d["startsAt"]) >= NOW.replace(hour=0) and "Muse is gathering" in d["description"]
-    )
+    assert start.strftime("%A") == "Sunday" and "on Sunday" in d["description"]  # the named day beats "weekend"
+    assert "Muse is gathering" in d["description"] and d["reason"]  # pop-up has Muse's line
     assert "Sunday coastal walk" not in d["description"]  # template, never the raw words
 
 
@@ -108,3 +102,32 @@ def test_real_laya_screens_and_fake_skips(world, monkeypatch):
     with pytest.raises(Fail) as e:
         create(world, "u_maya", "a coastal walk sunday")
     assert (e.value.status, e.value.code) == (422, "screened")
+
+
+def test_raw_words_never_become_public_copy(world):
+    unlocked(world, "u_maya")
+    for text in ("drinks lol at Lands End Trail", "Board games with Daniel at Clay Hour Studio"):
+        d = create(world, "u_maya", text)
+        assert d["title"] in ("Walk at Lands End Trail", "Wheel-throwing at Clay Hour Studio"), d["title"]
+        assert "Daniel" not in str(d) and "lol" not in str(d)
+    holds = [joins.hold(world, j) for j in world.joins.values() if j["userId"] == "u_maya"]
+    assert not any("Daniel" in (h or {}).get("title", "") for h in holds)  # P7: calendar holds name nobody
+
+
+def test_obviously_bad_text_is_refused_even_under_laya_fake(world):
+    from cg_api.settings import get_settings
+
+    assert get_settings().laya_fake
+    unlocked(world, "u_maya")
+    for text in ("kill them all at Clay Hour Studio", "coke party saturday"):
+        with pytest.raises(Fail) as e:
+            create(world, "u_maya", text)
+        assert (e.value.status, e.value.code) == (422, "screened")
+
+
+def test_too_soon_rolls_to_tomorrow_not_next_week(world):
+    """Thursday 10 AM local, 12 h lead: 'tonight' (6 PM) is too soon -> Friday 6 PM, never next Thursday."""
+    unlocked(world, "u_maya")
+    d = create(world, "u_maya", "pottery tonight")
+    start = parse(d["startsAt"]).astimezone(plans.TZ)
+    assert (start.strftime("%A"), start.hour) == ("Friday", 18)
