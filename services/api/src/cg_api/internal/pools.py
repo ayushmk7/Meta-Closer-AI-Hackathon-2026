@@ -35,19 +35,21 @@ def list_pools():
     return {"items": items}
 
 
-def _pairs(uid: str, met_only: bool) -> list[str]:
-    return sorted(
-        o
-        for k, c in store.connections.items()
-        if uid in k and (not met_only or c["status"] == "met")
-        for o in k - {uid}
-    )
+def others(pairs) -> dict[str, list[str]]:
+    """uid -> the other side of every pair it is in: one pass, instead of a scan of every pair per user."""
+    out: dict[str, list[str]] = {}
+    for k in pairs:
+        for uid in k:
+            out.setdefault(uid, []).extend(k - {uid})
+    return out
 
 
 def export(pool_id: str) -> dict:
     """schemas/pool_export.schema.json. Internal only: exact homes, hidden and sensitive data."""
     if pool_id not in store.pools:
         raise ApiError(404, "not_found", "That pool isn't loaded.")
+    conn, blocked = others(store.connections), others(store.blocks)
+    met = others(k for k, c in store.connections.items() if c["status"] == "met")
     users = []
     for uid in members(pool_id):
         u = store.users[uid]
@@ -74,8 +76,8 @@ def export(pool_id: str) -> dict:
                 ],
                 "groupOnly": True,
                 "trustFloorOk": u.get("trustFloorOk", True),
-                "connectionIds": _pairs(uid, met_only=False),
-                "blockedIds": sorted(o for k in store.blocks if uid in k for o in k - {uid}),
+                "connectionIds": sorted(conn.get(uid, [])),
+                "blockedIds": sorted(blocked.get(uid, [])),
                 "travel": u["travel"],
                 "busy": [{"start": b["start"], "end": b["end"]} for b in sorted(u["busy"], key=lambda b: b["start"])],
                 "signals": [
@@ -94,18 +96,21 @@ def export(pool_id: str) -> dict:
                     }
                     for s in u["signals"].values()
                 ],
-                "metIds": _pairs(uid, met_only=True),
+                "metIds": sorted(met.get(uid, [])),
             }
         )
+    joined, meetups = {}, {}  # one pass each, same order as a per-plan scan
+    for j in store.joins.values():
+        if j["status"] in ("interested", "matched"):
+            joined.setdefault(j["planId"], []).append(j["userId"])
+    for m, mt in store.meetups.items():
+        meetups.setdefault(mt.get("planId"), []).append(m)
     plans = []
     for pid, pl in store.plans.items():
         if pl.get("poolId") != pool_id:
             continue
-        joined = [
-            j["userId"] for j in store.joins.values() if j["planId"] == pid and j["status"] in ("interested", "matched")
-        ]
-        plans.append({"planId": pid, "status": pl["status"], "interestedIds": joined,
-                      "meetupIds": [m for m, mt in store.meetups.items() if mt.get("planId") == pid]})  # fmt: skip
+        plans.append({"planId": pid, "status": pl["status"], "interestedIds": joined.get(pid, []),
+                      "meetupIds": meetups.get(pid, [])})  # fmt: skip
     return {
         "poolId": pool_id,
         "mode": store.pools[pool_id]["mode"],

@@ -16,8 +16,9 @@ from cg_api.store import counters, now_iso, store
 router = APIRouter()
 
 
-def _met(uid: str) -> int:
-    return sum(1 for k, c in store.connections.items() if uid in k and c.get("status") == "met")
+def _met() -> set[str]:
+    """Everyone with at least one met connection (one pass; was a scan of every pair per user)."""
+    return {u for k, c in store.connections.items() if c.get("status") == "met" for u in k}
 
 
 @lru_cache(maxsize=4)
@@ -45,6 +46,7 @@ def pool_graph(poolId: str):
         cands, scene_of = {}, {}
     open_joins = Counter(j["userId"] for j in store.joins.values() if j["status"] == "interested")
     conns = Counter(u for k in store.connections for u in k)
+    met = _met()
     nodes = [
         {
             "userId": uid,
@@ -53,7 +55,7 @@ def pool_graph(poolId: str):
             "sceneId": scene_of.get(uid),
             "connections": conns[uid],
             "openJoins": open_joins[uid],
-            "isolated": _met(uid) == 0,
+            "isolated": uid not in met,
             "synthetic": store.users[uid]["synthetic"],
         }
         for uid in ids
@@ -91,7 +93,7 @@ def live_metrics(poolId: str):
     calls = counters["laya_calls"]
     return {
         "members": len(ids),
-        "isolated": sum(_met(u) == 0 for u in ids),
+        "isolated": len(set(ids) - _met()),
         "connections": len(store.connections),
         "openPlans": sum(p.get("status") == "open" for p in store.plans.values()),
         "joins": len(joins),
