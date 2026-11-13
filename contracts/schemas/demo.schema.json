@@ -36,7 +36,7 @@
     },
     "nudgePlanId": {
       "$ref": "common.schema.json#/$defs/planId",
-      "description": "Free plan at the venue of Maya's Google Maps frequent-place record; drives the Home nudge."
+      "description": "Plan that never needs a payment approval (free or pay at venue) at the venue of Maya's frequent-place record; drives the Home nudge."
     },
     "liveUserId": {
       "$ref": "common.schema.json#/$defs/userId",

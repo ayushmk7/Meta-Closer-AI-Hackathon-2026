@@ -64,7 +64,7 @@ The whole feature is one screen, its own tab in the Facebook bottom bar between 
 │  Climb this weekend · Coffee · Run   │  prompt chips
 │  Muse is setting up 1 plan for you   │  live status
 ├──────────────────────────────────────┤
-│ ┌ Little Fern Kitchen on Saturday? ┐ │  nudge (only when one exists)
+│ ┌ Little Fern Kitchen on Sunday? ──┐ │  nudge (only when one exists)
 │ │ You've been there 4 times this   │ │
 │ │ month. 3 people are in. …        │ │
 │ └──────────────────────────────────┘ │
@@ -294,7 +294,7 @@ Unlocks through confirmed meetups (create your own plans at 1; bigger groups and
 | Time | On screen | What it proves |
 | --- | --- | --- |
 | 0:00 | The problem and the stat | Clear young-adult need |
-| 0:20 | iPhone, Facebook Home: Muse card "You've been to Little Fern Kitchen 4 times this month (Google Maps). Saturday small plates is open. 3 people are in." Tap I'm in: Muse reserves it ("Reserved a table for 4 at Little Fern Kitchen · 7 PM"), no payment to OK | Proactive, from an integration, non-intrusive |
+| 0:20 | iPhone, Facebook Home: Muse card "You've been to Little Fern Kitchen 4 times this month (Google Maps). Sunday small plates is open. 3 people are in." Tap I'm in: Muse reserves it ("Reserved a table for 4 at Little Fern Kitchen · 7 PM"), no payment to OK | Proactive, from an integration, non-intrusive |
 | 0:40 | Plans tab setup glimpse: connected apps; what Muse picked up; one sensitive place auto-hidden with a lock | Integrations with consent; Laya protects her |
 | 1:00 | Muse bar: "pottery this weekend". Muse answers; card shows ✓ Fits your Saturday · 22 min by transit · $35. Open it: who's in (coarse), Muse will handle. Tap I'm in | One decision |
 | 1:40 | Second phone (or synthetic) joins; the group forms. Meetup screen: Muse's steps tick live; approval sheet "OK $35"; booked; the event appears in the iPhone's Calendar app; group chat opens with intro and starters | Visible AI doing the work |

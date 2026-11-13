@@ -364,6 +364,7 @@ Resolved open questions from the v2 build. Additive only; nothing renamed or tig
 - **Plan titles.** Producers write at most 60 characters (PRD); the schema's 80 stays as the hard cap.
 - **Nudge plan origin.** `nudgePlanId` has `origin: signal`.
 - **Event pool nudge.** In `pool_evt_closer_together`, `nudgePlanId` is any free plan in the pool window; the "Maya's frequent place" rule applies to `pool_sf_city` only. `u_maya` connector records in a pool without her persona are ignored by the backend.
+- **Nudge venue (batch 5).** Maya's frequent place in `pool_sf_city` is the fictional Little Fern Kitchen (Hayes Valley, Californian small plates); the nudge plan is a pay-at-venue table for 4 at 7 PM, so the demo shows Muse reserving a table. "Maya's frequent place" rule unchanged; "free" relaxed to "no payment approval".
 - **Demo plans.** `heroPlanId`, `nudgePlanId` and the third featured plan may be hand-built by the sim seed (origin `seed`/`signal`) instead of `propose_plans`; all other seed plans come from `cg_matching.propose_plans`.
 - **Matching stand-in.** Until `packages/matching` lands on main, `services/sim` may use its own `matching_adapter.py` fallback with the §10 signatures (R3 exception). Delete it and depend on `packages/matching` once that merges.
 - **`config.demo.stepDelayS`.** Added as optional; mirrors `params.demo.stepDelayS`.
