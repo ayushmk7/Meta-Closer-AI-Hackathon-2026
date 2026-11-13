@@ -16,8 +16,11 @@ if TYPE_CHECKING:
 def _usable(w: World, uid: str) -> dict[str, float]:
     """Visible interest weights, expanded to ancestors (level 2 and 3)."""
     out: dict[str, float] = {}
+    opted = w.users[uid]["sensitiveOptIn"]
     for i in w.users[uid]["interests"]:
         if i.get("visibility", "shown") != "shown":
+            continue
+        if i.get("sensitive") and i["id"].split(".")[0] not in opted:  # P4: Laya-flagged, shown, not opted in
             continue
         parts = i["id"].split(".")
         for n in range(2, len(parts) + 1):

@@ -5,7 +5,7 @@ import json
 import pytest
 from domain.fixture_world import SECRET_SIGNAL
 
-from cg_api.domain import approvals, chat, joins, meetups, people, plans
+from cg_api.domain import approvals, chat, joins, meetups, people, plans, privacy
 from cg_api.domain.world import Fail
 
 
@@ -113,6 +113,15 @@ def test_p4_sensitive_needs_both_opt_ins(world):
     world.users["u_dan"]["sensitiveOptIn"].add("identity_values")
     dan = next(a for a in meetups.view(world, "u_maya", mt)["attendees"] if a["person"]["userId"] == "u_dan")
     assert "identity_values.faith.buddhism" in {i["id"] for i in dan["sharedInterests"]}
+
+
+def test_p4_flagged_interest_shown_but_not_opted_in(world):
+    """Laya flagged Dan's wheel throwing (taxonomy says not sensitive); he un-hid it, never opted in, then left
+    the pool, so matching falls back to stubs for him. It still must not count as overlap."""
+    dan = world.users["u_dan"]
+    next(i for i in dan["interests"] if i["id"] == "arts_crafts.ceramics.wheel_throwing")["sensitive"] = True
+    dan["optedIn"] = False
+    assert not any(i["id"].startswith("arts_crafts.ceramics") for i in privacy.shared_full(world, "u_maya", "u_dan"))
 
 
 def test_p4_p7_sensitive_signal_never_shown(world):
