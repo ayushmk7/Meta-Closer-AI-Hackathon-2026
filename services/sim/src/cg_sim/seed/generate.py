@@ -146,38 +146,86 @@ def _travel(rng: random.Random, mode: str) -> dict:
 # the hero plan with private. counterpart: extra synthetic actors (nudge plan, backfill).
 FEATURED = {
     "city": [
-        ("live", "Outer Sunset", "26_29",
-         ["outdoors.hiking.coastal_hikes", "outdoors.gardening.community_gardens", "arts_crafts.ceramics.handbuilding"],
-         ["outdoors.nature.birdwatching", "food_drink.cooking.sourdough"]),
-        ("private", "Inner Richmond", "22_25",
-         ["arts_crafts.ceramics.handbuilding", "arts_crafts.visual_art.painting"],
-         ["arts_crafts.ceramics.wheel_throwing", "food_drink.coffee_tea.specialty_coffee"]),
-        ("hero_join", "Cole Valley", "26_29",
-         ["games.board_games.strategy_games", "social_community.neighborhood.farmers_markets"],
-         ["arts_crafts.ceramics.wheel_throwing", "arts_crafts.ceramics.glazing", "games.tabletop_rpg.dnd"]),
-        ("counterpart", "Inner Sunset", "22_25",
-         ["outdoors.hiking.coastal_hikes", "food_drink.cooking.home_cooking"],
-         ["sports_fitness.mind_body.yoga", "culture.reading.book_clubs"]),
-        ("counterpart", "Haight-Ashbury", "26_29",
-         ["arts_crafts.photography.street_photography", "games.board_games.strategy_games"],
-         ["travel.local_exploring.hidden_gems", "music.live_music.concerts"]),
+        (
+            "live",
+            "Outer Sunset",
+            "26_29",
+            [
+                "outdoors.hiking.coastal_hikes",
+                "outdoors.gardening.community_gardens",
+                "arts_crafts.ceramics.handbuilding",
+            ],
+            ["outdoors.nature.birdwatching", "food_drink.cooking.sourdough"],
+        ),
+        (
+            "private",
+            "Inner Richmond",
+            "22_25",
+            ["arts_crafts.ceramics.handbuilding", "arts_crafts.visual_art.painting"],
+            ["arts_crafts.ceramics.wheel_throwing", "food_drink.coffee_tea.specialty_coffee"],
+        ),
+        (
+            "hero_join",
+            "Cole Valley",
+            "26_29",
+            ["games.board_games.strategy_games", "social_community.neighborhood.farmers_markets"],
+            ["arts_crafts.ceramics.wheel_throwing", "arts_crafts.ceramics.glazing", "games.tabletop_rpg.dnd"],
+        ),
+        (
+            "counterpart",
+            "Inner Sunset",
+            "22_25",
+            ["outdoors.hiking.coastal_hikes", "food_drink.cooking.home_cooking"],
+            ["sports_fitness.mind_body.yoga", "culture.reading.book_clubs"],
+        ),
+        (
+            "counterpart",
+            "Haight-Ashbury",
+            "26_29",
+            ["arts_crafts.photography.street_photography", "games.board_games.strategy_games"],
+            ["travel.local_exploring.hidden_gems", "music.live_music.concerts"],
+        ),
     ],
     "event": [
-        ("live", "Belle Haven", "26_29",
-         ["tech_career.building.hackathons", "outdoors.hiking.coastal_hikes", "outdoors.gardening.community_gardens"],
-         ["tech_career.building.ai_ml", "food_drink.coffee_tea.specialty_coffee"]),
-        ("private", "Willows", "22_25",
-         ["arts_crafts.ceramics.handbuilding", "tech_career.building.hackathons"],
-         ["tech_career.building.hardware_electronics", "music.listening.electronic"]),
-        ("hero_join", "Menlo Park", "22_25",
-         ["tech_career.building.hackathons", "games.board_games.strategy_games"],
-         ["tech_career.startups.product_design", "games.video_games.indie_games"]),
-        ("counterpart", "East Palo Alto", "26_29",
-         ["arts_crafts.photography.street_photography", "outdoors.hiking.coastal_hikes"],
-         ["tech_career.building.coding_side_projects", "travel.local_exploring.city_walks"]),
-        ("counterpart", "Redwood City", "22_25",
-         ["tech_career.building.hackathons", "games.board_games.strategy_games"],
-         ["tech_career.building.ai_ml", "food_drink.eating_out.trying_new_spots"]),
+        (
+            "live",
+            "Belle Haven",
+            "26_29",
+            [
+                "tech_career.building.hackathons",
+                "outdoors.hiking.coastal_hikes",
+                "outdoors.gardening.community_gardens",
+            ],
+            ["tech_career.building.ai_ml", "food_drink.coffee_tea.specialty_coffee"],
+        ),
+        (
+            "private",
+            "Willows",
+            "22_25",
+            ["arts_crafts.ceramics.handbuilding", "tech_career.building.hackathons"],
+            ["tech_career.building.hardware_electronics", "music.listening.electronic"],
+        ),
+        (
+            "hero_join",
+            "Menlo Park",
+            "22_25",
+            ["tech_career.building.hackathons", "games.board_games.strategy_games"],
+            ["tech_career.startups.product_design", "games.video_games.indie_games"],
+        ),
+        (
+            "counterpart",
+            "East Palo Alto",
+            "26_29",
+            ["arts_crafts.photography.street_photography", "outdoors.hiking.coastal_hikes"],
+            ["tech_career.building.coding_side_projects", "travel.local_exploring.city_walks"],
+        ),
+        (
+            "counterpart",
+            "Redwood City",
+            "22_25",
+            ["tech_career.building.hackathons", "games.board_games.strategy_games"],
+            ["tech_career.building.ai_ml", "food_drink.eating_out.trying_new_spots"],
+        ),
     ],
 }
 FEATURED_SLOTS = [
@@ -188,7 +236,9 @@ FEATURED_SLOTS = [
 ]
 
 
-def _featured_person(rng: random.Random, spec: tuple, base: Person, leaves: dict[str, Leaf], mode: str) -> Person:
+def _featured_person(
+    rng: random.Random, spec: tuple, base: Person, leaves: dict[str, Leaf], mode: str
+) -> Person:
     role, hood, age_band, shared, own = spec
     ids = shared + own
     weights = [round(w, 2) for w in sorted((rng.uniform(0.6, 0.9) for _ in ids), reverse=True)]
@@ -358,7 +408,9 @@ def generate(pool_id: str, seed: int, root: Path | None = None) -> dict:
     frequent_idx = set(crng.sample(range(n), n // 2))
     for i, p in enumerate(people):
         p.providers = connectors.choose_providers(
-            _rng(pool_id, seed, f"providers:{p.user_id}"), [leaf.id for leaf, _ in p.interests], i in sensitive_idx
+            _rng(pool_id, seed, f"providers:{p.user_id}"),
+            [leaf.id for leaf, _ in p.interests],
+            i in sensitive_idx,
         )
 
     personas, activity, records, truth, latent = [], [], [], [], []
@@ -396,7 +448,9 @@ def generate(pool_id: str, seed: int, root: Path | None = None) -> dict:
                 "existingFriends": 12,
             }
         )
-        records += maya.connector_records(REF_TIME, horizon, _iso)  # city only: backend ignores u_maya records elsewhere
+        records += maya.connector_records(
+            REF_TIME, horizon, _iso
+        )  # city only: backend ignores u_maya records elsewhere
 
     for i, p in enumerate(people):
         prng = _rng(pool_id, seed, f"text:{p.user_id}")
@@ -458,21 +512,37 @@ def generate(pool_id: str, seed: int, root: Path | None = None) -> dict:
     }
     export = ground_truth_export(pool_id, personas, truth, records)
     plan_rows, demo = plans.build(
-        pool_id, mode, _rng(pool_id, seed, "plans"), export, venue_rows, people, personas,
-        _leiden_scenes(export, seed), pdef, _iso,
+        pool_id,
+        mode,
+        _rng(pool_id, seed, "plans"),
+        export,
+        venue_rows,
+        people,
+        personas,
+        _leiden_scenes(export, seed),
+        pdef,
+        _iso,
     )
     _dump_json(seed_dir / "pool.json", pool_json)
     _dump_jsonl(seed_dir / "personas.jsonl", personas)
     _dump_jsonl(seed_dir / "activity.jsonl", activity)
     _dump_jsonl(seed_dir / "connectors.jsonl", records)
-    photos = [v for v in venue_rows if v["venueId"] in venues.PHOTOS]  # demo venues only (city pool)
-    if photos:
+    used: dict[str, str] = {}  # file in venue_photos/ -> clone image; one copy per image, shared by venues
+    for v in venue_rows:
+        img = venues.PHOTOS.get(v["venueId"]) or (
+            None if v.get("sensitive") else venues.KIND_PHOTOS.get(v.get("kind"))
+        )
+        if img:
+            name = img.replace("-", "_")  # /static names are [a-z0-9_]
+            v["photo"], used[name] = f"venue_photos/{name}", img
+    if used:
         (seed_dir / "venue_photos").mkdir()
-        for v in photos:
-            v["photo"] = f"venue_photos/{v['venueId']}.jpg"
-            shutil.copyfile(maya.clone_dir() / "assets" / "images" / venues.PHOTOS[v["venueId"]], seed_dir / v["photo"])
-        rows = "\n".join(f"- `{v['venueId']}.jpg`: `facebook-clone/assets/images/{venues.PHOTOS[v['venueId']]}`" for v in photos)
-        (seed_dir / "venue_photos" / "PROVENANCE.md").write_text(venues.PHOTO_PROVENANCE.format(rows=rows) + "\n")
+        for name, img in sorted(used.items()):
+            shutil.copyfile(maya.clone_dir() / "assets" / "images" / img, seed_dir / "venue_photos" / name)
+        rows = "\n".join(f"- `{n}`: `facebook-clone/assets/images/{i}`" for n, i in sorted(used.items()))
+        (seed_dir / "venue_photos" / "PROVENANCE.md").write_text(
+            venues.PHOTO_PROVENANCE.format(rows=rows) + "\n"
+        )
     _dump_jsonl(seed_dir / "venues.jsonl", venue_rows)
     _dump_jsonl(seed_dir / "plans.jsonl", plan_rows)
     _dump_json(seed_dir / "demo.json", demo)
@@ -482,8 +552,12 @@ def generate(pool_id: str, seed: int, root: Path | None = None) -> dict:
     _dump_jsonl(private_dir / "ground_truth.jsonl", truth)
     _dump_jsonl(private_dir / "latent.jsonl", latent)
     return {
-        "poolId": pool_id, "people": len(personas), "activity": len(activity), "records": len(records),
-        "venues": len(venue_rows), "plans": len(plan_rows),
+        "poolId": pool_id,
+        "people": len(personas),
+        "activity": len(activity),
+        "records": len(records),
+        "venues": len(venue_rows),
+        "plans": len(plan_rows),
     }
 
 
@@ -512,15 +586,20 @@ def ground_truth_export(pool_id: str, personas: list[dict], truth: list[dict], r
                 "availability": p["availability"],
                 "groupSize": p["groupSize"],
                 "interests": [
-                    {"id": i["id"], "weight": i["weight"], "visibility": "hidden" if i["sensitive"] else "shown",
-                     "sensitive": i["sensitive"]}
+                    {
+                        "id": i["id"],
+                        "weight": i["weight"],
+                        "visibility": "hidden" if i["sensitive"] else "shown",
+                        "sensitive": i["sensitive"],
+                    }
                     for i in by_truth[uid]["interests"]
                 ],
                 "groupOnly": True,
                 "trustFloorOk": True,
                 "connectionIds": [],
                 "blockedIds": [],
-                "travel": p.get("travel") or {"maxMinutes": params()["travel"]["defaultMaxMinutes"], "modes": ["transit"]},
+                "travel": p.get("travel")
+                or {"maxMinutes": params()["travel"]["defaultMaxMinutes"], "modes": ["transit"]},
                 "busy": busy.get(uid, []) if connected & {"google_calendar", "device_calendar"} else [],
                 "signals": [],
                 "metIds": [],
