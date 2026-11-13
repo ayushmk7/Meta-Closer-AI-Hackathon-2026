@@ -162,7 +162,7 @@ test("Ask Muse prefills 'Muse, ' and Can't make it confirms before leaving", asy
   const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
   const leave = jest.spyOn(api, 'leaveMeetup').mockResolvedValue(clone(F.getMeetup));
   const { press } = await show(clone(F.getMeetup));
-  await press('Ask Muse to change something');
+  await press('Ask Muse to change it');
   expect(store.getState().drafts.th_0001).toBe('Muse, ');
   expect(router.push).toHaveBeenCalledWith('/common-ground/chat/th_0001');
   await press("Can't make it");
@@ -178,12 +178,12 @@ test('feedback needs every answer before Send', async () => {
   m.feedbackDue = true;
   const send = jest.spyOn(api, 'sendFeedback').mockResolvedValue(undefined);
   const { press, byLabel } = await show(m);
-  expect(byLabel('Send').props.accessibilityState.disabled).toBe(true);
+  expect(byLabel('Send feedback').props.accessibilityState.disabled).toBe(true);
   for (const name of ['Daniel Okafor', 'Rosa']) {
     await press(`Did ${name} show up? Yes`);
     await press(`Would you meet ${name} again? No`);
   }
-  await press('Send');
+  await press('Send feedback');
   expect(send).toHaveBeenCalledWith('mt_0001', {
     answers: [
       { userId: 'u_0042', showedUp: true, meetAgain: false },

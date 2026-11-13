@@ -19,7 +19,7 @@ import { StatusMark, stepLabel } from './StepTimeline';
 import { api, getUser } from './api';
 import { act, getState, load, sendMessage, setState, useCg } from './store';
 import type { Message, MessageAttachment, Thread } from './types';
-import { Banners, NotFound, PersonAvatar, personName, usePoll, when } from './ui';
+import { Banners, NotFound, PersonAvatar, personName, Pill, usePoll, when } from './ui';
 
 const NONE: Message[] = []; // stable selector default (fresh [] loops useSyncExternalStore)
 
@@ -53,7 +53,7 @@ function MeetupAttachment({ meetupId }: { meetupId: string }) {
       accessibilityRole="button"
       accessibilityLabel={`${m.title}, ${when(m.startsAt)}, ${m.venue.name}`}
       onPress={() => go(`/common-ground/meetup/${meetupId}`)}
-      style={{ backgroundColor: c.input, borderRadius: 10, padding: 12, gap: 2, minHeight: 44 }}
+      style={{ backgroundColor: c.input, borderRadius: 8, padding: 12, gap: 2, minHeight: 44 }}
     >
       <Label style={{ fontWeight: '700' }}>{m.title}</Label>
       <Muted>
@@ -77,7 +77,7 @@ function StepsAttachment({ meetupId, stepIds }: { meetupId: string; stepIds: str
       accessibilityRole="button"
       accessibilityHint="Opens the plan"
       onPress={() => go(`/common-ground/meetup/${meetupId}`)}
-      style={{ backgroundColor: c.input, borderRadius: 10, padding: 12, gap: 6 }}
+      style={{ backgroundColor: c.input, borderRadius: 8, padding: 12, gap: 6 }}
     >
       {steps.map((s) => (
         <View
@@ -115,28 +115,10 @@ function PlanAttachment({ planId }: { planId: string }) {
 }
 
 function Starters({ items, onPick }: { items: string[]; onPick(text: string): void }) {
-  const c = useColors();
   return (
     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
       {items.map((t) => (
-        <Pressable
-          key={t}
-          accessibilityRole="button"
-          accessibilityHint="Puts this in your message"
-          onPress={() => onPick(t)}
-          style={{
-            minHeight: 44,
-            maxWidth: '100%',
-            justifyContent: 'center',
-            paddingHorizontal: 14,
-            paddingVertical: 8,
-            borderRadius: 22,
-            borderWidth: 1,
-            borderColor: c.divider,
-          }}
-        >
-          <Label style={{ fontSize: 14, color: c.blue }}>{t}</Label>
-        </Pressable>
+        <Pill key={t} label={t} outlined onPress={() => onPick(t)} />
       ))}
     </View>
   );
@@ -207,7 +189,7 @@ function Bubble({
         <View
           style={{
             flexShrink: 1,
-            borderRadius: 20,
+            borderRadius: 18,
             paddingHorizontal: 14,
             paddingVertical: 10,
             backgroundColor: own ? c.blue : c.input,
@@ -298,8 +280,16 @@ export default function ChatScreen() {
     >
       <View style={{ flexDirection: 'row' }}>
         {thread.participants.slice(0, 4).map((p, i) => (
-          <View key={p.userId} style={{ marginLeft: i ? -10 : 0 }}>
-            <PersonAvatar person={p} size={32} />
+          <View
+            key={p.userId}
+            style={{
+              marginLeft: i ? -8 : 0,
+              borderWidth: 2,
+              borderColor: c.card,
+              borderRadius: 16,
+            }}
+          >
+            <PersonAvatar person={p} size={28} />
           </View>
         ))}
       </View>
@@ -307,7 +297,7 @@ export default function ChatScreen() {
         <Label style={{ fontWeight: '700' }} numberOfLines={1}>
           {thread.title}
         </Label>
-        {!!thread.meetupId && <Muted>Tap to see the plan</Muted>}
+        {!!thread.meetupId && <Muted>See plan</Muted>}
       </View>
     </Pressable>
   );
@@ -349,27 +339,14 @@ export default function ChatScreen() {
         )}
       </ScrollView>
       <View style={{ borderTopWidth: 1, borderTopColor: c.divider, padding: 10, gap: 8 }}>
-        <Pressable
-          accessibilityRole="switch"
-          accessibilityLabel="Ask Muse"
-          accessibilityState={{ checked: toMuse }}
-          onPress={() => setToMuse((x) => !x)}
-          style={{
-            alignSelf: 'flex-start',
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 6,
-            minHeight: 44,
-            paddingHorizontal: 14,
-            borderRadius: 22,
-            backgroundColor: toMuse ? c.blue : c.input,
-          }}
-        >
-          <Icon name="sparkles" size={16} color={toMuse ? '#fff' : c.blue} />
-          <Label style={{ fontWeight: '600', fontSize: 14, color: toMuse ? '#fff' : c.text }}>
-            Ask Muse
-          </Label>
-        </Pressable>
+        <View style={{ alignSelf: 'flex-start' }}>
+          <Pill
+            label="Ask Muse"
+            icon="sparkles"
+            selected={toMuse}
+            onPress={() => setToMuse((x) => !x)}
+          />
+        </View>
         <View style={{ flexDirection: 'row', gap: 6, alignItems: 'flex-end' }}>
           <Input
             multiline

@@ -2,6 +2,7 @@
 import { Pressable, View } from 'react-native';
 import { Icon, Label, Muted, useColors } from '../../ui/native';
 import type { Feedback } from './types';
+import { Pill } from './ui';
 
 export type Extras = Pick<Feedback, 'rating' | 'tags'>;
 type Tag = NonNullable<Feedback['tags']>[number];
@@ -22,7 +23,6 @@ export default function FeedbackExtras({
 }) {
   const c = useColors();
   const tags = value.tags ?? [];
-  const selectedBg = c.canvas === '#18191A' ? '#263951' : '#e7f3ff'; // the clone's Chips pair
   return (
     <View style={{ gap: 8 }}>
       <Label style={{ fontWeight: '600' }}>
@@ -54,26 +54,14 @@ export default function FeedbackExtras({
         {TAGS.map(([tag, label]) => {
           const on = tags.includes(tag);
           return (
-            <Pressable
+            <Pill
               key={tag}
-              accessibilityRole="button"
-              accessibilityLabel={label}
-              accessibilityState={{ selected: on }}
+              label={label}
+              selected={on}
               onPress={() =>
                 onChange({ ...value, tags: on ? tags.filter((t) => t !== tag) : [...tags, tag] })
               }
-              style={{
-                minHeight: 44,
-                justifyContent: 'center',
-                paddingHorizontal: 15,
-                borderRadius: 22,
-                backgroundColor: on ? selectedBg : c.input,
-              }}
-            >
-              <Label style={{ color: on ? c.blue : c.text, fontWeight: '600', fontSize: 14 }}>
-                {label}
-              </Label>
-            </Pressable>
+            />
           );
         })}
       </View>

@@ -24,10 +24,18 @@ import VenueMap from './VenueMap';
 import { api } from './api';
 import { act, currentLocation, leaveMeetup, load, setState, getState, useCg } from './store';
 import { TZ, type Attendee, type Feedback, type Meetup } from './types';
-import { Banners, InterestChips, NotFound, PersonAvatar, personName, usePoll, when } from './ui';
+import {
+  Banners,
+  clock,
+  InterestChips,
+  NotFound,
+  PersonAvatar,
+  personName,
+  Section,
+  usePoll,
+  when,
+} from './ui';
 
-const time = (iso: string) =>
-  new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: TZ });
 // Day in the plan's timezone (CONTRACTS Decisions), not the phone's.
 const day = (d: Date | string, opts: Intl.DateTimeFormatOptions = {}) =>
   new Date(d).toLocaleDateString('en-US', { ...opts, timeZone: TZ });
@@ -44,23 +52,13 @@ const PAYMENT: Record<string, string> = {
 };
 const REASON: Record<string, string> = {
   outside_geofence: "You don't seem to be at the venue yet.",
-  outside_window: 'Check-in is not open right now.',
+  outside_window: "Check-in isn't open yet.",
   not_attendee: "You're not on this plan.",
 };
 const put = (m: Meetup) => setState({ meetups: { ...getState().meetups, [m.meetupId]: m } });
 // iOS calshow takes seconds since 2001-01-01.
 const calshow = (iso: string) => `calshow:${Math.round(Date.parse(iso) / 1000 - 978307200)}`;
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <Card style={{ padding: 16, gap: 10 }}>
-      <Label accessibilityRole="header" style={{ fontSize: 17, fontWeight: '700' }}>
-        {title}
-      </Label>
-      {children}
-    </Card>
-  );
-}
 function Row({
   icon,
   children,
@@ -187,7 +185,7 @@ function Feedback({ m }: { m: Meetup }) {
           );
         })}
       <FeedbackExtras value={extras} onChange={setExtras} />
-      <Button title="Send" disabled={!complete || sending} onPress={() => void send()} />
+      <Button title="Send feedback" disabled={!complete || sending} onPress={() => void send()} />
     </Section>
   );
 }
@@ -309,7 +307,7 @@ export default function MeetupScreen() {
       <Section title={m.status === 'confirmed' ? 'Muse set this up' : 'Muse is setting this up'}>
         {m.status === 'confirmed' && (
           <Link
-            title={stepsOpen ? 'Hide steps' : `Show ${m.museSteps.length} steps`}
+            title={stepsOpen ? 'Hide steps' : `See all ${m.museSteps.length} steps`}
             onPress={() => setStepsOpen((x) => !x)}
           />
         )}
@@ -376,7 +374,7 @@ export default function MeetupScreen() {
         {m.travel && (
           <Row icon="navigate-outline">
             <Label>{m.travel.label}</Label>
-            <Muted>Leave by {time(m.travel.leaveBy)}</Muted>
+            <Muted>Leave by {clock(m.travel.leaveBy)}</Muted>
           </Row>
         )}
         <View style={{ flexDirection: 'row', gap: 8 }}>
@@ -444,12 +442,13 @@ export default function MeetupScreen() {
         <Button
           title="Open group chat"
           icon="chatbubbles-outline"
+          secondary={canCheckIn} // one primary: Check in on the day, the chat otherwise
           onPress={() => go(`/common-ground/chat/${m.threadId}`)}
         />
         {!left && m.status !== 'cancelled' && m.status !== 'completed' && (
           <>
             <Button
-              title="Ask Muse to change something"
+              title="Ask Muse to change it"
               icon="sparkles-outline"
               secondary
               onPress={askMuse}

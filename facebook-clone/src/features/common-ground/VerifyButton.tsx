@@ -30,10 +30,10 @@ export default function VerifyButton({ m }: { m: Meetup }) {
           <Label style={{ flex: 1 }}>Verified with {names}</Label>
         </View>
       ) : (
-        <Muted>Scan each other's code at the meetup so it counts for both of you.</Muted>
+        <Muted>Scan each other's code at the meetup. It counts for both of you.</Muted>
       )}
       <Button
-        title={me.verified ? 'Verify someone else' : 'Show my code · scan theirs'}
+        title={me.verified ? 'Verify someone else' : 'Verify in person'}
         icon="qr-code-outline"
         secondary // one blue primary per region (Check in); this is FB-gray
         onPress={() => go(`/common-ground/scan/${m.meetupId}`)}

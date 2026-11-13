@@ -6,6 +6,7 @@ import type Ionicons from '@expo/vector-icons/Ionicons';
 import { Icon, Label, Muted, useColors } from '../../ui/native';
 import ApprovalSheet from './ApprovalSheet';
 import { useCg } from './store';
+import { WARN } from './ui';
 import type { Approval, MuseStep } from './types';
 
 const NONE: Approval[] = []; // stable default: a fresh [] in a useCg selector loops useSyncExternalStore
@@ -47,7 +48,8 @@ export function StatusMark({ status }: { status: string }) {
     case 'needs_you':
       return <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: c.blue }} />;
     case 'failed':
-      return <Icon name="warning" size={22} color="#B26B00" />;
+      // WARN fg on light; on dark that brown is too dark on c.card, so the alert red (guide 2.1).
+      return <Icon name="warning" size={22} color={c.canvas === '#18191A' ? c.badge : WARN.fg} />;
     case 'skipped':
       return <Icon name="remove" size={22} color={c.secondary} />;
     default: // queued and unknown statuses

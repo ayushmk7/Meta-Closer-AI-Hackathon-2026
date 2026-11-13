@@ -49,7 +49,7 @@ export default function ApprovalSheet({ approval: a }: { approval: Approval }) {
       </Muted>
       {pending ? (
         <Button
-          title="Review"
+          title={a.kind === 'payment' ? 'Review payment' : 'Review'}
           accessibilityLabel={`Review: ${a.title}`}
           onPress={() => setOpen(true)}
         />
@@ -58,7 +58,7 @@ export default function ApprovalSheet({ approval: a }: { approval: Approval }) {
       )}
       <Sheet visible={open} title="Muse needs your OK" onClose={close}>
         <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
-          <Label accessibilityRole="header" style={{ fontSize: 19, fontWeight: '700' }}>
+          <Label accessibilityRole="header" style={{ fontSize: 17, fontWeight: '700' }}>
             {a.title}
           </Label>
           <Label>{a.detail}</Label>
@@ -74,14 +74,17 @@ export default function ApprovalSheet({ approval: a }: { approval: Approval }) {
               <Label style={{ fontWeight: '600' }}>Demo payment · no real money moves</Label>
             )}
           </View>
-          <Muted>{a.fallback}</Muted>
+          {!!a.fallback && <Muted>{a.fallback}</Muted>}
           <Button
             title="Approve"
             disabled={!amountShown || busy || !pending}
             onPress={() => void decide('approve')}
           />
           <Button
-            title="Not now"
+            // Decline says what happens (UX guide 1.1): a declined payment falls back to paying there.
+            title={
+              a.kind !== 'payment' ? 'Decline' : a.fallback ? 'Pay at the venue' : "Don't pay ahead"
+            }
             secondary
             disabled={busy || !pending}
             onPress={() => void decide('decline')}

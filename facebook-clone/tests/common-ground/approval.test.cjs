@@ -104,7 +104,7 @@ test('C8: Approve stays disabled until the amount renders; nothing approves with
   expect(decide).not.toHaveBeenCalled();
 });
 
-test('Approve sends approve and buzzes; Not now sends decline', async () => {
+test('Approve sends approve and buzzes; Pay at the venue sends decline', async () => {
   const Haptics = require('expo-haptics');
   const decide = jest.spyOn(api, 'decideApproval').mockImplementation(async (id, d) => ({
     ...approval(),
@@ -119,7 +119,7 @@ test('Approve sends approve and buzzes; Not now sends decline', async () => {
 
   const b = await render(React.createElement(ApprovalSheet, { approval: approval() }));
   await b.press('Review: OK $35 for your wheel?');
-  await b.press('Not now');
+  await b.press('Pay at the venue');
   expect(decide).toHaveBeenLastCalledWith('ap_0001', 'decline');
 });
 
@@ -129,4 +129,16 @@ test('a decided approval shows its outcome, not the review button', async () => 
   );
   expect(byLabel('Review: OK $35 for your wheel?')).toBeUndefined();
   expect(text()).toContain('You approved this');
+});
+
+test("a payment with no fallback declines as Don't pay ahead", async () => {
+  const decide = jest
+    .spyOn(api, 'decideApproval')
+    .mockResolvedValue({ ...approval(), status: 'declined' });
+  const { press } = await render(
+    React.createElement(ApprovalSheet, { approval: { ...approval(), fallback: '' } }),
+  );
+  await press('Review: OK $35 for your wheel?');
+  await press("Don't pay ahead");
+  expect(decide).toHaveBeenCalledWith('ap_0001', 'decline');
 });
