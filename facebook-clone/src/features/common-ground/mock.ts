@@ -113,7 +113,7 @@ const extraShares: [string, string, string, string, string, number, string, stri
 // Bundled clone images per venue (D5: no network). A venue uses the first; shares at the same
 // venue rotate through the list so the gallery never repeats a photo back to back.
 const VENUE_PHOTOS: Record<string, string[]> = {
-  vn_hayes_clay: ['pottery', 'paintbrushes'],
+  vn_hayes_clay: ['pottery', 'paintbrushes', 'workspace'], // 3rd: a share made on stage
   vn_lands_end: ['coast-1', 'coast-2', 'coast-3'],
   vn_long_table: ['cafe', 'coffee'],
   vn_basalt_bouldering: ['city-street', 'city-bridge'],
