@@ -43,30 +43,31 @@ What it does not cover: anything on screen, the WebSocket (it polls), device cal
 
 ## Known gaps
 
-Open on main at `b373217` (2026-11-13). Evidence and smallest fixes: orchestrator findings `e2e-run`, `e2e-anim`, `e2e-fable`.
+Open on main at `726755b` (2026-11-13). Evidence and smallest fixes: orchestrator findings `e2e-run`, `e2e-anim`, `e2e-fable`.
 
 | Gap | Area |
 | --- | ---- |
-| The notifications permission alert appears on the first leave-by reminder, which is the moment the meetup confirms, and covers the screen. Grant it on demo phones beforehand. | ios, demo setup |
-| The step timeline unmounts the moment the meetup is confirmed (`Meetup.tsx` `showSteps`), so the last checks and a still-playing faux call are cut off; the call does not replay (`calledMeetups`). | ios |
-| The faux call starts after its step is already `done`: the planner sends the book step `queued` then `done`, and the card keys off the done label. The row shows a check and a confirmation code while the card says "Calling". | ios |
+| During the faux call, steps after the booking get their checks early: "Added it to everyone's calendar" and "Created a private event" are done while the call is still talking. Only the last step waits for the call to end. | ios |
+| During the call the spinning booking row reads "Reserved a table" (past tense) under a card that says "Calling". | ios |
+| At confirmed, the "Hide steps" link is inserted above the timeline and the list moves down about 80 pt. | ios |
+| Setup step 1: four "Coming soon" modes push Continue below the fold. | ios |
+| The notifications permission alert appears on the first leave-by reminder, which is the moment the meetup confirms, and covers the screen. Left as designed (asked the first time a reminder is needed); grant it on demo phones beforehand. | ios, demo setup |
 | The Little Fern Kitchen meetup (the one with the call) has no payment approval; the approval sheet only appears on the hero plan. One meetup does not show both beats. | demo script |
 | The in-app mock goes from interested to matched in one tick, so people joining one by one is only visible on the live backend. | ios (mock) |
 | No typing signal for people in CONTRACTS §6; only Muse shows typing. | contracts, backend |
 | Synthetic chat lines fall back to templates when Muse times out. | backend |
-| Setup steps and Log in are hard cuts; "What Muse picked up" loads behind a bare spinner. | ios |
 | `useReducedMotion()` is read once at launch; changing the setting mid-session needs an app restart to apply everywhere. | ios |
-| Not yet watched in motion on native: a step going from running to done, the approval sheet, a chat reply and typing, verify, feedback, story, passport, setup, and any pass with Reduce Motion on. | review |
+| Not yet watched in motion on native: a chat reply arriving with the typing bubble, the first seconds of "Muse is setting this up" before any step exists, the approval sheet, verify, feedback, story, passport, and any pass with Reduce Motion on. The Simulator runs have no way to tap, so the tap-only ones are covered by `scripts/e2e_flow.py` and stills. | review |
 
-Closed since the first version of this page: the Welcome top bar under the status bar (`Welcome.tsx` `SafeAreaProvider`); joins and the open plan pop-up now refresh at `limits.pollIntervalS` while a join is `interested` (`realtime.ts` `gathering`).
+Closed since the first version of this page: the Welcome top bar under the status bar; the 60 s refresh of joins and the open plan while a join is gathering; the timeline collapsing at confirmed; the faux call starting after its own result (the booking row now spins until the call ends); hard cuts at Log in and between setup steps; no feedback while people join or when the group forms.
 
 ## Review status
 
 Design review of flow and motion, scored 1 to 10 from Simulator screenshot bursts (about 150 ms apart). The track is done at 9 or more on both.
 
-| Build | Flow | Motion | Seen |
+| Build | Flow | Motion | Seen in motion |
 | --- | --- | --- | --- |
-| main `b373217` | 6.5 | 6 | stills only; the timeline and call gaps above are still open |
-| e2e-anim's build with its motion fixes (bursts `s3-fern`, `s6-main`); those fixes are not in `Plan.tsx` or `StepTimeline.tsx` on main | 7 | 7.5 | join, group set, steps, the call and confirmed, in motion |
+| main `726755b` | 8 | 8 | Welcome, Log in, home, plan pop-up, joining, group set, steps, the call, confirmed (`e2e-run/final-*`); setup on an earlier build (`e2e-anim/s8-*`) |
+| main `b373217` (before the motion fixes) | 6.5 | 6 | stills only |
 
-On that build the timeline stays open through confirmed and the booking row spins until the call ends. Still open on it: steps after the booking (calendar, event, reminders) get their checks while the call is still playing; the spinning row reads "Reserved a table" in the past tense during the call; the "Hide steps" link is inserted above the timeline at confirmed and moves everything down.
+What 9 needs: the first two gaps above fixed, and the chat reply seen in motion.
