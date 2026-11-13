@@ -601,8 +601,12 @@ export async function setIdentity(userId: string | null): Promise<void> {
   await start();
 }
 
+// Meetups whose faux venue call already played this session (memory only, never disk).
+export const calledMeetups = new Set<string>();
+
 export async function reset(): Promise<void> {
   gen++;
+  calledMeetups.clear();
   stopRealtime();
   starting = null;
   await Promise.all([wipeCalendar(), cancelReminders()]); // before the maps are forgotten

@@ -104,7 +104,7 @@ test('header, steps with the inline approval, attendees and details render', asy
   expect(text()).toContain('Wheel throwing');
   expect(text()).toContain('22 min by transit');
   expect(text()).not.toContain('Simulated booking');
-  expect(byLabel('Coming soon: Muse will soon call venues to book for you')).toBeTruthy();
+  expect(text()).not.toContain('Coming soon'); // the old call teaser is gone
   // Not day of: no status buttons, no check-in.
   expect(byLabel('On my way')).toBeUndefined();
   expect(byLabel('Check in')).toBeUndefined();
@@ -212,7 +212,6 @@ test('a cancelled meetup shows no day-of actions', async () => {
   m.checkinWindow = { opensAt: m.startsAt, closesAt: m.endsAt };
   const { byLabel, text } = await show(m);
   expect(text()).toContain('This meetup was cancelled');
-  expect(byLabel('Coming soon: Muse will soon call venues to book for you')).toBeUndefined();
   expect(byLabel('On my way')).toBeUndefined();
   expect(byLabel('Check in')).toBeUndefined();
 });
@@ -343,11 +342,4 @@ test('no Share on the meetup when features.sharing is off; header Share when on'
   );
   expect(off.byLabel('Share plan') ?? off.byLabel('Share meetup')).toBeUndefined();
   await renderer.act(async () => store.setState({ config }));
-});
-
-test('the Coming soon booking teaser hides once the booking is booked', async () => {
-  const m = clone(F.getMeetup);
-  m.booking.status = 'booked';
-  const { byLabel } = await show(m);
-  expect(byLabel('Coming soon: Muse will soon call venues to book for you')).toBeUndefined();
 });
