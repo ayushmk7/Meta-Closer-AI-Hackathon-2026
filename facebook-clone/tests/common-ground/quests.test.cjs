@@ -64,7 +64,7 @@ test('Talk to a person ticks, saves and starts the streak; Surprise me ticks fro
   expect(labels()).toContain('1 of 4 done');
   expect(labels()).toContain('1-day streak');
   const saved = JSON.parse(mockSaved['common-ground-quests:v1']);
-  expect(saved).toMatchObject({ talked: true, streak: 1 });
+  expect(saved[fixtures.getMe.userId]).toMatchObject({ talked: true, streak: 1 });
   await renderer.act(async () => store.setState({ feed: fixtures.getFeed }));
   const SurpriseButton = require('../../src/features/common-ground/SurpriseButton').default;
   const surprise = await render(React.createElement(SurpriseButton));
@@ -77,6 +77,53 @@ test('Talk to a person ticks, saves and starts the streak; Surprise me ticks fro
   expect(labels()).toContain('Try Surprise me, done');
   expect(labels()).toContain('2 of 4 done');
   await renderer.act(async () => tree.unmount());
+});
+
+const KEY = 'common-ground-quests:v1';
+const talkBox = (tree) =>
+  tree.root.find((n) => n.props.accessibilityLabel === 'Talk to a person' && n.props.onPress);
+
+test('card left open across LA midnight: ticks clear, streak not extended for an empty day', async () => {
+  jest.useFakeTimers({
+    now: new Date('2026-11-13T07:58:00Z'),
+    doNotFake: ['nextTick', 'setImmediate', 'queueMicrotask'],
+  }); // Nov 12, 11:58 PM PST
+  try {
+    delete mockSaved[KEY];
+    const { tree, labels } = await render(React.createElement(Quests));
+    await renderer.act(async () => talkBox(tree).props.onPress());
+    expect(labels()).toContain('1-day streak');
+    await renderer.act(async () => {
+      jest.advanceTimersByTime(3 * 60_000); // 12:01 AM Nov 13
+    });
+    await renderer.act(async () => {});
+    expect(talkBox(tree).props.accessibilityState).toEqual({ checked: false });
+    expect(labels()).toContain('0 of 4 done');
+    const log = JSON.parse(mockSaved[KEY])[fixtures.getMe.userId];
+    expect(log).toMatchObject({
+      day: '2026-11-13',
+      talked: false,
+      streak: 1,
+      lastDone: '2026-11-12',
+    });
+    await renderer.act(async () => tree.unmount());
+  } finally {
+    jest.useRealTimers();
+  }
+});
+
+test('quests are per user: switching identity shows a fresh log and keeps the other', async () => {
+  delete mockSaved[KEY];
+  const a = await render(React.createElement(Quests));
+  await renderer.act(async () => talkBox(a.tree).props.onPress());
+  await renderer.act(async () => store.setState({ me: { ...fixtures.getMe, userId: 'u_0042' } }));
+  await renderer.act(async () => {});
+  expect(talkBox(a.tree).props.accessibilityState).toEqual({ checked: false });
+  expect(a.labels()).not.toContain('streak');
+  const all = JSON.parse(mockSaved[KEY]);
+  expect(all[fixtures.getMe.userId]).toMatchObject({ talked: true });
+  expect(all.u_0042).toBeUndefined();
+  await renderer.act(async () => a.tree.unmount());
 });
 
 test('Passport shows collected and locked stamps', async () => {

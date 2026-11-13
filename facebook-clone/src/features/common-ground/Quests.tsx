@@ -12,31 +12,43 @@ import {
   type Quest,
   type QuestLog,
 } from './questLog';
-import { QUESTS_KEY, useCg } from './store';
+import { QUESTS_KEY, getState, useCg } from './store';
 
 function box() {
   // eslint-disable-next-line @typescript-eslint/no-require-imports -- AsyncStorage; absent in Node tests.
   return require('../../platform/scopedStorage').createScopedStorage(QUESTS_KEY);
 }
-async function readLog(today: string): Promise<QuestLog> {
+// One device can switch users (demo ?as=), so the stored value is { [userId]: QuestLog }.
+// (Scoped storage key names can't carry the id.)
+async function readAll(): Promise<Record<string, QuestLog>> {
   try {
     const x = JSON.parse((await box().read()) ?? 'null');
-    if (typeof x?.day === 'string' && typeof x.streak === 'number') return rollover(x, today);
+    return x && typeof x === 'object' && !('day' in x) ? x : {};
   } catch {
-    // unreadable: start fresh
+    return {}; // unreadable: start fresh
   }
-  return emptyLog(today);
 }
-const writeLog = (log: QuestLog) =>
-  void box()
-    .write(JSON.stringify(log))
-    .catch(() => {});
+async function readLog(userId: string, today: string): Promise<QuestLog> {
+  const x = (await readAll())[userId];
+  return typeof x?.day === 'string' && typeof x.streak === 'number'
+    ? rollover(x, today)
+    : emptyLog(today);
+}
+const writeLog = async (userId: string, log: QuestLog) => {
+  try {
+    await box().write(JSON.stringify({ ...(await readAll()), [userId]: log }));
+  } catch {
+    // ponytail: best effort; the card still shows the in-memory log
+  }
+};
 
 let push: ((log: QuestLog) => void) | null = null; // the mounted card, if any
 // SurpriseButton calls this when it opens a plan.
 export async function noteSurprise(): Promise<void> {
-  const log = { ...(await readLog(laDay(Date.now()))), surprise: true };
-  writeLog(log);
+  const userId = getState().me?.userId;
+  if (!userId) return;
+  const log = { ...(await readLog(userId, laDay(Date.now()))), surprise: true };
+  await writeLog(userId, log);
   push?.(log);
 }
 
@@ -67,29 +79,37 @@ export default function Quests() {
   const myId = useCg((st) => st.me?.userId);
   const joins = useCg((st) => st.joins);
   const messages = useCg((st) => st.messages);
-  const [log, setLog] = useState<QuestLog | null>(null);
-  // ponytail: day re-read per render; a card left open past midnight rolls on its next store update.
+  const [stored, setLog] = useState<QuestLog | null>(null);
+  // Re-render each minute so a card left open rolls over at LA midnight.
+  const [, tick] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => tick((n) => n + 1), 60_000);
+    return () => clearInterval(t);
+  }, []);
   const today = laDay(Date.now());
+  const log = stored && rollover(stored, today); // never derive today's list from yesterday's ticks
   const save = (next: QuestLog) => {
     setLog(next);
-    writeLog(next);
+    if (myId) void writeLog(myId, next);
   };
   useEffect(() => {
+    if (!myId) return;
     let live = true;
-    void readLog(today).then((l) => live && setLog(l));
+    setLog(null);
+    void readLog(myId, today).then((l) => live && setLog(l));
     push = setLog;
     return () => {
       live = false;
       push = null;
     };
-  }, [today]);
+  }, [myId, today]);
   const list = log ? quests(log, joins, messages, myId, today) : [];
   const anyDone = list.some((q) => q.done);
   useEffect(() => {
     if (!log) return;
-    const next = credit(rollover(log, today), anyDone);
-    if (next !== log) save(next);
-  }, [log, anyDone, today]);
+    const next = credit(log, anyDone);
+    if (next !== stored) save(next);
+  }, [stored, today, anyDone]);
   if (!log) return null;
   const done = list.filter((q) => q.done).length;
   const streak = liveStreak(log);
