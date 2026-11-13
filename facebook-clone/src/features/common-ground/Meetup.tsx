@@ -417,8 +417,28 @@ export default function MeetupScreen() {
         <Row icon="ticket-outline">
           <Label>{m.booking.label}</Label>
           {!!m.booking.confirmationCode && <Muted>Confirmation {m.booking.confirmationCode}</Muted>}
-          <Muted>{m.booking.provider}</Muted>
         </Row>
+        {m.status !== 'cancelled' &&
+          (m.status === 'setting_up' || m.booking.status === 'booked') && (
+            <View
+              accessible
+              accessibilityLabel="Coming soon: Muse will soon call venues to book for you"
+              style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}
+            >
+              <Icon name="call-outline" size={20} color={c.secondary} />
+              <Label style={{ flex: 1 }}>Muse will soon call venues to book for you</Label>
+              <View
+                style={{
+                  backgroundColor: c.input,
+                  borderRadius: 10,
+                  paddingHorizontal: 8,
+                  paddingVertical: 2,
+                }}
+              >
+                <Muted style={{ fontSize: 12 }}>Coming soon</Muted>
+              </View>
+            </View>
+          )}
         <Row icon="card-outline">
           <Label>
             {m.cost.perPersonCents ? money(m.cost.perPersonCents, m.cost.currency) : m.cost.label}

@@ -45,7 +45,6 @@ export default function ApprovalSheet({ approval: a }: { approval: Approval }) {
       <Muted>
         {amountOf(a)}
         {a.payee ? ` · ${a.payee}` : ''}
-        {a.simulated ? ' · Demo payment' : ''}
       </Muted>
       {pending ? (
         <Button
@@ -74,7 +73,6 @@ export default function ApprovalSheet({ approval: a }: { approval: Approval }) {
           >
             <Label style={{ fontSize: 28, lineHeight: 34, fontWeight: '800' }}>{amountOf(a)}</Label>
             {!!a.payee && <Muted>{`To ${a.payee}`}</Muted>}
-            {a.simulated && <Muted>Demo payment · no real money moves</Muted>}
           </View>
           {!!a.fallback && <Muted>{a.fallback}</Muted>}
           <Button

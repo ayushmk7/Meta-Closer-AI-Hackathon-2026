@@ -132,6 +132,8 @@ test('a starter fills the composer; Ask Muse sends toMuse and resets', async () 
     true,
   );
   expect(byLabel('Message')).toBeTruthy();
+  // Muse's typing bubble shows until Muse replies.
+  expect(byLabel('Muse is on it…')).toBeTruthy();
 });
 
 test("muse_steps attachment lists those steps; 'Muse is on it…' until Muse replies", async () => {
@@ -162,6 +164,7 @@ test("muse_steps attachment lists those steps; 'Muse is on it…' until Muse rep
   expect(byLabel('Moved to 11, done')).toBeTruthy();
   expect(byLabel('Updating calendars, in progress')).toBeTruthy();
   expect(text()).not.toContain('Muse is on it');
+  expect(byLabel('Muse is on it…')).toBeUndefined();
 
   const ask = { ...list[1], messageId: 'ms_4' };
   expect(Chat.museBusy([...list, ask])).toBe(true);

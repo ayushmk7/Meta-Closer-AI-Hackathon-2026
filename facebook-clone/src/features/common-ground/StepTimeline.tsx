@@ -1,12 +1,12 @@
 // Muse's step timeline (PRD-1 §8.3.1). Unknown kinds and statuses render label + status (CONTRACTS §3).
 import type { ComponentProps } from 'react';
 import { ActivityIndicator, View } from 'react-native';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
 import type Ionicons from '@expo/vector-icons/Ionicons';
 import { Icon, Label, Muted, useColors } from '../../ui/native';
 import ApprovalSheet from './ApprovalSheet';
 import { useCg } from './store';
-import { WARN } from './ui';
+import { enter, Pop, WARN } from './ui';
 import type { Approval, MuseStep } from './types';
 
 const NONE: Approval[] = []; // stable default: a fresh [] in a useCg selector loops useSyncExternalStore
@@ -44,7 +44,12 @@ export function StatusMark({ status }: { status: string }) {
     case 'running':
       return <ActivityIndicator size="small" color={c.blue} />;
     case 'done':
-      return <Icon name="checkmark-circle" size={22} color={c.online} />;
+      // Mounts when a step flips to done, so the check pops then.
+      return (
+        <Pop>
+          <Icon name="checkmark-circle" size={22} color={c.online} />
+        </Pop>
+      );
     case 'needs_you':
       return <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: c.blue }} />;
     case 'failed':
@@ -70,8 +75,8 @@ export default function StepTimeline({ meetupId, steps }: { meetupId: string; st
             : undefined;
         const muted = s.status === 'skipped' || s.status === 'queued';
         return (
-          // FadeInDown honours the system reduce-motion setting (Reanimated default).
-          <Animated.View key={s.stepId} entering={FadeInDown} style={{ gap: 8 }}>
+          // enter() honours the system reduce-motion setting (Reanimated default).
+          <Animated.View key={s.stepId} entering={enter()} style={{ gap: 8 }}>
             <View
               accessible
               accessibilityLabel={stepLabel(s)}

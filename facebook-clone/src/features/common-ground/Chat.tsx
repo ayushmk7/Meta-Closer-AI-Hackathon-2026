@@ -1,6 +1,14 @@
 // Group chat (PRD-1 §8.4): Messenger look, Muse cards, attachments, Ask Muse toggle.
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, View } from 'react-native';
+import Animated, {
+  cancelAnimation,
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+} from 'react-native-reanimated';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import {
   Icon,
@@ -18,7 +26,7 @@ import { StatusMark, stepLabel } from './StepTimeline';
 import { api, getUser } from './api';
 import { act, getState, load, sendMessage, setState, useCg } from './store';
 import type { Message, MessageAttachment, Thread } from './types';
-import { Banners, NotFound, PersonAvatar, personName, Pill, usePoll, when } from './ui';
+import { Banners, enter, NotFound, PersonAvatar, personName, Pill, usePoll, when } from './ui';
 
 const NONE: Message[] = []; // stable selector default (fresh [] loops useSyncExternalStore)
 
@@ -36,6 +44,49 @@ function MuseAvatar({ size = 32 }: { size?: number }) {
       }}
     >
       <Icon name="sparkles" size={size * 0.55} color="#fff" />
+    </View>
+  );
+}
+
+// Messenger typing bubble while Muse works; the dots pulse (static under reduce motion).
+function MuseTyping() {
+  const c = useColors();
+  const reduce = useReducedMotion();
+  const opacity = useSharedValue(1);
+  useEffect(() => {
+    if (reduce) return;
+    opacity.value = withRepeat(withTiming(0.35, { duration: 600 }), -1, true);
+    return () => cancelAnimation(opacity);
+  }, [reduce, opacity]);
+  const anim = useAnimatedStyle(() => ({ opacity: opacity.value }));
+  return (
+    <View
+      accessible
+      accessibilityLiveRegion="polite"
+      accessibilityLabel="Muse is on it…"
+      style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 8 }}
+    >
+      <MuseAvatar />
+      <Animated.View
+        style={[
+          {
+            flexDirection: 'row',
+            gap: 4,
+            borderRadius: 18,
+            paddingHorizontal: 14,
+            paddingVertical: 14,
+            backgroundColor: c.input,
+          },
+          anim,
+        ]}
+      >
+        {[0, 1, 2].map((i) => (
+          <View
+            key={i}
+            style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: c.secondary }}
+          />
+        ))}
+      </Animated.View>
     </View>
   );
 }
@@ -242,6 +293,11 @@ export default function ChatScreen() {
   const ready = useCg((s) => s.ready);
   const [toMuse, setToMuse] = useState(false);
   const scroll = useRef<ScrollView>(null);
+  // Messages already here when the chat first fills don't animate; later ones enter.
+  const [base, setBase] = useState<number>();
+  useEffect(() => {
+    if (base === undefined && messages.length) setBase(messages.length);
+  }, [base, messages.length]);
   const setDraft = (text: string) =>
     setState({ drafts: { ...getState().drafts, [threadId]: text } });
 
@@ -340,26 +396,23 @@ export default function ChatScreen() {
         contentContainerStyle={{ padding: 14, gap: 12, flexGrow: 1 }}
       >
         {messages.map((m, i) => (
-          <Bubble
-            key={m.messageId}
-            m={m}
-            thread={thread}
-            first={
-              messages[i - 1]?.sender.kind !== 'user' ||
-              messages[i - 1]?.sender.userId !== m.sender.userId
-            }
-            onStarter={setDraft}
-          />
-        ))}
-        {museBusy(messages) && (
-          <View
-            accessibilityLiveRegion="polite"
-            style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}
+          // clientId keeps the key stable when the server echoes an optimistic message.
+          <Animated.View
+            key={m.clientId ?? m.messageId}
+            entering={base !== undefined && i >= base ? enter() : undefined}
           >
-            <MuseAvatar size={24} />
-            <Muted>Muse is on it…</Muted>
-          </View>
-        )}
+            <Bubble
+              m={m}
+              thread={thread}
+              first={
+                messages[i - 1]?.sender.kind !== 'user' ||
+                messages[i - 1]?.sender.userId !== m.sender.userId
+              }
+              onStarter={setDraft}
+            />
+          </Animated.View>
+        ))}
+        {museBusy(messages) && <MuseTyping />}
       </ScrollView>
       <View style={{ borderTopWidth: 1, borderTopColor: c.divider, padding: 10, gap: 8 }}>
         <View style={{ alignSelf: 'flex-start' }}>
