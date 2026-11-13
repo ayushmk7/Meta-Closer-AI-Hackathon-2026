@@ -159,18 +159,20 @@ def because(w: World, viewer: str, plan: dict) -> list[dict]:
 
 
 async def warm_reasons(w: World, viewer: str, plan_ids: list[str]) -> None:
-    """Muse's one-line reason per (plan, viewer), cached on the plan (PRD-2 §3.4). Built only from the coarse
-    overlap the viewer may see (Crowd.sharedWithYou), so Copy never gets more than the card shows."""
+    """Muse's one-line reason per (plan, viewer), stored on the plan for the sync card builders. Built only from the
+    coarse overlap the viewer may see (Crowd.sharedWithYou), so Copy never gets more than the card shows. Asked on
+    every read: Copy answers from its own cache at once (template first, Muse's text once it lands)."""
     for pid in plan_ids:
         p = w.plans.get(pid)
-        if not p or viewer in p.setdefault("reasons", {}):
+        if not p:
             continue
+        p.setdefault("reasons", {})
         shared = privacy.crowd(w, viewer, p, capacity(w, p))["sharedWithYou"]
         try:
             text = await ports.ports.copy.plan_reason(p, [privacy.copy_interest(w, s["interest"]) for s in shared])
         except Exception:
-            log.warning("plan_reason copy failed for %s; leaving it blank", pid)
-            text = ""
+            log.warning("plan_reason copy failed for %s; keeping the last line", pid)
+            text = p["reasons"].get(viewer, "")
         p["reasons"][viewer] = text[:160]
 
 
