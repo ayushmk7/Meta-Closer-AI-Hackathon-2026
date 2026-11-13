@@ -11,8 +11,16 @@ export default function IdeasRow() {
   useEffect(() => {
     if (!shares.length) void load.shares();
   }, [shares.length]);
-  // A teaser row: photo cards only (a placeholder reads as a failed image). Explore lists all.
-  const shown = shares.filter((s) => s.photoUrl).slice(0, 6);
+  // A teaser row: photo cards only (a placeholder reads as a failed image), one per venue (same
+  // venue = same photo, reads as a duplicate). Explore lists all.
+  const venues = new Set<string>();
+  const shown = shares
+    .filter((s) => {
+      if (!s.photoUrl || venues.has(s.venue.venueId)) return false;
+      venues.add(s.venue.venueId);
+      return true;
+    })
+    .slice(0, 6);
   if (!shown.length) return null;
   return (
     <View style={{ gap: 8 }}>

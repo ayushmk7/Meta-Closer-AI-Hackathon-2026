@@ -326,7 +326,7 @@ export default function ChatScreen() {
   if (!thread && !messages.length)
     return (
       <View style={{ flex: 1 }}>
-        <Banners />
+        <Banners quiet />
         {ready && <NotFound title="This chat isn't available" />}
       </View>
     );

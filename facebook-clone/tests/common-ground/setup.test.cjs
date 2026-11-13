@@ -88,7 +88,7 @@ test('intro -> optIn -> connect apps -> picked up (locked sensitive) -> done', a
   const complete = jest.spyOn(api, 'completeSetup');
   const { text, press } = await render(React.createElement(SetupScreen));
   expect(text()).toContain('People only see what you have in common');
-  expect(text()).toContain('Campus, coming soon');
+  expect(text()).toContain('Coming soon: Campus');
   await press('Continue');
   expect(store.getState().me.optedIn).toBe(true);
   expect(text()).toContain('Connect your apps');

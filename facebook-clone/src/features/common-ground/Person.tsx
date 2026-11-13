@@ -19,7 +19,7 @@ export default function PersonScreen() {
   if (!profile)
     return (
       <Page>
-        <Banners />
+        <Banners quiet />
         {loaded && <NotFound title="This profile isn't available" />}
       </Page>
     );

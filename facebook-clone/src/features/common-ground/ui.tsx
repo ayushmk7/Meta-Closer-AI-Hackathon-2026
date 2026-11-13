@@ -521,11 +521,13 @@ export function AvailabilityGrid({
 }
 
 // Shell-style error banner plus the second-phone identity banner.
-export function Banners() {
+// quiet: the screen already says what went wrong (NotFound), so skip the error row (P2-18).
+export function Banners({ quiet = false }: { quiet?: boolean }) {
   const c = useColors();
   // ponytail: every CG screen renders Banners, so this is where cold deep links boot the store (start() is idempotent)
   useEffect(() => void start(), []);
-  const error = useCg((s) => s.error);
+  const stored = useCg((s) => s.error);
+  const error = quiet ? null : stored;
   const override = useCg((s) => s.userOverride);
   const name = useCg((s) => s.me?.displayName);
   if (!error && !override) return null;
