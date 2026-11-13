@@ -36,7 +36,7 @@ function Wordmark({ size }: { size: number }) {
 }
 
 function Gallery() {
-  const shares = useCg((s) => s.shares);
+  const shares = useCg((s) => s.publicShares); // anonymous slot, never the signed-in gallery
   return (
     <>
       <Label style={{ fontSize: 17, fontWeight: '700', paddingHorizontal: 16, paddingTop: 8 }}>

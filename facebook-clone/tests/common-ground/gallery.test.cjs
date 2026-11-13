@@ -167,6 +167,11 @@ test('Welcome: read-only gallery, Log in and Create new account enter Plans', as
   const list = jest.spyOn(api, 'listShares');
   const { text, press, has } = await render(React.createElement(WelcomeScreen));
   expect(list).toHaveBeenCalledWith({}, { anonymous: true }); // logged out: no X-CG-User
+  // Reads only the anonymous slot: emptying the signed-in gallery changes nothing here.
+  expect(store.getState().publicShares.length).toBeGreaterThan(0);
+  await renderer.act(async () => store.setState({ shares: [] }));
+  expect(text()).toContain('Hayes Clay Studio');
+  await renderer.act(async () => void (await store.load.shares()));
   // Full-screen modal: covers the logged-in Shell chrome (header, tabs).
   const modal = (await render(React.createElement(WelcomeScreen))).tree.root.findByType(
     require('react-native').Modal,
