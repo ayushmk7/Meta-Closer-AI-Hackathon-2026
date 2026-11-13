@@ -166,7 +166,7 @@ def clone_avatar_path():
 
 # ---------- Connector records (inert until Maya connects the provider live) ----------
 TZ = ZoneInfo("America/Los_Angeles")
-FREQUENT_VENUE = "vn_lands_end"  # >= 4 visits in the 30 days before REF: drives the nudge
+FREQUENT_VENUE = "vn_little_fern"  # >= 4 dinners in the 30 days before REF: drives the nudge
 SAVED_VENUE = "vn_clay_hour"  # the hero plan's studio
 SENSITIVE_VENUE = "vn_sunset_meditation"  # weekly, auto-hidden in the demo
 HACKATHON_DAYS = {date(2026, 11, 11), date(2026, 11, 12), date(2026, 11, 13)}  # off work
@@ -202,8 +202,8 @@ def connector_records(ref: datetime, horizon_days: int, iso) -> list[dict]:
     def add(**kw):
         rows.append({"recordId": f"cr_maya_{len(rows) + 1:03d}", "userId": MAYA_ID, **kw})
 
-    for d in (date(2026, 10, 18), date(2026, 10, 25), date(2026, 11, 1), date(2026, 11, 8)):
-        add(provider="google_maps", kind="place_visit", at=iso(_local(d, "09:10")), end=iso(_local(d, "10:40")), venueId=FREQUENT_VENUE)
+    for d in (date(2026, 10, 16), date(2026, 10, 23), date(2026, 10, 30), date(2026, 11, 6)):  # Friday dinners
+        add(provider="google_maps", kind="place_visit", at=iso(_local(d, "19:05")), end=iso(_local(d, "20:35")), venueId=FREQUENT_VENUE)
     add(provider="google_maps", kind="saved_place", at=iso(_local(date(2026, 11, 3), "21:12")), venueId=SAVED_VENUE)
     for d in (date(2026, 10, 15), date(2026, 10, 22), date(2026, 10, 29), date(2026, 11, 5)):
         add(provider="google_maps", kind="place_visit", at=iso(_local(d, "07:00")), end=iso(_local(d, "08:00")), venueId=SENSITIVE_VENUE)

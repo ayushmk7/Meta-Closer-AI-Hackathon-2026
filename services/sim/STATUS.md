@@ -33,7 +33,9 @@
 ## Seed decisions
 - Timezone America/Los_Angeles. Plan horizon starts 2026-11-13 00:00 local (demo day) + 12 h minLead.
 - City hero: Sat 2026-11-14 10:00 wheel-throwing at fictional Clay Hour Studio (Hayes Valley), $35 prepaid, size 3-5,
-  pre-joined by the private counterpart + one more. Nudge: Sun 9:00 Lands End walk, free, origin `signal`.
+  pre-joined by the private counterpart + one more. Nudge (b5): Sat 19:00 dinner at fictional Little Fern Kitchen
+  (`vn_little_fern`, Hayes Valley, kind `restaurant`, reservation, $45 pay at venue, no approval), size 4-4, 3 pre-joined,
+  origin `signal`; Maya's frequent place (4 Friday dinners). Check now: nudge not prepaid (was: free).
 - Event pool: no u_maya persona or records. Event nudge: free Sun 9:00 Bedwell Bayfront walk. Event hero: Sat 11:00 lunch walk, $14 prepaid.
 - Maya's calendar: work Mon-Fri 9:00-17:30 (off Nov 11-13, hackathon), busy Mon/Tue/Thu evenings, Sat/Sun afternoons.
 
