@@ -336,16 +336,16 @@ export default function ChatScreen() {
     void sendMessage(threadId, text, { toMuse });
     setToMuse(false);
   };
-  // Messenger-style single header: (web) back arrow, avatar stack, title, "See meetup".
-  // On web this is the back row; native keeps the stack header's back button above it.
+  // Thread header: (web) back arrow, avatar stack, title, "See meetup". On web it is the
+  // back row; on native it is the first item of the thread, under the shell's back bar.
   const header = thread && (
     <View
       style={{
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: Platform.OS === 'web' ? 4 : 12,
-        paddingVertical: 8,
-        borderBottomWidth: StyleSheet.hairlineWidth,
+        paddingHorizontal: Platform.OS === 'web' ? 4 : 0,
+        paddingVertical: Platform.OS === 'web' ? 8 : 0,
+        borderBottomWidth: Platform.OS === 'web' ? StyleSheet.hairlineWidth : 0,
         borderBottomColor: c.divider,
       }}
     >
@@ -395,13 +395,16 @@ export default function ChatScreen() {
       style={{ flex: 1, backgroundColor: c.card }}
     >
       <Banners />
-      {header}
+      {Platform.OS === 'web' && header}
       <ScrollView
         ref={scroll}
         keyboardShouldPersistTaps="handled"
         onContentSizeChange={() => scroll.current?.scrollToEnd({ animated: false })}
         contentContainerStyle={{ padding: 14, gap: 12, flexGrow: 1 }}
       >
+        {/* Native: the shell bar is the only bar (N-P1-1); the thread intro scrolls with the
+            messages, as Messenger does. */}
+        {Platform.OS !== 'web' && header}
         {messages.map((m, i) => (
           // clientId keeps the key stable when the server echoes an optimistic message.
           <Animated.View
