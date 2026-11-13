@@ -481,6 +481,14 @@ test('shares and verify: optimistic like, share needs a finished meetup, verify,
     'a like patches every list',
   );
   await likeShare(mission[0]!.shareId, false);
+  await likeShare('sh_0001', true);
+  await load.shares({}, { anonymous: true });
+  assert.equal(getState().publicShares.length, 8);
+  assert.equal(
+    getState().shares.find((x) => x.shareId === 'sh_0001')!.likedByMe,
+    true,
+    'a logged-out load never wipes my likes',
+  );
   const anon = await api.listShares({}, { anonymous: true });
   await likeShare('sh_0002', true);
   assert.ok((await api.listShares({}, { anonymous: true })).every((x) => !x.likedByMe && !x.mine));

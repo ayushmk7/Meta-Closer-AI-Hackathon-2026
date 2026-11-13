@@ -60,6 +60,7 @@ export interface CgState {
   connections: Connection[];
   shares: Share[]; // the unfiltered anonymous gallery (Explore, Welcome, Ideas)
   sharesBy: Record<string, Share[]>; // filtered loads, keyed by shareQuery(filter)
+  publicShares: Share[]; // logged-out gallery (anonymous listShares)
   people: Record<string, PublicProfile>;
   threads: Thread[];
   messages: Record<string, Message[]>;
@@ -105,6 +106,7 @@ const initial = (): CgState => ({
   connections: [],
   shares: [],
   sharesBy: {},
+  publicShares: [],
   people: {},
   threads: [],
   messages: {},
@@ -208,12 +210,15 @@ export const load = {
     state.config?.features.nudges ? { nudges: await api.listNudges() } : { nudges: [] },
   ),
   connections: loader(async () => ({ connections: await api.listConnections() })),
-  // An empty filter fills `shares`; any other lands in `sharesBy`, so filters never clobber
-  // the gallery. `anonymous` drops X-CG-User (logged-out Welcome).
+  // Signed in: an empty filter fills `shares`, any other lands in `sharesBy[shareQuery]`.
+  // `anonymous` (no X-CG-User, logged-out Welcome) fills `publicShares` and `sharesBy['anon:…']`,
+  // so it never overwrites the signed-in likedByMe/mine.
   shares: loader(async (filter: ShareFilter = {}, opts: RequestOptions = {}) => {
-    const key = shareQuery(filter);
+    const key = (opts.anonymous ? 'anon:' : '') + shareQuery(filter);
     const items = await api.listShares(filter, opts);
-    return key ? { sharesBy: { ...state.sharesBy, [key]: items } } : { shares: items };
+    if (key === '') return { shares: items };
+    if (key === 'anon:') return { publicShares: items };
+    return { sharesBy: { ...state.sharesBy, [key]: items } };
   }),
   person: loader(async (userId: string) => {
     const p = await api.getPerson(userId);
