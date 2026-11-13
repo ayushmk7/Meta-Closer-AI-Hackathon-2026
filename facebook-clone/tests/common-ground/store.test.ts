@@ -105,6 +105,7 @@ test('Common Ground store runs the core loop on the in-app mock', async (t) => {
       'drafts',
       'homeCardDismissed',
       'lastMode',
+      'passportSeen',
       'reminders',
       'storyPrompt',
       'userOverride',

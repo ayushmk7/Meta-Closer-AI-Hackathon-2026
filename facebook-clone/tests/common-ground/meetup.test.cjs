@@ -323,3 +323,31 @@ test('web: the address is the same Directions link and opens Google Maps directl
     Platform.OS = os;
   }
 });
+
+test('no Share on the meetup when features.sharing is off; header Share when on', async () => {
+  const config = store.getState().config;
+  const m = clone(F.getMeetup);
+  store.setState({ plans: { [m.planId]: { ...F.getPlan, planId: m.planId, origin: 'muse' } } });
+  await renderer.act(async () =>
+    store.setState({ config: { ...config, features: { ...config.features, sharing: false } } }),
+  );
+  const off = await show(m);
+  expect(off.tree.root.findAll((n) => /^Share/.test(n.props.accessibilityLabel ?? ''))).toEqual([]);
+  await renderer.act(async () =>
+    store.setState({ config: { ...config, features: { ...config.features, sharing: true } } }),
+  );
+  expect(off.byLabel('Share plan') ?? off.byLabel('Share meetup')).toBeTruthy();
+  // Invite plans 404 publicly: no Share.
+  await renderer.act(async () =>
+    store.setState({ plans: { [m.planId]: { ...F.getPlan, planId: m.planId, origin: 'invite' } } }),
+  );
+  expect(off.byLabel('Share plan') ?? off.byLabel('Share meetup')).toBeUndefined();
+  await renderer.act(async () => store.setState({ config }));
+});
+
+test('the Coming soon booking teaser hides once the booking is booked', async () => {
+  const m = clone(F.getMeetup);
+  m.booking.status = 'booked';
+  const { byLabel } = await show(m);
+  expect(byLabel('Coming soon: Muse will soon call venues to book for you')).toBeUndefined();
+});
