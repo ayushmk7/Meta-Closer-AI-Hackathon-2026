@@ -37,8 +37,11 @@ function Body({ plan }: { plan: PublicPlan }) {
     <Animated.View entering={enter(0)}>
       <Card style={{ overflow: 'hidden' }}>
         <View accessible accessibilityLabel={`Photo of ${plan.venue.name}`}>
-          {/* ponytail: PlanPhoto reads only venue.photoUrl + activityType. */}
-          <PlanPhoto plan={plan as unknown as PlanCard} height={220} />
+          {/* PlanPhoto reads venue.photoUrl + activityType; PublicPlan carries the photo at the top level. */}
+          <PlanPhoto
+            plan={{ ...plan, venue: { ...plan.venue, photoUrl: plan.photoUrl } } as unknown as PlanCard}
+            height={220}
+          />
         </View>
         <View style={{ padding: 16, gap: 4 }}>
           <Label

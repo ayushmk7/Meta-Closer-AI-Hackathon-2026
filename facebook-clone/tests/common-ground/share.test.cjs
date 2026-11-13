@@ -87,7 +87,7 @@ async function render(el) {
     await renderer.act(async () => node.props.onPress());
   };
   const has = (label) => tree.root.findAll((n) => n.props.accessibilityLabel === label).length > 0;
-  return { text, press, has };
+  return { text, press, has, tree };
 }
 const sharingOff = () =>
   store.setState({ config: { ...store.getState().config, features: { sharing: false } } });
@@ -119,6 +119,17 @@ test("public plan page: title, date line and count line, no people, no I'm in", 
   expect(spy.mock.calls[0][0].message).toBe(
     'Wheel-throwing drop-in\nSat, Nov 14 · 10 AM · Hayes Valley\napp:///common-ground/shared/pl_0001',
   );
+});
+
+test('public plan page: hero shows the top-level photoUrl (ux-fable N-P0-3.2)', async () => {
+  sharingOn();
+  const p = await api.getPublicPlan('pl_0001');
+  const url = 'http://192.168.1.2:8000/static/venues/pottery.jpg';
+  jest.spyOn(api, 'getPublicPlan').mockResolvedValueOnce({ ...p, photoUrl: url });
+  mockParams.planId = 'pl_0001';
+  const { tree } = await render(React.createElement(PublicPlan));
+  const sources = tree.root.findAll((n) => n.type === 'Image').map((n) => n.props.source);
+  expect(sources).toContainEqual({ uri: url });
 });
 
 test('public plan page: no count line at 0, Empty on 404, not available when sharing is off', async () => {
