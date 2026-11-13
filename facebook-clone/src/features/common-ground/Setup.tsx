@@ -266,7 +266,8 @@ export default function SetupScreen() {
       </Page>
     );
   return (
-    <Page style={{ paddingTop: 8 }}>
+    // key: a new step remounts the ScrollView, so each step opens at the top.
+    <Page key={p} style={{ paddingTop: 8 }}>
       <Banners />
       <Muted style={{ paddingHorizontal: 16 }}>
         Step {connectorsOn || p < 2 ? p + 1 : p} of {connectorsOn ? 4 : 3}
