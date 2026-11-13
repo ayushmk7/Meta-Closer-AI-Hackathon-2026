@@ -674,13 +674,21 @@ def form_groups(
             met_in,
         )
 
-    # Split size: plan cap, lowered to the median member's own max so the split fits most people.
-    split = min(hi, median_low([umax(u) for u in queue[:seats]] or [hi]))
-    k = max(1, -(-seats // split))  # ceil
-    while k > 1 and seats // k < g["strangerSizeMin"]:
-        k -= 1
-    seats = min(seats, k * split)  # k lowered for the stranger minimum must not overflow the cap
-    sizes = [seats // k + (i < seats % k) for i in range(k)]
+    if params["matching"].get("fillToMax", False):
+        # Fewest, fullest groups: fill to the plan cap; a remainder below the stranger minimum waits unseated
+        # (backfill). Members' own groupSize.max still stops a group early in the pick loop below.
+        sizes = [hi] * (seats // hi)
+        if not sizes or seats % hi >= g["strangerSizeMin"]:
+            sizes.append(seats % hi)
+        seats = sum(sizes)
+    else:
+        # Split size: plan cap, lowered to the median member's own max so the split fits most people.
+        split = min(hi, median_low([umax(u) for u in queue[:seats]] or [hi]))
+        k = max(1, -(-seats // split))  # ceil
+        while k > 1 and seats // k < g["strangerSizeMin"]:
+            k -= 1
+        seats = min(seats, k * split)  # k lowered for the stranger minimum must not overflow the cap
+        sizes = [seats // k + (i < seats % k) for i in range(k)]
     groups: list[list[str]] = []
     # Seats go by priority: candidates come from the next free seats' worth of the queue; someone further
     # back steps in only when nobody in that window can join (blocked, size preference).

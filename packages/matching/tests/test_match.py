@@ -287,3 +287,23 @@ def test_form_keeps_met_pair_together(params):
     fixed = cgm.MatchState(met_pairs=[["u_0", "u_7"]], fixed_ids={"pl_wheel": ["u_0", "u_1"]})
     res = _form(_with(params, reunionBoost=1.0), us, ids[2:], p=plan(size=(3, 4)), state=fixed)
     assert "u_7" in res.groups[0].member_ids  # backfill pulls the met person in first
+
+
+def test_fill_to_max(params):
+    ids = [f"u_{i}" for i in range(8)]
+    us = [user(u, MAKER, groupSize={"min": 3, "max": 6}) for u in ids]
+    p = plan(size=(3, 6))
+    assert _form(_with(params, fillToMax=False), us, ids, p=p) == _form(params, us, ids, p=p)  # default off
+    assert [len(g.member_ids) for g in _form(params, us, ids, p=p).groups] == [4, 4]
+    res = _form(_with(params, fillToMax=True), us, ids, p=p)
+    assert [g.member_ids for g in res.groups] == [ids[:6]] and res.unseated_ids == ids[6:]  # 6 + backfill
+    # 11 people: 6 + 5. Members' own max still holds: a max-4 person caps their group.
+    ids = [f"u_{i}" for i in range(11)]
+    us = [user(u, MAKER, groupSize={"min": 3, "max": 4 if u == "u_0" else 6}) for u in ids]
+    res = _form(_with(params, fillToMax=True), us, ids, p=p)
+    caps = {u["userId"]: u["groupSize"]["max"] for u in us}
+    assert all(len(g.member_ids) <= caps[m] for g in res.groups for m in g.member_ids)
+    assert sorted([m for g in res.groups for m in g.member_ids] + res.unseated_ids) == sorted(ids)
+    us = [user(u, MAKER, groupSize={"min": 3, "max": 6}) for u in ids]
+    res = _form(_with(params, fillToMax=True), us, ids, p=p)
+    assert [len(g.member_ids) for g in res.groups] == [6, 5] and res.unseated_ids == []
