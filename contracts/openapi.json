@@ -50,6 +50,9 @@
     },
     {
       "name": "safety"
+    },
+    {
+      "name": "shares"
     }
   ],
   "paths": {
@@ -690,6 +693,26 @@
                       "provider": "eventbrite",
                       "label": "Eventbrite",
                       "reads": "Tickets you hold.",
+                      "status": "not_connected",
+                      "simulated": true,
+                      "connectedAt": null,
+                      "lastSyncAt": null,
+                      "signalCount": 0
+                    },
+                    {
+                      "provider": "luma",
+                      "label": "Luma",
+                      "reads": "Events you RSVP'd to.",
+                      "status": "not_connected",
+                      "simulated": true,
+                      "connectedAt": null,
+                      "lastSyncAt": null,
+                      "signalCount": 0
+                    },
+                    {
+                      "provider": "beli",
+                      "label": "Beli",
+                      "reads": "Restaurants you rated and want to try.",
                       "status": "not_connected",
                       "simulated": true,
                       "connectedAt": null,
@@ -2132,6 +2155,297 @@
         }
       }
     },
+    "/v1/meetups/{meetupId}/verify": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/MeetupId"
+        }
+      ],
+      "post": {
+        "tags": [
+          "meetups"
+        ],
+        "operationId": "verifyAttendee",
+        "summary": "I scanned (or typed) another attendee's code. One accepted scan marks both of us verified and the meetup counts for both.",
+        "description": "Verification is by QR: each attendee shows `Meetup.verifyCode` as a QR with the same 6 characters printed under it.\nNFC is not possible in Expo Go. `accepted=false` is a normal outcome.\n",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "code"
+                ],
+                "properties": {
+                  "code": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Verify result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerifyResult"
+                },
+                "example": {
+                  "accepted": true,
+                  "person": {
+                    "userId": "u_0042",
+                    "displayName": "Daniel Okafor",
+                    "initials": "DO",
+                    "avatarUrl": "http://localhost:8000/static/avatars/u_0042.png",
+                    "profileVisibility": "public"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/v1/meetups/{meetupId}/share": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/MeetupId"
+        }
+      ],
+      "post": {
+        "tags": [
+          "shares"
+        ],
+        "operationId": "shareMeetup",
+        "summary": "Share a completed meetup to the public gallery. Anonymous; the photo is the venue photo only.",
+        "description": "422 (`not_allowed`) unless the meetup is completed, I attended, and the venue is not sensitive.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "caption"
+                ],
+                "properties": {
+                  "caption": {
+                    "type": "string",
+                    "maxLength": 140
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The new share",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Share"
+                },
+                "example": {
+                  "shareId": "sh_0001",
+                  "activityType": "ceramics_studio",
+                  "caption": "Three strangers, three lopsided bowls. Coming back next week.",
+                  "venue": {
+                    "venueId": "vn_hayes_clay",
+                    "name": "Hayes Clay Studio",
+                    "neighborhood": "Hayes Valley"
+                  },
+                  "groupSize": 3,
+                  "happenedOn": "2026-11-14",
+                  "photoUrl": "http://localhost:8000/static/venues/vn_hayes_clay.jpg",
+                  "likes": 0,
+                  "likedByMe": false,
+                  "mine": true,
+                  "promptText": "Wheel-throwing drop-in at Hayes Clay Studio this weekend"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/v1/shares": {
+      "get": {
+        "tags": [
+          "shares"
+        ],
+        "operationId": "listShares",
+        "security": [],
+        "summary": "Public gallery of anonymous meetup shares, newest first, at most params.shares.galleryMax. No person fields.",
+        "description": "Works without `X-CG-User` (logged-out Welcome screen); then `likedByMe` and `mine` are false.",
+        "parameters": [
+          {
+            "name": "activityType",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "neighborhood",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "venueId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Shares",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "items"
+                  ],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Share"
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "items": [
+                    {
+                      "shareId": "sh_0001",
+                      "activityType": "ceramics_studio",
+                      "caption": "Three strangers, three lopsided bowls. Coming back next week.",
+                      "venue": {
+                        "venueId": "vn_hayes_clay",
+                        "name": "Hayes Clay Studio",
+                        "neighborhood": "Hayes Valley"
+                      },
+                      "groupSize": 3,
+                      "happenedOn": "2026-11-14",
+                      "photoUrl": "http://localhost:8000/static/venues/vn_hayes_clay.jpg",
+                      "likes": 12,
+                      "likedByMe": false,
+                      "mine": false,
+                      "promptText": "Wheel-throwing drop-in at Hayes Clay Studio this weekend"
+                    },
+                    {
+                      "shareId": "sh_0002",
+                      "activityType": "climbing_session",
+                      "caption": "Nobody finished the purple V3. Tacos after.",
+                      "venue": {
+                        "venueId": "vn_basalt_bouldering",
+                        "name": "Basalt Bouldering",
+                        "neighborhood": "SoMa"
+                      },
+                      "groupSize": 4,
+                      "happenedOn": "2026-11-08",
+                      "photoUrl": "http://localhost:8000/static/venues/vn_basalt_bouldering.jpg",
+                      "likes": 7,
+                      "likedByMe": false,
+                      "mine": false,
+                      "promptText": "Bouldering at Basalt Bouldering this week"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/v1/shares/{shareId}/like": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ShareId"
+        }
+      ],
+      "put": {
+        "tags": [
+          "shares"
+        ],
+        "operationId": "likeShare",
+        "summary": "Like or unlike a share. Idempotent.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "liked"
+                ],
+                "properties": {
+                  "liked": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The share after the change",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Share"
+                },
+                "example": {
+                  "shareId": "sh_0001",
+                  "activityType": "ceramics_studio",
+                  "caption": "Three strangers, three lopsided bowls. Coming back next week.",
+                  "venue": {
+                    "venueId": "vn_hayes_clay",
+                    "name": "Hayes Clay Studio",
+                    "neighborhood": "Hayes Valley"
+                  },
+                  "groupSize": 3,
+                  "happenedOn": "2026-11-14",
+                  "photoUrl": "http://localhost:8000/static/venues/vn_hayes_clay.jpg",
+                  "likes": 13,
+                  "likedByMe": true,
+                  "mine": false,
+                  "promptText": "Wheel-throwing drop-in at Hayes Clay Studio this weekend"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
     "/v1/approvals": {
       "get": {
         "tags": [
@@ -2756,6 +3070,14 @@
       },
       "MeetupId": {
         "name": "meetupId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "ShareId": {
+        "name": "shareId",
         "in": "path",
         "required": true,
         "schema": {
@@ -4768,6 +5090,10 @@
             "items": {
               "$ref": "#/components/schemas/InterestRef"
             }
+          },
+          "verified": {
+            "type": "boolean",
+            "description": "Confirmed in person by a QR scan (verifyAttendee). Absent = false."
           }
         }
       },
@@ -4905,6 +5231,13 @@
               "null"
             ],
             "description": "Label of the private Facebook Event Muse created, e.g. 'Private event · 3 going'."
+          },
+          "verifyCode": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "My own 6-character code, shown as a QR for others to scan. Owner-only: never another attendee's code."
           }
         }
       },
@@ -4965,6 +5298,127 @@
             "items": {
               "type": "string"
             }
+          },
+          "rating": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5,
+            "description": "Overall stars for the meetup."
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "description": "Open enum.",
+              "enum": [
+                "great_venue",
+                "good_group",
+                "too_far",
+                "too_long"
+              ]
+            }
+          }
+        }
+      },
+      "VerifyResult": {
+        "type": "object",
+        "required": [
+          "accepted"
+        ],
+        "properties": {
+          "accepted": {
+            "type": "boolean"
+          },
+          "reason": {
+            "type": "string",
+            "description": "Open enum.",
+            "enum": [
+              "invalid_code",
+              "not_attendee",
+              "outside_window",
+              "self"
+            ]
+          },
+          "person": {
+            "$ref": "#/components/schemas/PersonCard"
+          }
+        }
+      },
+      "Share": {
+        "type": "object",
+        "description": "An anonymous meetup share. It has no person fields; the photo is the venue photo only.",
+        "required": [
+          "shareId",
+          "activityType",
+          "caption",
+          "venue",
+          "groupSize",
+          "happenedOn",
+          "photoUrl",
+          "likes",
+          "likedByMe",
+          "mine",
+          "promptText"
+        ],
+        "properties": {
+          "shareId": {
+            "type": "string"
+          },
+          "activityType": {
+            "type": "string"
+          },
+          "caption": {
+            "type": "string",
+            "maxLength": 140
+          },
+          "venue": {
+            "type": "object",
+            "required": [
+              "venueId",
+              "name",
+              "neighborhood"
+            ],
+            "properties": {
+              "venueId": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "neighborhood": {
+                "type": "string"
+              }
+            }
+          },
+          "groupSize": {
+            "type": "integer",
+            "minimum": 2
+          },
+          "happenedOn": {
+            "type": "string",
+            "format": "date",
+            "description": "Local date (America/Los_Angeles)."
+          },
+          "photoUrl": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Venue photo only, never a user photo."
+          },
+          "likes": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "likedByMe": {
+            "type": "boolean"
+          },
+          "mine": {
+            "type": "boolean"
+          },
+          "promptText": {
+            "type": "string",
+            "description": "Muse bar prompt for 'Plan something like this'."
           }
         }
       },

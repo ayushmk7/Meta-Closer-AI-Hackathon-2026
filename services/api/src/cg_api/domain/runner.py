@@ -8,6 +8,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import random
+import re
 from collections import deque
 from collections.abc import Iterable
 
@@ -15,6 +16,7 @@ from cg_api import ports
 from cg_api.domain import approvals, chat, meetups, plans, privacy
 from cg_api.domain.world import World, iso
 from cg_api.domain.world import _spawn as world_spawn
+from cg_api.domain.world import parse as parse_iso
 
 log = logging.getLogger("cg_api.domain.runner")
 
@@ -22,6 +24,21 @@ try:
     from cg_api.agent import ScriptedRun
 except ImportError:  # ponytail: D's module lands with its PR; until then steps come only from the port
     ScriptedRun = None
+
+
+def demo_state(w: World) -> dict:
+    """A's live DemoState (internal API) when this World is the store's, else params/demo.json defaults."""
+    try:
+        from cg_api.store import store
+
+        if store.world is w and store.demo_state:
+            return store.demo_state
+    except ImportError:
+        pass
+    d = w.params["demo"]
+    w.demo.setdefault("forcedYes", d["forcedYesDefault"])
+    w.demo.setdefault("counterpart", d["counterpartDefault"])
+    return w.demo
 
 
 def _delay(w: World) -> float:
@@ -170,6 +187,12 @@ async def post_intro(w: World, meetup_id: str) -> None:
     )
 
 
+def _take_fail_next_booking(w: World) -> bool:
+    ds = demo_state(w)
+    fail, ds["failNextBooking"] = bool(ds.get("failNextBooking")), False
+    return fail
+
+
 def start(w: World, meetup_id: str) -> None:
     """World.on_formed: intro first, then one run per new meetup."""
     _enqueue(w, meetup_id, lambda: post_intro(w, meetup_id))
@@ -196,7 +219,7 @@ def start(w: World, meetup_id: str) -> None:
         new_id=lambda prefix: w.next_id(prefix.rstrip("_") + "_"),
         reschedule_window_min=mp["rescheduleWindowMin"],
         approval_expires_hours=mp["approvalExpiresHours"],
-        fail_next_booking=w.demo.pop("failNextBooking", False),
+        fail_next_booking=_take_fail_next_booking(w),
     )
     w.runs[meetup_id] = run
     _enqueue(w, meetup_id, run.start())
@@ -209,3 +232,64 @@ def decided(w: World, a: dict) -> None:
         world_spawn(ports.ports.agent.on_approval(a["approvalId"]))
         return
     _enqueue(w, a["meetupId"], run.decide(a["approvalId"], a["status"]))
+
+
+_DAYS = ("monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday", "tomorrow")
+
+
+def _change_request(text: str, current_day: str = "") -> str | None:
+    """Changes outside Muse's own bounds (CONTRACTS §5): a different day, another venue, cancelling.
+    ponytail: keyword match; `change` approvals (M2) turn these into real asks."""
+    t = text.lower()
+    if any(w in t for w in ("cancel", "call it off")):
+        return "Cancelling"
+    if day := next((d for d in _DAYS if d != current_day and re.search(rf"\b{d}\b", t)), None):
+        return f"Moving it to {day.capitalize()}"
+    if re.search(r"\b(somewhere else|another (place|venue|spot)|different (place|venue|spot))\b", t):
+        return "Changing the venue"
+    return None
+
+
+async def _to_muse(w: World, msg: dict) -> None:
+    """One toMuse turn: D's rules decide (time change or question), C applies the events and posts Muse's reply."""
+    from cg_api import agent
+
+    t = w.threads[msg["threadId"]]
+    m = w.meetups[t["meetupId"]]
+    run = w.runs.get(m["meetupId"])
+    start = run.plan["startsAt"] if run is not None else m["startsAt"]  # follows earlier reschedules
+    parse = getattr(agent, "parse_time_change", None)
+    new_start = parse(msg["text"], start) if parse else None
+    step_ids: list[str] = []
+    if new_start and run is not None and hasattr(run, "reschedule_to"):
+        busy = {a["userId"]: w.users[a["userId"]]["busy"] for a in run.attendees}
+        events, reply, step_ids = run.reschedule_to(new_start, busy)
+        await drive(w, m["meetupId"], events)  # steps tick at demo.stepDelayS, like the formation run
+    elif change := _change_request(msg["text"], parse_iso(start).astimezone(plans.TZ).strftime("%A").lower()):
+        reply = f"{change} needs everyone's OK. I can't send that ask yet, so check with the group here."
+    elif hasattr(agent, "answer_question"):
+        plan = (
+            run.plan if run is not None else {**w.plans[m["planId"]], "startsAt": m["startsAt"], "endsAt": m["endsAt"]}
+        )
+        reply = "Here's the plan: " + agent.answer_question(plan, w.venues[m["venueId"]])
+    else:
+        log.warning("runner: no toMuse handler in cg_api.agent yet; %s unanswered", msg["messageId"])
+        return
+    att = [{"kind": "muse_steps", "meetupId": m["meetupId"], "stepIds": step_ids}] if step_ids else []
+    chat.post(w, msg["threadId"], "muse", None, reply, att)
+
+
+def to_muse(w: World, msg: dict) -> None:
+    """World.on_to_muse. A real AgentRunner wins; otherwise the scripted turn runs in the meetup's driver."""
+    if not isinstance(ports.ports.agent, ports.StubAgent):
+        world_spawn(ports.ports.agent.on_message(msg["threadId"], msg["messageId"]))
+        return
+    mt = w.threads[msg["threadId"]]["meetupId"]
+
+    async def turn() -> None:
+        try:
+            await _to_muse(w, msg)
+        except Exception:
+            log.exception("runner: toMuse turn failed for %s", msg["messageId"])
+
+    _enqueue(w, mt, turn)

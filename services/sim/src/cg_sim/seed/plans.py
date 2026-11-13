@@ -5,6 +5,7 @@ one more featured) are curated so the stage demo is reproducible, and checked ag
 from __future__ import annotations
 
 import random
+from collections import Counter
 from datetime import UTC, datetime, timedelta
 from zoneinfo import ZoneInfo
 
@@ -162,27 +163,30 @@ def build(pool_id, mode, rng: random.Random, export, venues, people, personas, s
         prefix = "pl_sf"
         hero = _plan(f"{prefix}_hero_wheel", pool_id, "ceramics_studio", by_id["vn_clay_hour"],
                      _local(2026, 11, 14, 10), _local(2026, 11, 14, 12), {"min": 3, "max": 5},
-                     ["arts_crafts.ceramics"], "sc_makers", "seed", [private.user_id, hero_join.user_id],
+                     ["arts_crafts.ceramics"], None, "seed", [private.user_id, hero_join.user_id],
                      title="Saturday wheel-throwing drop-in")
         nudge = _plan(f"{prefix}_lands_end_walk", pool_id, "walk", by_id["vn_lands_end"],
                       _local(2026, 11, 15, 9), _local(2026, 11, 15, 10, 30), {"min": 3, "max": 6},
-                      ["outdoors.hiking"], "sc_trail", "signal", [others[0]],
+                      ["outdoors.hiking"], None, "signal", [others[0]],
                       title="Sunday coastal walk at Lands End")
     else:
         prefix = "pl_evt"
         hero = _plan(f"{prefix}_hero_lunch_walk", pool_id, "lunch", by_id["vn_bayside_commons"],
                      _local(2026, 11, 14, 11), _local(2026, 11, 14, 12, 30), {"min": 3, "max": 5},
-                     ["tech_career.building"], "sc_builders", "seed", [private.user_id, hero_join.user_id],
+                     ["tech_career.building"], None, "seed", [private.user_id, hero_join.user_id],
                      title="Lunch walk with other solo hackers")
         nudge = _plan(f"{prefix}_bayfront_walk", pool_id, "walk", by_id["vn_bedwell_bayfront"],
                       _local(2026, 11, 15, 9), _local(2026, 11, 15, 10, 30), {"min": 3, "max": 6},
-                      ["outdoors.hiking"], "sc_trail", "signal", [others[0]],
+                      ["outdoors.hiking"], None, "signal", [others[0]],
                       title="Sunday morning bay trail walk")
     game_cafe = next(v for v in venues if v["kind"] == "game_cafe")
     third = _plan(f"{prefix}_wed_game_night", pool_id, "board_game_night", game_cafe,
                   _local(2026, 11, 18, 18, 30), _local(2026, 11, 18, 21), {"min": 3, "max": 6},
-                  ["games.board_games"], "sc_tabletop", "seed", [others[1]])
+                  ["games.board_games"], None, "seed", [others[1]])
     curated = [hero, nudge, third]
+    for c in curated:  # Leiden scene of the pre-joined members (first joiner's on a tie)
+        c["sceneId"] = next((sc for sc, _ in Counter(scene_of[u] for u in c["seedJoinIds"] if u in scene_of)
+                             .most_common(1)), None)
 
     # Proposed inventory.
     members: dict[str, list] = {}

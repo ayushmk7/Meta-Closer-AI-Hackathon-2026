@@ -16,6 +16,9 @@ import {
 } from '../../ui/native';
 import ApprovalSheet, { money } from './ApprovalSheet';
 import { SameTimeNextWeek } from './Rewards';
+import FeedbackExtras, { type Extras } from './FeedbackExtras';
+import ShareMeetup from './ShareMeetup';
+import VerifyButton from './VerifyButton';
 import StepTimeline from './StepTimeline';
 import VenueMap from './VenueMap';
 import { api } from './api';
@@ -104,6 +107,7 @@ function Feedback({ m }: { m: Meetup }) {
   >({});
   const [reports, setReports] = useState<string[]>([]);
   const [note, setNote] = useState('');
+  const [extras, setExtras] = useState<Extras>({});
   const [sending, setSending] = useState(false);
   const complete = others.every(
     (a) =>
@@ -121,6 +125,7 @@ function Feedback({ m }: { m: Meetup }) {
       })),
       ...(note.trim() ? { note: note.trim() } : {}),
       ...(reports.length ? { reportUserIds: reports } : {}),
+      ...extras,
     };
     const ok = await act(() => api.sendFeedback(m.meetupId, body).then(() => true));
     setSending(false);
@@ -181,6 +186,7 @@ function Feedback({ m }: { m: Meetup }) {
             />
           );
         })}
+      <FeedbackExtras value={extras} onChange={setExtras} />
       <Button title="Send" disabled={!complete || sending} onPress={() => void send()} />
     </Section>
   );
@@ -429,7 +435,9 @@ export default function MeetupScreen() {
         </Section>
       )}
 
+      <VerifyButton m={m} />
       {m.feedbackDue && <Feedback m={m} />}
+      <ShareMeetup m={m} />
       <SameTimeNextWeek m={m} />
 
       <Card style={{ padding: 16, gap: 8 }}>

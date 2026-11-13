@@ -18,6 +18,8 @@ import PlanCard, { PlanCarousel, dayTime } from './PlanCard';
 import Rewards from './Rewards';
 import SetupScreen from './Setup';
 import SurpriseButton from './SurpriseButton';
+import Quests from './Quests';
+import IdeasRow from './IdeasRow';
 import { dismissNudge, nudgesFor, pendingApprovals, refreshAll, useCg } from './store';
 import type { Connection, Join, Meetup, Nudge, PlanCard as Plan } from './types';
 import { Banners, InterestChips, PersonAvatar } from './ui';
@@ -268,6 +270,7 @@ export default function PlansScreen() {
           onEndInvite={endInvite}
         />
         {!invite && <SurpriseButton />}
+        {!invite && <Quests />}
         {nudge && <NudgeCard nudge={nudge} />}
         {!replying && feed.length > 0 && (
           <>
@@ -292,7 +295,15 @@ export default function PlansScreen() {
             </View>
           </>
         )}
+        <IdeasRow />
         <Rewards style={{ marginHorizontal: 16 }} />
+        <Button
+          title="Your passport"
+          icon="ribbon-outline"
+          secondary
+          onPress={() => go('/common-ground/passport')}
+          style={{ marginHorizontal: 16 }}
+        />
         {connections.length > 0 && (
           <>
             <Section title="People you've met" />

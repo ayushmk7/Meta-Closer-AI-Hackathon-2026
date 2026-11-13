@@ -267,3 +267,33 @@ def test_reason_comes_from_copy_and_never_echoes_the_venue(world):
     hero = plans.card(world, "u_maya", world.plans["pl_hero"])["reason"]
     walk = plans.card(world, "u_maya", world.plans["pl_walk"])["reason"]
     assert hero and "Clay Hour Studio" not in hero and "Lands End" not in walk
+
+
+def test_demo_formation_waits_a_beat(world):
+    """Moment 4: in DEMO_MODE the group forms a few seconds after size.min, so 'gathering' shows first."""
+    import asyncio
+
+    world.params["demo"]["syntheticDelayS"] = [0.05, 0.05]
+
+    async def go():
+        j = joins.join(world, "u_maya", "pl_hero")
+        assert j["status"] == "interested" and j["meetupId"] is None
+        await asyncio.sleep(0.2)
+        return joins.list_joins(world, "u_maya")[0]
+
+    j = asyncio.run(go())
+    assert j["status"] == "matched" and j["meetupId"]
+
+
+def test_demo_formation_skipped_if_someone_withdrew(world):
+    import asyncio
+
+    world.params["demo"]["syntheticDelayS"] = [0.05, 0.05]
+
+    async def go():
+        joins.join(world, "u_maya", "pl_hero")
+        joins.withdraw(world, "u_maya", "pl_hero")
+        await asyncio.sleep(0.2)
+
+    asyncio.run(go())
+    assert world.plans["pl_hero"]["status"] == "open" and not world.meetups

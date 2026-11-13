@@ -164,12 +164,13 @@ def setup_review(interest_labels: list[str]) -> str:
 
 
 def nudge(signal_label: str, plan: dict) -> tuple[str, str]:
-    """(title, text), e.g. ("Lands End Trail on Sunday?", "You've been to ... Sunday coastal walk is open. Want in?")"""
+    """(title, text), e.g. ("Lands End Trail on Sunday?", "You've been to ... 5 people are in. Want in?")"""
     p = public_plan(plan)
     title = f"{p['venue'] or p['title']} on {day(p['startsAt'])}?" if p["startsAt"] else f"{p['title']}?"
-    return title[:80], f"{signal_label}. {p['title'] or 'A plan'}{on_day(p['title'], p['startsAt'])} is open. Want in?"[
-        :160
-    ]
+    n = (plan.get("crowd") or {}).get("interestedCount", 0)
+    crowd = f" {n} people are in." if n >= 2 else ""
+    text = f"{signal_label}. {p['title'] or 'A plan'}{on_day(p['title'], p['startsAt'])} is open.{crowd} Want in?"
+    return title[:80], text[:160]
 
 
 # ---------- live Copy (ports.Copy) ----------
