@@ -28,11 +28,7 @@ jest.mock('expo-haptics', () => ({
   notificationAsync: jest.fn(async () => {}),
   NotificationFeedbackType: { Success: 'success' },
 }));
-jest.mock('react-native-reanimated', () => ({
-  __esModule: true,
-  default: { View: require('react-native').View },
-  FadeInDown: {},
-}));
+jest.mock('react-native-reanimated', () => require('./reanimated.cjs'));
 jest.mock('react-native-maps', () => ({ __esModule: true, default: 'MapView', Marker: 'Marker' }));
 jest.mock('../../src/platform/scopedStorage', () => {
   let saved = null;

@@ -7,6 +7,7 @@ Milestone: v2 M2 device layer (A2, `cg/ios/v2-m2-device`)
 - 2026-11-12 A1 (`cg/ios/v2-m0-core`): v2 types and tolerant decoders for every JSON operation, api client for all 42 REST operations (30 s timeout for askMuse/createPlan/connectConnector), mock serving every operation from `fixtures.json`, contract test rewritten for v2, store actions frozen, STUB screens for slices B and C, all routes, v1 map-era code deleted.
 - 2026-11-12 A1 review fixes: Retry reruns the store action (none for decideApproval, C8); a successful load clears the error; failed start stays not-ready; a generation counter drops stale responses after reset/setIdentity. Array selectors are cached (useCg-safe).
 - 2026-11-12 A2: staged mock, `realtime.ts`, `calendar.ts`, `notifications.ts`.
+- 2026-11-12 batch4 motion (`cg/ios/batch4-motion`): `ui.tsx` exports `enter(i)`, `PressScale`, `Skeleton`, `Pop`, `MuseThinking` (all reduce-motion aware; only Skeleton loops); Pill uses PressScale. Jest tests mock reanimated via `tests/common-ground/reanimated.cjs`.
 
 ## Decisions
 

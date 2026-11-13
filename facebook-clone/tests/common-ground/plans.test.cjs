@@ -21,6 +21,7 @@ jest.mock('expo-router', () => ({
   useFocusEffect: (cb) => require('react').useEffect(cb, [cb]),
 }));
 jest.mock('@expo/vector-icons/Ionicons', () => 'Icon');
+jest.mock('react-native-reanimated', () => require('./reanimated.cjs'));
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: require('react-native').View }));
 jest.mock('expo-image', () => ({ Image: 'Image' }));
 jest.mock('expo-blur', () => ({ BlurView: 'BlurView' }));
