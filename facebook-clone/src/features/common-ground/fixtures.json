@@ -282,6 +282,16 @@
         "signalCount": 2
       },
       {
+        "provider": "google_calendar",
+        "label": "Google Calendar",
+        "reads": "When you're busy. Never what your events are.",
+        "status": "not_connected",
+        "simulated": true,
+        "connectedAt": null,
+        "lastSyncAt": null,
+        "signalCount": 0
+      },
+      {
         "provider": "strava",
         "label": "Strava",
         "reads": "Your regular runs and rides: activity, area, day and time.",
