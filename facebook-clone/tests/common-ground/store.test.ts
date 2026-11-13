@@ -345,6 +345,7 @@ test('realtime events refetch what CONTRACTS §6 names; meetup.step merges; unkn
       mt_1: { meetupId: 'mt_1', museSteps: [step('a')] } as never,
     },
     messages: { th_1: [] },
+    plans: { pl_open: {} as never },
   });
   const ev = (type: string, data: Record<string, unknown> = {}) =>
     handleEvent({ type, eventId: 'e', at: '', data });
@@ -357,7 +358,8 @@ test('realtime events refetch what CONTRACTS §6 names; meetup.step merges; unkn
       ['b', 'queued'],
     ],
   );
-  ev('join.updated');
+  ev('join.updated', { planId: 'pl_open' }); // open plan page refetches its own copy
+  ev('join.updated', { planId: 'pl_closed' });
   ev('approval.requested', { meetupId: 'mt_1' });
   ev('message.created', { threadId: 'th_1' });
   ev('message.created', { threadId: 'th_unopened' });
@@ -366,6 +368,9 @@ test('realtime events refetch what CONTRACTS §6 names; meetup.step merges; unkn
   ev('constructor');
   Object.assign(load, real);
   assert.deepEqual(called, [
+    'joins',
+    'feed',
+    'plan:pl_open',
     'joins',
     'feed',
     'approvals',

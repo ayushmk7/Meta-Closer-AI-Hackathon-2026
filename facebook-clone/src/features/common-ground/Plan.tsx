@@ -217,7 +217,8 @@ export function BottomBar({ plan, surprise = false }: { plan: PlanDetail; surpri
           style={{ minHeight: 44, justifyContent: 'center', flex: 1 }}
         >
           <Label style={{ color: c.blue, fontWeight: '600' }}>
-            Group size · {current.min}–{current.max}
+            Group size ·{' '}
+            {current.min === current.max ? current.min : `${current.min}–${current.max}`}
           </Label>
         </Pressable>
         {plusOneOn && (
