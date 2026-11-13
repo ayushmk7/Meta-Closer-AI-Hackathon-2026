@@ -31,6 +31,14 @@ test('Common Ground contributes exactly one of each extension point, registered 
         label: 'Meetups settings',
         href: '/common-ground/settings',
       },
+      titles: {
+        settings: 'Settings',
+        person: 'Profile',
+        passport: 'Your passport',
+        scan: 'Verify in person',
+        explore: 'Explore',
+        demo: 'Demo',
+      },
     },
   );
   assert.equal(c.menuItems[0].icon, 'sparkles-outline');

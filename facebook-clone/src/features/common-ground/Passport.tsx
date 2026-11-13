@@ -14,7 +14,6 @@ import {
   Label,
   Muted,
   Page,
-  Title,
   useColors,
 } from '../../ui/native';
 import { activityIcon } from './PlanCard';
@@ -179,20 +178,7 @@ export default function PassportScreen() {
   return (
     <Page>
       <Banners />
-      {/* Web: the back row (#84) already shows the title. */}
-      {/* ponytail: native only; web has no share entry (lead: native-only batch). */}
-      {Platform.OS !== 'web' && (
-        <Title
-          aside={
-            sharing &&
-            earned > 0 && (
-              <IconButton name="share-outline" label="Share your passport" onPress={share} />
-            )
-          }
-        >
-          Your passport
-        </Title>
-      )}
+      {/* The title is in the shell bar. */}
       <Card
         style={{
           padding: 16,
@@ -200,6 +186,18 @@ export default function PassportScreen() {
           backgroundColor: c.brand,
         }}
       >
+        {/* Share sits in the hero's top-right, outside the accessible group so VoiceOver still
+            reaches it (native only: web has no share entry). */}
+        {Platform.OS !== 'web' && sharing && earned > 0 && (
+          <View style={{ position: 'absolute', top: 18, right: 8, zIndex: 1 }}>
+            <IconButton
+              name="share-outline"
+              label="Share your passport"
+              color="#fff"
+              onPress={share}
+            />
+          </View>
+        )}
         <View
           accessible
           accessibilityLabel={

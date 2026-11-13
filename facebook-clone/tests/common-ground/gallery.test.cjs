@@ -169,7 +169,7 @@ test('Explore filters by activity and neighborhood', async () => {
   expect(byHood.length).toBeGreaterThan(0);
   expect(byHood.every((s) => s.venue.neighborhood === hood)).toBe(true);
   const { text } = await render(React.createElement(ExploreScreen));
-  expect(text()).toContain('Explore');
+  expect(text()).toContain('Meetups people nearby went to'); // the title is in the shell bar
   expect(text()).toContain('Ceramics studio');
   for (const p of people) expect(text()).not.toContain(p);
 });

@@ -25,6 +25,15 @@ export const commonGroundFeature: FeatureDefinition = {
         label: 'Meetups settings',
         href: '/common-ground/settings',
       },
+      // The shell bar names these pushed screens (same names as the web back row).
+      titles: {
+        settings: 'Settings',
+        person: 'Profile',
+        passport: 'Your passport',
+        scan: 'Verify in person',
+        explore: 'Explore',
+        demo: 'Demo',
+      },
     },
   ],
   menuItems: [
