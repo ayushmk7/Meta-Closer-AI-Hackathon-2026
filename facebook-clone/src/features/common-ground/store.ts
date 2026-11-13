@@ -363,11 +363,13 @@ export async function disconnect(provider: string): Promise<boolean> {
 // ---- Muse bar ----
 // Errors keep the typed text: the caller keeps its input; `muse.lastText` holds what was sent.
 export async function askMuse(text: string): Promise<MuseReply | undefined> {
+  const g = gen;
   setState({ muse: { ...state.muse, asking: true, lastText: text } });
   const reply = await act(
     () => api.askMuse(text, state.muse.conversationId),
     () => askMuse(text),
   );
+  if (g !== gen) return undefined; // switched identity: never hand one person's conversation to the next
   setState({
     muse: {
       ...state.muse,
@@ -561,6 +563,7 @@ export async function sendMessage(
   text: string,
   opts: { toMuse?: boolean } = {},
 ): Promise<void> {
+  const g = gen;
   const clientId = `c_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
   const temp: Message = {
     messageId: `pending:${clientId}`,
@@ -578,6 +581,7 @@ export async function sendMessage(
   setState({ messages: put([...list(), temp]), drafts });
   try {
     const sent = await api.sendMessage(threadId, text, clientId, !!opts.toMuse);
+    if (g !== gen) return; // switched identity mid-send
     const echoed = list().some((m) => m.clientId === clientId && m !== temp);
     setState({
       messages: put(
@@ -585,6 +589,7 @@ export async function sendMessage(
       ),
     });
   } catch (e) {
+    if (g !== gen) return;
     // Failed sends keep the typed text as a draft.
     setState({
       messages: put(list().filter((m) => m !== temp)),
