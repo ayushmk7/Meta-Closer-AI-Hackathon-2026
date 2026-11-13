@@ -67,9 +67,10 @@ const named =
   () =>
     name;
 export const PlansScreen = page(Plans, null);
-export const PlanScreen = page(Plan, (s, p) => s.plans[p.planId ?? '']?.title);
+// Plan and meetup show their title as a hero, so the row just says Back.
+export const PlanScreen = page(Plan, named('Back'));
 export const SetupScreen = page(Setup, named('Plans'));
-export const MeetupScreen = page(Meetup, (s, p) => s.meetups[p.meetupId ?? '']?.title);
+export const MeetupScreen = page(Meetup, named('Back'));
 export const ChatScreen = page(
   Chat,
   (s, p) => s.threads.find((t) => t.threadId === p.threadId)?.title,

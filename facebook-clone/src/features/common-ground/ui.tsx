@@ -1,7 +1,6 @@
 // Shared Common Ground pieces, built only from the clone's tokens and primitives.
 import { useCallback, useEffect, useRef, type ReactNode } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
-import { BlurView } from 'expo-blur';
+import { Pressable, View } from 'react-native';
 import { Image } from 'expo-image';
 import { router, useFocusEffect } from 'expo-router';
 import { imageSource } from '../../data/media';
@@ -127,11 +126,13 @@ export function PersonAvatar({ person, size = 40 }: { person: PersonCard; size?:
       accessibilityLabel={personName(person)}
       style={[box, { alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }]}
     >
-      <Label style={{ fontWeight: '700', fontSize: Math.round(size * 0.36) }}>
-        {person.initials}
-      </Label>
-      {person.profileVisibility === 'private' && (
-        <BlurView intensity={12} tint="default" style={StyleSheet.absoluteFill} />
+      {person.profileVisibility === 'private' ? (
+        // Facebook's default avatar: a gray person silhouette, no initials.
+        <Icon name="person" size={Math.round(size * 0.6)} color={c.secondary} />
+      ) : (
+        <Label style={{ fontWeight: '700', fontSize: Math.round(size * 0.36) }}>
+          {person.initials}
+        </Label>
       )}
     </View>
   );
