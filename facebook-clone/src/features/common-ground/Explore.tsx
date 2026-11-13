@@ -1,7 +1,7 @@
 // Explore: the anonymous gallery of plans people went to, as a Facebook-style feed.
 import { useEffect, useState } from 'react';
-import { Platform, View } from 'react-native';
-import { Card, Chips, Empty, Muted, Page, Title } from '../../ui/native';
+import { View } from 'react-native';
+import { Card, Chips, Empty, Muted, Page } from '../../ui/native';
 import ShareCard, { activityLabel } from './ShareCard';
 import { load, useCg } from './store';
 import type { Share } from './types';
@@ -29,9 +29,8 @@ export default function ExploreScreen() {
   return (
     <Page>
       <Banners />
-      {/* Web: the Shell's back row already shows the screen title. */}
-      {Platform.OS !== 'web' && <Title>Explore</Title>}
-      <Muted style={{ paddingHorizontal: 16, marginTop: Platform.OS === 'web' ? 8 : -16 }}>
+      {/* The screen title is in the shell bar (web back row, native top bar). */}
+      <Muted style={{ paddingHorizontal: 16, marginTop: 8 }}>
         Meetups people nearby went to. No names or faces.
       </Muted>
       <Card style={{ paddingTop: 12 }}>

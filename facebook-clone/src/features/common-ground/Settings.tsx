@@ -1,8 +1,8 @@
 // Settings (PRD-1 §8.6) plus the preference pieces the setup flow reuses.
 import { useEffect } from 'react';
-import { Alert, Platform, Pressable, Switch, View } from 'react-native';
+import { Alert, Pressable, Switch, View } from 'react-native';
 import { router } from 'expo-router';
-import { Button, Icon, Label, Muted, Page, Title, useColors } from '../../ui/native';
+import { Button, Icon, Label, Muted, Page, useColors } from '../../ui/native';
 import { api } from './api';
 import Connectors from './Connectors';
 import Rewards from './Rewards';
@@ -251,8 +251,6 @@ export default function SettingsScreen() {
   return (
     <Page style={{ paddingHorizontal: 0 }}>
       <Banners />
-      {/* Web: the Shell's back row already shows the screen title. */}
-      {Platform.OS !== 'web' && <Title>Settings</Title>}
       {available.length > 1 && (
         <Section title="Where Muse looks">
           <PillRow
