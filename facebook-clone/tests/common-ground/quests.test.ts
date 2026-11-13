@@ -58,7 +58,7 @@ test('streak: once per day, kept through yesterday, broken by a missed day', () 
   );
 });
 
-test('passport: stamps only from completed meetups I checked in to or verified', () => {
+test('passport: stamps from meetups I checked in to or was verified at, before completion', () => {
   const base = fixtures.getMeetup as unknown as Meetup;
   const withMe = (patch: object, status = 'completed') => ({
     ...base,
@@ -73,7 +73,11 @@ test('passport: stamps only from completed meetups I checked in to or verified',
   assert.deepEqual(earned([withMe({ checkedIn: true })]), ['activity', 'neighborhood', 'venue']);
   assert.deepEqual(earned([withMe({ verified: true })]).length, 3);
   assert.deepEqual(earned([withMe({})]), [], 'no check-in, no stamp');
-  assert.deepEqual(earned([withMe({ checkedIn: true }, 'confirmed')]), [], 'not completed yet');
+  assert.equal(
+    earned([withMe({ checkedIn: true }, 'confirmed')]).length,
+    3,
+    'check-in earns at once',
+  );
   assert.equal(
     earned([withMe({ verified: true }, 'confirmed')]).length,
     3,

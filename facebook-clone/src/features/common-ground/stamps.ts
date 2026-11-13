@@ -22,7 +22,7 @@ const keysOf = (x: { activityType: string; venue: Venue }): [StampKind, string, 
   ['venue', x.venue.venueId, x.venue.name],
 ];
 
-// Earned: verified in person at a meetup (the moment it happens), or a completed meetup I checked in to. Locked: anything else I've seen
+// Earned the moment I'm verified in person or checked in at a meetup (no wait for completion). Locked: anything else I've seen
 // (feed, plans, other meetups), so the grid shows what's left to collect. Earned first.
 export function stamps(meetups: Meetup[], seen: { activityType: string; venue: Venue }[]): Stamp[] {
   const out = new Map<string, Stamp>();
@@ -34,7 +34,7 @@ export function stamps(meetups: Meetup[], seen: { activityType: string; venue: V
   };
   for (const m of meetups) {
     const me = m.attendees.find((a) => a.isMe);
-    add(m, !!me?.verified || (m.status === 'completed' && !!me?.checkedIn));
+    add(m, !!(me?.verified || me?.checkedIn));
   }
   seen.forEach((x) => add(x, false));
   return [...out.values()].sort((a, b) => Number(b.earned) - Number(a.earned));
