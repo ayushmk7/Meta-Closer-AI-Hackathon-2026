@@ -255,3 +255,39 @@ test('the header does not repeat the count when eventLabel carries it', async ()
   // Visible text only (the avatar row's accessibilityLabel keeps the count for VoiceOver).
   expect(text().match(/"children":\[[^\]]*3 going/g)).toHaveLength(1);
 });
+
+test('feedback: Yes/No as selected pills, a hint until complete, then a thank-you', async () => {
+  const m = clone(F.getMeetup);
+  m.feedbackDue = true;
+  jest.spyOn(api, 'sendFeedback').mockResolvedValue(undefined);
+  const { press, tree, text } = await show(m);
+  expect(text()).toContain('Answer for Daniel and Rosa to send.');
+  await press('Did Daniel show up? Yes');
+  const yes = tree.root.find(
+    (n) => n.props.accessibilityLabel === 'Did Daniel show up? Yes' && n.props.accessibilityState,
+  );
+  expect(yes.props.accessibilityState.selected).toBe(true);
+  await press('Would you meet Daniel again? Yes');
+  expect(text()).toContain('Answer for Rosa to send.');
+  await press('Did Rosa show up? Yes');
+  await press('Would you meet Rosa again? No');
+  expect(text()).not.toContain('Answer for');
+  await press('Send feedback');
+  expect(text()).toContain('Thanks. Feedback sent.');
+  expect(text()).not.toContain('How did it go?');
+});
+
+test('confirmed: a summary row replaces the collapsed steps; chat sits under the header', async () => {
+  const m = confirmedNow();
+  m.museSteps.forEach((s) => (s.status = 'done'));
+  m.booking.status = 'booked';
+  m.cost.myPayment = 'paid';
+  m.calendar.desired = 'event';
+  m.checkinWindow = null;
+  const config = store.getState().config;
+  store.setState({ config: { ...config, demo: { ...config.demo, relaxCheckin: false } } });
+  const { byLabel } = await show(m);
+  expect(byLabel('Booked, paid and on your calendar, done')).toBeTruthy();
+  expect(byLabel('Open group chat').props.accessibilityState.disabled).toBe(false);
+  await renderer.act(async () => store.setState({ config }));
+});

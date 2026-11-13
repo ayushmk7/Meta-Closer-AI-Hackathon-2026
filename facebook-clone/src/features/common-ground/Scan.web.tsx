@@ -1,9 +1,21 @@
 // Verify in person, web: my code as text + typed entry of theirs (no camera, no network beyond the mock).
 // ponytail: native Scan.tsx imports ScanPage from here and adds the QR and the camera as children.
 import { useRef, useState, type ReactNode } from 'react';
-import { View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Button, Card, Icon, Input, Label, Muted, Page, Title, useColors } from '../../ui/native';
+import {
+  Button,
+  Card,
+  Icon,
+  Input,
+  Label,
+  Muted,
+  Page,
+  Title,
+  go,
+  useColors,
+} from '../../ui/native';
+import { stamps } from './stamps';
 import { load, useCg, verifyAttendee } from './store';
 import type { VerifyResult } from './types';
 import { Banners, NotFound, personName, usePoll } from './ui';
@@ -62,6 +74,11 @@ export function ScanPage({
       </Page>
     );
   const done = !!result?.accepted;
+  // The activity stamp this meetup gives (stamps.ts labels; verified counts as attended).
+  // ponytail: passes the meetup as completed; Passport itself earns it once the meetup completes.
+  const stamp = stamps([{ ...m, status: 'completed' }], []).find(
+    (x) => x.kind === 'activity',
+  )?.label;
   return (
     <Page>
       <Banners />
@@ -115,6 +132,20 @@ export function ScanPage({
               color={result.accepted ? c.online : c.secondary}
             />
             <Label style={{ flex: 1 }}>{resultText(result)}</Label>
+          </View>
+        )}
+        {done && (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Icon name="ribbon" size={22} color={c.blue} />
+            <Label style={{ flex: 1, fontWeight: '600' }}>{`Stamp earned: ${stamp}`}</Label>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="See passport"
+              onPress={() => go('/common-ground/passport')}
+              style={{ minHeight: 44, justifyContent: 'center' }}
+            >
+              <Label style={{ color: c.blue, fontWeight: '600' }}>See passport</Label>
+            </Pressable>
           </View>
         )}
         {done && <Button title="Back to the plan" onPress={() => router.back()} />}

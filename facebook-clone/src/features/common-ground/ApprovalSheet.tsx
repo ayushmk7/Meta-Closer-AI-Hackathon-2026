@@ -76,7 +76,7 @@ export default function ApprovalSheet({ approval: a }: { approval: Approval }) {
           </View>
           {!!a.fallback && <Muted>{a.fallback}</Muted>}
           <Button
-            title="Approve"
+            title={a.amountCents != null ? `Approve ${amountOf(a)}` : 'Approve'}
             disabled={!amountShown || busy || !pending}
             onPress={() => void decide('approve')}
           />

@@ -31,6 +31,7 @@ import {
   NotFound,
   PersonAvatar,
   personName,
+  Pill,
   Section,
   usePoll,
   when,
@@ -43,6 +44,19 @@ const day = (d: Date | string, opts: Intl.DateTimeFormatOptions = {}) =>
 const firstName = (a: Attendee) => personName(a.person).split(' ')[0]!;
 const listName = (a: Attendee) =>
   a.person.profileVisibility === 'private' ? firstName(a) : personName(a.person);
+// "Daniel", "Daniel and Rosa", "Ana, Daniel and Rosa"
+const names = (xs: string[]) =>
+  xs.length > 1 ? `${xs.slice(0, -1).join(', ')} and ${xs.at(-1)}` : (xs[0] ?? '');
+// Collapsed confirmed timeline: "Booked, paid and on your calendar".
+const summary = (m: Meetup) => {
+  const done = [
+    m.booking.status === 'booked' && 'booked',
+    m.cost.myPayment === 'paid' && 'paid',
+    m.calendar?.desired === 'event' && 'on your calendar',
+  ].filter((x): x is string => !!x);
+  const text = done.length ? names(done) : 'all set';
+  return text.charAt(0).toUpperCase() + text.slice(1);
+};
 const PAYMENT: Record<string, string> = {
   not_needed: 'Nothing to pay',
   pending_approval: 'Waiting for your OK',
@@ -98,7 +112,7 @@ function openDirections(m: Meetup) {
   ]);
 }
 
-function Feedback({ m }: { m: Meetup }) {
+function Feedback({ m, onSent }: { m: Meetup; onSent(): void }) {
   const others = m.attendees.filter((a) => !a.isMe);
   const [answers, setAnswers] = useState<
     Record<string, { showedUp?: boolean; meetAgain?: boolean }>
@@ -111,6 +125,12 @@ function Feedback({ m }: { m: Meetup }) {
     (a) =>
       answers[a.person.userId]?.showedUp != null && answers[a.person.userId]?.meetAgain != null,
   );
+  const missing = others
+    .filter(
+      (a) =>
+        answers[a.person.userId]?.showedUp == null || answers[a.person.userId]?.meetAgain == null,
+    )
+    .map(firstName);
   const set = (id: string, key: 'showedUp' | 'meetAgain', v: boolean) =>
     setAnswers((x) => ({ ...x, [id]: { ...x[id], [key]: v } }));
   const send = async () => {
@@ -127,7 +147,10 @@ function Feedback({ m }: { m: Meetup }) {
     };
     const ok = await act(() => api.sendFeedback(m.meetupId, body).then(() => true));
     setSending(false);
-    if (ok) put({ ...m, feedbackDue: false });
+    if (ok) {
+      onSent();
+      put({ ...m, feedbackDue: false });
+    }
   };
   return (
     <Section title="How did it go?">
@@ -146,13 +169,12 @@ function Feedback({ m }: { m: Meetup }) {
               <View key={key} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 <Muted style={{ flex: 1 }}>{q}</Muted>
                 {([true, false] as const).map((yes) => (
-                  <Button
+                  <Pill
                     key={String(yes)}
-                    title={yes ? 'Yes' : 'No'}
+                    label={yes ? 'Yes' : 'No'}
                     accessibilityLabel={`${q} ${yes ? 'Yes' : 'No'}`}
-                    secondary={v[key] !== yes}
+                    selected={v[key] === yes}
                     onPress={() => set(a.person.userId, key, yes)}
-                    style={{ minHeight: 44 }}
                   />
                 ))}
               </View>
@@ -186,6 +208,7 @@ function Feedback({ m }: { m: Meetup }) {
         })}
       <FeedbackExtras value={extras} onChange={setExtras} />
       <Button title="Send feedback" disabled={!complete || sending} onPress={() => void send()} />
+      {!complete && <Muted>{`Answer for ${names(missing)} to send.`}</Muted>}
     </Section>
   );
 }
@@ -197,6 +220,7 @@ export default function MeetupScreen() {
   const config = useCg((s) => s.config);
   const ready = useCg((s) => s.ready);
   const [stepsOpen, setStepsOpen] = useState(false);
+  const [feedbackSent, setFeedbackSent] = useState(false);
   const [checkin, setCheckin] = useState<string | null>(null);
   // Steps that arrive after confirmation (a reschedule) re-open the collapsed timeline.
   const seenSteps = useRef<number | null>(null);
@@ -302,10 +326,27 @@ export default function MeetupScreen() {
             {/* eventLabel already carries the count ("Private event · 3 going") */}
             {!m.eventLabel && <Muted style={{ marginLeft: 6 }}>{going.length} going</Muted>}
           </View>
+          <Button
+            title="Open group chat"
+            icon="chatbubbles-outline"
+            secondary={canCheckIn} // one primary: Check in on the day, the chat otherwise
+            onPress={() => go(`/common-ground/chat/${m.threadId}`)}
+            style={{ marginTop: 8 }}
+          />
         </View>
       </Card>
 
       <Section title={m.status === 'confirmed' ? 'Muse set this up' : 'Muse is setting this up'}>
+        {!showSteps && (
+          <View
+            accessible
+            accessibilityLabel={`${summary(m)}, done`}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 44 }}
+          >
+            <Icon name="checkmark-circle" size={22} color={c.online} />
+            <Label style={{ flex: 1 }}>{summary(m)}</Label>
+          </View>
+        )}
         {m.status === 'confirmed' && (
           <Link
             title={stepsOpen ? 'Hide steps' : `See all ${m.museSteps.length} steps`}
@@ -435,30 +476,29 @@ export default function MeetupScreen() {
       )}
 
       <VerifyButton m={m} />
-      {m.feedbackDue && <Feedback m={m} />}
+      {feedbackSent ? (
+        <Card style={{ padding: 16, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <Icon name="checkmark-circle" size={22} color={c.online} />
+          <Label>Thanks. Feedback sent.</Label>
+        </Card>
+      ) : (
+        m.feedbackDue && <Feedback m={m} onSent={() => setFeedbackSent(true)} />
+      )}
       <ShareMeetup m={m} />
       <SameTimeNextWeek m={m} />
 
-      <Card style={{ padding: 16, gap: 8 }}>
-        <Button
-          title="Open group chat"
-          icon="chatbubbles-outline"
-          secondary={canCheckIn} // one primary: Check in on the day, the chat otherwise
-          onPress={() => go(`/common-ground/chat/${m.threadId}`)}
-        />
-        {!left && m.status !== 'cancelled' && m.status !== 'completed' && (
-          <>
-            <Button
-              title="Ask Muse to change it"
-              icon="sparkles-outline"
-              secondary
-              onPress={askMuse}
-            />
-            <Divider />
-            <Button title="Can't make it" secondary onPress={cantMakeIt} />
-          </>
-        )}
-      </Card>
+      {!left && m.status !== 'cancelled' && m.status !== 'completed' && (
+        <Card style={{ padding: 16, gap: 8 }}>
+          <Button
+            title="Ask Muse to change it"
+            icon="sparkles-outline"
+            secondary
+            onPress={askMuse}
+          />
+          <Divider />
+          <Button title="Can't make it" secondary onPress={cantMakeIt} />
+        </Card>
+      )}
     </Page>
   );
 }
