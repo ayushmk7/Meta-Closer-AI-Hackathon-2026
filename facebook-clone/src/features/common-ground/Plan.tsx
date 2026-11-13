@@ -5,9 +5,10 @@ import * as Haptics from 'expo-haptics';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Button, Card, Icon, Label, Muted, Page, Sheet, go, useColors } from '../../ui/native';
 import { PlanPhoto, checkText, dayTime, duration, whosIn } from './PlanCard';
-import { join, load, useCg, withdraw } from './store';
+import { getState, join, load, useCg, withdraw } from './store';
+import { pickSurprise } from './SurpriseButton';
 import type { GroupSize, PlanDetail } from './types';
-import { Banners, GroupSizePicker, NotFound, Section, usePoll } from './ui';
+import { Banners, GroupSizePicker, NotFound, PersonAvatar, Section, usePoll } from './ui';
 import VenueMap from './VenueMap';
 
 // "google_maps" -> "Google Maps" when no connector label is known.
@@ -19,7 +20,7 @@ export function SetupPrompt() {
   return (
     <Card style={{ margin: 16, padding: 16, gap: 8 }}>
       <Label accessibilityRole="header" style={{ fontSize: 17, fontWeight: '700' }}>
-        Plans with Muse
+        Plans
       </Label>
       <Muted>Muse can find things to do with people who are into what you&apos;re into.</Muted>
       <Button title="Get started" onPress={() => router.replace('/common-ground/setup')} />
@@ -51,10 +52,23 @@ function Block({ title, children }: { title: string; children: React.ReactNode }
   );
 }
 
-export function BottomBar({ plan }: { plan: PlanDetail }) {
+// "Try another" on a Surprise me plan: a fresh pick from the feed, never this plan again.
+function tryAnother(planId: string) {
+  const s = getState();
+  const p =
+    s.feed &&
+    pickSurprise(
+      s.feed.plans.filter((x) => x.planId !== planId),
+      s.joins,
+    );
+  if (p) router.replace(`/common-ground/plan/${p.planId}?from=surprise`);
+}
+
+export function BottomBar({ plan, surprise = false }: { plan: PlanDetail; surprise?: boolean }) {
   const c = useColors();
   const myJoin = plan.myJoin && plan.myJoin.status !== 'withdrawn' ? plan.myJoin : null;
   const joinRow = useCg((s) => s.joins.find((j) => j.planId === plan.planId));
+  const meetup = useCg((s) => (joinRow?.meetupId ? s.meetups[joinRow.meetupId] : undefined));
   const limits = useCg((s) => s.config?.limits);
   const plusOneOn = useCg((s) => !!s.config?.features.plusOne);
   const cap = useCg((s) => s.me?.capabilities.maxGroupSize);
@@ -65,20 +79,40 @@ export function BottomBar({ plan }: { plan: PlanDetail }) {
 
   if (myJoin?.status === 'matched') {
     const meetupId = joinRow?.meetupId;
+    const going = meetup?.attendees.filter((a) => a.rsvp === 'going') ?? [];
     return (
-      <Button
-        title="Open plan"
-        disabled={!meetupId}
-        onPress={() => meetupId && go(`/common-ground/meetup/${meetupId}`)}
-      />
+      <View style={{ gap: 12 }}>
+        <View
+          accessibilityLiveRegion="polite"
+          style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}
+        >
+          <Icon name="checkmark-circle" size={22} color={c.online} />
+          <Label style={{ flex: 1, fontWeight: '700' }}>
+            {`Your group is set · ${going.length || plan.crowd.interestedCount} going`}
+          </Label>
+          <View style={{ flexDirection: 'row' }}>
+            {going.slice(0, 4).map((a, i) => (
+              <View key={a.person.userId} style={{ marginLeft: i ? -8 : 0 }}>
+                <PersonAvatar person={a.person} size={28} />
+              </View>
+            ))}
+          </View>
+        </View>
+        <Button
+          title="Open plan"
+          disabled={!meetupId}
+          onPress={() => meetupId && go(`/common-ground/meetup/${meetupId}`)}
+        />
+      </View>
     );
   }
   if (myJoin?.status === 'interested') {
     const p = joinRow?.progress;
+    const more = p ? p.needed - p.joined : 0;
     return (
       <View style={{ gap: 8 }}>
         <Label accessibilityLiveRegion="polite" style={{ textAlign: 'center' }}>
-          {`You're in · Muse is gathering people${p ? ` · ${p.joined} of ${p.needed}` : ''}`}
+          {more > 0 ? `You're in. Muse needs ${more} more.` : "You're in."}
         </Label>
         <Button
           title="Can't make it"
@@ -105,17 +139,30 @@ export function BottomBar({ plan }: { plan: PlanDetail }) {
   const current = size ?? clamp(plan.size, bounds);
   return (
     <View style={{ gap: 8 }}>
-      <Button
-        title="I'm in"
-        onPress={() => {
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
-          // ponytail: Join.calendar hold is applied by A2's calendar reconciler, not here.
-          void join(plan.planId, {
-            ...(size ? { size } : {}),
-            ...(plusOneOn && plusOne ? { plusOne } : {}),
-          });
-        }}
-      />
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
+        <Button
+          title="I'm in"
+          style={{ flex: 1 }}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+            // ponytail: Join.calendar hold is applied by A2's calendar reconciler, not here.
+            void join(plan.planId, {
+              ...(size ? { size } : {}),
+              ...(plusOneOn && plusOne ? { plusOne } : {}),
+            });
+          }}
+        />
+        {surprise && (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Try another"
+            onPress={() => tryAnother(plan.planId)}
+            style={{ minHeight: 44, justifyContent: 'center' }}
+          >
+            <Label style={{ color: c.blue, fontWeight: '600' }}>Try another</Label>
+          </Pressable>
+        )}
+      </View>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
         <Pressable
           accessibilityRole="button"
@@ -153,7 +200,8 @@ export function BottomBar({ plan }: { plan: PlanDetail }) {
 
 export default function PlanScreen() {
   const c = useColors();
-  const { planId = '' } = useLocalSearchParams<{ planId: string }>();
+  const { planId = '', from } = useLocalSearchParams<{ planId: string; from?: string }>();
+  const surprise = from === 'surprise'; // opened by Surprise me
   const plan = useCg((s) => s.plans[planId]);
   const missing = useCg((s) => !!s.missingPlans[planId]);
   const connectors = useCg((s) => s.connectors);
@@ -190,6 +238,14 @@ export default function PlanScreen() {
         <PlanPhoto plan={plan} height={200} />
         <View style={{ paddingVertical: 16, gap: 16 }}>
           <View style={{ gap: 4, paddingHorizontal: 16 }}>
+            {surprise && (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Icon name="sparkles" size={16} color={c.blue} />
+                <Label style={{ color: c.blue, fontSize: 13, fontWeight: '600' }}>
+                  Muse picked this for you
+                </Label>
+              </View>
+            )}
             <Label
               accessibilityRole="header"
               style={{ fontSize: 24, lineHeight: 30, fontWeight: '800' }}
@@ -279,7 +335,7 @@ export default function PlanScreen() {
           backgroundColor: c.card,
         }}
       >
-        <BottomBar plan={plan} />
+        <BottomBar plan={plan} surprise={surprise} />
       </View>
     </View>
   );

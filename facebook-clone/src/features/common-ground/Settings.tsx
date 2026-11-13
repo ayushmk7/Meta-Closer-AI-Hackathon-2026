@@ -315,14 +315,14 @@ export default function SettingsScreen() {
         />
       </Section>
       <Rewards />
-      <Section title="Common Ground">
+      <Section title="Plans">
         <Button title="Edit setup" secondary onPress={() => router.push('/common-ground/setup')} />
         <Button
-          title="Leave Common Ground"
+          title="Leave Plans"
           secondary
           onPress={() =>
             Alert.alert(
-              'Leave Common Ground?',
+              'Leave Plans?',
               'Muse stops finding plans for you. You can come back any time.',
               [
                 { text: 'Cancel', style: 'cancel' },

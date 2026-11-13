@@ -69,7 +69,7 @@ export default function PersonScreen() {
         <Muted>
           {together
             ? `${together} ${together === 1 ? 'meetup' : 'meetups'} together`
-            : 'You met through Common Ground'}
+            : 'You met through Plans'}
         </Muted>
         {profile.sharedInterests.length > 0 && (
           <>

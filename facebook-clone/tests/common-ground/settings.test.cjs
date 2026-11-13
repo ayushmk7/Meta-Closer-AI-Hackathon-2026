@@ -117,14 +117,14 @@ test('sensitive signals show locked with their label only', async () => {
   expect(text()).toContain('Only you can see this');
 });
 
-test('Leave Common Ground confirms first, then opts out', async () => {
+test('Leave Plans confirms first, then opts out', async () => {
   const optOut = jest.spyOn(api, 'optOut');
   const { press } = await render(React.createElement(SettingsScreen));
   confirmWith('Cancel');
-  await press('Leave Common Ground');
+  await press('Leave Plans');
   expect(optOut).not.toHaveBeenCalled();
   confirmWith('Leave');
-  await press('Leave Common Ground');
+  await press('Leave Plans');
   await renderer.act(async () => {});
   expect(optOut).toHaveBeenCalled();
   expect(store.getState().me.optedIn).toBe(false);
